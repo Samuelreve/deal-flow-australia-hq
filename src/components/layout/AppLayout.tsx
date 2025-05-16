@@ -14,24 +14,32 @@ interface AppLayoutProps {
 const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
   const { isAuthenticated, user, loading } = useAuth();
   
-  // Show loading spinner while authentication state is being determined
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Comment out authentication checks to allow viewing without login
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center">
+  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  //     </div>
+  //   );
+  // }
   
-  // If not authenticated, redirect to login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  // // If not authenticated, redirect to login
+  // if (!isAuthenticated) {
+  //   return <Navigate to="/login" replace />;
+  // }
   
-  // If specific roles are required, check if user has permission
-  if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
+  // // If specific roles are required, check if user has permission
+  // if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
+  //   return <Navigate to="/unauthorized" replace />;
+  // }
+  
+  // Create a mock user if none exists
+  const mockUser = user || {
+    id: "mock-user-id",
+    name: "Demo User",
+    email: "demo@example.com",
+    role: "admin",
+  };
   
   return (
     <div className="min-h-screen bg-background">

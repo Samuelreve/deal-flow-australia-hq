@@ -19,11 +19,12 @@ const Dashboard = () => {
   const [deals, setDeals] = useState<DealSummary[]>([]);
   
   useEffect(() => {
-    if (user) {
-      // In a real app, this would be an API call
-      const userDeals = getMockDealSummariesForUser(user.id, user.role);
-      setDeals(userDeals);
-    }
+    // Always load mock data regardless of authentication status
+    // Use a mock user ID if user is not authenticated
+    const mockUserId = user?.id || "mock-user-id";
+    const mockUserRole = user?.role || "admin";
+    const userDeals = getMockDealSummariesForUser(mockUserId, mockUserRole as any);
+    setDeals(userDeals);
   }, [user]);
   
   return (
@@ -31,15 +32,13 @@ const Dashboard = () => {
       <div className="mb-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.name}</p>
+          <p className="text-muted-foreground">Welcome to the demo dashboard</p>
         </div>
         
-        {(user?.role === "seller" || user?.role === "admin") && (
-          <Button onClick={() => navigate("/deals/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Deal
-          </Button>
-        )}
+        <Button onClick={() => navigate("/deals/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Deal
+        </Button>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
