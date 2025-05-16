@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -12,6 +11,7 @@ import { FileText, MessageSquare, ChevronLeft, Calendar, Users, AlertCircle } fr
 import { Deal } from "@/types/deal";
 import { getMockDeal } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import DocumentManagement from "@/components/deals/DocumentManagement";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -165,45 +165,11 @@ const DealDetails = () => {
                   <CardTitle>Documents</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {deal.documents.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No documents yet</h3>
-                      <p className="text-muted-foreground mb-4">Upload documents to share with deal participants</p>
-                      <Button>Upload Document</Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {deal.documents.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-primary" />
-                            <div>
-                              <p className="font-medium">{doc.name}</p>
-                              <div className="flex items-center text-xs text-muted-foreground">
-                                <span>
-                                  {new Intl.DateTimeFormat("en-US", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric"
-                                  }).format(doc.uploadedAt)}
-                                </span>
-                                <span className="mx-1">•</span>
-                                <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
-                                {doc.status === "signed" && (
-                                  <>
-                                    <span className="mx-1">•</span>
-                                    <Badge variant="outline" className="text-xs">Signed</Badge>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm">View</Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <DocumentManagement
+                    dealId={deal.id}
+                    initialDocuments={deal.documents}
+                    userRole="admin"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
