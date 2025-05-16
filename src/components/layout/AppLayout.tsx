@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import { Loader2 } from "lucide-react";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -11,7 +12,16 @@ interface AppLayoutProps {
 }
 
 const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+  
+  // Show loading spinner while authentication state is being determined
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
