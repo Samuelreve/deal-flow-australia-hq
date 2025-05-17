@@ -12,13 +12,15 @@ interface NotificationItemProps {
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose?: () => void;
+  displayFull?: boolean; // Add this prop for full notification view
 }
 
 const NotificationItem = ({ 
   notification, 
   onMarkAsRead, 
   onDelete,
-  onClose 
+  onClose,
+  displayFull = false // Default to dropdown view
 }: NotificationItemProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -64,10 +66,11 @@ const NotificationItem = ({
   return (
     <div 
       className={cn(
-        "p-4 border-l-4 mb-2 rounded bg-card hover:bg-accent transition-colors",
+        "p-4 border-l-4 rounded bg-card hover:bg-accent transition-colors",
         getTypeStyles(),
         notification.read ? "opacity-70" : "",
         notification.link ? "cursor-pointer" : "",
+        displayFull ? "m-0" : "mb-2" // Adjust margin for full display
       )}
       onClick={notification.link ? handleNavigate : undefined}
     >

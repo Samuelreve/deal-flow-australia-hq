@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuFooter,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -89,6 +90,21 @@ export const NotificationsDropdown = () => {
             )}
           </DropdownMenuGroup>
         </ScrollArea>
+
+        <DropdownMenuFooter className="p-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={() => {
+              navigate("/notifications");
+              const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
+              if (trigger) trigger.click(); // Close the dropdown
+            }}
+          >
+            View all notifications
+          </Button>
+        </DropdownMenuFooter>
       </DropdownMenuContent>
     </DropdownMenu>
   );

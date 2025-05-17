@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import DealsPage from "./pages/DealsPage";
 import DealDetails from "./pages/DealDetails";
 import CreateDealPage from "./pages/CreateDealPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/deals" element={<DealsPage />} />
               <Route path="/deals/:id" element={<DealDetails />} />
               <Route path="/create-deal" element={<CreateDealPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
 
             {/* Catch-all route */}
