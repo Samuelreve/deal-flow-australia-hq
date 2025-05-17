@@ -1,6 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { DealStatus } from "@/types/deal";
+import { Badge } from "@/components/ui/badge";
 
 interface StatusBadgeProps {
   status: DealStatus;

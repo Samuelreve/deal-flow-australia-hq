@@ -3,6 +3,12 @@ import { useState, useEffect } from "react";
 import { DealStatus } from "@/types/deal";
 import { supabase } from "@/integrations/supabase/client";
 
+interface AllowedStatusesResponse {
+  current_status?: string;
+  allowed_statuses?: DealStatus[];
+  participant_role?: string;
+}
+
 export const useAllowedDealStatuses = (dealId: string) => {
   const [allowedStatuses, setAllowedStatuses] = useState<DealStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,9 +30,12 @@ export const useAllowedDealStatuses = (dealId: string) => {
           return;
         }
 
-        if (data && data.allowed_statuses) {
-          setAllowedStatuses(data.allowed_statuses as DealStatus[]);
+        const response = data as AllowedStatusesResponse;
+        
+        if (response && Array.isArray(response.allowed_statuses)) {
+          setAllowedStatuses(response.allowed_statuses as DealStatus[]);
         } else {
+          console.warn('Unexpected response format:', response);
           setAllowedStatuses([]);
         }
       } catch (error: any) {
