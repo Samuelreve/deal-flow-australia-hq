@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
-import { Session, User } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 
 // User types
 export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
