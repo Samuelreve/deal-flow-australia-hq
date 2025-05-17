@@ -1,4 +1,3 @@
-
 import { Bell, Settings, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,17 +10,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 
-const Header = () => {
+const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
   const { user, logout } = useAuth();
   
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 border-b bg-card md:px-6">
+    <header className="sticky top-0 z-30 border-b bg-background flex h-16 items-center px-4 md:px-6">
       <div className="hidden md:block">
         <h1 className="text-lg font-semibold">DealPilot</h1>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center ml-auto space-x-2">
+        <NotificationsDropdown />
+        
         <Button variant="outline" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full" />
