@@ -1,11 +1,13 @@
+
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, FileText, MessageSquare, Download, Upload } from "lucide-react";
 import { Deal, DealStatus } from "@/types/deal";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DealHeaderProps {
   deal: Deal;
@@ -19,36 +21,33 @@ const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHe
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<DealStatus>(deal.status);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [allowedStatuses, setAllowedStatuses] = useState<DealStatus[]>([]);
 
-  // Define possible deal statuses
-  const possibleDealStatuses: DealStatus[] = ['draft', 'active', 'pending', 'completed', 'cancelled'];
+  // Fetch allowed statuses for the current user and deal
+  useEffect(() => {
+    const fetchAllowedStatuses = async () => {
+      if (!isParticipant) return;
 
-  // RBAC: Determine if user can change deal status
-  const canChangeDealStatus = userRole === 'admin' || userRole === 'seller';
+      try {
+        const { data, error } = await supabase.rpc('get_allowed_deal_statuses', {
+          p_deal_id: deal.id
+        });
 
-  // RBAC: Determine allowed next statuses based on current status and role
-  const getAllowedNextStatuses = (currentStatus: DealStatus, role: string): DealStatus[] => {
-    if (role === 'admin') {
-      // Admin can change to any status
-      return possibleDealStatuses.filter(s => s !== currentStatus);
-    }
-    if (role === 'seller') {
-      switch (currentStatus) {
-        case 'draft': return ['active', 'cancelled'];
-        case 'active': return ['pending', 'completed', 'cancelled'];
-        case 'pending': return ['active', 'completed', 'cancelled'];
-        // Cannot change status if already completed or cancelled (for Seller)
-        case 'completed': return [];
-        case 'cancelled': return [];
-        default: return [];
+        if (error) {
+          console.error('Error fetching allowed statuses:', error);
+          return;
+        }
+
+        if (data && data.allowed_statuses) {
+          setAllowedStatuses(data.allowed_statuses as DealStatus[]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch allowed statuses:', error);
       }
-    }
-    // Other roles cannot change status
-    return [];
-  };
+    };
 
-  const allowedNextStatuses = getAllowedNextStatuses(deal.status, userRole);
-  const showStatusChangeControl = canChangeDealStatus && allowedNextStatuses.length > 0 && isParticipant;
+    fetchAllowedStatuses();
+  }, [deal.id, isParticipant]);
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -86,20 +85,9 @@ const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHe
     setSelectedStatus(event.target.value as DealStatus);
   };
 
-  // Handle status update
+  // Handle status update using our new Supabase RPC function
   const handleUpdateStatus = async () => {
     if (!selectedStatus || selectedStatus === deal.status) {
-      setIsEditingStatus(false);
-      return;
-    }
-
-    // RBAC check before attempting update
-    if (!canChangeDealStatus || !allowedNextStatuses.includes(selectedStatus)) {
-      toast({
-        title: "Permission denied",
-        description: "You don't have permission to change the status to this value.",
-        variant: "destructive"
-      });
       setIsEditingStatus(false);
       return;
     }
@@ -107,12 +95,22 @@ const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHe
     setIsUpdatingStatus(true);
 
     try {
-      // Here you would make the API call to update the deal status
-      // For now we'll just simulate success
-      // In a real implementation, you would call an API endpoint or use Supabase
-      
-      // Simulated delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call our new update_deal_status RPC function
+      const { data, error } = await supabase.rpc('update_deal_status', {
+        p_deal_id: deal.id,
+        p_new_status: selectedStatus
+      });
+
+      if (error) {
+        console.error('Failed to update deal status:', error);
+        toast({
+          title: "Update failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        setIsUpdatingStatus(false);
+        return;
+      }
       
       toast({
         title: "Status updated",
@@ -149,8 +147,8 @@ const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHe
                 {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
               </Badge>
               
-              {/* Status Change Control */}
-              {showStatusChangeControl && (
+              {/* Status Change Control - Now uses backend-determined allowed statuses */}
+              {isParticipant && allowedStatuses.length > 0 && (
                 <div className="relative ml-2">
                   <Button 
                     variant="outline" 
@@ -174,7 +172,7 @@ const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHe
                         className="block w-full text-sm border border-gray-300 rounded-md p-1.5"
                         disabled={isUpdatingStatus}
                       >
-                        {allowedNextStatuses.map(status => (
+                        {allowedStatuses.map(status => (
                           <option key={status} value={status}>
                             {status.charAt(0).toUpperCase() + status.slice(1)}
                           </option>

@@ -415,9 +415,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_allowed_deal_statuses: {
+        Args: { p_deal_id: string }
+        Returns: Json
+      }
       get_deal_timeline: {
         Args: { deal_uuid: string }
         Returns: Database["public"]["CompositeTypes"]["timeline_event"][]
+      }
+      update_deal_status: {
+        Args: { p_deal_id: string; p_new_status: string }
+        Returns: Json
       }
     }
     Enums: {
