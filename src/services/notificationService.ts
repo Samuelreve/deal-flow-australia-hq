@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DbNotification, Notification } from "@/types/notifications";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export async function fetchNotifications(): Promise<Notification[] | null> {
   try {
@@ -21,9 +21,8 @@ export async function fetchNotifications(): Promise<Notification[] | null> {
     return data.map(n => mapNotificationFromDb(n));
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    toast({
-      description: "Failed to load notifications",
-      variant: "destructive"
+    toast("Failed to load notifications", {
+      description: "An error occurred while loading notifications"
     });
     return null;
   }
@@ -57,16 +56,14 @@ export async function markAllNotificationsAsRead(): Promise<boolean> {
     
     if (error) throw error;
     
-    toast({
-      description: "All notifications marked as read",
-      variant: "default"
+    toast("Notifications Updated", {
+      description: "All notifications marked as read"
     });
     return true;
   } catch (error) {
     console.error("Error marking all as read:", error);
-    toast({
-      description: "Failed to mark all as read",
-      variant: "destructive"
+    toast("Operation Failed", {
+      description: "Failed to mark all as read"
     });
     return false;
   }
@@ -81,15 +78,14 @@ export async function deleteNotification(notificationId: string): Promise<boolea
     
     if (error) throw error;
     
-    toast({
-      description: "Notification removed"
+    toast("Notification Removed", {
+      description: "The notification has been removed"
     });
     return true;
   } catch (error) {
     console.error("Error deleting notification:", error);
-    toast({
-      description: "Failed to remove notification",
-      variant: "destructive"
+    toast("Operation Failed", {
+      description: "Failed to remove notification"
     });
     return false;
   }

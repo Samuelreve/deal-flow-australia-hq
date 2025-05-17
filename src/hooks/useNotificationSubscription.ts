@@ -3,7 +3,7 @@ import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotificationSubscription } from "@/services/notificationService";
 import { Notification } from "@/types/notifications";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export function useNotificationSubscription(
   onNewNotification: (notification: Notification) => void
@@ -20,8 +20,8 @@ export function useNotificationSubscription(
         
         // Show a toast for the new notification
         if (!newNotification.read) {
-          toast({
-            title: newNotification.title,
+          // Use the correct toast API format
+          toast(newNotification.title, {
             description: newNotification.message,
             action: newNotification.link ? {
               label: "View",
