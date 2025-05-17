@@ -34,7 +34,17 @@ export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone
         }
         
         if (data) {
-          setMilestones(data as Milestone[]);
+          // Transform the data to match our frontend Milestone type
+          const transformedData = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            status: item.status,
+            dueDate: item.due_date,
+            completedAt: item.completed_at,
+            // Map other fields as needed
+          }));
+          setMilestones(transformedData as Milestone[]);
         }
       } catch (error: any) {
         console.error('Error fetching milestones:', error);
@@ -68,10 +78,14 @@ export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone
         throw error;
       }
       
-      // Update local state
+      // Update local state with transformed data
       setMilestones(prevMilestones =>
         prevMilestones.map(m =>
-          m.id === milestoneId ? { ...m, ...updates } as Milestone : m
+          m.id === milestoneId ? { 
+            ...m, 
+            status: newStatus,
+            ...(newStatus === 'completed' ? { completedAt: new Date() } : {})
+          } : m
         )
       );
       

@@ -29,11 +29,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           {formatStatus(milestone.status)}
         </span>
       </h4>
-      {(milestone.due_date || milestone.completed_at) && (
+      {(milestone.dueDate || milestone.completedAt) && (
         <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
           {milestone.status !== 'completed' 
-            ? milestone.due_date ? `Due by: ${formatDate(milestone.due_date)}` : '' 
-            : `Completed on: ${formatDate(milestone.completed_at)}`}
+            ? milestone.dueDate ? `Due by: ${formatDate(milestone.dueDate)}` : '' 
+            : `Completed on: ${formatDate(milestone.completedAt)}`}
         </time>
       )}
       {milestone.description && (
