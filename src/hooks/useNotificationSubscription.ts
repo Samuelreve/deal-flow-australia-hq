@@ -12,25 +12,53 @@ export function useNotificationSubscription(
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     
-    return createNotificationSubscription(
-      session.user.id,
-      (newNotification) => {
-        // Call the provided callback
-        onNewNotification(newNotification);
-        
-        // Show a toast for the new notification
-        if (!newNotification.read) {
-          // Use the correct toast API format
-          toast(newNotification.title, {
-            description: newNotification.message,
-            action: newNotification.link ? {
-              label: "View",
-              onClick: () => window.location.href = newNotification.link!
-            } : undefined
-          });
+    // Set up realtime subscription for new notifications
+    const channel = supabase
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`
+        },
+        (payload) => {
+          console.log('New notification received:', payload);
+          
+          // Convert the notification to our frontend format
+          const newNotification: Notification = {
+            id: payload.new.id,
+            title: payload.new.title,
+            message: payload.new.message,
+            createdAt: new Date(payload.new.created_at),
+            read: payload.new.read,
+            type: payload.new.type,
+            dealId: payload.new.deal_id,
+            userId: payload.new.user_id,
+            link: payload.new.link
+          };
+          
+          // Call the provided callback
+          onNewNotification(newNotification);
+          
+          // Show a toast for the new notification
+          if (!payload.new.read) {
+            toast(newNotification.title, {
+              description: newNotification.message,
+              action: newNotification.link ? {
+                label: "View",
+                onClick: () => window.location.href = newNotification.link!
+              } : undefined
+            });
+          }
         }
-      }
-    );
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [onNewNotification]);
 
   useEffect(() => {
