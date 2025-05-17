@@ -35,16 +35,16 @@ export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone
         
         if (data) {
           // Transform the data to match our frontend Milestone type
-          const transformedData = data.map(item => ({
+          const transformedData: Milestone[] = data.map(item => ({
             id: item.id,
             title: item.title,
             description: item.description,
             status: item.status,
-            dueDate: item.due_date,
-            completedAt: item.completed_at,
+            dueDate: item.due_date ? new Date(item.due_date) : undefined,
+            completedAt: item.completed_at ? new Date(item.completed_at) : undefined,
             // Map other fields as needed
           }));
-          setMilestones(transformedData as Milestone[]);
+          setMilestones(transformedData);
         }
       } catch (error: any) {
         console.error('Error fetching milestones:', error);
