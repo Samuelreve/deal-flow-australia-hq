@@ -3,8 +3,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Define message structure
+interface MessageWithProfile {
+  id: string;
+  deal_id: string;
+  sender_user_id: string;
+  content: string;
+  created_at: string;
+  profiles: {
+    name: string;
+    avatar_url: string | null;
+  };
+}
+
 export function useMessages(dealId: string) {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const { user } = useAuth();
@@ -15,6 +28,8 @@ export function useMessages(dealId: string) {
     try {
       setLoading(true);
       
+      // Use type assertion to work around TypeScript limitation
+      // since the messages table was just created and may not be in the auto-generated types
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -25,7 +40,7 @@ export function useMessages(dealId: string) {
           )
         `)
         .eq('deal_id', dealId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true }) as { data: MessageWithProfile[] | null, error: any };
       
       if (error) throw error;
       
@@ -43,13 +58,14 @@ export function useMessages(dealId: string) {
     try {
       setSending(true);
       
+      // Use type assertion to work around TypeScript limitation
       const { error } = await supabase
         .from('messages')
         .insert({
           deal_id: dealId,
           sender_user_id: user.id,
           content: content.trim()
-        });
+        } as any);
       
       if (error) throw error;
       
