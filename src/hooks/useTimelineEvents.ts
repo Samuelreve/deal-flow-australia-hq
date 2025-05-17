@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Deal } from "@/types/deal";
-import { FileText, Users, MessageSquare, PackageCheck } from "lucide-react";
-import React from 'react';
+import { getEventIcon } from "@/components/deals/timeline/utils/timelineIcons";
 
 // Define interfaces for different timeline event types
 export interface TimelineEvent {
@@ -46,33 +45,13 @@ export const useTimelineEvents = (deal: Deal) => {
       // Transform the data into our TimelineEvent format
       if (data) {
         const transformedEvents: TimelineEvent[] = data.map((event: any) => {
-          // Get the appropriate icon for this event type
-          let eventIcon;
-          switch (event.type) {
-            case 'milestone_completed':
-              eventIcon = <PackageCheck className="h-5 w-5" />;
-              break;
-            case 'document_uploaded':
-              eventIcon = <FileText className="h-5 w-5" />;
-              break;
-            case 'participant_added':
-              eventIcon = <Users className="h-5 w-5" />;
-              break;
-            case 'comment_added':
-              eventIcon = <MessageSquare className="h-5 w-5" />;
-              break;
-            case 'deal_created':
-            default:
-              eventIcon = <Users className="h-5 w-5" />;
-          }
-
           return {
             id: event.id,
             type: event.type,
             timestamp: new Date(event.timestamp),
             title: event.title,
             description: event.description,
-            icon: eventIcon,
+            icon: getEventIcon(event.type),
             user: event.user_id ? {
               id: event.user_id,
               name: event.user_name,
