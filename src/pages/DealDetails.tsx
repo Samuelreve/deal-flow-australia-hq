@@ -13,6 +13,7 @@ import { DealParticipant } from "@/components/deals/DealParticipants";
 import DealHeader from "@/components/deals/DealHeader";
 import DealTabs from "@/components/deals/DealTabs";
 import DealSidebar from "@/components/deals/DealSidebar";
+import DealMessaging from "@/components/deals/messages/DealMessaging";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -113,6 +114,16 @@ const DealDetails = () => {
             effectiveUserRole={effectiveUserRole}
             isParticipant={isParticipant}
           />
+          
+          {/* Show messaging component when "messages" tab is active */}
+          {activeTab === "messages" && (
+            <div className="mt-6">
+              <DealMessaging 
+                dealId={id || ''}
+                isParticipant={isParticipant}
+              />
+            </div>
+          )}
         </div>
         
         <div>
