@@ -4,37 +4,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Deal } from "@/types/deal";
 import { DealParticipant } from "@/components/deals/DealParticipants";
+import { toast } from "@/hooks/use-toast";
+
+type ParticipantsLoadedCallback = (participants: DealParticipant[]) => void;
 
 export function useDealParticipants(
   deal: Deal, 
-  onParticipantsLoaded?: (participants: DealParticipant[]) => void
+  onParticipantsLoaded?: ParticipantsLoadedCallback
 ) {
   const { isAuthenticated } = useAuth();
   const [participants, setParticipants] = useState<DealParticipant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // Function to map mock participants from deal data
+  const mapMockParticipants = useCallback((): DealParticipant[] => {
+    if (!deal.participants || deal.participants.length === 0) {
+      return [];
+    }
+    
+    return deal.participants.map(p => ({
+      user_id: p.id,
+      deal_id: deal.id,
+      role: p.role,
+      joined_at: p.joined.toISOString(),
+      profile_name: `User ${p.id}`,
+      profile_avatar_url: null
+    }));
+  }, [deal.id, deal.participants]);
+
   // Function to fetch participants from Supabase
   const fetchParticipants = useCallback(async () => {
-    if (!deal.id || !isAuthenticated) {
-      // Use mock data if not authenticated
-      if (deal.participants && deal.participants.length > 0) {
-        const mockParticipants = deal.participants.map(p => ({
-          user_id: p.id,
-          deal_id: deal.id,
-          role: p.role,
-          joined_at: p.joined.toISOString(),
-          profile_name: `User ${p.id}`,
-          profile_avatar_url: null
-        }));
-        
-        setParticipants(mockParticipants);
-        
-        if (onParticipantsLoaded) {
-          onParticipantsLoaded(mockParticipants);
-        }
-      }
+    if (!deal.id) {
       setLoadingParticipants(false);
+      setFetchError(null);
+      return;
+    }
+
+    // Use mock data if not authenticated
+    if (!isAuthenticated) {
+      const mockParticipants = mapMockParticipants();
+      setParticipants(mockParticipants);
+      
+      if (onParticipantsLoaded) {
+        onParticipantsLoaded(mockParticipants);
+      }
+      
+      setLoadingParticipants(false);
+      setFetchError(null);
       return;
     }
 
@@ -58,8 +75,11 @@ export function useDealParticipants(
         .eq('deal_id', deal.id);
 
       if (error) {
-        console.error('Error fetching participants:', error);
         throw new Error(error.message || 'Failed to fetch participants');
+      }
+
+      if (!data || !Array.isArray(data)) {
+        throw new Error('Invalid data format received from server');
       }
 
       // Map the data to our interface
@@ -78,21 +98,20 @@ export function useDealParticipants(
       if (onParticipantsLoaded) {
         onParticipantsLoaded(fetchedParticipants);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching participants:', error);
-      setFetchError(`Failed to load participants: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching participants';
+      setFetchError(errorMessage);
+      
+      toast({
+        title: "Error fetching participants",
+        description: errorMessage,
+        variant: "destructive"
+      });
       
       // Fallback to mock data if available
       if (deal.participants && deal.participants.length > 0) {
-        const mockParticipants = deal.participants.map(p => ({
-          user_id: p.id,
-          deal_id: deal.id,
-          role: p.role,
-          joined_at: p.joined.toISOString(),
-          profile_name: `User ${p.id}`,
-          profile_avatar_url: null
-        }));
-        
+        const mockParticipants = mapMockParticipants();
         setParticipants(mockParticipants);
         
         if (onParticipantsLoaded) {
@@ -102,7 +121,7 @@ export function useDealParticipants(
     } finally {
       setLoadingParticipants(false);
     }
-  }, [deal.id, isAuthenticated, deal.participants, onParticipantsLoaded]);
+  }, [deal.id, isAuthenticated, deal.participants, mapMockParticipants, onParticipantsLoaded]);
 
   return {
     participants,
