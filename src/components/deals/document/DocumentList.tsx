@@ -10,6 +10,7 @@ interface DocumentListProps {
   userRole?: string;
   userId?: string;
   onDeleteDocument: (document: Document) => void;
+  isParticipant?: boolean;
 }
 
 const DocumentList = ({ 
@@ -17,7 +18,8 @@ const DocumentList = ({
   isLoading, 
   userRole = 'user',
   userId,
-  onDeleteDocument 
+  onDeleteDocument,
+  isParticipant = false
 }: DocumentListProps) => {
   if (isLoading) {
     return (
@@ -34,7 +36,9 @@ const DocumentList = ({
         <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
         <h3 className="mt-2 text-lg font-medium">No documents yet</h3>
         <p className="text-sm text-muted-foreground">
-          Upload documents to share them with the deal participants.
+          {isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()) 
+            ? 'Upload documents to share them with the deal participants.'
+            : 'No documents have been uploaded to this deal yet.'}
         </p>
       </div>
     );
@@ -47,7 +51,15 @@ const DocumentList = ({
       </div>
       <ul className="divide-y">
         {documents.map((doc) => {
-          const canDelete = userRole === 'admin' || doc.uploadedBy === userId;
+          // User can delete a document if:
+          // 1. They are the uploader, OR
+          // 2. They have admin role, OR
+          // 3. They have seller role
+          const canDelete = 
+            isParticipant && 
+            (doc.uploadedBy === userId || 
+             userRole === 'admin' || 
+             userRole === 'seller');
           
           return (
             <li key={doc.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">

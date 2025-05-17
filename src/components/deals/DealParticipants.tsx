@@ -6,22 +6,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Deal } from "@/types/deal";
+import { UserRole } from "@/types/auth";
 
 interface DealParticipantsProps {
   deal: Deal;
+  onParticipantsLoaded?: (participants: DealParticipant[]) => void;
 }
 
 // Define interface for deal participant
-interface DealParticipant {
+export interface DealParticipant {
   user_id: string;
   deal_id: string;
-  role: 'seller' | 'buyer' | 'lawyer' | 'admin';
+  role: UserRole;
   joined_at: string;
   profile_name: string | null;
   profile_avatar_url: string | null;
 }
 
-const DealParticipants = ({ deal }: DealParticipantsProps) => {
+const DealParticipants = ({ deal, onParticipantsLoaded }: DealParticipantsProps) => {
   const { user, session, isAuthenticated } = useAuth();
   const [participants, setParticipants] = useState<DealParticipant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
@@ -32,14 +34,20 @@ const DealParticipants = ({ deal }: DealParticipantsProps) => {
     if (!deal.id || !isAuthenticated) {
       // Use mock data if not authenticated
       if (deal.participants && deal.participants.length > 0) {
-        setParticipants(deal.participants.map(p => ({
+        const mockParticipants = deal.participants.map(p => ({
           user_id: p.id,
           deal_id: deal.id,
           role: p.role,
           joined_at: p.joined.toISOString(),
           profile_name: `User ${p.id}`,
           profile_avatar_url: null
-        })));
+        }));
+        
+        setParticipants(mockParticipants);
+        
+        if (onParticipantsLoaded) {
+          onParticipantsLoaded(mockParticipants);
+        }
       }
       setLoadingParticipants(false);
       return;
@@ -80,25 +88,36 @@ const DealParticipants = ({ deal }: DealParticipantsProps) => {
       }));
 
       setParticipants(fetchedParticipants);
+      
+      // Notify parent component about loaded participants
+      if (onParticipantsLoaded) {
+        onParticipantsLoaded(fetchedParticipants);
+      }
     } catch (error: any) {
       console.error('Error fetching participants:', error);
       setFetchError(`Failed to load participants: ${error.message}`);
       
       // Fallback to mock data if available
       if (deal.participants && deal.participants.length > 0) {
-        setParticipants(deal.participants.map(p => ({
+        const mockParticipants = deal.participants.map(p => ({
           user_id: p.id,
           deal_id: deal.id,
           role: p.role,
           joined_at: p.joined.toISOString(),
           profile_name: `User ${p.id}`,
           profile_avatar_url: null
-        })));
+        }));
+        
+        setParticipants(mockParticipants);
+        
+        if (onParticipantsLoaded) {
+          onParticipantsLoaded(mockParticipants);
+        }
       }
     } finally {
       setLoadingParticipants(false);
     }
-  }, [deal.id, isAuthenticated, deal.participants]);
+  }, [deal.id, isAuthenticated, deal.participants, onParticipantsLoaded]);
 
   // Effect to fetch participants when component mounts or dependencies change
   useEffect(() => {
@@ -108,6 +127,12 @@ const DealParticipants = ({ deal }: DealParticipantsProps) => {
   // Find current user's participant entry if available
   const currentUserParticipant = isAuthenticated && user ? 
     participants.find(p => p.user_id === user.id) : null;
+
+  // Check if current user can invite participants (seller or admin in draft deals)
+  const canInviteParticipants = 
+    deal.status === "draft" && 
+    currentUserParticipant && 
+    (currentUserParticipant.role === 'seller' || currentUserParticipant.role === 'admin');
 
   return (
     <div className="space-y-4">
@@ -155,8 +180,8 @@ const DealParticipants = ({ deal }: DealParticipantsProps) => {
         ))
       )}
 
-      {/* Invite Participant button (for draft deals) */}
-      {deal.status === "draft" && (currentUserParticipant?.role === 'seller' || currentUserParticipant?.role === 'admin') && (
+      {/* Invite Participant button (for draft deals if user is seller or admin) */}
+      {canInviteParticipants && (
         <Button variant="outline" className="w-full text-sm">
           <Users className="h-4 w-4 mr-2" />
           Invite Participant

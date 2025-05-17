@@ -7,6 +7,8 @@ import { AlertCircle, MessageSquare, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Deal } from "@/types/deal";
 import { getMockDeal } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { DealParticipant } from "@/components/deals/DealParticipants";
 
 // Imported components
 import DealHeader from "@/components/deals/DealHeader";
@@ -21,9 +23,15 @@ import DealComments from "@/components/deals/DealComments";
 const DealDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [dealParticipants, setDealParticipants] = useState<DealParticipant[]>([]);
+  
+  // Track if current user is a participant in this deal
+  const [isParticipant, setIsParticipant] = useState(false);
+  const [currentUserDealRole, setCurrentUserDealRole] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchDeal = () => {
@@ -39,6 +47,23 @@ const DealDetails = () => {
     
     fetchDeal();
   }, [id]);
+  
+  // Update participant status whenever dealParticipants or user changes
+  useEffect(() => {
+    if (user && dealParticipants.length > 0) {
+      const userParticipant = dealParticipants.find(p => p.user_id === user.id);
+      setIsParticipant(!!userParticipant);
+      setCurrentUserDealRole(userParticipant?.role || null);
+    } else {
+      setIsParticipant(false);
+      setCurrentUserDealRole(null);
+    }
+  }, [user, dealParticipants]);
+  
+  // Handle participants loaded from DealParticipants component
+  const handleParticipantsLoaded = (participants: DealParticipant[]) => {
+    setDealParticipants(participants);
+  };
   
   if (loading) {
     return (
@@ -67,9 +92,13 @@ const DealDetails = () => {
     );
   }
   
+  // Calculate appropriate user role - use current user's role in the deal if they're a participant,
+  // otherwise fallback to their global role or 'viewer' for non-participants
+  const effectiveUserRole = currentUserDealRole || (user ? user.role : 'viewer');
+  
   return (
     <AppLayout>
-      <DealHeader deal={deal} />
+      <DealHeader deal={deal} userRole={effectiveUserRole} isParticipant={isParticipant} />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
@@ -103,7 +132,8 @@ const DealDetails = () => {
                   <DocumentManagement
                     dealId={deal.id}
                     initialDocuments={deal.documents}
-                    userRole="admin"
+                    userRole={effectiveUserRole}
+                    isParticipant={isParticipant}
                   />
                 </CardContent>
               </Card>
@@ -117,8 +147,9 @@ const DealDetails = () => {
                 <CardContent>
                   <MilestoneTracker
                     dealId={deal.id}
-                    userRole="admin"
+                    userRole={effectiveUserRole}
                     initialMilestones={deal.milestones}
+                    isParticipant={isParticipant}
                   />
                 </CardContent>
               </Card>
@@ -141,7 +172,7 @@ const DealDetails = () => {
                   <CardTitle>Comments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DealComments dealId={deal.id} />
+                  <DealComments dealId={deal.id} userRole={effectiveUserRole} isParticipant={isParticipant} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -156,7 +187,12 @@ const DealDetails = () => {
                     <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
                     <p className="text-muted-foreground mb-4">Send messages to other participants in this deal</p>
-                    <Button>New Message</Button>
+                    {isParticipant && (
+                      <Button>New Message</Button>
+                    )}
+                    {!isParticipant && (
+                      <p className="text-sm text-amber-600">You need to be a participant in this deal to send messages.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -179,7 +215,7 @@ const DealDetails = () => {
               <CardTitle className="text-sm font-medium">Participants</CardTitle>
             </CardHeader>
             <CardContent>
-              <DealParticipants deal={deal} />
+              <DealParticipants deal={deal} onParticipantsLoaded={handleParticipantsLoaded} />
             </CardContent>
           </Card>
         </div>

@@ -12,12 +12,14 @@ interface DocumentManagementProps {
   dealId: string;
   userRole?: string;
   initialDocuments?: Document[];
+  isParticipant?: boolean;
 }
 
 const DocumentManagement = ({ 
   dealId, 
-  userRole = "admin", 
-  initialDocuments = [] 
+  userRole = "user", 
+  initialDocuments = [],
+  isParticipant = false
 }: DocumentManagementProps) => {
   const { user } = useAuth();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -69,12 +71,15 @@ const DocumentManagement = ({
         onDeleteDocument={openDeleteDialog}
         userRole={userRole}
         userId={user?.id}
+        isParticipant={isParticipant}
       />
 
-      {/* Document Upload Section */}
+      {/* Document Upload Section - Only shown if user has appropriate permissions */}
       <DocumentUpload 
         onUpload={handleUpload}
         uploading={uploading}
+        userRole={userRole}
+        isParticipant={isParticipant}
       />
       
       {/* Delete Confirmation Dialog */}

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Define document categories
 const documentCategories = [
@@ -15,12 +16,27 @@ const documentCategories = [
 interface DocumentUploadProps {
   onUpload: (file: File, category: string) => Promise<void>;
   uploading: boolean;
+  userRole?: string;
+  isParticipant?: boolean;
 }
 
-const DocumentUpload = ({ onUpload, uploading }: DocumentUploadProps) => {
+const DocumentUpload = ({ 
+  onUpload, 
+  uploading, 
+  userRole = 'user',
+  isParticipant = true 
+}: DocumentUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Check if user has permission to upload documents
+  const canUploadDocuments = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+
+  if (!canUploadDocuments) {
+    return null; // Don't render the upload section for users who can't upload
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
