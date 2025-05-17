@@ -29,8 +29,8 @@ export function useMessages(dealId: string) {
     try {
       setLoading(true);
       
-      // We need to use any type here since the messages table is new and not in the generated types
-      const { data, error } = await supabase
+      // Use type assertion with unknown as intermediate step to avoid excessive type depth error
+      const response = await supabase
         .from('messages')
         .select(`
           *,
@@ -40,7 +40,12 @@ export function useMessages(dealId: string) {
           )
         `)
         .eq('deal_id', dealId)
-        .order('created_at', { ascending: true }) as any;
+        .order('created_at', { ascending: true });
+      
+      const { data, error } = response as unknown as { 
+        data: MessageWithProfile[] | null; 
+        error: any 
+      };
       
       if (error) throw error;
       
@@ -58,14 +63,16 @@ export function useMessages(dealId: string) {
     try {
       setSending(true);
       
-      // We need to use any type here since the messages table is new and not in the generated types
-      const { error } = await supabase
+      // Replace sender_user_id with user_id to match the expected schema
+      const response = await supabase
         .from('messages')
         .insert({
           deal_id: dealId,
-          sender_user_id: user.id,
+          user_id: user.id,
           content: content.trim()
-        }) as any;
+        });
+      
+      const { error } = response as unknown as { error: any };
       
       if (error) throw error;
       
@@ -109,7 +116,7 @@ export function useMessages(dealId: string) {
           const newMessage = {
             ...payload.new,
             profiles: profileData
-          };
+          } as MessageWithProfile;
           
           setMessages((prevMessages) => [...prevMessages, newMessage]);
         }
