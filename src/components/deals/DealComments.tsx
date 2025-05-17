@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +7,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Comment {
   id: string;
@@ -23,15 +25,19 @@ interface DealCommentsProps {
   dealId: string;
   userRole?: string;
   isParticipant?: boolean;
+  currentUserDealRole?: 'seller' | 'buyer' | 'lawyer' | 'admin' | null;
 }
 
-const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: DealCommentsProps) => {
+const DealComments = ({ dealId, userRole = 'user', isParticipant = false, currentUserDealRole }: DealCommentsProps) => {
   const { user, session, isAuthenticated, loading: authLoading } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commentsChannel, setCommentsChannel] = useState<RealtimeChannel | null>(null);
+
+  const currentUserId = user?.id || '';
 
   const fetchComments = useCallback(async () => {
     if (!dealId) {
@@ -86,7 +92,7 @@ const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: Deal
       if (error) throw error;
       setNewComment("");
       toast.success("Comment added successfully");
-      await fetchComments(); // Refetch to get the latest comments
+      // Realtime subscription will handle state update
     } catch (err: any) {
       console.error("Error posting comment:", err);
       toast.error("Failed to post comment");
@@ -95,7 +101,42 @@ const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: Deal
     }
   };
 
-  // Set up realtime subscription for comments
+  const handleDeleteComment = async (commentId: string) => {
+    // RBAC check for delete permissions
+    const commentToDelete = comments.find(c => c.id === commentId);
+    if (!commentToDelete) return;
+    
+    // Check if current user is author OR has admin/lawyer role
+    const canDelete = commentToDelete.user_id === currentUserId || 
+                     currentUserDealRole === 'admin' ||
+                     currentUserDealRole === 'lawyer';
+    
+    if (!canDelete) {
+      toast.error('Permission denied to delete this comment.');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+        
+      if (error) throw error;
+      toast.success('Comment deleted successfully');
+      // Realtime or manual update
+      setComments(prevComments => prevComments.filter(c => c.id !== commentId));
+    } catch (err: any) {
+      console.error("Error deleting comment:", err);
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  // Effect to fetch comments and set up realtime subscription
   useEffect(() => {
     if (!dealId) return;
 
@@ -117,7 +158,22 @@ const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: Deal
           fetchComments(); // Refetch to get the complete comment with profile data
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "comments",
+          filter: `deal_id=eq.${dealId}`
+        },
+        (payload) => {
+          console.log("Comment deleted:", payload);
+          fetchComments(); // Refetch comments after deletion
+        }
+      )
       .subscribe();
+
+    setCommentsChannel(channel);
 
     return () => {
       supabase.removeChannel(channel);
@@ -131,7 +187,8 @@ const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: Deal
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -152,28 +209,47 @@ const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: Deal
             <p className="text-muted-foreground">No comments yet</p>
           </div>
         ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3 pb-4">
-              <Avatar className="h-8 w-8">
-                <AvatarImage 
-                  src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.profiles?.name || 'User')}&background=0D8ABC&color=fff`} 
-                  alt={comment.profiles?.name || 'User'} 
-                />
-                <AvatarFallback>{(comment.profiles?.name?.[0] || 'U').toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">
-                    {comment.profiles?.name || 'Unknown User'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(comment.created_at)}
-                  </span>
+          comments.map((comment) => {
+            // RBAC checks for comment actions
+            const isAuthor = comment.user_id === currentUserId;
+            const canManageComments = currentUserDealRole === 'admin' || currentUserDealRole === 'lawyer';
+            const canDelete = isAuthor || canManageComments;
+            
+            return (
+              <div key={comment.id} className="flex gap-3 pb-4">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage 
+                    src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.profiles?.name || 'User')}&background=0D8ABC&color=fff`} 
+                    alt={comment.profiles?.name || 'User'} 
+                  />
+                  <AvatarFallback>{(comment.profiles?.name?.[0] || 'U').toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">
+                      {comment.profiles?.name || 'Unknown User'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(comment.created_at)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm">{comment.content}</p>
+                  
+                  {/* RBAC-controlled comment actions */}
+                  {canDelete && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      <button 
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="hover:underline text-destructive"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <p className="mt-1 text-sm">{comment.content}</p>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
