@@ -11,6 +11,8 @@ import { UserRole } from "@/types/auth";
 interface DealParticipantsProps {
   deal: Deal;
   onParticipantsLoaded?: (participants: DealParticipant[]) => void;
+  currentUserDealRole?: 'seller' | 'buyer' | 'lawyer' | 'admin' | null;
+  dealStatus?: string;
 }
 
 // Define interface for deal participant
@@ -23,11 +25,20 @@ export interface DealParticipant {
   profile_avatar_url: string | null;
 }
 
-const DealParticipants = ({ deal, onParticipantsLoaded }: DealParticipantsProps) => {
+const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus }: DealParticipantsProps) => {
   const { user, session, isAuthenticated } = useAuth();
   const [participants, setParticipants] = useState<DealParticipant[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // --- Frontend RBAC Helper ---
+  // Determine if the current user's role in THIS deal allows them to invite participants
+  // Based on typical workflow, allow Sellers and Admins to invite participants in draft deals
+  const canInviteParticipants = 
+    deal.status === "draft" && 
+    currentUserDealRole && 
+    (currentUserDealRole === 'seller' || currentUserDealRole === 'admin');
+  // --- End Frontend RBAC Helper ---
 
   // Function to fetch participants from Supabase
   const fetchParticipants = useCallback(async () => {
@@ -124,16 +135,6 @@ const DealParticipants = ({ deal, onParticipantsLoaded }: DealParticipantsProps)
     fetchParticipants();
   }, [fetchParticipants]);
 
-  // Find current user's participant entry if available
-  const currentUserParticipant = isAuthenticated && user ? 
-    participants.find(p => p.user_id === user.id) : null;
-
-  // Check if current user can invite participants (seller or admin in draft deals)
-  const canInviteParticipants = 
-    deal.status === "draft" && 
-    currentUserParticipant && 
-    (currentUserParticipant.role === 'seller' || currentUserParticipant.role === 'admin');
-
   return (
     <div className="space-y-4">
       {/* Loading and Error Indicators */}
@@ -180,13 +181,15 @@ const DealParticipants = ({ deal, onParticipantsLoaded }: DealParticipantsProps)
         ))
       )}
 
-      {/* Invite Participant button (for draft deals if user is seller or admin) */}
+      {/* --- Frontend RBAC Conditional Rendering for Invite Button --- */}
+      {/* Only show the invite button if the user has permission */}
       {canInviteParticipants && (
         <Button variant="outline" className="w-full text-sm">
           <Users className="h-4 w-4 mr-2" />
           Invite Participant
         </Button>
       )}
+      {/* --- End Frontend RBAC Conditional Rendering --- */}
     </div>
   );
 };

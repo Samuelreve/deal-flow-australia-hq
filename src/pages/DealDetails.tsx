@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -108,6 +109,8 @@ const DealDetails = () => {
           <DealSidebar 
             deal={deal} 
             onParticipantsLoaded={handleParticipantsLoaded}
+            currentUserDealRole={currentUserDealRole as 'seller' | 'buyer' | 'lawyer' | 'admin' | null}
+            isParticipant={isParticipant}
           />
         </div>
       </div>

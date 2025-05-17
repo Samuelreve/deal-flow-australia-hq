@@ -8,11 +8,15 @@ import { Deal } from "@/types/deal";
 interface DealSidebarProps {
   deal: Deal;
   onParticipantsLoaded: (participants: any[]) => void;
+  currentUserDealRole: 'seller' | 'buyer' | 'lawyer' | 'admin' | null;
+  isParticipant: boolean;
 }
 
 const DealSidebar: React.FC<DealSidebarProps> = ({ 
   deal, 
-  onParticipantsLoaded 
+  onParticipantsLoaded,
+  currentUserDealRole,
+  isParticipant
 }) => {
   return (
     <div>
@@ -30,7 +34,12 @@ const DealSidebar: React.FC<DealSidebarProps> = ({
           <CardTitle className="text-sm font-medium">Participants</CardTitle>
         </CardHeader>
         <CardContent>
-          <DealParticipants deal={deal} onParticipantsLoaded={onParticipantsLoaded} />
+          <DealParticipants 
+            deal={deal} 
+            onParticipantsLoaded={onParticipantsLoaded}
+            currentUserDealRole={currentUserDealRole} 
+            dealStatus={deal.status}
+          />
         </CardContent>
       </Card>
     </div>
