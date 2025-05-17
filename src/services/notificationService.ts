@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Notification } from "@/types/deal";
+import { DbNotification, Notification } from "@/types/notifications";
 import { toast } from "@/components/ui/sonner";
 
 export async function fetchNotifications(): Promise<Notification[] | null> {
@@ -11,7 +11,7 @@ export async function fetchNotifications(): Promise<Notification[] | null> {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
-      .eq("recipient_user_id", session.user.id)
+      .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(50);
     
@@ -21,7 +21,10 @@ export async function fetchNotifications(): Promise<Notification[] | null> {
     return data.map(n => mapNotificationFromDb(n));
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    toast.error("Failed to load notifications");
+    toast({
+      description: "Failed to load notifications",
+      variant: "destructive"
+    });
     return null;
   }
 }
@@ -49,16 +52,22 @@ export async function markAllNotificationsAsRead(): Promise<boolean> {
     const { error } = await supabase
       .from("notifications")
       .update({ read: true })
-      .eq("recipient_user_id", session.user.id)
+      .eq("user_id", session.user.id)
       .eq("read", false);
     
     if (error) throw error;
     
-    toast.success("All notifications marked as read");
+    toast({
+      description: "All notifications marked as read",
+      variant: "default"
+    });
     return true;
   } catch (error) {
     console.error("Error marking all as read:", error);
-    toast.error("Failed to mark all as read");
+    toast({
+      description: "Failed to mark all as read",
+      variant: "destructive"
+    });
     return false;
   }
 }
@@ -72,17 +81,22 @@ export async function deleteNotification(notificationId: string): Promise<boolea
     
     if (error) throw error;
     
-    toast.success("Notification removed");
+    toast({
+      description: "Notification removed"
+    });
     return true;
   } catch (error) {
     console.error("Error deleting notification:", error);
-    toast.error("Failed to remove notification");
+    toast({
+      description: "Failed to remove notification",
+      variant: "destructive"
+    });
     return false;
   }
 }
 
 // Helper to convert DB notification to our app's Notification type
-export function mapNotificationFromDb(n: any): Notification {
+export function mapNotificationFromDb(n: DbNotification): Notification {
   return {
     id: n.id,
     title: n.title,
@@ -111,13 +125,13 @@ export function createNotificationSubscription(
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
-        filter: `recipient_user_id=eq.${userId}`
+        filter: `user_id=eq.${userId}`
       },
       (payload) => {
         console.log("New notification received:", payload);
         
         // Format the notification
-        const newNotification = mapNotificationFromDb(payload.new);
+        const newNotification = mapNotificationFromDb(payload.new as DbNotification);
         
         // Call the callback with the new notification
         onNewNotification(newNotification);
