@@ -1,6 +1,7 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom'; // Add this import for DOM matchers
 import { useAllowedDealStatuses } from '../useAllowedDealStatuses';
 import { supabase } from '@/integrations/supabase/client';
 
