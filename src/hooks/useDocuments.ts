@@ -5,6 +5,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 
+// Define the type for the document data returned from Supabase
+interface SupabaseDocumentData {
+  id: string;
+  deal_id: string;
+  name: string;
+  description: string | null;
+  storage_path: string;
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+  size: number;
+  type: string;
+  status: "draft" | "final" | "signed";
+  version: number;
+  milestone_id: string | null;
+  category?: string; // Added the category field as optional
+}
+
 export const useDocuments = (dealId: string, initialDocuments: Document[] = []) => {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
@@ -30,7 +48,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
         
         // Transform database document format to our Document type
         if (data) {
-          const formattedDocuments: Document[] = await Promise.all(data.map(async doc => {
+          const formattedDocuments: Document[] = await Promise.all((data as SupabaseDocumentData[]).map(async doc => {
             // Get a signed URL that expires in 1 hour (3600 seconds)
             const { data: urlData } = await supabase.storage
               .from('deal-documents')
@@ -46,7 +64,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
               type: doc.type,
               status: doc.status,
               version: doc.version,
-              category: doc.category // Include the category field
+              category: doc.category // Now TypeScript knows this property exists
             };
           }));
           
