@@ -5,6 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { documentService } from "@/services/documentService";
 
+/**
+ * Hook for managing documents state and operations
+ */
 export const useDocuments = (dealId: string, initialDocuments: Document[] = []) => {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
@@ -14,10 +17,16 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   // Fetch documents when component mounts or dealId changes
   useEffect(() => {
     const fetchDocuments = async () => {
+      if (initialDocuments.length > 0) {
+        setDocuments(initialDocuments);
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         setIsLoading(true);
-        const formattedDocuments = await documentService.getDocuments(dealId);
-        setDocuments(formattedDocuments);
+        const fetchedDocuments = await documentService.getDocuments(dealId);
+        setDocuments(fetchedDocuments);
       } catch (error) {
         console.error("Error fetching documents:", error);
         toast({
@@ -30,14 +39,12 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
       }
     };
     
-    // Only fetch if we don't have initial documents
-    if (initialDocuments.length === 0) {
-      fetchDocuments();
-    } else {
-      setIsLoading(false);
-    }
+    fetchDocuments();
   }, [dealId, initialDocuments]);
 
+  /**
+   * Upload a document
+   */
   const uploadDocument = async (file: File, category: string) => {
     if (!user) {
       throw new Error('You must be logged in to upload files.');
@@ -49,7 +56,6 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
       const newDocument = await documentService.uploadDocument(file, category, dealId, user.id);
       setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
       
-      // Show success message
       toast({
         title: "File uploaded successfully!",
         description: `${file.name} has been uploaded.`,
@@ -69,12 +75,14 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     }
   };
 
+  /**
+   * Delete a document
+   */
   const deleteDocument = async (document: Document) => {
     try {
       const success = await documentService.deleteDocument(document, dealId);
       
       if (success) {
-        // Update local state
         setDocuments(prevDocuments => 
           prevDocuments.filter(doc => doc.id !== document.id)
         );
