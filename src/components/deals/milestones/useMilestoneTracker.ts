@@ -3,18 +3,27 @@ import { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
 export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone[] = []) => {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [loadingMilestones, setLoadingMilestones] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [updatingMilestoneId, setUpdatingMilestoneId] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthSession();
 
   // Fetch milestones from Supabase
   useEffect(() => {
     const fetchMilestones = async () => {
+      // If initial milestones are provided, use them instead of fetching
       if (initialMilestones.length > 0) {
         setMilestones(initialMilestones);
+        setLoadingMilestones(false);
+        return;
+      }
+
+      // Skip fetching if user is not authenticated
+      if (!isAuthenticated) {
         setLoadingMilestones(false);
         return;
       }
@@ -38,11 +47,10 @@ export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone
           const transformedData: Milestone[] = data.map(item => ({
             id: item.id,
             title: item.title,
-            description: item.description,
+            description: item.description || '',
             status: item.status,
             dueDate: item.due_date ? new Date(item.due_date) : undefined,
             completedAt: item.completed_at ? new Date(item.completed_at) : undefined,
-            // Map other fields as needed
           }));
           setMilestones(transformedData);
         }
@@ -55,10 +63,15 @@ export const useMilestoneTracker = (dealId: string, initialMilestones: Milestone
     };
 
     fetchMilestones();
-  }, [dealId, initialMilestones]);
+  }, [dealId, initialMilestones, isAuthenticated]);
 
   // Update milestone status
   const handleUpdateMilestoneStatus = async (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => {
+    if (!isAuthenticated) {
+      toast.error('You must be logged in to update milestones');
+      return;
+    }
+    
     setUpdatingMilestoneId(milestoneId);
     
     try {
