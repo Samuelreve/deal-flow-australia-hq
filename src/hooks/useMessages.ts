@@ -29,8 +29,8 @@ export function useMessages(dealId: string) {
     try {
       setLoading(true);
       
-      // Use type assertion with unknown as intermediate step to avoid excessive type depth error
-      const response = await supabase
+      // Using any type to bypass TypeScript errors since the messages table isn't in the generated types yet
+      const { data, error } = await (supabase as any)
         .from('messages')
         .select(`
           *,
@@ -41,11 +41,6 @@ export function useMessages(dealId: string) {
         `)
         .eq('deal_id', dealId)
         .order('created_at', { ascending: true });
-      
-      const { data, error } = response as unknown as { 
-        data: MessageWithProfile[] | null; 
-        error: any 
-      };
       
       if (error) throw error;
       
@@ -63,16 +58,14 @@ export function useMessages(dealId: string) {
     try {
       setSending(true);
       
-      // Replace sender_user_id with user_id to match the expected schema
-      const response = await supabase
+      // Using any type to bypass TypeScript errors
+      const { error } = await (supabase as any)
         .from('messages')
         .insert({
           deal_id: dealId,
-          user_id: user.id,
+          sender_user_id: user.id,
           content: content.trim()
         });
-      
-      const { error } = response as unknown as { error: any };
       
       if (error) throw error;
       
