@@ -169,6 +169,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          category: string | null
           created_at: string
           deal_id: string
           description: string | null
@@ -184,6 +185,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          category?: string | null
           created_at?: string
           deal_id: string
           description?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          category?: string | null
           created_at?: string
           deal_id?: string
           description?: string | null
