@@ -1,19 +1,28 @@
 
-import { FileText, Users, MessageSquare, PackageCheck } from "lucide-react";
-import { TimelineEvent } from "@/hooks/useTimelineEvents";
+import { 
+  FileText, 
+  Users, 
+  CheckCircle, 
+  Calendar, 
+  MessageCircle, 
+  MessageSquare
+} from "lucide-react";
 
-export const getEventIcon = (type: TimelineEvent["type"]) => {
-  switch (type) {
-    case "milestone_completed":
-      return <PackageCheck className="h-5 w-5" />;
-    case "document_uploaded":
+export const getEventIcon = (eventType: string) => {
+  switch (eventType) {
+    case 'deal_created':
+      return <Calendar className="h-5 w-5" />;
+    case 'milestone_completed':
+      return <CheckCircle className="h-5 w-5" />;
+    case 'document_uploaded':
       return <FileText className="h-5 w-5" />;
-    case "participant_added":
+    case 'participant_added':
       return <Users className="h-5 w-5" />;
-    case "comment_added":
+    case 'comment_added':
+      return <MessageCircle className="h-5 w-5" />;
+    case 'message_sent':
       return <MessageSquare className="h-5 w-5" />;
-    case "deal_created":
     default:
-      return <Users className="h-5 w-5" />;
+      return <Calendar className="h-5 w-5" />;
   }
 };

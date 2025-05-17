@@ -7,7 +7,7 @@ import { getEventIcon } from "@/components/deals/timeline/utils/timelineIcons";
 // Define interfaces for different timeline event types
 export interface TimelineEvent {
   id: string;
-  type: 'deal_created' | 'milestone_completed' | 'document_uploaded' | 'participant_added' | 'comment_added';
+  type: 'deal_created' | 'milestone_completed' | 'document_uploaded' | 'participant_added' | 'comment_added' | 'message_sent';
   timestamp: Date;
   title: string;
   description?: string;
