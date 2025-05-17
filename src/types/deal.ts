@@ -27,6 +27,7 @@ export interface Document {
   type: string;
   status: "draft" | "final" | "signed";
   version: number;
+  category?: string; // Added category field
   comments?: Comment[];
 }
 

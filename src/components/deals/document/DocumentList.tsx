@@ -1,87 +1,96 @@
 
 import { Document } from "@/types/deal";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2 } from "lucide-react";
 
 interface DocumentListProps {
   documents: Document[];
   isLoading: boolean;
-  onDeleteDocument: (document: Document) => void;
   userRole?: string;
   userId?: string;
+  onDeleteDocument: (document: Document) => void;
 }
 
 const DocumentList = ({ 
   documents, 
   isLoading, 
-  onDeleteDocument, 
-  userRole = "admin", 
-  userId 
+  userRole = 'user',
+  userId,
+  onDeleteDocument 
 }: DocumentListProps) => {
   if (isLoading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-pulse text-muted-foreground">Loading documents...</div>
+      <div className="flex justify-center items-center p-6">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-2">Loading documents...</span>
       </div>
     );
   }
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-8">
-        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">No documents yet</h3>
-        <p className="text-muted-foreground mb-4">Upload documents to share with deal participants</p>
+      <div className="text-center p-6 border rounded-lg bg-muted/30">
+        <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
+        <h3 className="mt-2 text-lg font-medium">No documents yet</h3>
+        <p className="text-sm text-muted-foreground">
+          Upload documents to share them with the deal participants.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {documents.map(doc => (
-        <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-primary" />
-            <div>
-              <p className="font-medium">{doc.name}</p>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <span>
-                  {new Intl.DateTimeFormat("en-US", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric"
-                  }).format(doc.uploadedAt)}
-                </span>
-                <span className="mx-1">•</span>
-                <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
-                {doc.status === "signed" && (
-                  <>
-                    <span className="mx-1">•</span>
-                    <span className="text-green-600">Signed</span>
-                  </>
-                )}
+    <div className="border rounded-lg overflow-hidden">
+      <div className="bg-muted/50 px-4 py-3 border-b">
+        <h3 className="font-medium">Documents</h3>
+      </div>
+      <ul className="divide-y">
+        {documents.map((doc) => {
+          const canDelete = userRole === 'admin' || doc.uploadedBy === userId;
+          
+          return (
+            <li key={doc.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 text-muted-foreground mr-2" />
+                  <a 
+                    href={doc.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="font-medium text-primary hover:underline truncate"
+                  >
+                    {doc.name}
+                  </a>
+                  
+                  {/* Display document category as a badge if it exists */}
+                  {doc.category && (
+                    <Badge variant="outline" className="ml-2">
+                      {doc.category}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Uploaded {new Date(doc.uploadedAt).toLocaleDateString()} • {(doc.size / 1024).toFixed(1)} KB
+                </p>
               </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href={doc.url} target="_blank" rel="noopener noreferrer">View</a>
-            </Button>
-            {(userRole === "admin" || doc.uploadedBy === userId) && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onDeleteDocument(doc)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      ))}
+              
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDeleteDocument(doc)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
-};
+}
 
 export default DocumentList;

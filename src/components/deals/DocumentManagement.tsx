@@ -55,9 +55,9 @@ const DocumentManagement = ({
     }
   };
 
-  // Handle document upload
-  const handleUpload = async (file: File) => {
-    await uploadDocument(file);
+  // Handle document upload with category
+  const handleUpload = async (file: File, category: string) => {
+    await uploadDocument(file, category);
   };
 
   return (

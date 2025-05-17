@@ -2,13 +2,24 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+// Define document categories
+const documentCategories = [
+  'NDA',
+  'Financial',
+  'Legal', 
+  'Operational',
+  'Marketing',
+  'Other'
+];
+
 interface DocumentUploadProps {
-  onUpload: (file: File) => Promise<void>;
+  onUpload: (file: File, category: string) => Promise<void>;
   uploading: boolean;
 }
 
 const DocumentUpload = ({ onUpload, uploading }: DocumentUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,15 +31,26 @@ const DocumentUpload = ({ onUpload, uploading }: DocumentUploadProps) => {
     }
   };
 
+  const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCategory(event.target.value);
+    setUploadError(null);
+  };
+
   const handleUploadClick = async () => {
     if (!selectedFile) {
       setUploadError('Please select a file to upload.');
       return;
     }
     
+    if (!selectedCategory) {
+      setUploadError('Please select a document category.');
+      return;
+    }
+    
     try {
-      await onUpload(selectedFile);
+      await onUpload(selectedFile, selectedCategory);
       setSelectedFile(null);
+      setSelectedCategory("");
       
       // Clear file input
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -41,10 +63,31 @@ const DocumentUpload = ({ onUpload, uploading }: DocumentUploadProps) => {
   return (
     <div className="border-t pt-4 mt-4">
       <h4 className="text-lg font-semibold mb-3">Upload New Document</h4>
+      
+      {/* Category Selection */}
+      <div className="mb-3">
+        <label htmlFor="document-category" className="block text-sm font-medium text-gray-700 mb-1">
+          Document Category
+        </label>
+        <select
+          id="document-category"
+          value={selectedCategory}
+          onChange={handleCategoryChange}
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+          disabled={uploading}
+        >
+          <option value="">-- Select a Category --</option>
+          {documentCategories.map(category => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+      </div>
+      
       <input
         type="file"
         onChange={handleFileChange}
         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 mb-3"
+        disabled={uploading}
       />
 
       {selectedFile && (
@@ -59,7 +102,7 @@ const DocumentUpload = ({ onUpload, uploading }: DocumentUploadProps) => {
 
       <Button
         onClick={handleUploadClick}
-        disabled={!selectedFile || uploading}
+        disabled={!selectedFile || !selectedCategory || uploading}
         className="mt-2"
       >
         {uploading ? 'Uploading...' : 'Upload Document'}

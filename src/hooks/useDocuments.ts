@@ -71,7 +71,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     }
   }, [dealId, initialDocuments]);
 
-  const uploadDocument = async (file: File) => {
+  const uploadDocument = async (file: File, category: string) => {
     if (!user) {
       throw new Error('You must be logged in to upload files.');
     }
@@ -105,7 +105,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
           size: file.size,
           type: file.type,
           status: "draft",
-          version: 1
+          version: 1,
+          category: category // Store the document category
         })
         .select()
         .single();
@@ -129,7 +130,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
         size: file.size,
         type: file.type,
         status: "draft",
-        version: 1
+        version: 1,
+        category: category // Include category in the new document object
       };
       
       setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
