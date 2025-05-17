@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { FileText, Users } from "lucide-react";
-import { Deal, Milestone } from "@/types/deal";
+import { FileText, Users, MessageSquare } from "lucide-react";
+import { Deal } from "@/types/deal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +13,7 @@ interface DealTimelineProps {
 // Define interfaces for different timeline event types
 interface TimelineEvent {
   id: string;
-  type: 'deal_created' | 'milestone_completed' | 'document_uploaded' | 'participant_added';
+  type: 'deal_created' | 'milestone_completed' | 'document_uploaded' | 'participant_added' | 'comment_added';
   timestamp: Date;
   title: string;
   description?: string;
@@ -134,6 +134,40 @@ const DealTimeline = ({ deal }: DealTimelineProps) => {
             }));
             
             combinedEvents.push(...participantEvents);
+          }
+          
+          // Fetch comments (NEW)
+          const { data: comments, error: commentError } = await supabase
+            .from('comments')
+            .select(`
+              id,
+              content,
+              created_at,
+              user_id,
+              profiles:user_id (name, avatar_url)
+            `)
+            .eq('deal_id', deal.id);
+            
+          if (commentError) throw commentError;
+          
+          if (comments && comments.length > 0) {
+            const commentEvents: TimelineEvent[] = comments.map(comment => ({
+              id: `comment-${comment.id}`,
+              type: 'comment_added',
+              timestamp: new Date(comment.created_at),
+              title: 'Comment added',
+              description: comment.content.length > 50 
+                ? `${comment.content.substring(0, 50)}...` 
+                : comment.content,
+              icon: <MessageSquare className="h-5 w-5" />,
+              user: comment.user_id ? {
+                id: comment.user_id,
+                name: comment.profiles?.name,
+                avatar: comment.profiles?.avatar_url
+              } : undefined
+            }));
+            
+            combinedEvents.push(...commentEvents);
           }
         } catch (err) {
           console.error("Error fetching additional timeline data:", err);

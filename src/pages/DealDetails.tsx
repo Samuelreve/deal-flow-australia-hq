@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -17,6 +16,7 @@ import DealParticipants from "@/components/deals/DealParticipants";
 import DealHealth from "@/components/deals/DealHealth";
 import DocumentManagement from "@/components/deals/DocumentManagement";
 import MilestoneTracker from "@/components/deals/MilestoneTracker";
+import DealComments from "@/components/deals/DealComments";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -79,6 +79,7 @@ const DealDetails = () => {
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="milestones">Milestones</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
             </TabsList>
             
@@ -130,6 +131,17 @@ const DealDetails = () => {
                 </CardHeader>
                 <CardContent>
                   <DealTimeline deal={deal} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="comments">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DealComments dealId={deal.id} />
                 </CardContent>
               </Card>
             </TabsContent>
