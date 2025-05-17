@@ -59,13 +59,13 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
   }, [dealId, initialMilestones]);
 
   // Update milestone status
-  const handleUpdateMilestoneStatus = async (milestoneId: string, newStatus: string) => {
+  const handleUpdateMilestoneStatus = async (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => {
     setUpdatingMilestoneId(milestoneId);
     
     try {
       const updates = {
         status: newStatus,
-        ...(newStatus === 'completed' ? { completedAt: new Date().toISOString() } : {})
+        ...(newStatus === 'completed' ? { completed_at: new Date().toISOString() } : {})
       };
       
       const { data, error } = await supabase
@@ -82,7 +82,7 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
       // Update local state
       setMilestones(prevMilestones =>
         prevMilestones.map(m =>
-          m.id === milestoneId ? { ...m, ...updates } : m
+          m.id === milestoneId ? { ...m, ...updates } as Milestone : m
         )
       );
       
@@ -149,11 +149,11 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
                     {formatStatus(milestone.status)}
                   </span>
                 </h4>
-                {(milestone.dueDate || milestone.completedAt) && (
+                {(milestone.due_date || milestone.completed_at) && (
                   <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
                     {milestone.status !== 'completed' 
-                      ? milestone.dueDate ? `Due by: ${formatDate(milestone.dueDate)}` : '' 
-                      : `Completed on: ${formatDate(milestone.completedAt)}`}
+                      ? milestone.due_date ? `Due by: ${formatDate(milestone.due_date)}` : '' 
+                      : `Completed on: ${formatDate(milestone.completed_at)}`}
                   </time>
                 )}
                 {milestone.description && (
