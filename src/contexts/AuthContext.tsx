@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
+import { Session, User } from '@supabase/supabase-js';
 
 // User types
 export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
@@ -18,6 +19,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -28,31 +30,73 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Check for existing session on mount
+  // Check for existing session on mount and set up auth listener
   useEffect(() => {
+    // Set up auth state listener FIRST to avoid missing auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log('Auth state changed:', event);
+        setSession(currentSession);
+        
+        if (event === 'SIGNED_IN' && currentSession) {
+          // Don't call other Supabase functions directly here to avoid deadlocks
+          // Use setTimeout to defer Supabase calls
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentSession.user.id)
+                .single();
+              
+              if (profileError) throw profileError;
+              
+              if (profileData) {
+                const currentUser: User = {
+                  id: profileData.id,
+                  email: profileData.email,
+                  name: profileData.name,
+                  role: profileData.role,
+                  avatar: profileData.avatar_url,
+                };
+                
+                setUser(currentUser);
+                setIsAuthenticated(true);
+              }
+            } catch (error) {
+              console.error("Profile fetch error:", error);
+            }
+          }, 0);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    );
+    
+    // THEN check for existing session
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
         
         if (session) {
+          setSession(session);
+          
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
           
-          if (profileError) {
-            throw profileError;
-          }
+          if (profileError) throw profileError;
           
           if (profileData) {
             const currentUser: User = {
@@ -76,43 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     checkSession();
     
-    // Set up auth state listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profileError) {
-            throw profileError;
-          }
-          
-          if (profileData) {
-            const currentUser: User = {
-              id: profileData.id,
-              email: profileData.email,
-              name: profileData.name,
-              role: profileData.role,
-              avatar: profileData.avatar_url,
-            };
-            
-            setUser(currentUser);
-            setIsAuthenticated(true);
-          }
-        } catch (error) {
-          console.error("Profile fetch error:", error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    });
-    
+    // Clean up subscription on unmount
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -125,40 +135,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       if (data.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+        // Session will be handled by the onAuthStateChange listener
+        toast({
+          title: "Login successful",
+          description: `Welcome back!`,
+        });
         
-        if (profileError) {
-          throw profileError;
-        }
-        
-        if (profileData) {
-          const currentUser: User = {
-            id: profileData.id,
-            email: profileData.email,
-            name: profileData.name,
-            role: profileData.role,
-            avatar: profileData.avatar_url,
-          };
-          
-          setUser(currentUser);
-          setIsAuthenticated(true);
-          
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${profileData.name}!`,
-          });
-          
-          return true;
-        }
+        return true;
       }
       
       return false;
@@ -178,8 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
-      setIsAuthenticated(false);
+      // Session change will be handled by the onAuthStateChange listener
       sonnerToast.success("Logged out successfully");
       navigate("/login");
     } catch (error) {
@@ -189,7 +174,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      isAuthenticated, 
+      login, 
+      logout, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
