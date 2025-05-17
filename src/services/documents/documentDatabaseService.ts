@@ -16,7 +16,7 @@ export interface DocumentMetadata {
   status: "draft" | "final" | "signed";
   version: number;
   milestone_id: string | null;
-  category?: string;
+  category: string | null;
 }
 
 /**

@@ -27,7 +27,7 @@ export const documentMapperService = {
       type: metadata.type,
       status: metadata.status,
       version: metadata.version,
-      category: metadata.category
+      category: metadata.category || undefined
     };
   }
 };
