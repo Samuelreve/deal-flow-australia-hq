@@ -8,13 +8,15 @@ interface MilestoneListProps {
   userRole: string;
   updatingMilestoneId: string | null;
   onUpdateStatus: (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => void;
+  isParticipant?: boolean;
 }
 
 const MilestoneList: React.FC<MilestoneListProps> = ({
   milestones,
   userRole,
   updatingMilestoneId,
-  onUpdateStatus
+  onUpdateStatus,
+  isParticipant = false
 }) => {
   if (milestones.length === 0) {
     return <p className="text-gray-600">No milestones defined for this deal.</p>;
@@ -29,6 +31,7 @@ const MilestoneList: React.FC<MilestoneListProps> = ({
           userRole={userRole}
           updatingMilestoneId={updatingMilestoneId}
           onUpdateStatus={onUpdateStatus}
+          isParticipant={isParticipant}
         />
       ))}
     </ol>
