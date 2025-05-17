@@ -1,5 +1,5 @@
 
-import { Bell, Settings, User } from "lucide-react";
+import { Settings, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,11 +29,6 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
       
       <div className="flex items-center ml-auto space-x-2">
         <NotificationsDropdown />
-        
-        <Button variant="outline" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-destructive rounded-full" />
-        </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
