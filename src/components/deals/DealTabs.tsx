@@ -2,13 +2,13 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DealProgress from "@/components/deals/DealProgress";
 import DealTimeline from "@/components/deals/DealTimeline";
 import DocumentManagement from "@/components/deals/DocumentManagement";
 import MilestoneTracker from "@/components/deals/MilestoneTracker";
 import DealComments from "@/components/deals/DealComments";
+import DealMessaging from "@/components/deals/messages/DealMessaging";
 import { Deal } from "@/types/deal";
 
 interface DealTabsProps {
@@ -108,17 +108,7 @@ const DealTabs: React.FC<DealTabsProps> = ({
             <CardTitle>Messages</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-              <p className="text-muted-foreground mb-4">Send messages to other participants in this deal</p>
-              {isParticipant && (
-                <Button>New Message</Button>
-              )}
-              {!isParticipant && (
-                <p className="text-sm text-amber-600">You need to be a participant in this deal to send messages.</p>
-              )}
-            </div>
+            <DealMessaging dealId={deal.id} isParticipant={isParticipant} />
           </CardContent>
         </Card>
       </TabsContent>
