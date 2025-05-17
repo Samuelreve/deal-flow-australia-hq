@@ -1,8 +1,8 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { useAllowedDealStatuses } from '../useAllowedDealStatuses';
 import { supabase } from '@/integrations/supabase/client';
-import { vi } from 'vitest';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({

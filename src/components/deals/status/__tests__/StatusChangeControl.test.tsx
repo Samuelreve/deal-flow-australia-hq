@@ -1,7 +1,7 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { StatusChangeControl } from '../StatusChangeControl';
-import { vi } from 'vitest';
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock the supabase client

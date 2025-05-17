@@ -1,9 +1,9 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import DealHeader from '../DealHeader';
 import { Deal } from '@/types/deal';
-import { vi } from 'vitest';
 import * as AllowedStatusesHook from '@/hooks/useAllowedDealStatuses';
 
 // Mock the useAllowedDealStatuses hook
@@ -154,8 +154,8 @@ describe('DealHeader Component', () => {
       expect(screen.getByText('Select New Status:')).toBeInTheDocument();
     });
     
-    // Simulate selecting a new status (you might need to customize this based on your exact implementation)
-    const selectElement = screen.getByRole('combobox'); // or however your select is rendered
+    // Simulate selecting a new status
+    const selectElement = screen.getByRole('combobox');
     fireEvent.change(selectElement, { target: { value: 'pending' } });
     
     // Click on Apply button
@@ -166,7 +166,7 @@ describe('DealHeader Component', () => {
     // we can't directly test that. We'd need to expose the mock for supabase.rpc
     // for a complete test.
     await waitFor(() => {
-      expect(onStatusUpdatedMock).toHaveBeenCalledTimes(0);
+      expect(onStatusUpdatedMock).toHaveBeenCalledTimes(0); // This is 0 because the mock doesn't bubble up in this test
     });
   });
 
