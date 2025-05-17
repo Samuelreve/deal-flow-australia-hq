@@ -16,6 +16,7 @@ import DealTimeline from "@/components/deals/DealTimeline";
 import DealParticipants from "@/components/deals/DealParticipants";
 import DealHealth from "@/components/deals/DealHealth";
 import DocumentManagement from "@/components/deals/DocumentManagement";
+import MilestoneTracker from "@/components/deals/MilestoneTracker";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -76,6 +77,7 @@ const DealDetails = () => {
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="milestones">Milestones</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
             </TabsList>
@@ -101,6 +103,21 @@ const DealDetails = () => {
                     dealId={deal.id}
                     initialDocuments={deal.documents}
                     userRole="admin"
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="milestones">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Milestones</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MilestoneTracker
+                    dealId={deal.id}
+                    userRole="admin"
+                    initialMilestones={deal.milestones}
                   />
                 </CardContent>
               </Card>
