@@ -31,7 +31,12 @@ vi.mock("@/integrations/supabase/client", () => ({
 describe("InvitationForm", () => {
   const mockDealId = "deal-123";
   const mockOnInvitationSent = vi.fn();
-  const mockUser = { id: "user-123", email: "user@example.com" };
+  const mockUser = { 
+    id: "user-123", 
+    email: "user@example.com",
+    name: "Test User",
+    role: "admin"
+  };
   
   beforeEach(() => {
     // Reset all mocks
