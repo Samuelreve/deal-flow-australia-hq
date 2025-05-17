@@ -35,7 +35,7 @@ const DocumentManagement = ({
           .from('documents')
           .select('*')
           .eq('deal_id', dealId)
-          .order('uploaded_at', { ascending: false });
+          .order('created_at', { ascending: false });
         
         if (error) {
           throw error;
@@ -46,9 +46,9 @@ const DocumentManagement = ({
           const formattedDocuments: Document[] = data.map(doc => ({
             id: doc.id,
             name: doc.name,
-            url: doc.url,
+            url: supabase.storage.from('deal-documents').getPublicUrl(doc.storage_path).data.publicUrl,
             uploadedBy: doc.uploaded_by,
-            uploadedAt: new Date(doc.uploaded_at),
+            uploadedAt: new Date(doc.created_at),
             size: doc.size,
             type: doc.type,
             status: doc.status,
@@ -115,7 +115,7 @@ const DocumentManagement = ({
         .from('deal-documents')
         .getPublicUrl(fileName);
       
-      const fileUrl = urlData.publicUrl;
+      const publicUrl = urlData.publicUrl;
       
       // 3. Save document metadata to documents table
       const { data: documentData, error: documentError } = await supabase
@@ -123,9 +123,8 @@ const DocumentManagement = ({
         .insert({
           deal_id: dealId,
           name: selectedFile.name,
-          url: fileUrl,
+          storage_path: fileName,
           uploaded_by: userRole,
-          uploaded_at: new Date().toISOString(),
           size: selectedFile.size,
           type: selectedFile.type,
           status: "draft",
@@ -142,9 +141,9 @@ const DocumentManagement = ({
       const newDocument: Document = {
         id: documentData.id,
         name: documentData.name,
-        url: documentData.url,
+        url: publicUrl,
         uploadedBy: documentData.uploaded_by,
-        uploadedAt: new Date(documentData.uploaded_at),
+        uploadedAt: new Date(documentData.created_at),
         size: documentData.size,
         type: documentData.type,
         status: documentData.status,
