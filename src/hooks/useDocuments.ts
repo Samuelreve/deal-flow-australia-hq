@@ -45,7 +45,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
               size: doc.size,
               type: doc.type,
               status: doc.status,
-              version: doc.version
+              version: doc.version,
+              category: doc.category // Include the category field
             };
           }));
           
