@@ -29,6 +29,13 @@ interface InvitationFormData {
   inviteeRole: UserRole | '';
 }
 
+// Define the expected structure of the successful backend response
+interface InvitationResponse {
+  success: boolean;
+  message: string;
+  token?: string;
+}
+
 // Define props for the ParticipantInvitationForm component
 interface ParticipantInvitationFormProps {
   dealId: string;
@@ -103,8 +110,11 @@ const ParticipantInvitationForm: React.FC<ParticipantInvitationFormProps> = ({
         throw new Error(error.message);
       }
 
-      if (!data.success) {
-        throw new Error(data.message);
+      // Properly type the response
+      const response = data as InvitationResponse;
+
+      if (!response.success) {
+        throw new Error(response.message);
       }
 
       // Show success message

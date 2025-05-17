@@ -41,6 +41,13 @@ interface DealInvitation {
   };
 }
 
+// Define the expected structure of the invitations function response
+interface DealInvitationsResponse {
+  success: boolean;
+  invitations: DealInvitation[];
+  message?: string;
+}
+
 const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus }: DealParticipantsProps) => {
   const { user, session, isAuthenticated } = useAuth();
   const [participants, setParticipants] = useState<DealParticipant[]>([]);
@@ -168,8 +175,11 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
         return;
       }
 
-      if (data && data.success && data.invitations) {
-        setInvitations(Array.isArray(data.invitations) ? data.invitations : []);
+      // Properly type the response
+      const response = data as DealInvitationsResponse;
+      
+      if (response && response.success && response.invitations) {
+        setInvitations(Array.isArray(response.invitations) ? response.invitations : []);
       } else {
         setInvitations([]);
       }
