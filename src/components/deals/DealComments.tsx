@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,9 +21,11 @@ interface Comment {
 
 interface DealCommentsProps {
   dealId: string;
+  userRole?: string;
+  isParticipant?: boolean;
 }
 
-const DealComments = ({ dealId }: DealCommentsProps) => {
+const DealComments = ({ dealId, userRole = 'user', isParticipant = false }: DealCommentsProps) => {
   const { user, session, isAuthenticated, loading: authLoading } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -176,7 +177,7 @@ const DealComments = ({ dealId }: DealCommentsProps) => {
         )}
       </div>
 
-      {isAuthenticated ? (
+      {isAuthenticated && isParticipant ? (
         <form onSubmit={handleSubmitComment} className="space-y-3 pt-3 border-t">
           <Textarea
             placeholder="Write a comment..."
@@ -197,7 +198,7 @@ const DealComments = ({ dealId }: DealCommentsProps) => {
         </form>
       ) : (
         <p className="text-center text-muted-foreground text-sm pt-3 border-t">
-          Please sign in to post comments
+          {isAuthenticated ? "You need to be a participant to comment" : "Please sign in to post comments"}
         </p>
       )}
     </div>

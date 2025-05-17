@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 
 interface DealHeaderProps {
   deal: Deal;
+  userRole?: string;
+  isParticipant?: boolean;
 }
 
-const DealHeader = ({ deal }: DealHeaderProps) => {
+const DealHeader = ({ deal, userRole = 'viewer', isParticipant = false }: DealHeaderProps) => {
   const navigate = useNavigate();
 
   const getStatusClass = (status: string) => {
@@ -61,12 +63,16 @@ const DealHeader = ({ deal }: DealHeaderProps) => {
           <p className="text-muted-foreground">{deal.description}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleAddDocument}>
-            <Upload className="h-4 w-4 mr-2" /> Add Document
-          </Button>
-          <Button>
-            <MessageSquare className="h-4 w-4 mr-2" /> Message
-          </Button>
+          {isParticipant && (
+            <Button variant="outline" onClick={handleAddDocument}>
+              <Upload className="h-4 w-4 mr-2" /> Add Document
+            </Button>
+          )}
+          {isParticipant && (
+            <Button>
+              <MessageSquare className="h-4 w-4 mr-2" /> Message
+            </Button>
+          )}
         </div>
       </div>
     </div>

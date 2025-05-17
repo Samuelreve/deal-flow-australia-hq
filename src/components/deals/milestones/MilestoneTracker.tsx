@@ -12,12 +12,14 @@ interface MilestoneTrackerProps {
   dealId: string;
   userRole: string;
   initialMilestones?: Milestone[];
+  isParticipant?: boolean;
 }
 
 const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({ 
   dealId, 
   userRole,
-  initialMilestones = []
+  initialMilestones = [],
+  isParticipant = false
 }) => {
   const { isAuthenticated } = useAuthSession();
   const navigate = useNavigate();
@@ -60,6 +62,7 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
           userRole={userRole}
           updatingMilestoneId={updatingMilestoneId}
           onUpdateStatus={handleUpdateMilestoneStatus}
+          isParticipant={isParticipant}
         />
       )}
     </div>
