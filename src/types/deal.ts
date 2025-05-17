@@ -1,5 +1,5 @@
 
-import { User, UserRole } from "@/contexts/AuthContext";
+import { User, UserRole } from "@/types/auth";
 
 // Define milestone status
 export type MilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
