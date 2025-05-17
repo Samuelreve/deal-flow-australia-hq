@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Document } from "@/types/deal";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Define props for the DocumentManagement component
 interface DocumentManagementProps {
@@ -18,11 +20,15 @@ const DocumentManagement = ({
   userRole = "admin", 
   initialDocuments = [] 
 }: DocumentManagementProps) => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch documents when component mounts or dealId changes
   useEffect(() => {
@@ -43,16 +49,23 @@ const DocumentManagement = ({
         
         // Transform database document format to our Document type
         if (data) {
-          const formattedDocuments: Document[] = data.map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            url: supabase.storage.from('deal-documents').getPublicUrl(doc.storage_path).data.publicUrl,
-            uploadedBy: doc.uploaded_by,
-            uploadedAt: new Date(doc.created_at),
-            size: doc.size,
-            type: doc.type,
-            status: doc.status,
-            version: doc.version
+          const formattedDocuments: Document[] = await Promise.all(data.map(async doc => {
+            // Get a signed URL that expires in 1 hour (3600 seconds)
+            const { data: urlData } = await supabase.storage
+              .from('deal-documents')
+              .createSignedUrl(`${dealId}/${doc.storage_path}`, 3600);
+            
+            return {
+              id: doc.id,
+              name: doc.name,
+              url: urlData?.signedUrl || '',
+              uploadedBy: doc.uploaded_by,
+              uploadedAt: new Date(doc.created_at),
+              size: doc.size,
+              type: doc.type,
+              status: doc.status,
+              version: doc.version
+            };
           }));
           
           setDocuments(formattedDocuments);
@@ -93,38 +106,39 @@ const DocumentManagement = ({
       setUploadError('Please select a file to upload.');
       return;
     }
+    
+    if (!user) {
+      setUploadError('You must be logged in to upload files.');
+      return;
+    }
 
     setUploading(true);
     setUploadError(null);
 
     try {
-      // 1. Upload file to Supabase Storage
+      // Create a unique filename with user ID to help with permissions
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${dealId}/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${user.id}-${Date.now()}.${fileExt}`;
+      const storagePath = `${dealId}/${filePath}`;
       
-      const { data: fileData, error: fileError } = await supabase.storage
+      // 1. Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
         .from('deal-documents')
-        .upload(fileName, selectedFile);
+        .upload(storagePath, selectedFile);
       
-      if (fileError) {
-        throw fileError;
+      if (uploadError) {
+        throw uploadError;
       }
       
-      // 2. Get the public URL for the uploaded file
-      const { data: urlData } = supabase.storage
-        .from('deal-documents')
-        .getPublicUrl(fileName);
-      
-      const publicUrl = urlData.publicUrl;
-      
-      // 3. Save document metadata to documents table
+      // 2. Save document metadata to documents table
       const { data: documentData, error: documentError } = await supabase
         .from('documents')
         .insert({
           deal_id: dealId,
           name: selectedFile.name,
-          storage_path: fileName,
-          uploaded_by: userRole,
+          description: '',
+          storage_path: filePath,
+          uploaded_by: user.id,
           size: selectedFile.size,
           type: selectedFile.type,
           status: "draft",
@@ -137,17 +151,22 @@ const DocumentManagement = ({
         throw documentError;
       }
       
+      // 3. Get a signed URL for the uploaded file
+      const { data: urlData } = await supabase.storage
+        .from('deal-documents')
+        .createSignedUrl(storagePath, 3600);
+      
       // 4. Add the new document to our local state
       const newDocument: Document = {
         id: documentData.id,
         name: documentData.name,
-        url: publicUrl,
-        uploadedBy: documentData.uploaded_by,
-        uploadedAt: new Date(documentData.created_at),
-        size: documentData.size,
-        type: documentData.type,
-        status: documentData.status,
-        version: documentData.version
+        url: urlData?.signedUrl || '',
+        uploadedBy: user.id,
+        uploadedAt: new Date(),
+        size: selectedFile.size,
+        type: selectedFile.type,
+        status: "draft",
+        version: 1
       };
       
       setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
@@ -160,6 +179,10 @@ const DocumentManagement = ({
       
       // Reset form state
       setSelectedFile(null);
+      
+      // Clear file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
     } catch (error: any) {
       console.error("Upload error:", error);
       setUploadError(error.message || 'File upload failed');
@@ -170,6 +193,65 @@ const DocumentManagement = ({
       });
     } finally {
       setUploading(false);
+    }
+  };
+  
+  // Handle document deletion
+  const openDeleteDialog = (document: Document) => {
+    setDocumentToDelete(document);
+    setShowDeleteDialog(true);
+  };
+  
+  const closeDeleteDialog = () => {
+    setShowDeleteDialog(false);
+    setDocumentToDelete(null);
+  };
+  
+  const confirmDelete = async () => {
+    if (!documentToDelete || !user) return;
+    
+    setIsDeleting(true);
+    try {
+      // 1. Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('deal-documents')
+        .remove([`${dealId}/${documentToDelete.id}`]);
+      
+      if (storageError) {
+        console.warn("Storage delete error:", storageError);
+        // Continue anyway to clean up database entry
+      }
+      
+      // 2. Delete from database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentToDelete.id);
+      
+      if (dbError) {
+        throw dbError;
+      }
+      
+      // 3. Update local state
+      setDocuments(prevDocuments => 
+        prevDocuments.filter(doc => doc.id !== documentToDelete.id)
+      );
+      
+      toast({
+        title: "Document deleted",
+        description: `${documentToDelete.name} has been deleted.`,
+      });
+      
+      closeDeleteDialog();
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Delete failed",
+        description: error.message || "There was a problem deleting the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -217,13 +299,14 @@ const DocumentManagement = ({
                 <Button variant="outline" size="sm" asChild>
                   <a href={doc.url} target="_blank" rel="noopener noreferrer">View</a>
                 </Button>
-                {userRole === "admin" && (
+                {(userRole === "admin" || doc.uploadedBy === user?.id) && (
                   <Button 
                     variant="ghost" 
-                    size="sm" 
+                    size="sm"
+                    onClick={() => openDeleteDialog(doc)}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
@@ -259,6 +342,26 @@ const DocumentManagement = ({
           {uploading ? 'Uploading...' : 'Upload Document'}
         </Button>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{documentToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDeleteDialog} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
