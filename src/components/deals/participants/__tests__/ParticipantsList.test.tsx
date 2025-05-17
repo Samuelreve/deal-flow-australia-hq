@@ -3,6 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import ParticipantsList from "../ParticipantsList";
 import { DealParticipant } from "../../DealParticipants";
+import { describe, it, expect, vi } from "vitest";
 
 // Mock the ParticipantItem component
 vi.mock("../ParticipantItem", () => ({

@@ -2,7 +2,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import InvitationForm from "../InvitationForm";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,8 +38,14 @@ describe("InvitationForm", () => {
     vi.clearAllMocks();
     
     // Setup default mock values
-    (useAuth as jest.Mock).mockReturnValue({ 
-      user: mockUser 
+    vi.mocked(useAuth).mockReturnValue({ 
+      user: mockUser,
+      isAuthenticated: true,
+      session: null,
+      loading: false,
+      login: vi.fn(),
+      signup: vi.fn(),
+      logout: vi.fn()
     });
   });
 
@@ -108,9 +114,13 @@ describe("InvitationForm", () => {
     // Fill out the form
     await userEvent.type(screen.getByLabelText(/email address/i), "test@example.com");
     
-    // Select a role (may need to adjust based on your actual implementation)
-    const roleSelect = screen.getByLabelText(/role/i);
-    await userEvent.selectOptions(roleSelect, "buyer");
+    // Select a role (using the SelectTrigger component)
+    const roleSelect = screen.getByText(/select a role/i);
+    await userEvent.click(roleSelect);
+    
+    // Click on a role option (assuming the dropdown is now open)
+    const buyerOption = screen.getByText(/buyer/i);
+    await userEvent.click(buyerOption);
     
     // Submit the form
     await userEvent.click(screen.getByRole("button", { name: /send invitation/i }));
@@ -158,8 +168,10 @@ describe("InvitationForm", () => {
     await userEvent.type(screen.getByLabelText(/email address/i), "test@example.com");
     
     // Select a role
-    const roleSelect = screen.getByLabelText(/role/i);
-    await userEvent.selectOptions(roleSelect, "buyer");
+    const roleSelect = screen.getByText(/select a role/i);
+    await userEvent.click(roleSelect);
+    const buyerOption = screen.getByText(/buyer/i);
+    await userEvent.click(buyerOption);
     
     // Submit the form
     await userEvent.click(screen.getByRole("button", { name: /send invitation/i }));
@@ -179,8 +191,14 @@ describe("InvitationForm", () => {
 
   it("disables the form when not authenticated", () => {
     // Mock unauthenticated user
-    (useAuth as jest.Mock).mockReturnValue({ 
-      user: null
+    vi.mocked(useAuth).mockReturnValue({ 
+      user: null,
+      isAuthenticated: false,
+      session: null,
+      loading: false,
+      login: vi.fn(),
+      signup: vi.fn(),
+      logout: vi.fn()
     });
     
     render(

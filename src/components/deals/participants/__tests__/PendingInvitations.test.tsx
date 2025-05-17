@@ -3,6 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import PendingInvitations from "../PendingInvitations";
 import { DealInvitation } from "@/types/invitation";
+import { describe, it, expect } from "vitest";
 
 describe("PendingInvitations", () => {
   const mockInvitations: DealInvitation[] = [
@@ -87,7 +88,6 @@ describe("PendingInvitations", () => {
     
     // Since the date formatting depends on the browser's locale,
     // we'll just check that some date-related text is present
-    // This is a simplified check since the actual formatting may vary
     expect(screen.getByText(/invited as buyer on/i)).toBeInTheDocument();
   });
 });
