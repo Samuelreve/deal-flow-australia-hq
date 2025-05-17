@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,38 +44,7 @@ const Login = () => {
   };
   
   const handleSignUp = async () => {
-    if (!email || !password) {
-      setError("Email and password are required");
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      setError("");
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: email.split('@')[0], // Basic name from email
-          }
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setShowSuccess(true);
-      toast.success("Account created! Please check your email for confirmation.");
-      
-    } catch (err: any) {
-      console.error("Signup error:", err);
-      setError(err.message || "Failed to create account");
-    } finally {
-      setIsLoading(false);
-    }
+    navigate("/signup");
   };
   
   const handleResetPassword = async () => {

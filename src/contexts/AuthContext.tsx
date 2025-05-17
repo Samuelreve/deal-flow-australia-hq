@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,6 +21,7 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
 }
@@ -161,6 +161,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signup = async (email: string, password: string, name?: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || email.split('@')[0], // Basic name from email if not provided
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.user) {
+        if (data.session) {
+          // Auto-login (email confirmation disabled)
+          toast({
+            title: "Account created successfully",
+            description: "Welcome to DealPilot!",
+          });
+          return true;
+        } else {
+          // Email confirmation required
+          toast({
+            title: "Account created",
+            description: "Please check your email to confirm your account",
+          });
+          return false;
+        }
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast({
+        title: "Signup failed",
+        description: error.message || "Failed to create account",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -179,6 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session, 
       isAuthenticated, 
       login, 
+      signup,
       logout, 
       loading 
     }}>
