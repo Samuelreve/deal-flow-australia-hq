@@ -1,6 +1,8 @@
 
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface DealHealthProps {
   healthScore: number;
@@ -14,6 +16,14 @@ const DealHealth = ({ healthScore }: DealHealthProps) => {
     return "bg-green-500";
   };
 
+  // Helper to determine health status text
+  const getHealthStatusText = (score: number) => {
+    if (score < 30) return "At Risk";
+    if (score < 60) return "Needs Attention";
+    if (score < 85) return "On Track";
+    return "Excellent";
+  };
+
   return (
     <>
       <div className="flex items-center gap-2 mb-1">
@@ -24,7 +34,28 @@ const DealHealth = ({ healthScore }: DealHealthProps) => {
         />
         <span className="text-sm font-medium">{healthScore}%</span>
       </div>
-      <p className="text-xs text-muted-foreground">Based on progress and activity</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Based on milestone progress</p>
+        
+        <div className="flex items-center">
+          <span className="text-xs font-medium mr-1">{getHealthStatusText(healthScore)}</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                <p className="text-xs">
+                  Deal health is calculated based on milestone progress:
+                  <br />• Completed milestones add points
+                  <br />• In-progress milestones add some points
+                  <br />• Blocked milestones reduce points
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
     </>
   );
 };
