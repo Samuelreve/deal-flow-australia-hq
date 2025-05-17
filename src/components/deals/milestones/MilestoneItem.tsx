@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Milestone } from '@/types/deal';
-import { format } from 'date-fns';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 
 interface MilestoneItemProps {
