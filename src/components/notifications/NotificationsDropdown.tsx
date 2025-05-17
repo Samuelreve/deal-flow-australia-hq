@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuFooter,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -91,7 +90,7 @@ export const NotificationsDropdown = () => {
           </DropdownMenuGroup>
         </ScrollArea>
 
-        <DropdownMenuFooter className="p-2">
+        <div className="p-2 border-t border-border">
           <Button 
             variant="outline" 
             size="sm" 
@@ -104,7 +103,7 @@ export const NotificationsDropdown = () => {
           >
             View all notifications
           </Button>
-        </DropdownMenuFooter>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

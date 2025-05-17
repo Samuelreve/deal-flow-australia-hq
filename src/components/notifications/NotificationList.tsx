@@ -10,7 +10,9 @@ const NotificationList = () => {
   const { 
     notifications, 
     loading, 
-    markAllAsRead 
+    markAllAsRead,
+    markAsRead,
+    deleteNotification
   } = useNotifications();
   
   const navigate = useNavigate();
@@ -51,8 +53,8 @@ const NotificationList = () => {
               <NotificationItem
                 key={notification.id}
                 notification={notification}
-                onMarkAsRead={() => {}}
-                onDelete={() => {}}
+                onMarkAsRead={markAsRead}
+                onDelete={deleteNotification}
                 displayFull
               />
             ))}
