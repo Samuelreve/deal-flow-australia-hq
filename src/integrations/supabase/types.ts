@@ -71,6 +71,53 @@ export type Database = {
           },
         ]
       }
+      deal_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_user_id: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          invitation_token: string
+          invited_by_user_id: string
+          invitee_email: string
+          invitee_role: Database["public"]["Enums"]["user_role"]
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          invitation_token: string
+          invited_by_user_id: string
+          invitee_email: string
+          invitee_role: Database["public"]["Enums"]["user_role"]
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          invitation_token?: string
+          invited_by_user_id?: string
+          invitee_email?: string
+          invitee_role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_invitations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_participants: {
         Row: {
           deal_id: string
@@ -415,7 +462,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_deal_invitation: {
+        Args: {
+          p_deal_id: string
+          p_invitee_email: string
+          p_invitee_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: Json
+      }
       get_allowed_deal_statuses: {
+        Args: { p_deal_id: string }
+        Returns: Json
+      }
+      get_deal_invitations: {
         Args: { p_deal_id: string }
         Returns: Json
       }

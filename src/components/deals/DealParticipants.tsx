@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Deal } from "@/types/deal";
 import { UserRole } from "@/types/auth";
+import ParticipantInvitationForm from "./ParticipantInvitationForm";
+import { toast } from "@/hooks/use-toast";
 
 interface DealParticipantsProps {
   deal: Deal;
@@ -25,11 +27,28 @@ export interface DealParticipant {
   profile_avatar_url: string | null;
 }
 
+// Define interface for deal invitations
+interface DealInvitation {
+  id: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+  status: string;
+  invited_by: {
+    id: string;
+    name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus }: DealParticipantsProps) => {
   const { user, session, isAuthenticated } = useAuth();
   const [participants, setParticipants] = useState<DealParticipant[]>([]);
+  const [invitations, setInvitations] = useState<DealInvitation[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
+  const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   // --- Frontend RBAC Helper ---
   // Determine if the current user's role in THIS deal allows them to invite participants
@@ -130,10 +149,58 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
     }
   }, [deal.id, isAuthenticated, deal.participants, onParticipantsLoaded]);
 
+  // Function to fetch pending invitations for this deal
+  const fetchInvitations = useCallback(async () => {
+    if (!deal.id || !isAuthenticated || !canInviteParticipants) {
+      setLoadingInvitations(false);
+      return;
+    }
+
+    setLoadingInvitations(true);
+
+    try {
+      const { data, error } = await supabase.rpc('get_deal_invitations', {
+        p_deal_id: deal.id
+      });
+
+      if (error) {
+        console.error('Error fetching invitations:', error);
+        return;
+      }
+
+      if (data && data.success && data.invitations) {
+        setInvitations(Array.isArray(data.invitations) ? data.invitations : []);
+      } else {
+        setInvitations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    } finally {
+      setLoadingInvitations(false);
+    }
+  }, [deal.id, isAuthenticated, canInviteParticipants]);
+
   // Effect to fetch participants when component mounts or dependencies change
   useEffect(() => {
     fetchParticipants();
   }, [fetchParticipants]);
+
+  // Effect to fetch invitations when component mounts or dependencies change
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
+
+  // Handle invitation dialog
+  const handleOpenInviteDialog = () => setIsInviteDialogOpen(true);
+  const handleCloseInviteDialog = () => setIsInviteDialogOpen(false);
+  const handleInvitationSent = () => {
+    // Refresh participants and invitations after invitation is sent
+    fetchInvitations();
+    toast({
+      title: "Invitation Sent",
+      description: "The participant will receive an email with instructions."
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -181,15 +248,50 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
         ))
       )}
 
+      {/* Pending Invitations Section */}
+      {!loadingInvitations && canInviteParticipants && invitations.length > 0 && (
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-medium mb-2">Pending Invitations</h4>
+          {invitations.map((invitation) => (
+            <div key={invitation.id} className="flex items-center justify-between py-2 text-sm">
+              <div>
+                <p className="font-medium">{invitation.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  Invited as {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)} on{" "}
+                  {new Intl.DateTimeFormat("en-US", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric"
+                  }).format(new Date(invitation.created_at))}
+                </p>
+              </div>
+              <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
+                Pending
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* --- Frontend RBAC Conditional Rendering for Invite Button --- */}
       {/* Only show the invite button if the user has permission */}
       {canInviteParticipants && (
-        <Button variant="outline" className="w-full text-sm">
+        <Button variant="outline" className="w-full text-sm" onClick={handleOpenInviteDialog}>
           <Users className="h-4 w-4 mr-2" />
           Invite Participant
         </Button>
       )}
       {/* --- End Frontend RBAC Conditional Rendering --- */}
+
+      {/* Participant Invitation Dialog */}
+      {isInviteDialogOpen && (
+        <ParticipantInvitationForm
+          dealId={deal.id}
+          isOpen={isInviteDialogOpen}
+          onClose={handleCloseInviteDialog}
+          onInvitationSent={handleInvitationSent}
+        />
+      )}
     </div>
   );
 };
