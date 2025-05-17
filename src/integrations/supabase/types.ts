@@ -415,7 +415,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_deal_timeline: {
+        Args: { deal_uuid: string }
+        Returns: Database["public"]["CompositeTypes"]["timeline_event"][]
+      }
     }
     Enums: {
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"
@@ -424,7 +427,16 @@ export type Database = {
       user_role: "seller" | "buyer" | "lawyer" | "admin"
     }
     CompositeTypes: {
-      [_ in never]: never
+      timeline_event: {
+        id: string | null
+        type: string | null
+        timestamp: string | null
+        title: string | null
+        description: string | null
+        user_id: string | null
+        user_name: string | null
+        user_avatar: string | null
+      }
     }
   }
 }
