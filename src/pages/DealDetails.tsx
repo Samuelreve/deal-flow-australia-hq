@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, MessageSquare, ChevronLeft } from "lucide-react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Deal } from "@/types/deal";
 import { getMockDeal } from "@/data/mockData";
@@ -12,13 +10,8 @@ import { DealParticipant } from "@/components/deals/DealParticipants";
 
 // Imported components
 import DealHeader from "@/components/deals/DealHeader";
-import DealProgress from "@/components/deals/DealProgress";
-import DealTimeline from "@/components/deals/DealTimeline";
-import DealParticipants from "@/components/deals/DealParticipants";
-import DealHealth from "@/components/deals/DealHealth";
-import DocumentManagement from "@/components/deals/DocumentManagement";
-import MilestoneTracker from "@/components/deals/MilestoneTracker";
-import DealComments from "@/components/deals/DealComments";
+import DealTabs from "@/components/deals/DealTabs";
+import DealSidebar from "@/components/deals/DealSidebar";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -102,122 +95,20 @@ const DealDetails = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="milestones">Milestones</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="messages">Messages</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Deal Progress</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DealProgress milestones={deal.milestones} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Documents</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DocumentManagement
-                    dealId={deal.id}
-                    initialDocuments={deal.documents}
-                    userRole={effectiveUserRole}
-                    isParticipant={isParticipant}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="milestones">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Milestones</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MilestoneTracker
-                    dealId={deal.id}
-                    userRole={effectiveUserRole}
-                    initialMilestones={deal.milestones}
-                    isParticipant={isParticipant}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="timeline">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DealTimeline deal={deal} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="comments">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Comments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DealComments dealId={deal.id} userRole={effectiveUserRole} isParticipant={isParticipant} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="messages">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Messages</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-                    <p className="text-muted-foreground mb-4">Send messages to other participants in this deal</p>
-                    {isParticipant && (
-                      <Button>New Message</Button>
-                    )}
-                    {!isParticipant && (
-                      <p className="text-sm text-amber-600">You need to be a participant in this deal to send messages.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <DealTabs 
+            deal={deal}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            effectiveUserRole={effectiveUserRole}
+            isParticipant={isParticipant}
+          />
         </div>
         
         <div>
-          <Card className="mb-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Deal Health</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DealHealth healthScore={deal.healthScore} />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Participants</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DealParticipants deal={deal} onParticipantsLoaded={handleParticipantsLoaded} />
-            </CardContent>
-          </Card>
+          <DealSidebar 
+            deal={deal} 
+            onParticipantsLoaded={handleParticipantsLoaded}
+          />
         </div>
       </div>
     </AppLayout>
