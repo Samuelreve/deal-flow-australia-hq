@@ -6,6 +6,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import InvitationForm from "../InvitationForm";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { UserRole } from "@/types/auth";
 
 // Mock the required dependencies
 vi.mock("@/contexts/AuthContext", () => ({
@@ -35,7 +36,7 @@ describe("InvitationForm", () => {
     id: "user-123", 
     email: "user@example.com",
     name: "Test User",
-    role: "admin"
+    role: "admin" as UserRole
   };
   
   beforeEach(() => {
