@@ -1,142 +1,31 @@
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { toast as sonnerToast } from "sonner";
-import { Session } from '@supabase/supabase-js';
-
-// User types
-export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  avatar?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name?: string) => Promise<boolean>;
-  logout: () => void;
-  loading: boolean;
-}
+import { authService } from "@/services/authService";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { AuthContextType } from "@/types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const {
+    user,
+    session,
+    isAuthenticated,
+    loading,
+    setLoading
+  } = useAuthSession();
+  
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  // Check for existing session on mount and set up auth listener
-  useEffect(() => {
-    // Set up auth state listener FIRST to avoid missing auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log('Auth state changed:', event);
-        setSession(currentSession);
-        
-        if (event === 'SIGNED_IN' && currentSession) {
-          // Don't call other Supabase functions directly here to avoid deadlocks
-          // Use setTimeout to defer Supabase calls
-          setTimeout(async () => {
-            try {
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', currentSession.user.id)
-                .single();
-              
-              if (profileError) throw profileError;
-              
-              if (profileData) {
-                const currentUser: User = {
-                  id: profileData.id,
-                  email: profileData.email,
-                  name: profileData.name,
-                  role: profileData.role,
-                  avatar: profileData.avatar_url,
-                };
-                
-                setUser(currentUser);
-                setIsAuthenticated(true);
-              }
-            } catch (error) {
-              console.error("Profile fetch error:", error);
-            }
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      }
-    );
-    
-    // THEN check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) throw error;
-        
-        if (session) {
-          setSession(session);
-          
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profileError) throw profileError;
-          
-          if (profileData) {
-            const currentUser: User = {
-              id: profileData.id,
-              email: profileData.email,
-              name: profileData.name,
-              role: profileData.role,
-              avatar: profileData.avatar_url,
-            };
-            
-            setUser(currentUser);
-            setIsAuthenticated(true);
-          }
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    checkSession();
-    
-    // Clean up subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
+      const data = await authService.login(email, password);
       
       if (data.user) {
         // Session will be handled by the onAuthStateChange listener
@@ -166,17 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name || email.split('@')[0], // Basic name from email if not provided
-          }
-        }
-      });
-      
-      if (error) throw error;
+      const data = await authService.signup(email, password, name);
       
       if (data?.user) {
         if (data.session) {
@@ -212,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      await authService.logout();
       // Session change will be handled by the onAuthStateChange listener
       sonnerToast.success("Logged out successfully");
       navigate("/login");
