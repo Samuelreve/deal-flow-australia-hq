@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Deal } from "@/types/deal";
 import { FileText, Users, MessageSquare, PackageCheck } from "lucide-react";
+import React from 'react';
 
 // Define interfaces for different timeline event types
 export interface TimelineEvent {
