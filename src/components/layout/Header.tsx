@@ -1,3 +1,4 @@
+
 import { Bell, Settings, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
+
+interface HeaderProps {
+  showSidebar?: boolean;
+  toggleSidebar?: () => void;
+}
 
 const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
   const { user, logout } = useAuth();

@@ -30,14 +30,14 @@ export const useNotifications = () => {
       const formattedNotifications: Notification[] = data.map(n => ({
         id: n.id,
         title: n.title,
-        message: n.body || "",
+        message: n.message || "",
         createdAt: new Date(n.created_at),
         read: n.read,
         type: (n.type.includes("error") ? "error" : 
                n.type.includes("warning") ? "warning" :
                n.type.includes("success") ? "success" : "info") as "info" | "warning" | "success" | "error",
         dealId: n.deal_id || undefined,
-        userId: n.recipient_user_id,
+        userId: n.user_id,
         link: n.link || undefined,
       }));
       
@@ -146,14 +146,14 @@ export const useNotifications = () => {
             const newNotification: Notification = {
               id: payload.new.id,
               title: payload.new.title,
-              message: payload.new.body || "",
+              message: payload.new.message || "",
               createdAt: new Date(payload.new.created_at),
               read: payload.new.read,
               type: (payload.new.type.includes("error") ? "error" : 
                      payload.new.type.includes("warning") ? "warning" :
                      payload.new.type.includes("success") ? "success" : "info") as "info" | "warning" | "success" | "error",
               dealId: payload.new.deal_id || undefined,
-              userId: payload.new.recipient_user_id,
+              userId: payload.new.user_id,
               link: payload.new.link || undefined,
             };
             
