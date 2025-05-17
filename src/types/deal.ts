@@ -76,6 +76,7 @@ export interface Deal {
   documents: Document[];
   healthScore: number; // 0-100
   comments: Comment[];
+  businessName?: string; // Added businessName field
   participants: {
     id: string;
     role: UserRole;
@@ -97,4 +98,5 @@ export interface DealSummary {
   buyerId?: string;
   sellerName?: string;
   buyerName?: string;
+  businessName?: string; // Added businessName field
 }

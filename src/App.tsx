@@ -13,6 +13,7 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import DealsPage from "./pages/DealsPage";
 import DealDetails from "./pages/DealDetails";
+import CreateDealPage from "./pages/CreateDealPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/deals" element={<DealsPage />} />
               <Route path="/deals/:id" element={<DealDetails />} />
+              <Route path="/create-deal" element={<CreateDealPage />} />
             </Route>
 
             {/* Catch-all route */}
