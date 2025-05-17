@@ -27,18 +27,18 @@ const DealDetails = () => {
   const [isParticipant, setIsParticipant] = useState(false);
   const [currentUserDealRole, setCurrentUserDealRole] = useState<string | null>(null);
   
-  useEffect(() => {
-    const fetchDeal = () => {
-      // In a real app, this would be an API call
-      if (id) {
-        const dealData = getMockDeal(id);
-        if (dealData) {
-          setDeal(dealData);
-        }
+  const fetchDeal = () => {
+    // In a real app, this would be an API call
+    if (id) {
+      const dealData = getMockDeal(id);
+      if (dealData) {
+        setDeal(dealData);
       }
-      setLoading(false);
-    };
-    
+    }
+    setLoading(false);
+  };
+  
+  useEffect(() => {
     fetchDeal();
   }, [id]);
   
@@ -57,6 +57,11 @@ const DealDetails = () => {
   // Handle participants loaded from DealParticipants component
   const handleParticipantsLoaded = (participants: DealParticipant[]) => {
     setDealParticipants(participants);
+  };
+
+  // Handle status update - Refresh deal data
+  const handleStatusUpdated = () => {
+    fetchDeal();
   };
   
   if (loading) {
@@ -92,7 +97,12 @@ const DealDetails = () => {
   
   return (
     <AppLayout>
-      <DealHeader deal={deal} userRole={effectiveUserRole} isParticipant={isParticipant} />
+      <DealHeader 
+        deal={deal} 
+        userRole={effectiveUserRole} 
+        isParticipant={isParticipant}
+        onStatusUpdated={handleStatusUpdated}
+      />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
