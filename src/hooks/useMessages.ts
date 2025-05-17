@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 // Define message structure
 interface MessageWithProfile {
@@ -28,8 +29,7 @@ export function useMessages(dealId: string) {
     try {
       setLoading(true);
       
-      // Use type assertion to work around TypeScript limitation
-      // since the messages table was just created and may not be in the auto-generated types
+      // We need to use any type here since the messages table is new and not in the generated types
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -40,7 +40,7 @@ export function useMessages(dealId: string) {
           )
         `)
         .eq('deal_id', dealId)
-        .order('created_at', { ascending: true }) as { data: MessageWithProfile[] | null, error: any };
+        .order('created_at', { ascending: true }) as any;
       
       if (error) throw error;
       
@@ -58,14 +58,14 @@ export function useMessages(dealId: string) {
     try {
       setSending(true);
       
-      // Use type assertion to work around TypeScript limitation
+      // We need to use any type here since the messages table is new and not in the generated types
       const { error } = await supabase
         .from('messages')
         .insert({
           deal_id: dealId,
           sender_user_id: user.id,
           content: content.trim()
-        } as any);
+        }) as any;
       
       if (error) throw error;
       
@@ -73,6 +73,11 @@ export function useMessages(dealId: string) {
       // since the realtime subscription will handle that
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        title: "Error sending message",
+        description: "Please try again later",
+        variant: "destructive"
+      });
       throw error;
     } finally {
       setSending(false);
