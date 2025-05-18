@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/auth";
 import { processUserSession } from "./useSessionProcessor";
+import { toast } from "sonner";
 
 export const useAuthSession = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -33,10 +33,17 @@ export const useAuthSession = () => {
           // Defer profile fetch to avoid recursion issues
           setTimeout(() => {
             if (mounted) {
-              processUserSession(currentSession).then(({ user, isAuthenticated }) => {
-                setUser(user);
-                setIsAuthenticated(isAuthenticated);
-              });
+              processUserSession(currentSession)
+                .then(({ user, isAuthenticated }) => {
+                  setUser(user);
+                  setIsAuthenticated(isAuthenticated);
+                })
+                .catch(error => {
+                  console.error("Failed to process session:", error);
+                  // Don't sign out on profile fetch errors
+                  // Just keep the basic session active
+                  setIsAuthenticated(!!currentSession);
+                });
             }
           }, 0);
         }
@@ -60,9 +67,16 @@ export const useAuthSession = () => {
         if (existingSession) {
           console.log("Found existing session for user", existingSession.user.id);
           setSession(existingSession);
-          const { user, isAuthenticated } = await processUserSession(existingSession);
-          setUser(user);
-          setIsAuthenticated(isAuthenticated);
+          
+          try {
+            const { user, isAuthenticated } = await processUserSession(existingSession);
+            setUser(user);
+            setIsAuthenticated(isAuthenticated);
+          } catch (error) {
+            console.error("Failed to process initial session:", error);
+            // Keep the session active even if profile fetch fails
+            setIsAuthenticated(!!existingSession);
+          }
         } else {
           console.log("No existing session found");
         }

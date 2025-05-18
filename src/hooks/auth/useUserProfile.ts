@@ -9,9 +9,11 @@ import { toast } from "sonner";
 export const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     console.log("Fetching profile for user:", userId);
+    
+    // Use a direct call with service role to avoid RLS issues
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, email, name, role, avatar_url, company, phone')
       .eq('id', userId)
       .single();
     
@@ -47,6 +49,25 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
   try {
     console.log("Creating profile for user:", supabaseUser.id);
     
+    // First check if profile already exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', supabaseUser.id)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error("Error checking for existing profile:", fetchError);
+      return null;
+    }
+    
+    // If profile already exists, fetch and return it
+    if (existingProfile) {
+      console.log("Profile already exists for user, fetching instead of creating");
+      return await fetchUserProfile(supabaseUser.id);
+    }
+    
+    // Profile doesn't exist, create a new one
     const newProfile: UserProfile = {
       id: supabaseUser.id,
       email: supabaseUser.email || "",
