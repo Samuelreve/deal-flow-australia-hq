@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/auth';
 
 // Define the shape of the form data
 interface DealFormData {
@@ -78,16 +79,17 @@ const DealCreationForm: React.FC = () => {
 
       if (error) throw error;
 
+      // Use the appropriate user role from the profile or default to seller
+      const userRole = user.profile?.role as UserRole || 'seller';
+
       // Add the creator as a participant
       const { error: participantError } = await supabase
         .from('deal_participants')
-        .insert([
-          {
-            deal_id: newDeal.id,
-            user_id: user.id,
-            role: user.role
-          }
-        ]);
+        .insert({
+          deal_id: newDeal.id,
+          user_id: user.id,
+          role: userRole
+        });
 
       if (participantError) {
         console.error('Failed to add deal participant:', participantError);

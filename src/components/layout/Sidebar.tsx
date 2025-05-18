@@ -60,7 +60,7 @@ const Sidebar = () => {
   
   // Filter items based on user role
   const filteredNavItems = navItems.filter(item => 
-    user && item.roles.includes(user.role)
+    user?.profile && item.roles.includes(user.profile.role)
   );
   
   return (
@@ -91,14 +91,14 @@ const Sidebar = () => {
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center mb-4 px-2">
           <div className="w-8 h-8 rounded-full bg-primary mr-2 flex items-center justify-center text-white font-medium">
-            {user?.name?.charAt(0) || "U"}
+            {user?.profile?.name?.charAt(0) || "U"}
           </div>
           <div className="flex-1 overflow-hidden">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user?.name}
+              {user?.profile?.name}
             </p>
             <p className="text-xs text-sidebar-foreground/70 truncate">
-              {user?.role.charAt(0).toUpperCase() + user?.role.slice(1)}
+              {user?.profile?.role && (user.profile.role.charAt(0).toUpperCase() + user.profile.role.slice(1))}
             </p>
           </div>
         </div>

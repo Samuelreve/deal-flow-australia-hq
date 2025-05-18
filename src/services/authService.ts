@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types/auth";
+import { User, UserProfile } from "@/types/auth";
 
 export const authService = {
   login: async (email: string, password: string) => {
@@ -54,7 +54,7 @@ export const authService = {
   /**
    * Get current user profile with role information
    */
-  getCurrentUserProfile: async (): Promise<User | null> => {
+  getCurrentUserProfile: async (): Promise<UserProfile | null> => {
     const { data: session } = await supabase.auth.getSession();
     
     if (!session.session?.user) {
@@ -66,7 +66,7 @@ export const authService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, name, role, avatar_url')
+        .select('id, email, name, role, avatar_url, company, phone')
         .eq('id', userId)
         .single();
         
@@ -75,13 +75,7 @@ export const authService = {
         return null;
       }
       
-      return {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        role: data.role,
-        avatar: data.avatar_url
-      };
+      return data as UserProfile;
     } catch (error) {
       console.error("Error in getCurrentUserProfile:", error);
       return null;
