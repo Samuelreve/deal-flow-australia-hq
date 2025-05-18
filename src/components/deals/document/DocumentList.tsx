@@ -1,56 +1,84 @@
-
 import { useState } from "react";
 import { Document, DocumentVersion } from "@/types/deal";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Trash2, ChevronDown, ChevronUp, History } from "lucide-react";
+import { Loader2, FileText, Trash2, Download, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
+import DocumentVersionWithComments from "./DocumentVersionWithComments";
 import DocumentVersionList from "./DocumentVersionList";
+import { useDocumentComments } from "@/hooks/useDocumentComments";
+import { Badge } from "@/components/ui/badge";
 
 interface DocumentListProps {
   documents: Document[];
   isLoading: boolean;
+  onDeleteDocument?: (document: Document) => void;
   userRole?: string;
   userId?: string;
-  onDeleteDocument: (document: Document) => void;
   isParticipant?: boolean;
   onSelectDocument?: (document: Document) => void;
   selectedDocument?: Document | null;
-  documentVersions?: DocumentVersion[];
-  loadingVersions?: boolean;
+  documentVersions: DocumentVersion[];
+  loadingVersions: boolean;
   onDeleteVersion?: (version: DocumentVersion) => void;
 }
 
-const DocumentList = ({ 
-  documents, 
-  isLoading, 
+const DocumentList = ({
+  documents,
+  isLoading,
+  onDeleteDocument,
   userRole = 'user',
   userId,
-  onDeleteDocument,
   isParticipant = false,
   onSelectDocument,
   selectedDocument,
-  documentVersions = [],
-  loadingVersions = false,
+  documentVersions,
+  loadingVersions,
   onDeleteVersion
 }: DocumentListProps) => {
-  const [expandedDocumentId, setExpandedDocumentId] = useState<string | null>(null);
+  // Add state for selected version
+  const [selectedVersion, setSelectedVersion] = useState<DocumentVersion | null>(null);
 
-  const toggleDocumentVersions = async (document: Document) => {
-    if (expandedDocumentId === document.id) {
-      setExpandedDocumentId(null);
-    } else {
-      setExpandedDocumentId(document.id);
-      if (onSelectDocument) {
-        onSelectDocument(document);
-      }
-    }
+  // Handle version selection
+  const handleSelectVersion = (version: DocumentVersion) => {
+    setSelectedVersion(version);
   };
+
+  // Reset selected version when document changes
+  const handleSelectDocument = (document: Document) => {
+    setSelectedVersion(null);
+    onSelectDocument?.(document);
+  };
+  
+  // If a version is selected, show it with comments
+  if (selectedVersion) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="p-2 border-b flex justify-between items-center">
+          <button 
+            className="text-sm text-muted-foreground hover:text-primary flex items-center"
+            onClick={() => setSelectedVersion(null)}
+          >
+            ← Back to Versions
+          </button>
+          <span className="text-sm font-medium">
+            {selectedDocument?.name} - Version {selectedVersion.versionNumber}
+          </span>
+        </div>
+        <div className="flex-grow">
+          <DocumentVersionWithComments
+            version={selectedVersion}
+            currentUserDealRole={userRole}
+            isParticipant={isParticipant}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-6">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Loading documents...</span>
       </div>
     );
@@ -58,93 +86,117 @@ const DocumentList = ({
 
   if (documents.length === 0) {
     return (
-      <div className="text-center p-6 border rounded-lg bg-muted/30">
-        <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
-        <h3 className="mt-2 text-lg font-medium">No documents yet</h3>
-        <p className="text-sm text-muted-foreground">
-          {isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()) 
-            ? 'Upload documents to share them with the deal participants.'
-            : 'No documents have been uploaded to this deal yet.'}
+      <div className="text-center py-12 border rounded-lg bg-slate-50">
+        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+        <h3 className="text-lg font-medium mb-1">No documents yet</h3>
+        <p className="text-muted-foreground">
+          Upload documents to share with deal participants
         </p>
       </div>
     );
   }
 
-  return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="bg-muted/50 px-4 py-3 border-b">
-        <h3 className="font-medium">Documents</h3>
+  // If a document is selected, show its versions
+  if (selectedDocument) {
+    return (
+      <div className="border rounded-lg overflow-hidden">
+        <div className="p-4 bg-white border-b">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-medium">{selectedDocument.name}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedDocument.description || 'No description'}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSelectDocument?.(undefined as any)}
+            >
+              Back to Documents
+            </Button>
+          </div>
+        </div>
+
+        <DocumentVersionList
+          documentId={selectedDocument.id}
+          versions={documentVersions}
+          isLoading={loadingVersions}
+          userRole={userRole}
+          userId={userId}
+          onDeleteVersion={onDeleteVersion}
+          isParticipant={isParticipant}
+          onSelectVersion={handleSelectVersion}
+          selectedVersionId={selectedVersion?.id}
+        />
       </div>
-      <ul className="divide-y">
-        {documents.map((doc) => {
-          // User can delete a document if:
-          // 1. They are the uploader, OR
-          // 2. They have admin role, OR
-          // 3. They have seller role
-          const canDelete = 
-            isParticipant && 
-            (doc.uploadedBy === userId || 
-             userRole === 'admin' || 
-             userRole === 'seller');
-          
-          const isExpanded = expandedDocumentId === doc.id;
-          
-          return (
-            <li key={doc.id}>
-              <div className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+    );
+  }
+
+  // Otherwise, show the list of documents
+  return (
+    <div className="space-y-4">
+      {documents.map((document) => {
+        const canDelete = 
+          isParticipant && 
+          onDeleteDocument &&
+          (document.uploadedBy === userId || 
+           userRole === 'admin' || 
+           userRole === 'seller');
+        
+        return (
+          <div 
+            key={document.id} 
+            className="border rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow"
+          >
+            <div 
+              className="p-4 cursor-pointer"
+              onClick={() => handleSelectDocument(document)}
+            >
+              <div className="flex justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-muted-foreground mr-2" />
-                    <a 
-                      href={doc.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="font-medium text-primary hover:underline truncate"
-                    >
-                      {doc.name}
-                    </a>
-                    
-                    {/* Display document category as a badge if it exists */}
-                    {doc.category && (
-                      <Badge variant="outline" className="ml-2">
-                        {doc.category}
-                      </Badge>
-                    )}
-                    
-                    {/* Badge for versioned documents */}
-                    {doc.latestVersionId && (
-                      <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
-                        v{doc.version || 1}
-                      </Badge>
+                    <FileText className="h-5 w-5 text-primary mr-2" />
+                    <h3 className="font-medium truncate">{document.name}</h3>
+                    {document.category && (
+                      <span className="ml-2 px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs">
+                        {document.category}
+                      </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Uploaded {formatDistanceToNow(new Date(doc.uploadedAt), { addSuffix: true })} • {(doc.size / 1024).toFixed(1)} KB
-                  </p>
+                  
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Uploaded {formatDistanceToNow(new Date(document.createdAt), { addSuffix: true })}
+                    {document.description && (
+                      <span className="mx-1">•</span>
+                    )}
+                    {document.description}
+                  </div>
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {/* Version History Button */}
-                  {onSelectDocument && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleDocumentVersions(doc)}
-                      className="text-muted-foreground"
-                    >
-                      {isExpanded ? 
-                        <ChevronUp className="h-4 w-4" /> : 
-                        <History className="h-4 w-4" />
-                      }
-                    </Button>
-                  )}
+                  {/* Download Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    <a href={document.url} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </Button>
                   
-                  {/* Delete Document Button */}
+                  {/* Delete Button */}
                   {canDelete && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDeleteDocument(doc)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteDocument?.(document);
+                      }}
                       className="text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -152,23 +204,22 @@ const DocumentList = ({
                   )}
                 </div>
               </div>
-              
-              {/* Document Versions Panel */}
-              {isExpanded && selectedDocument && selectedDocument.id === doc.id && (
-                <DocumentVersionList 
-                  documentId={doc.id}
-                  versions={documentVersions}
-                  isLoading={loadingVersions}
-                  userRole={userRole}
-                  userId={userId}
-                  onDeleteVersion={onDeleteVersion}
-                  isParticipant={isParticipant}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
+            </div>
+            
+            <div className="px-4 py-2 bg-slate-50 border-t text-xs text-muted-foreground flex justify-between">
+              <div>
+                Version {document.version} • {(document.size / 1024).toFixed(1)} KB
+              </div>
+              <button 
+                className="text-primary hover:underline"
+                onClick={() => handleSelectDocument(document)}
+              >
+                View all versions
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

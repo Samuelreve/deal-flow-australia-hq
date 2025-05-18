@@ -214,6 +214,67 @@ export type Database = {
           },
         ]
       }
+      document_comments: {
+        Row: {
+          content: string
+          created_at: string
+          document_version_id: string
+          id: string
+          location_data: Json | null
+          page_number: number | null
+          parent_comment_id: string | null
+          resolved: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_version_id: string
+          id?: string
+          location_data?: Json | null
+          page_number?: number | null
+          parent_comment_id?: string | null
+          resolved?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_version_id?: string
+          id?: string
+          location_data?: Json | null
+          page_number?: number | null
+          parent_comment_id?: string | null
+          resolved?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_comments_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "document_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_versions: {
         Row: {
           created_at: string

@@ -1,8 +1,9 @@
-
 import { DocumentVersion } from "@/types/deal";
-import { Loader2, FileText, Trash2, Download } from "lucide-react";
+import { Loader2, FileText, Trash2, Download, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow, format } from "date-fns";
+import { useDocumentComments } from "@/hooks/useDocumentComments";
+import { Badge } from "@/components/ui/badge";
 
 interface DocumentVersionListProps {
   documentId: string;
@@ -12,6 +13,8 @@ interface DocumentVersionListProps {
   userId?: string;
   onDeleteVersion?: (version: DocumentVersion) => void;
   isParticipant?: boolean;
+  onSelectVersion?: (version: DocumentVersion) => void;
+  selectedVersionId?: string;
 }
 
 const DocumentVersionList = ({
@@ -21,8 +24,16 @@ const DocumentVersionList = ({
   userRole = 'user',
   userId,
   onDeleteVersion,
-  isParticipant = false
+  isParticipant = false,
+  onSelectVersion,
+  selectedVersionId
 }: DocumentVersionListProps) => {
+  // Get comment counts for each version
+  const getCommentCount = (versionId: string) => {
+    const { comments } = useDocumentComments(versionId);
+    return comments.length;
+  };
+
   if (isLoading) {
     return (
       <div className="bg-slate-50 p-4 border-t flex justify-center items-center">
@@ -55,8 +66,15 @@ const DocumentVersionList = ({
              userRole === 'seller') &&
              versions.length > 1; // Don't allow deleting the last version
           
+          const isSelected = selectedVersionId === version.id;
+          
           return (
-            <li key={version.id} className="p-3 flex items-center text-sm">
+            <li 
+              key={version.id} 
+              className={`p-3 flex items-center text-sm ${isSelected ? 'bg-blue-50' : ''} 
+                ${onSelectVersion ? 'cursor-pointer hover:bg-slate-100' : ''}`}
+              onClick={() => onSelectVersion?.(version)}
+            >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center">
                   <FileText className="h-4 w-4 text-muted-foreground mr-2" />
@@ -64,6 +82,15 @@ const DocumentVersionList = ({
                   {version.description && (
                     <span className="ml-2 text-muted-foreground">- {version.description}</span>
                   )}
+                  
+                  {/* Comment count badge */}
+                  <Badge 
+                    variant="outline" 
+                    className="ml-2 text-xs flex items-center gap-1 py-0 h-5"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    {getCommentCount(version.id)}
+                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Uploaded {formatDistanceToNow(new Date(version.uploadedAt), { addSuffix: true })} • {(version.size / 1024).toFixed(1)} KB
@@ -88,7 +115,10 @@ const DocumentVersionList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onDeleteVersion?.(version)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteVersion?.(version);
+                    }}
                     className="text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
