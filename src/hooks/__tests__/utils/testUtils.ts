@@ -1,5 +1,6 @@
 
 import { DealSummary } from "@/types/deal";
+import { vi } from "vitest";
 
 // Sample mock data for tests
 export const mockDeals: DealSummary[] = [
@@ -53,5 +54,5 @@ export const mockSupabaseDeals = mockDeals.map(deal => ({
 
 // Setup and teardown helpers
 export const setupMocks = () => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 };

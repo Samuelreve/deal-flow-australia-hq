@@ -3,12 +3,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { useDeals } from "../useDeals";
 import { supabase } from "@/integrations/supabase/client";
 import { mockDeals, mockSupabaseDeals, setupMocks } from "./utils/testUtils";
+import { vi, describe, beforeEach, test, expect } from "vitest";
 
 // Mock Supabase client
-jest.mock("@/integrations/supabase/client", () => ({
+vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
   },
 }));
 
@@ -17,8 +18,8 @@ describe("useDeals hook - Data Fetching", () => {
     setupMocks();
     
     // Setup the mock implementation for Supabase
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
   });
 
   test("should return empty deals array when userId is not provided", async () => {
@@ -35,8 +36,8 @@ describe("useDeals hook - Data Fetching", () => {
 
   test("should fetch and format deals correctly", async () => {
     // Mock the Supabase response
-    (supabase.from as jest.Mock).mockImplementation(() => ({
-      select: jest.fn().mockResolvedValue({
+    (supabase.from as any).mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({
         data: mockSupabaseDeals,
         error: null
       })
@@ -60,15 +61,15 @@ describe("useDeals hook - Data Fetching", () => {
   
   test("should handle Supabase error correctly", async () => {
     // Mock Supabase to return an error
-    (supabase.from as jest.Mock).mockImplementation(() => ({
-      select: jest.fn().mockResolvedValue({
+    (supabase.from as any).mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({
         data: null,
         error: { message: "Database error" }
       })
     }));
     
     // Spy on console.error
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     
     const { result } = renderHook(() => useDeals("user123"));
     

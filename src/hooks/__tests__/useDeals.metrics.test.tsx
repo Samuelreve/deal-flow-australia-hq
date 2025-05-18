@@ -3,12 +3,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { useDeals } from "../useDeals";
 import { supabase } from "@/integrations/supabase/client";
 import { mockDeals, mockSupabaseDeals, setupMocks } from "./utils/testUtils";
+import { vi, describe, beforeEach, test, expect } from "vitest";
 
 // Mock Supabase client
-jest.mock("@/integrations/supabase/client", () => ({
+vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
   },
 }));
 
@@ -17,8 +18,8 @@ describe("useDeals hook - Metrics", () => {
     setupMocks();
     
     // Setup the mock implementation for Supabase
-    (supabase.from as jest.Mock).mockImplementation(() => ({
-      select: jest.fn().mockResolvedValue({
+    (supabase.from as any).mockImplementation(() => ({
+      select: vi.fn().mockResolvedValue({
         data: mockSupabaseDeals,
         error: null
       })
