@@ -102,8 +102,9 @@ export const useComments = ({ dealId }: UseCommentsProps) => {
     }
     
     try {
-      const { session } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      // Fix: Properly access the session property from the getSession() response
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !data.session?.access_token) {
         throw new Error("Unauthorized: No auth token");
       }
 
@@ -113,15 +114,15 @@ export const useComments = ({ dealId }: UseCommentsProps) => {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
+            'Authorization': `Bearer ${data.session.access_token}`
           }
         }
       );
 
-      const data = await response.json();
+      const responseData = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Failed to delete comment");
+        throw new Error(responseData.error || "Failed to delete comment");
       }
       
       toast.success('Comment deleted successfully');
