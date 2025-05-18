@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ProfessionalProfileForm from "@/components/profile/ProfessionalProfileForm";
 import { Separator } from "@/components/ui/separator";
 import { fetchUserProfile } from '@/hooks/auth/useUserProfile';
+import { Link } from 'react-router-dom';
 
 const ProfilePage = () => {
   const { user, session } = useAuth();
@@ -125,7 +125,9 @@ const ProfilePage = () => {
       <AppLayout>
         <div className="flex flex-col items-center justify-center h-screen">
           <p>Please log in to view your profile</p>
-          <Button className="mt-4" href="/login">Log In</Button>
+          <Button className="mt-4" asChild>
+            <Link to="/login">Log In</Link>
+          </Button>
         </div>
       </AppLayout>
     );
