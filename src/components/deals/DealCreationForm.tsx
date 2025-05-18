@@ -75,12 +75,10 @@ const DealCreationForm: React.FC = () => {
         .insert([
           {
             title: data.title,
-            description: data.description,
             seller_id: user.id,
             status: 'draft',
             health_score: 0, // Default value
-            // Store additional fields in the description for now
-            // In a real-world scenario, we would create additional tables for these fields
+            // Store additional fields in a structured format
             description: JSON.stringify({
               businessName: data.businessName,
               businessLegalEntity: data.businessLegalEntity,
