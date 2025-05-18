@@ -24,6 +24,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
 import OnboardingIntentPage from "./pages/OnboardingIntentPage";
 import IntentCapturePage from "./pages/IntentCapturePage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/professionals" element={<ProfessionalsDirectoryPage />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
             {/* Onboarding routes */}
             <Route path="/onboarding/intent" element={<OnboardingIntentPage />} />

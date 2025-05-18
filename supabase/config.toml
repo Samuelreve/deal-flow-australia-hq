@@ -1,84 +1,51 @@
 
-# A string used to distinguish different Supabase projects on the same host. Defaults to the
-# working directory name when running `supabase init`.
 project_id = "wntmgfuclbdrezxcvzmw"
- 
-[api]
-# Port to use for the API URL.
-port = 54321
-# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
-# endpoints. public and storage are always included.
-schemas = ["public", "storage", "graphql_public"]
-# Extra schemas to add to the search_path of every request. public is always included.
-extra_search_path = ["public", "extensions"]
-# Maximum rows returns from a view, table, or stored procedure. Limits payload size for accidental
-# or malicious requests.
-max_rows = 1000
- 
-[db]
-# Port to use for the local database URL.
-port = 54322
-# Port used by database to accept connections.
-Foreign Data Wrapper port. When enabled, it proxies queries to the parent database. Only enabled
-# for local development.
-fgd_port = 54329
-# The database major version to use. This has to be the same as your remote database's. Run `SHOW
-# server_version;` on the remote database to check.
-major_version = 15
- 
-[studio]
-enabled = true
-# Port to use for Supabase Studio.
-port = 54323
-# External URL of the API server that frontend connects to.
-api_url = "http://127.0.0.1"
- 
-# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
-# are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
-enabled = true
-# Port to use for the email testing server web interface.
-port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
-# pop3_port = 54326
- 
-[storage]
-# The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
- 
-[auth]
-# The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "https://wntmgfuclbdrezxcvzmw.supabase.co"
-# List of third-party providers enabled for this project.
-external_providers = []
-# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
-# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `twitch`,
-# `twitter`, `slack`, `spotify`, `workos`, `zoom`.
-# [auth.external.apple]
-# client_id = ""
-# secret = ""
-# Additional scopes to request from third-party providers.
-# [auth.external.apple.scopes]
-# add = ["scope1", "scope2"]
- 
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
-# Configure one of the supported backends.
-# [analytics.backends.postgres]
-# enabled = true
-# db_url = "postgres://postgres:...."
 
-# Configure Supabase Functions
+[api]
+enabled = true
+
+[api.serve]
+enabled = true
+protocol = "ws"
+
+[db]
+enabled = true
+
 [functions]
-[functions.invite-participant]
-verify_jwt = true
-[functions.delete-document-version]
-verify_jwt = true
+enabled = true
+
 [functions.delete-document]
 verify_jwt = true
+
+[functions.delete-document-version]
+verify_jwt = true
+
+[functions.delete-comment]
+verify_jwt = true
+
+[functions.verify-invitation-token]
+verify_jwt = false
+
+[functions.accept-invitation]
+verify_jwt = true
+
+[functions.delete-milestone]
+verify_jwt = true
+
 [functions.document-ai-assistant]
 verify_jwt = true
+
+[functions.invite-participant]
+verify_jwt = true
+
+[functions.remove-participant]
+verify_jwt = true
+
+[functions.update-milestone-status]
+verify_jwt = true
+
+[realtime]
+enabled = false
+
+[storage]
+enabled = false

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
@@ -9,17 +9,28 @@ import LoginInfoPanel from "@/components/auth/LoginInfoPanel";
 const Login = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("inviteToken");
   
-  // If already authenticated, redirect to dashboard
+  // If already authenticated, redirect to dashboard or accept invite page
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("User is authenticated, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
+      if (inviteToken) {
+        console.log("User is authenticated, redirecting to accept invitation");
+        navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
+      } else {
+        console.log("User is authenticated, redirecting to dashboard");
+        navigate("/dashboard", { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, inviteToken]);
   
   const handleSignUp = () => {
-    navigate("/signup");
+    if (inviteToken) {
+      navigate(`/signup?inviteToken=${inviteToken}`);
+    } else {
+      navigate("/signup");
+    }
   };
   
   if (authLoading) {
@@ -35,7 +46,11 @@ const Login = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Redirecting to dashboard...</span>
+        <span className="ml-2">
+          {inviteToken 
+            ? "Redirecting to accept invitation..." 
+            : "Redirecting to dashboard..."}
+        </span>
       </div>
     );
   }
@@ -52,7 +67,7 @@ const Login = () => {
             </p>
           </div>
           
-          <LoginForm onSignUp={handleSignUp} />
+          <LoginForm onSignUp={handleSignUp} inviteToken={inviteToken} />
         </div>
       </div>
       

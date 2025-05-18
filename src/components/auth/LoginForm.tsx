@@ -13,9 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface LoginFormProps {
   onSignUp: () => void;
+  inviteToken?: string | null;
 }
 
-export const LoginForm = ({ onSignUp }: LoginFormProps) => {
+export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +24,16 @@ export const LoginForm = ({ onSignUp }: LoginFormProps) => {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (isAuthenticated && inviteToken) {
+      // Redirect to accept invitation page if logged in with invite token
+      navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
+    } else if (isAuthenticated) {
+      // Standard redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate, inviteToken]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +43,8 @@ export const LoginForm = ({ onSignUp }: LoginFormProps) => {
     try {
       const success = await login(email, password);
       if (success) {
-        console.log("Login successful, redirecting to dashboard");
-        // The navigate is now handled in the login function directly
+        console.log("Login successful");
+        // The navigation will be handled by the useEffect above
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during login");
@@ -73,7 +84,9 @@ export const LoginForm = ({ onSignUp }: LoginFormProps) => {
       <CardHeader>
         <CardTitle>Welcome Back</CardTitle>
         <CardDescription>
-          Sign in to your DealPilot account to continue managing your business deals
+          {inviteToken 
+            ? "Sign in to your DealPilot account to accept the invitation" 
+            : "Sign in to your DealPilot account to continue managing your business deals"}
         </CardDescription>
       </CardHeader>
       <CardContent>
