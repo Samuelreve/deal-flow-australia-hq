@@ -2,6 +2,7 @@
 import { Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Notification } from "@/types/notifications";
 
 import {
   DropdownMenu,

@@ -95,16 +95,16 @@ export async function deleteNotification(notificationId: string): Promise<boolea
 export function mapNotificationFromDb(n: DbNotification): Notification {
   return {
     id: n.id,
+    user_id: n.user_id,
+    deal_id: n.deal_id || null,
+    type: n.type,
     title: n.title,
-    message: n.message || "",
-    createdAt: new Date(n.created_at),
+    message: n.message,
     read: n.read,
-    type: (n.type.includes("error") ? "error" : 
-           n.type.includes("warning") ? "warning" :
-           n.type.includes("success") ? "success" : "info") as "info" | "warning" | "success" | "error",
-    dealId: n.deal_id || undefined,
-    userId: n.user_id,
-    link: n.link || undefined,
+    created_at: n.created_at,
+    related_entity_id: n.related_entity_id || null,
+    related_entity_type: n.related_entity_type || null,
+    link: n.link || null
   };
 }
 
