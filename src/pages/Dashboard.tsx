@@ -45,7 +45,6 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            businessName,
             seller:profiles(name)
           `);
           
@@ -68,7 +67,7 @@ const Dashboard = () => {
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
             sellerName: deal.seller?.name || "Unknown",
-            businessName: deal.businessName || "", 
+            businessName: "", // Removed column that doesn't exist
           }));
           
           setDeals(formattedDeals);
