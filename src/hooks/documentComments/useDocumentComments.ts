@@ -94,12 +94,14 @@ export function useDocumentComments(documentVersionId?: string) {
   // Toggle resolved status
   const toggleResolved = async (commentId: string) => {
     try {
-      const newStatus = await documentCommentService.toggleResolved(commentId);
+      const { newStatus } = await toggleCommentResolved(commentId);
       
       // Update our state
-      setComments(prevComments => 
-        updateCommentResolvedStatus(prevComments, commentId, newStatus)
-      );
+      if (newStatus !== undefined) {
+        setComments(prevComments => 
+          updateCommentResolvedStatus(prevComments, commentId, newStatus)
+        );
+      }
       
       return true;
     } catch (error: any) {
