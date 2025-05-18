@@ -1,10 +1,11 @@
 
-import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { ReactNode, useEffect } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -13,22 +14,30 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
   const { isAuthenticated, user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Error handling for authentication issues
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      // Uncomment when authentication is required
+      // navigate("/login");
+    }
+  }, [isAuthenticated, loading, navigate]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   // Comment out authentication checks to allow viewing without login
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center">
-  //       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  //     </div>
-  //   );
-  // }
-  
-  // // If not authenticated, redirect to login
   // if (!isAuthenticated) {
   //   return <Navigate to="/login" replace />;
   // }
   
-  // // If specific roles are required, check if user has permission
+  // If specific roles are required, check if user has permission
   // if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
   //   return <Navigate to="/unauthorized" replace />;
   // }

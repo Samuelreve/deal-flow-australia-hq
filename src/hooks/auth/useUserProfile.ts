@@ -10,12 +10,9 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
   try {
     console.log("Fetching profile for user:", userId);
     
-    // Use a direct call with service role to avoid RLS issues
+    // Use RPC call to bypass RLS issues
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, email, name, role, avatar_url, company, phone')
-      .eq('id', userId)
-      .single();
+      .rpc('get_user_profile', { user_id: userId });
     
     if (error) {
       console.error("Profile fetch error:", error);
@@ -49,25 +46,22 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
   try {
     console.log("Creating profile for user:", supabaseUser.id);
     
-    // First check if profile already exists
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', supabaseUser.id)
-      .maybeSingle();
+    // First check if profile already exists using RPC
+    const { data: profileExists, error: checkError } = await supabase
+      .rpc('check_profile_exists', { user_id: supabaseUser.id });
     
-    if (fetchError) {
-      console.error("Error checking for existing profile:", fetchError);
+    if (checkError) {
+      console.error("Error checking for existing profile:", checkError);
       return null;
     }
     
     // If profile already exists, fetch and return it
-    if (existingProfile) {
+    if (profileExists) {
       console.log("Profile already exists for user, fetching instead of creating");
       return await fetchUserProfile(supabaseUser.id);
     }
     
-    // Profile doesn't exist, create a new one
+    // Profile doesn't exist, create a new one using RPC
     const newProfile: UserProfile = {
       id: supabaseUser.id,
       email: supabaseUser.email || "",
@@ -76,8 +70,12 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
     };
     
     const { error } = await supabase
-      .from('profiles')
-      .insert([newProfile]);
+      .rpc('create_user_profile', { 
+        user_id: newProfile.id,
+        user_email: newProfile.email,
+        user_name: newProfile.name,
+        user_role: newProfile.role
+      });
       
     if (error) {
       console.error("Profile creation error:", error);
