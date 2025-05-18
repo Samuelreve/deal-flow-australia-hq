@@ -1,13 +1,19 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/auth';
-import { InvitationFormData, InvitationResponse } from '@/types/invitation';
+import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { UserRole } from "@/types/auth";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -15,154 +21,103 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { useInviteParticipant } from "@/hooks/useInviteParticipant";
+import { InvitationFormData } from "@/types/invitation";
+
+const formSchema = z.object({
+  inviteeEmail: z
+    .string()
+    .email("Please enter a valid email address")
+    .min(1, "Email is required"),
+  inviteeRole: z
+    .enum(["buyer", "lawyer", "admin"] as const)
+    .refine((val) => val !== "", { message: "Please select a role" }),
+});
 
 interface InvitationFormProps {
   dealId: string;
   onInvitationSent: () => void;
 }
 
-const InvitationForm: React.FC<InvitationFormProps> = ({ dealId, onInvitationSent }) => {
-  const { user } = useAuth();
-  
-  // State to manage form input values
-  const [formData, setFormData] = useState<InvitationFormData>({
-    inviteeEmail: '',
-    inviteeRole: '',
+const InvitationForm: React.FC<InvitationFormProps> = ({
+  dealId,
+  onInvitationSent,
+}) => {
+  const { inviteParticipant, isSubmitting } = useInviteParticipant(dealId, onInvitationSent);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      inviteeEmail: "",
+      inviteeRole: "" as UserRole | "",
+    },
   });
 
-  // State for loading and error states during form submission
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    const formData: InvitationFormData = {
+      inviteeEmail: values.inviteeEmail,
+      inviteeRole: values.inviteeRole as UserRole,
+    };
 
-  // Define roles available for invitation
-  const rolesForInvitation: UserRole[] = ['buyer', 'lawyer', 'admin'];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-    setErrorMessage(null);
-  };
-
-  const handleRoleChange = (value: UserRole) => {
-    setFormData((prev) => ({
-      ...prev,
-      inviteeRole: value,
-    }));
-    setErrorMessage(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Basic validation
-    if (!formData.inviteeEmail || !formData.inviteeRole) {
-      setErrorMessage('Please fill in all required fields');
-      return;
-    }
-
-    if (!user) {
-      setErrorMessage('You must be logged in to send invitations');
-      return;
-    }
-
-    setSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      // Call the Supabase function to create an invitation
-      const { data, error } = await supabase.rpc('create_deal_invitation', {
-        p_deal_id: dealId,
-        p_invitee_email: formData.inviteeEmail,
-        p_invitee_role: formData.inviteeRole as UserRole
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      // Properly type the response
-      const response = data as unknown as InvitationResponse;
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      // Show success message
-      toast.success('Invitation sent successfully');
-      
-      // Reset form data
-      setFormData({
-        inviteeEmail: '',
-        inviteeRole: '',
-      });
-
-      // Call the onInvitationSent callback
-      onInvitationSent();
-    } catch (error: any) {
-      console.error('Error sending invitation:', error);
-      setErrorMessage(error.message || 'Failed to send invitation');
-      toast.error(error.message || 'Failed to send invitation');
-    } finally {
-      setSubmitting(false);
+    const success = await inviteParticipant(formData);
+    if (success) {
+      form.reset();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-      <div className="space-y-2">
-        <Label htmlFor="inviteeEmail">Email Address</Label>
-        <Input
-          id="inviteeEmail"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
           name="inviteeEmail"
-          type="email"
-          value={formData.inviteeEmail}
-          onChange={handleInputChange}
-          placeholder="email@example.com"
-          disabled={submitting}
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="inviteeRole">Role</Label>
-        <Select 
-          disabled={submitting}
-          value={formData.inviteeRole} 
-          onValueChange={(value) => handleRoleChange(value as UserRole)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            {rolesForInvitation.map((role) => (
-              <SelectItem key={role} value={role}>
-                {role.charAt(0).toUpperCase() + role.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {errorMessage && (
-        <div className="text-sm text-red-500">{errorMessage}</div>
-      )}
-      
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={submitting}>
-          {submitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            'Send Invitation'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="john.doe@example.com"
+                  {...field}
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
+        />
+
+        <FormField
+          control={form.control}
+          name="inviteeRole"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={isSubmitting}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="buyer">Buyer</SelectItem>
+                  <SelectItem value="lawyer">Lawyer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Sending Invitation..." : "Send Invitation"}
         </Button>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 };
 
