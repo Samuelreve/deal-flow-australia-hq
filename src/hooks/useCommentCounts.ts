@@ -22,7 +22,7 @@ export function useCommentCounts(versionIds: string[]) {
           .from("document_comments")
           .select('document_version_id, count')
           .in("document_version_id", versionIds)
-          .groupBy('document_version_id');
+          .group('document_version_id');
 
         if (error) throw new Error(error.message);
 
