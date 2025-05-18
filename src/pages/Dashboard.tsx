@@ -45,7 +45,9 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            business_name,
+            // 'business_name' doesn't exist in the database
+            // Instead, let's use businessName field if it exists
+            businessName,
             profiles:seller_id(name)
           `);
           
@@ -68,7 +70,7 @@ const Dashboard = () => {
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
             sellerName: deal.profiles?.name || "Unknown",
-            businessName: deal.business_name, // Use the column name directly as it appears in the database
+            businessName: deal.businessName || "", // Use businessName if it exists
           }));
           
           setDeals(formattedDeals);
