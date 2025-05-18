@@ -1,5 +1,5 @@
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -15,13 +15,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     isAuthenticated,
     loading,
-    setLoading
+    setLoading,
+    setUser,
+    setIsAuthenticated
   } = useAuthSession();
   
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
       
@@ -33,6 +35,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           title: "Login successful",
           description: `Welcome back!`,
         });
+        
+        // Force update state immediately to ensure redirection works
+        setUser(data.user);
+        setIsAuthenticated(true);
         
         return true;
       }
@@ -49,9 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, toast, setUser, setIsAuthenticated]);
 
-  const signup = async (email: string, password: string, name?: string): Promise<boolean> => {
+  const signup = useCallback(async (email: string, password: string, name?: string): Promise<boolean> => {
     try {
       setLoading(true);
       
@@ -61,6 +67,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data?.user) {
         if (data.session) {
           // User is automatically logged in with a session
+          console.log("Signup successful with session, user logged in", data.user);
+          
+          // Force update state immediately
+          setUser(data.user);
+          setIsAuthenticated(true);
+          
           toast({
             title: "Account created successfully",
             description: "Welcome to DealPilot!",
@@ -89,9 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, toast, navigate, setUser, setIsAuthenticated]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
       // Session change will be handled by the onAuthStateChange listener
@@ -101,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Logout error:", error);
       sonnerToast.error("Failed to log out");
     }
-  };
+  }, [navigate]);
 
   return (
     <AuthContext.Provider value={{ 

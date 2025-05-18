@@ -14,14 +14,15 @@ export const useAuthSession = () => {
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('Auth state changed:', event);
+        console.log('Auth state changed:', event, currentSession?.user?.id);
         setSession(currentSession);
         
         if (event === 'SIGNED_IN' && currentSession) {
-          // Don't call other Supabase functions directly here to avoid deadlocks
           // Use setTimeout to defer Supabase calls
           setTimeout(async () => {
             try {
+              console.log("Processing SIGNED_IN event");
+              
               // Check if user profile exists
               const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
@@ -53,6 +54,7 @@ export const useAuthSession = () => {
                   return;
                 }
                 
+                console.log("Created new profile for user", newProfile);
                 setUser(newProfile);
               } else {
                 // Use existing profile
@@ -64,15 +66,17 @@ export const useAuthSession = () => {
                   avatar: profileData.avatar_url,
                 };
                 
+                console.log("Using existing profile for user", currentUser);
                 setUser(currentUser);
               }
               
               setIsAuthenticated(true);
             } catch (error) {
-              console.error("Authentication error:", error);
+              console.error("Authentication processing error:", error);
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing state");
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -82,11 +86,13 @@ export const useAuthSession = () => {
     // THEN check for existing session
     const checkSession = async () => {
       try {
+        console.log("Checking for existing session...");
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
         
         if (existingSession) {
+          console.log("Found existing session for user", existingSession.user.id);
           setSession(existingSession);
           
           const { data: profileData, error: profileError } = await supabase
@@ -108,9 +114,14 @@ export const useAuthSession = () => {
               avatar: profileData.avatar_url,
             };
             
+            console.log("Setting user from existing session", currentUser);
             setUser(currentUser);
             setIsAuthenticated(true);
+          } else {
+            console.log("No profile found for user with existing session");
           }
+        } else {
+          console.log("No existing session found");
         }
       } catch (error) {
         console.error("Session check error:", error);
