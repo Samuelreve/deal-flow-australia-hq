@@ -1,59 +1,53 @@
 
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { toast as sonnerToast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-export const useSignUp = () => {
+export const useSignUp = (inviteToken?: string | null) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { signup } = useAuth();
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
+    setError(null);
+    
+    if (!email || !password || !name) {
+      setError("All fields are required");
+      setIsLoading(false);
+      return;
+    }
     
     try {
-      // Try to sign up and get immediate session
-      const success = await signup(email, password, name);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            // Store inviteToken in user metadata if provided
+            inviteToken: inviteToken || null,
+          },
+        },
+      });
       
-      if (success) {
-        // User should be automatically signed in if email verification is disabled in Supabase
-        sonnerToast.success("Account created successfully!");
-        // No need to navigate here as it's handled in the signup function
-      } else {
-        // Fallback if auto-login fails
-        navigate("/login");
-        toast({
-          title: "Account created!",
-          description: "Please log in with your new account",
-        });
-      }
-    } catch (err: any) {
-      console.error("Signup error:", err);
+      if (signUpError) throw signUpError;
       
-      // Handle common Supabase auth errors with friendly messages
-      if (err.message?.includes("already registered")) {
-        setError("This email is already registered. Please log in instead.");
-      } else if (err.message?.includes("password")) {
-        setError("Password should be at least 6 characters long.");
-      } else {
-        setError(err.message || "Failed to create account");
+      if (data?.user) {
+        setShowSuccess(true);
+        // Form fields are kept in case user needs to use this info to login
       }
+    } catch (error: any) {
+      setError(error.message || "An error occurred during sign up");
+      console.error("Sign up error:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   return {
     email,
     setEmail,
@@ -64,6 +58,6 @@ export const useSignUp = () => {
     isLoading,
     error,
     showSuccess,
-    handleSubmit
+    handleSubmit,
   };
 };

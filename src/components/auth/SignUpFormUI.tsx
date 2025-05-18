@@ -8,14 +8,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { useSignUp } from "@/hooks/auth/useSignUp";
 
-const SignUpFormUI = () => {
+interface SignUpFormUIProps {
+  inviteToken?: string | null;
+}
+
+const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
   const { 
     email, setEmail,
     password, setPassword,
     name, setName,
     isLoading, error, showSuccess,
     handleSubmit
-  } = useSignUp();
+  } = useSignUp(inviteToken);
   
   const navigate = useNavigate();
 
