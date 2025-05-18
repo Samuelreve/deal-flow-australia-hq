@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "./Header";
@@ -15,6 +15,19 @@ interface AppLayoutProps {
 const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
   const { isAuthenticated, user, loading } = useAuth();
   const navigate = useNavigate();
+  const [loadingContent, setLoadingContent] = useState(true);
+  
+  // Set up a timeout to stop showing the loader after a reasonable time
+  useEffect(() => {
+    if (!loading) {
+      // Give a short delay to allow other data to load
+      const timer = setTimeout(() => {
+        setLoadingContent(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
   
   // Error handling for authentication issues
   useEffect(() => {
@@ -24,7 +37,7 @@ const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
     }
   }, [isAuthenticated, loading, navigate]);
   
-  if (loading) {
+  if (loading || loadingContent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

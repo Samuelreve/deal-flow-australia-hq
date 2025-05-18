@@ -10,9 +10,12 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
   try {
     console.log("Fetching profile for user:", userId);
     
-    // Use RPC call to bypass RLS issues
+    // Query the profiles table directly instead of using RPC
     const { data, error } = await supabase
-      .rpc('get_user_profile', { user_id: userId });
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
     
     if (error) {
       console.error("Profile fetch error:", error);
@@ -46,22 +49,33 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
   try {
     console.log("Creating profile for user:", supabaseUser.id);
     
-    // First check if profile already exists using RPC
-    const { data: profileExists, error: checkError } = await supabase
-      .rpc('check_profile_exists', { user_id: supabaseUser.id });
+    // First check if profile already exists using a direct query
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', supabaseUser.id)
+      .maybeSingle();
     
     if (checkError) {
       console.error("Error checking for existing profile:", checkError);
       return null;
     }
     
-    // If profile already exists, fetch and return it
-    if (profileExists) {
-      console.log("Profile already exists for user, fetching instead of creating");
-      return await fetchUserProfile(supabaseUser.id);
+    // If profile already exists, return it
+    if (existingProfile) {
+      console.log("Profile already exists for user, returning existing profile");
+      return {
+        id: existingProfile.id,
+        email: existingProfile.email,
+        name: existingProfile.name,
+        role: existingProfile.role,
+        avatar_url: existingProfile.avatar_url,
+        company: existingProfile.company,
+        phone: existingProfile.phone
+      };
     }
     
-    // Profile doesn't exist, create a new one using RPC
+    // Profile doesn't exist, create a new one using direct insert
     const newProfile: UserProfile = {
       id: supabaseUser.id,
       email: supabaseUser.email || "",
@@ -70,12 +84,13 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
     };
     
     const { error } = await supabase
-      .rpc('create_user_profile', { 
-        user_id: newProfile.id,
-        user_email: newProfile.email,
-        user_name: newProfile.name,
-        user_role: newProfile.role
-      });
+      .from('profiles')
+      .insert([{
+        id: newProfile.id,
+        email: newProfile.email,
+        name: newProfile.name,
+        role: newProfile.role
+      }]);
       
     if (error) {
       console.error("Profile creation error:", error);

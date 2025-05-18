@@ -11,21 +11,35 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
   }
   
   try {
-    // Use a direct RPC call to avoid RLS recursion issues
+    // Query the deals table directly with joins to get required data
     const { data, error } = await supabase
-      .rpc('get_user_deals', { user_id: userId });
+      .from('deals')
+      .select(`
+        id, 
+        title, 
+        status, 
+        created_at, 
+        updated_at, 
+        health_score, 
+        seller_id,
+        buyer_id,
+        seller:profiles!seller_id(name),
+        buyer:profiles!buyer_id(name),
+        business_name:title
+      `)
+      .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
     
     if (error) {
       console.error('Error fetching deals:', error);
       return [];
     } 
     
-    if (!data) {
+    if (!data || !Array.isArray(data)) {
       return [];
     }
     
     // Format the deals from Supabase format to our app format
-    return data.map((deal: any) => ({
+    return data.map((deal) => ({
       id: deal.id,
       title: deal.title,
       status: deal.status,
@@ -34,8 +48,9 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
       healthScore: deal.health_score,
       sellerId: deal.seller_id,
       buyerId: deal.buyer_id,
-      sellerName: deal.seller_name || "Unknown",
+      sellerName: deal.seller?.name || "Unknown",
       businessName: deal.business_name || "",
+      buyerName: deal.buyer?.name || ""
     }));
   } catch (err) {
     console.error('Failed to fetch deals:', err);
