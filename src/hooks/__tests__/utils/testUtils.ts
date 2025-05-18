@@ -62,5 +62,5 @@ export const setupMocks = () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
     },
-  }), { virtual: true });
+  }));
 };
