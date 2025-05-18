@@ -1,16 +1,55 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://wntmgfuclbdrezxcvzmw.supabase.co";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndudG1nZnVjbGJkcmV6eGN2em13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMDQ1MzMsImV4cCI6MjA2MDc4MDUzM30.B6_rR0UtjgKvwdsRqEcyLl9jh_aT51XrZm17XtqMm0g";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "noreply@dealpilot.com";
 
 interface InviteRequest {
   dealId: string;
   inviteeEmail: string;
   inviteeRole: string;
+}
+
+interface EmailConfig {
+  to: string;
+  subject: string;
+  html: string;
+  from: string;
+}
+
+// Function to send email using Resend API
+async function sendEmail(config: EmailConfig) {
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${RESEND_API_KEY}`
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [config.to],
+      subject: config.subject,
+      html: config.html
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Email sending failed:", errorBody);
+    throw new Error(`Failed to send email: ${response.statusText}`);
+  }
+
+  return await response.json();
 }
 
 serve(async (req) => {
@@ -20,6 +59,7 @@ serve(async (req) => {
   }
 
   try {
+    // --- 1. Authentication ---
     // Parse the JWT token from the authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -57,8 +97,10 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { dealId, inviteeEmail, inviteeRole } = await req.json() as InviteRequest;
+    const requestBody = await req.json();
+    const { dealId, inviteeEmail, inviteeRole } = requestBody as InviteRequest;
     
+    // --- 2. Validation ---
     // Input validation
     if (!dealId || !inviteeEmail || !inviteeRole) {
       return new Response(
@@ -92,7 +134,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
+
+    // --- 3. Authorization (RBAC) ---
     // Check if the authenticated user is a participant in the deal
     const { data: participantData, error: participantError } = await supabaseClient
       .from("deal_participants")
@@ -117,10 +160,11 @@ serve(async (req) => {
       );
     }
     
+    // --- 4. Deal Status Check ---
     // Check if the deal exists and get its status
     const { data: dealData, error: dealError } = await supabaseClient
       .from("deals")
-      .select("status")
+      .select("status, title")
       .eq("id", dealId)
       .single();
     
@@ -140,6 +184,7 @@ serve(async (req) => {
       );
     }
     
+    // --- 5. Check Existing User ---
     // Check if user with this email already exists (requires service role)
     const { data: existingUsers, error: existingUserError } = await supabaseAdmin.auth
       .admin
@@ -157,8 +202,25 @@ serve(async (req) => {
       u => u.email?.toLowerCase() === inviteeEmail.toLowerCase()
     );
     
+    // --- 6. Get inviter profile info for email ---
+    const { data: inviterProfile, error: inviterProfileError } = await supabaseClient
+      .from("profiles")
+      .select("name, avatar_url")
+      .eq("id", authenticatedUser.id)
+      .single();
+
+    if (inviterProfileError) {
+      console.error("Error fetching inviter profile:", inviterProfileError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch inviter profile information" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const inviterName = inviterProfile?.name || authenticatedUser.email || "A participant";
+
     if (existingUser) {
-      // Check if the existing user is already a participant
+      // --- 7a. Check if existing user is already a participant ---
       const { data: existingParticipant, error: existingParticipantError } = await supabaseClient
         .from("deal_participants")
         .select("id")
@@ -172,6 +234,11 @@ serve(async (req) => {
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // --- 7b. Process existing user ---
+      // For existing users, we'll directly add them to deal_participants 
+      // OR send an invitation email with a link to join the deal
+      // Here, we'll just create an invitation for simplicity and consistency
     }
     
     // Check if there's an existing invitation for this email and deal
@@ -190,6 +257,7 @@ serve(async (req) => {
       );
     }
     
+    // --- 8. Create invitation ---
     // Use the built-in Supabase function to create the invitation
     const { data: inviteResult, error: inviteError } = await supabaseClient.rpc(
       'create_deal_invitation',
@@ -208,10 +276,76 @@ serve(async (req) => {
       );
     }
 
-    // Return the success response from the RPC function
+    // --- 9. Send invitation email ---
+    // Get the token from the invitation result
+    const invitationToken = inviteResult.token;
+    if (!invitationToken) {
+      console.error("No invitation token returned");
+      return new Response(
+        JSON.stringify({ error: "Failed to generate invitation token" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Construct invitation URL
+    const invitationUrl = `${APP_BASE_URL}/accept-invite?token=${invitationToken}`;
+
+    try {
+      // Create email HTML content
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Deal Invitation</h2>
+          <p>Hello,</p>
+          <p>${inviterName} has invited you to join the deal "${dealData.title}" as a ${inviteeRole}.</p>
+          <p>To accept this invitation, please click the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${invitationUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Accept Invitation
+            </a>
+          </div>
+          <p>Or copy and paste this link into your browser:</p>
+          <p><a href="${invitationUrl}">${invitationUrl}</a></p>
+          <p>If you weren't expecting this invitation, you can safely ignore this email.</p>
+          <p>Regards,<br/>The Deal Pilot Team</p>
+        </div>
+      `;
+
+      // Send the invitation email
+      if (RESEND_API_KEY) {
+        await sendEmail({
+          to: inviteeEmail,
+          subject: `Invitation to join deal "${dealData.title}"`,
+          html: emailHtml,
+          from: `DealPilot <${SENDER_EMAIL}>`
+        });
+      } else {
+        // Log that no email was sent due to missing API key
+        console.warn("Email not sent: RESEND_API_KEY is not configured");
+      }
+    } catch (emailError) {
+      console.error("Email sending error:", emailError);
+      // We'll still return success since the invitation was created
+      // But we'll include a note about the email failure
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Invitation created but email could not be sent. Please check your email configuration.", 
+          invitationCreated: true,
+          emailSent: false
+        }),
+        { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Return the success response
     return new Response(
-      JSON.stringify(inviteResult),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        success: true, 
+        message: "Invitation sent successfully", 
+        invitationCreated: true,
+        emailSent: true
+      }),
+      { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {

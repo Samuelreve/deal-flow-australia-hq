@@ -1,5 +1,43 @@
 
 project_id = "wntmgfuclbdrezxcvzmw"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[inbucket]
+enabled = true
+
+[functions]
 [functions.invite-participant]
 verify_jwt = true
+
+[postgres_functions]
+[postgres_functions.create_deal_invitation]
+schema = "public"
+enabled = true
+
+[postgres_functions.get_allowed_deal_statuses]
+schema = "public"
+enabled = true
+
+[postgres_functions.get_deal_invitations]
+schema = "public"
+enabled = true
+
+[postgres_functions.update_deal_status]
+schema = "public"
+enabled = true
