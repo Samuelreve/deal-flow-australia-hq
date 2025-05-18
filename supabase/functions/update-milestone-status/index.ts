@@ -2,6 +2,7 @@
 // Edge Function for updating milestone status
 import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { verifyAuth } from "../_shared/rbac.ts";
 import { 
   verifyMilestoneExists, 
