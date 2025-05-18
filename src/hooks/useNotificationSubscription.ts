@@ -31,12 +31,14 @@ export function useNotificationSubscription(
             id: payload.new.id,
             title: payload.new.title,
             message: payload.new.message,
-            createdAt: new Date(payload.new.created_at),
+            created_at: payload.new.created_at,
             read: payload.new.read,
             type: payload.new.type,
-            dealId: payload.new.deal_id,
-            userId: payload.new.user_id,
-            link: payload.new.link
+            deal_id: payload.new.deal_id,
+            user_id: payload.new.user_id,
+            link: payload.new.link,
+            related_entity_id: payload.new.related_entity_id,
+            related_entity_type: payload.new.related_entity_type
           };
           
           // Call the provided callback
