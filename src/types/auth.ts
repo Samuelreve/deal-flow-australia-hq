@@ -10,6 +10,15 @@ export interface UserProfile {
   avatar_url?: string;
   company?: string;
   phone?: string;
+  is_professional?: boolean;
+  professional_headline?: string;
+  professional_bio?: string;
+  professional_firm_name?: string;
+  professional_contact_email?: string;
+  professional_phone?: string;
+  professional_website?: string;
+  professional_location?: string;
+  professional_specializations?: string[];
 }
 
 // User roles

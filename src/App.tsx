@@ -19,6 +19,8 @@ import NotificationsPage from "./pages/NotificationsPage";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import ProfilePage from "./pages/ProfilePage";
+import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -44,6 +46,7 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/professionals" element={<ProfessionalsDirectoryPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
@@ -52,6 +55,7 @@ const App = () => (
               <Route path="/deals/:id" element={<DealDetails />} />
               <Route path="/create-deal" element={<CreateDealPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* Catch-all route */}
