@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { authService } from "@/services/authService";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { AuthContextType } from "@/types/auth";
+import { AuthContextType, User } from "@/types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -36,11 +36,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           description: `Welcome back!`,
         });
         
-        // Force update state immediately to ensure redirection works
-        setUser(data.user);
-        setIsAuthenticated(true);
-        
-        return true;
+        // Create a proper User object from the Supabase user
+        // This ensures all required fields are present
+        if (data.user) {
+          const userWithRequiredFields: User = {
+            id: data.user.id,
+            email: data.user.email || "",
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || "User",
+            role: "seller" // Default role
+          };
+          
+          // Force update state immediately to ensure redirection works
+          setUser(userWithRequiredFields);
+          setIsAuthenticated(true);
+          
+          // Explicitly navigate to dashboard
+          navigate("/dashboard");
+          
+          return true;
+        }
       }
       
       return false;
@@ -55,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, toast, setUser, setIsAuthenticated]);
+  }, [setLoading, toast, setUser, setIsAuthenticated, navigate]);
 
   const signup = useCallback(async (email: string, password: string, name?: string): Promise<boolean> => {
     try {
@@ -69,9 +83,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // User is automatically logged in with a session
           console.log("Signup successful with session, user logged in", data.user);
           
+          // Create a proper User object with all required fields
+          const userWithRequiredFields: User = {
+            id: data.user.id,
+            email: data.user.email || "",
+            name: data.user.user_metadata?.name || name || data.user.email?.split('@')[0] || "User",
+            role: "seller" // Default role
+          };
+          
           // Force update state immediately
-          setUser(data.user);
+          setUser(userWithRequiredFields);
           setIsAuthenticated(true);
+          
+          // Explicitly navigate to dashboard
+          navigate("/dashboard");
           
           toast({
             title: "Account created successfully",
