@@ -3,6 +3,7 @@ import React from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
+import MilestoneExplainButton from './MilestoneExplainButton';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -10,6 +11,7 @@ interface MilestoneItemProps {
   updatingMilestoneId: string | null;
   onUpdateStatus: (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => void;
   isParticipant?: boolean;
+  dealId: string;
 }
 
 const MilestoneItem: React.FC<MilestoneItemProps> = ({ 
@@ -17,7 +19,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   userRole, 
   updatingMilestoneId, 
   onUpdateStatus,
-  isParticipant = true
+  isParticipant = true,
+  dealId
 }) => {
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
@@ -35,6 +38,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <span className={`text-sm font-medium me-2 px-2.5 py-0.5 rounded ms-3 ${getStatusColor(milestone.status)}`}>
           {formatStatus(milestone.status)}
         </span>
+        
+        {/* Add the explain button */}
+        {isParticipant && (
+          <div className="ms-2">
+            <MilestoneExplainButton 
+              dealId={dealId}
+              milestoneId={milestone.id}
+              userRole={userRole}
+            />
+          </div>
+        )}
       </h4>
       {(milestone.dueDate || milestone.completedAt) && (
         <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">

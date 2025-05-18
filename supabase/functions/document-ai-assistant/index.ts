@@ -9,13 +9,19 @@ const openai = new OpenAI({
 });
 
 // Define operation types for the document assistant
-type OperationType = "explain_clause" | "generate_template" | "summarize_document";
+type OperationType = 
+  "explain_clause" | 
+  "generate_template" | 
+  "summarize_document" | 
+  "explain_milestone" |
+  "suggest_next_action";
 
 interface RequestPayload {
   operation: OperationType;
   dealId: string;
   documentId?: string;
-  documentVersionId?: string; // Added for document summarization
+  documentVersionId?: string;
+  milestoneId?: string; // Added for milestone explanation
   content: string;
   userId: string;
   context?: Record<string, any>;
@@ -273,9 +279,138 @@ function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+async function handleExplainMilestone(dealId: string, milestoneId: string) {
+  if (!milestoneId) {
+    throw new Error("Milestone ID is required for explanation");
+  }
+
+  // Get Supabase admin client
+  const supabaseAdmin = getSupabaseAdmin();
+  
+  try {
+    // Fetch milestone details
+    const { data: milestone, error: milestoneError } = await supabaseAdmin
+      .from('milestones')
+      .select('title, description, status, deal_id')
+      .eq('id', milestoneId)
+      .single();
+    
+    if (milestoneError || !milestone) {
+      throw new Error(`Error fetching milestone: ${milestoneError?.message || "Milestone not found"}`);
+    }
+    
+    // Verify milestone belongs to the specified deal
+    if (milestone.deal_id !== dealId) {
+      throw new Error("Milestone does not belong to specified deal");
+    }
+    
+    // Call OpenAI for milestone explanation
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI business deal coach, specializing in explaining complex business deal milestones in simple, easy-to-understand terms. Avoid legal jargon and focus on practical explanations."
+        },
+        {
+          role: "user",
+          content: `Please explain the following business deal milestone in simple, easy-to-understand terms:
+          
+Milestone Name: ${milestone.title}
+Milestone Description: ${milestone.description || "No description provided"}
+Current Status: ${milestone.status}
+
+What does this milestone mean in the context of a business deal? What typically needs to happen during this milestone? Why is it important?`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 400
+    });
+
+    return {
+      explanation: response.choices[0].message.content,
+      milestone: {
+        title: milestone.title,
+        status: milestone.status
+      },
+      disclaimer: "This explanation is provided for informational purposes only and should not be considered legal or financial advice. Consult with qualified professionals for guidance specific to your situation."
+    };
+  } catch (error) {
+    console.error(`Error explaining milestone for deal ${dealId}:`, error);
+    throw error;
+  }
+}
+
+async function handleSuggestNextAction(dealId: string) {
+  // Get Supabase admin client
+  const supabaseAdmin = getSupabaseAdmin();
+  
+  try {
+    // Fetch deal status
+    const { data: deal, error: dealError } = await supabaseAdmin
+      .from('deals')
+      .select('status')
+      .eq('id', dealId)
+      .single();
+    
+    if (dealError || !deal) {
+      throw new Error(`Error fetching deal: ${dealError?.message || "Deal not found"}`);
+    }
+    
+    // Fetch all milestones for the deal
+    const { data: milestones, error: milestonesError } = await supabaseAdmin
+      .from('milestones')
+      .select('id, title, description, status, order_index')
+      .eq('deal_id', dealId)
+      .order('order_index', { ascending: true });
+    
+    if (milestonesError) {
+      throw new Error(`Error fetching milestones: ${milestonesError.message}`);
+    }
+    
+    // Format milestones for the prompt
+    const milestonesText = milestones.map(m => 
+      `- ${m.title}: ${m.status} ${m.description ? `(${m.description})` : ''}`
+    ).join('\n');
+    
+    // Call OpenAI for next action suggestion
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI business deal coach, specializing in providing strategic advice for moving business deals forward. Based on the current status of a deal and its milestones, suggest the most logical next action to progress the deal. Be specific and practical."
+        },
+        {
+          role: "user",
+          content: `Based on the current status of this business deal and its milestones, suggest the most logical next action to move the deal forward:
+          
+Deal Status: ${deal.status}
+
+Milestones:
+${milestonesText}
+
+What specific next action would you recommend to progress this deal? Focus on one clear, actionable step.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 400
+    });
+
+    return {
+      suggestion: response.choices[0].message.content,
+      dealStatus: deal.status,
+      disclaimer: "This suggestion is provided for informational purposes only and should not be considered legal or financial advice. Consult with qualified professionals for guidance specific to your situation."
+    };
+  } catch (error) {
+    console.error(`Error suggesting next action for deal ${dealId}:`, error);
+    throw error;
+  }
+}
+
 async function handleRequest(req: Request): Promise<Response> {
   try {
-    const { operation, content, context, dealId, userId, documentId, documentVersionId } = await req.json() as RequestPayload & { documentVersionId?: string };
+    const { operation, content, context, dealId, userId, documentId, documentVersionId, milestoneId } = await req.json() as RequestPayload & { milestoneId?: string };
     
     if (!operation || !dealId || !userId) {
       return new Response(
@@ -309,6 +444,12 @@ async function handleRequest(req: Request): Promise<Response> {
         break;
       case "summarize_document":
         result = await handleSummarizeDocument(content, dealId, documentId, documentVersionId);
+        break;
+      case "explain_milestone":
+        result = await handleExplainMilestone(dealId, milestoneId as string);
+        break;
+      case "suggest_next_action":
+        result = await handleSuggestNextAction(dealId);
         break;
       default:
         return new Response(

@@ -7,6 +7,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import NextActionSuggestion from './NextActionSuggestion';
 
 interface MilestoneTrackerProps {
   dealId: string;
@@ -48,24 +49,36 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h3 className="text-xl font-bold mb-4 text-gray-800">Deal Milestones</h3>
+    <>
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4 text-gray-800">Deal Milestones</h3>
 
-      {/* Loading and Error Indicators for Fetching */}
-      {loadingMilestones && <p className="text-center text-blue-600">Loading milestones...</p>}
-      {fetchError && <p className="text-center text-red-600">Error loading milestones: {fetchError}</p>}
+        {/* Loading and Error Indicators for Fetching */}
+        {loadingMilestones && <p className="text-center text-blue-600">Loading milestones...</p>}
+        {fetchError && <p className="text-center text-red-600">Error loading milestones: {fetchError}</p>}
 
-      {/* Milestone List */}
-      {!loadingMilestones && !fetchError && (
-        <MilestoneList
-          milestones={milestones}
-          userRole={userRole}
-          updatingMilestoneId={updatingMilestoneId}
-          onUpdateStatus={handleUpdateMilestoneStatus}
+        {/* Milestone List */}
+        {!loadingMilestones && !fetchError && (
+          <MilestoneList
+            milestones={milestones}
+            userRole={userRole}
+            updatingMilestoneId={updatingMilestoneId}
+            onUpdateStatus={handleUpdateMilestoneStatus}
+            isParticipant={isParticipant}
+            dealId={dealId}
+          />
+        )}
+      </div>
+
+      {/* Next Action AI Coach */}
+      {isParticipant && (
+        <NextActionSuggestion 
+          dealId={dealId}
           isParticipant={isParticipant}
+          className="mb-6"
         />
       )}
-    </div>
+    </>
   );
 };
 

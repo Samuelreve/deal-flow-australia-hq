@@ -1,8 +1,9 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document';
+type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action';
 
 interface UseDocumentAIProps {
   dealId: string;
@@ -12,7 +13,8 @@ interface UseDocumentAIProps {
 interface AIRequestOptions {
   content: string;
   documentId?: string;
-  documentVersionId?: string; // Added for document summarization
+  documentVersionId?: string;
+  milestoneId?: string;
   context?: Record<string, any>;
 }
 
@@ -20,6 +22,11 @@ interface AIResponse {
   explanation?: string;
   template?: string;
   summary?: string;
+  suggestion?: string;
+  milestone?: {
+    title: string;
+    status: string;
+  };
   disclaimer: string;
 }
 
@@ -49,6 +56,7 @@ export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
           dealId,
           documentId: options.documentId || documentId,
           documentVersionId: options.documentVersionId,
+          milestoneId: options.milestoneId,
           content: options.content,
           userId: user.id,
           context: options.context
@@ -105,6 +113,19 @@ export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
       documentVersionId 
     });
   };
+
+  const explainMilestone = async (milestoneId: string) => {
+    return processAIRequest('explain_milestone', {
+      content: '',
+      milestoneId
+    });
+  };
+
+  const suggestNextAction = async () => {
+    return processAIRequest('suggest_next_action', {
+      content: ''
+    });
+  };
   
   return {
     loading,
@@ -113,6 +134,8 @@ export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
     explainClause,
     generateTemplate,
     summarizeDocument,
+    explainMilestone,
+    suggestNextAction,
     clearResult: () => setResult(null),
   };
 };
