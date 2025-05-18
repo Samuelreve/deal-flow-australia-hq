@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { authService } from "@/services/authService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useSignUp = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +15,7 @@ export const useSignUp = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signup } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,25 +23,23 @@ export const useSignUp = () => {
     setIsLoading(true);
     
     try {
-      const data = await authService.signup(email, password, name);
+      const success = await signup(email, password, name);
       
-      if (data?.user) {
-        if (data.session) {
-          // User is automatically signed in (email verification disabled)
-          sonnerToast.success("Account created successfully!");
-          navigate("/dashboard");
-        } else {
-          // Email verification required
-          setShowSuccess(true);
-          toast({
-            title: "Account created!",
-            description: "Please check your email for confirmation",
-          });
-          // Clear form
-          setEmail("");
-          setPassword("");
-          setName("");
-        }
+      if (success) {
+        // User is automatically signed in (email verification disabled)
+        sonnerToast.success("Account created successfully!");
+        navigate("/dashboard");
+      } else {
+        // Email verification required
+        setShowSuccess(true);
+        toast({
+          title: "Account created!",
+          description: "Please check your email for confirmation",
+        });
+        // Clear form
+        setEmail("");
+        setPassword("");
+        setName("");
       }
     } catch (err: any) {
       console.error("Signup error:", err);

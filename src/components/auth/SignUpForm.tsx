@@ -88,7 +88,9 @@ const SignUpForm = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="border-input/50"
+                  minLength={6}
                 />
+                <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
               </div>
               
               <Button 

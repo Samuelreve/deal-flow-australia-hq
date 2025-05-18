@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: error.message || "Invalid email or password",
         variant: "destructive",
       });
-      return false;
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: error.message || "Failed to create account",
         variant: "destructive",
       });
-      return false;
+      throw error;
     } finally {
       setLoading(false);
     }

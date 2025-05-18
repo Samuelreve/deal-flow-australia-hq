@@ -22,15 +22,40 @@ export const useAuthSession = () => {
           // Use setTimeout to defer Supabase calls
           setTimeout(async () => {
             try {
+              // Check if user profile exists
               const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', currentSession.user.id)
                 .single();
               
-              if (profileError) throw profileError;
+              if (profileError && profileError.code !== 'PGRST116') {
+                // Handle error but not 'no rows returned' error
+                console.error("Profile fetch error:", profileError);
+                return;
+              }
               
-              if (profileData) {
+              // If profile doesn't exist, create one
+              if (!profileData) {
+                const newProfile = {
+                  id: currentSession.user.id,
+                  email: currentSession.user.email,
+                  name: currentSession.user.user_metadata.name || currentSession.user.email?.split('@')[0] || 'User',
+                  role: 'seller' as const
+                };
+                
+                const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert([newProfile]);
+                  
+                if (insertError) {
+                  console.error("Profile creation error:", insertError);
+                  return;
+                }
+                
+                setUser(newProfile);
+              } else {
+                // Use existing profile
                 const currentUser: User = {
                   id: profileData.id,
                   email: profileData.email,
@@ -40,10 +65,11 @@ export const useAuthSession = () => {
                 };
                 
                 setUser(currentUser);
-                setIsAuthenticated(true);
               }
+              
+              setIsAuthenticated(true);
             } catch (error) {
-              console.error("Profile fetch error:", error);
+              console.error("Authentication error:", error);
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {
@@ -56,20 +82,22 @@ export const useAuthSession = () => {
     // THEN check for existing session
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
         
-        if (session) {
-          setSession(session);
+        if (existingSession) {
+          setSession(existingSession);
           
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', existingSession.user.id)
             .single();
           
-          if (profileError) throw profileError;
+          if (profileError && profileError.code !== 'PGRST116') {
+            throw profileError;
+          }
           
           if (profileData) {
             const currentUser: User = {
