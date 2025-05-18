@@ -90,6 +90,18 @@ export const documentVersionService = {
   },
 
   /**
+   * Check if a user can delete a specific document version
+   */
+  async canDeleteDocumentVersion(versionId: string, documentId: string, userId: string): Promise<boolean> {
+    try {
+      return await documentDatabaseService.checkUserCanDeleteVersion(documentId, versionId, userId);
+    } catch (error) {
+      console.error("Error checking if user can delete document version:", error);
+      return false;
+    }
+  },
+
+  /**
    * Delete a specific version of a document
    */
   async deleteDocumentVersion(

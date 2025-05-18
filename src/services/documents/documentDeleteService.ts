@@ -8,6 +8,18 @@ import { documentStorageService } from "./documentStorageService";
  */
 export const documentDeleteService = {
   /**
+   * Check if a user can delete a document
+   */
+  async canDeleteDocument(documentId: string, userId: string): Promise<boolean> {
+    try {
+      return await documentDatabaseService.checkUserCanDeleteDocument(documentId, userId);
+    } catch (error) {
+      console.error("Error checking if user can delete document:", error);
+      return false;
+    }
+  },
+  
+  /**
    * Delete a document
    */
   async deleteDocument(document: Document, dealId: string, userId: string): Promise<boolean> {

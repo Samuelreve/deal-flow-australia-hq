@@ -38,11 +38,11 @@ export const useDocumentOperations = (
       if (existingDocumentId) {
         // Let parent component know document was updated
         if (onDocumentsChange) {
-          onDocumentsChange(prevDocuments => 
+          const updateDocuments = (prevDocuments: Document[]) => 
             prevDocuments.map(doc => 
               doc.id === existingDocumentId ? newDocument : doc
-            )
-          );
+            );
+          onDocumentsChange(updateDocuments([]));
         }
         
         toast({
@@ -52,7 +52,8 @@ export const useDocumentOperations = (
       } else {
         // Let parent component know a new document was added
         if (onDocumentsChange) {
-          onDocumentsChange(prevDocuments => [newDocument, ...prevDocuments]);
+          const updateDocuments = (prevDocuments: Document[]) => [newDocument, ...prevDocuments];
+          onDocumentsChange(updateDocuments([]));
         }
         
         toast({
@@ -87,9 +88,9 @@ export const useDocumentOperations = (
       const success = await documentService.deleteDocument(document, dealId, user.id);
       
       if (success && onDocumentsChange) {
-        onDocumentsChange(prevDocuments => 
-          prevDocuments.filter(doc => doc.id !== document.id)
-        );
+        const updateDocuments = (prevDocuments: Document[]) => 
+          prevDocuments.filter(doc => doc.id !== document.id);
+        onDocumentsChange(updateDocuments([]));
         
         toast({
           title: "Document deleted",
@@ -135,9 +136,9 @@ export const useDocumentOperations = (
       if (success) {
         // Inform parent component that versions have been updated
         if (onVersionsChange) {
-          onVersionsChange(prevVersions => 
-            prevVersions.filter(v => v.id !== version.id)
-          );
+          const updateVersions = (prevVersions: DocumentVersion[]) => 
+            prevVersions.filter(v => v.id !== version.id);
+          onVersionsChange(updateVersions([]));
         }
         
         // Refresh documents to get updated latest_version_id
