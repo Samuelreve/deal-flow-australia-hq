@@ -1,8 +1,9 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 // Define props for the DocumentViewer component
 interface DocumentViewerProps {
@@ -26,6 +27,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   // State to manage the selected text by the user
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  // State to manage the position of the "Explain Clause" button
+  const [explainButtonPosition, setExplainButtonPosition] = useState<{ top: number; left: number } | null>(null);
   // State to control visibility of the AI explanation display
   const [showExplanation, setShowExplanation] = useState(false);
   // State to store the AI explanation result for display
@@ -53,21 +56,40 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     return () => clearTimeout(timer);
   }, [documentVersionUrl]);
 
-  // Handle text selection
-  const handleMouseUp = () => {
+  // Handle text selection and button positioning
+  const handleMouseUp = useCallback(() => {
     const selection = window.getSelection();
     const text = selection?.toString().trim();
 
-    if (text && text.length > 0) {
+    if (text && text.length > 0 && documentContainerRef.current?.contains(selection?.anchorNode as Node || null)) {
+      // Text is selected within the document container
       setSelectedText(text);
+
+      // Try to get the bounding rectangle of the selection
+      const range = selection?.getRangeAt(0);
+      if (range) {
+        const rect = range.getBoundingClientRect();
+        const containerRect = documentContainerRef.current.getBoundingClientRect();
+
+        // Position the button below and to the right of the selection
+        setExplainButtonPosition({
+          top: rect.bottom - containerRect.top + 5, // 5px below selection
+          left: rect.right - containerRect.left,
+        });
+      } else {
+        setExplainButtonPosition(null);
+      }
     } else {
+      // No text selected or selection is outside the document container
       setSelectedText(null);
+      setExplainButtonPosition(null);
+      
       // Hide the explanation if no text is selected and modal is not open
       if (!showExplanation) {
         setExplanationResult(null);
       }
     }
-  };
+  }, [showExplanation]);
 
   // Handle triggering AI explanation
   const handleExplainSelectedText = async () => {
@@ -75,6 +97,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       return;
     }
 
+    setExplainButtonPosition(null); // Hide the trigger button immediately
     setShowExplanation(true);
     setExplanationResult(null);
 
@@ -146,12 +169,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         )}
 
-        {/* Explain button */}
-        {selectedText && !showExplanation && !loading && (
+        {/* Explain button - positioned near selection */}
+        {selectedText && explainButtonPosition && !showExplanation && !loading && (
           <Button
             onClick={handleExplainSelectedText}
-            className="absolute top-4 right-4 z-10 text-xs"
+            className="absolute z-10 text-xs"
             size="sm"
+            style={{ 
+              top: `${explainButtonPosition.top}px`, 
+              left: `${explainButtonPosition.left}px` 
+            }}
           >
             Explain Selected Text
           </Button>
@@ -163,7 +190,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <div className="p-4 border rounded-lg bg-muted/50">
           <h4 className="text-lg font-semibold mb-2">AI Explanation</h4>
           {loading ? (
-            <p className="text-muted-foreground">Getting explanation...</p>
+            <div className="flex items-center text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Getting explanation...
+            </div>
           ) : explanationResult ? (
             <div>
               <p className="text-foreground">{explanationResult.explanation}</p>
