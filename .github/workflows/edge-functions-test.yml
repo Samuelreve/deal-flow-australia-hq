@@ -1,0 +1,32 @@
+
+name: Edge Functions Tests
+
+on:
+  push:
+    paths:
+      - 'supabase/functions/**'
+  pull_request:
+    paths:
+      - 'supabase/functions/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Create test env file
+        run: |
+          echo "SUPABASE_URL=https://example.supabase.co" > .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=test-key" >> .env
+          echo "OPENAI_API_KEY=test-openai-key" >> .env
+      
+      - name: Run tests
+        run: deno test --allow-env --allow-net --allow-read supabase/functions/__tests__/*.test.ts

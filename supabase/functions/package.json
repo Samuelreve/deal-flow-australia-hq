@@ -1,0 +1,11 @@
+
+{
+  "name": "supabase-edge-functions",
+  "version": "1.0.0",
+  "description": "Edge Functions for DealPilot",
+  "scripts": {
+    "test": "deno test --allow-env --allow-net --allow-read __tests__/*.test.ts"
+  },
+  "author": "",
+  "license": "ISC"
+}
