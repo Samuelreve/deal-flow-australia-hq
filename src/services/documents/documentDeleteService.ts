@@ -1,7 +1,8 @@
 
-import { Document } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/deal";
 import { documentDatabaseService } from "./documentDatabaseService";
 import { documentStorageService } from "./documentStorageService";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Service responsible for document deletion operations
@@ -20,39 +21,57 @@ export const documentDeleteService = {
   },
   
   /**
-   * Delete a document
+   * Delete a document using the secure Edge Function
    */
   async deleteDocument(document: Document, dealId: string, userId: string): Promise<boolean> {
     try {
-      // Verify user has permission to delete this document
-      const canDelete = await documentDatabaseService.checkUserCanDeleteDocument(document.id, userId);
+      // Call the Edge Function to handle the secure deletion with proper RBAC
+      const { data, error } = await supabase.functions.invoke('delete-document', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: { documentId: document.id }
+      });
       
-      if (!canDelete) {
-        throw new Error("Permission denied: You are not authorized to delete this document");
+      if (error) {
+        throw new Error(error.message || "Failed to delete document");
       }
       
-      // 1. Get all versions to delete their files
-      const versions = await documentDatabaseService.fetchDocumentVersions(document.id);
-      
-      // 2. Delete version files from storage
-      for (const version of versions) {
-        await documentStorageService.deleteFile(version.storage_path, dealId);
-      }
-      
-      // 3. Delete original file if it exists (for backward compatibility)
-      if (document.url) {
-        const originalPath = document.url.split('/').pop();
-        if (originalPath) {
-          await documentStorageService.deleteFile(originalPath, dealId);
-        }
-      }
-      
-      // 4. Delete from database (this will cascade to delete versions)
-      await documentDatabaseService.deleteDocumentMetadata(document.id);
-      
-      return true;
+      return data?.success || false;
     } catch (error) {
       console.error("Error deleting document:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a document version using the secure Edge Function
+   */
+  async deleteDocumentVersion(
+    versionId: string,
+    documentId: string,
+    dealId: string, 
+    storagePath: string,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      // Call the Edge Function to handle the secure deletion with proper RBAC
+      const { data, error } = await supabase.functions.invoke('delete-document-version', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: { versionId }
+      });
+      
+      if (error) {
+        throw new Error(error.message || "Failed to delete document version");
+      }
+      
+      return data?.success || false;
+    } catch (error) {
+      console.error("Error deleting document version:", error);
       throw error;
     }
   }
