@@ -8,18 +8,34 @@ import { vi, describe, beforeEach, test, expect } from "vitest";
 // Mock Supabase client
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-  },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          data: null,
+          error: null
+        }))
+      }))
+    }))
+  }
 }));
 
 describe("useDeals hook - Data Fetching", () => {
   beforeEach(() => {
     setupMocks();
     
-    // Setup the mock implementation for Supabase
-    (supabase.from as any).mockReturnThis();
-    (supabase.select as any).mockReturnThis();
+    // Setup the mock implementation for Supabase query builder
+    const mockSelectFn = vi.fn().mockReturnValue({
+      data: mockSupabaseDeals,
+      error: null
+    });
+
+    // Setup the mock chain
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => mockSelectFn()),
+        order: vi.fn(() => mockSelectFn()),
+      }))
+    });
   });
 
   test("should return empty deals array when userId is not provided", async () => {

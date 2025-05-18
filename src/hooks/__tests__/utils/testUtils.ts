@@ -56,11 +56,11 @@ export const mockSupabaseDeals = mockDeals.map(deal => ({
 export const setupMocks = () => {
   vi.clearAllMocks();
   
-  // Add extra setup for mocking select method
+  // Mock Supabase client with proper structure
   vi.mock("@/integrations/supabase/client", () => ({
     supabase: {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-    },
+    }
   }));
 };
