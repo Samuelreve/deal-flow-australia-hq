@@ -214,6 +214,60 @@ export type Database = {
           },
         ]
       }
+      document_versions: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_id: string
+          id: string
+          size: number
+          storage_path: string
+          type: string
+          uploaded_at: string
+          uploaded_by: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_id: string
+          id?: string
+          size: number
+          storage_path: string
+          type: string
+          uploaded_at?: string
+          uploaded_by: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_id?: string
+          id?: string
+          size?: number
+          storage_path?: string
+          type?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string | null
@@ -221,6 +275,7 @@ export type Database = {
           deal_id: string
           description: string | null
           id: string
+          latest_version_id: string | null
           milestone_id: string | null
           name: string
           size: number
@@ -237,6 +292,7 @@ export type Database = {
           deal_id: string
           description?: string | null
           id?: string
+          latest_version_id?: string | null
           milestone_id?: string | null
           name: string
           size: number
@@ -253,6 +309,7 @@ export type Database = {
           deal_id?: string
           description?: string | null
           id?: string
+          latest_version_id?: string | null
           milestone_id?: string | null
           name?: string
           size?: number
@@ -269,6 +326,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_latest_version_id_fkey"
+            columns: ["latest_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
             referencedColumns: ["id"]
           },
           {

@@ -16,6 +16,19 @@ export interface Milestone {
   documents?: Document[];
 }
 
+// Define document version type
+export interface DocumentVersion {
+  id: string;
+  documentId: string;
+  versionNumber: number;
+  url: string;
+  uploadedBy: string;
+  uploadedAt: Date;
+  size: number;
+  type: string;
+  description?: string;
+}
+
 // Define document type
 export interface Document {
   id: string;
@@ -27,8 +40,11 @@ export interface Document {
   type: string;
   status: "draft" | "final" | "signed";
   version: number;
-  category?: string; // Added category field
+  category?: string;
   comments?: Comment[];
+  versions?: DocumentVersion[]; // Added versions array
+  latestVersionId?: string; // Added reference to latest version
+  latestVersion?: DocumentVersion; // Added latest version object
 }
 
 // Define comment type

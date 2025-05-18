@@ -1,8 +1,11 @@
 
-import { Document } from "@/types/deal";
+import { useState } from "react";
+import { Document, DocumentVersion } from "@/types/deal";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Trash2 } from "lucide-react";
+import { Loader2, FileText, Trash2, ChevronDown, ChevronUp, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
+import DocumentVersionList from "./DocumentVersionList";
 
 interface DocumentListProps {
   documents: Document[];
@@ -11,6 +14,11 @@ interface DocumentListProps {
   userId?: string;
   onDeleteDocument: (document: Document) => void;
   isParticipant?: boolean;
+  onSelectDocument?: (document: Document) => void;
+  selectedDocument?: Document | null;
+  documentVersions?: DocumentVersion[];
+  loadingVersions?: boolean;
+  onDeleteVersion?: (version: DocumentVersion) => void;
 }
 
 const DocumentList = ({ 
@@ -19,8 +27,26 @@ const DocumentList = ({
   userRole = 'user',
   userId,
   onDeleteDocument,
-  isParticipant = false
+  isParticipant = false,
+  onSelectDocument,
+  selectedDocument,
+  documentVersions = [],
+  loadingVersions = false,
+  onDeleteVersion
 }: DocumentListProps) => {
+  const [expandedDocumentId, setExpandedDocumentId] = useState<string | null>(null);
+
+  const toggleDocumentVersions = async (document: Document) => {
+    if (expandedDocumentId === document.id) {
+      setExpandedDocumentId(null);
+    } else {
+      setExpandedDocumentId(document.id);
+      if (onSelectDocument) {
+        onSelectDocument(document);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-6">
@@ -61,41 +87,83 @@ const DocumentList = ({
              userRole === 'admin' || 
              userRole === 'seller');
           
+          const isExpanded = expandedDocumentId === doc.id;
+          
           return (
-            <li key={doc.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-muted-foreground mr-2" />
-                  <a 
-                    href={doc.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="font-medium text-primary hover:underline truncate"
-                  >
-                    {doc.name}
-                  </a>
+            <li key={doc.id}>
+              <div className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 text-muted-foreground mr-2" />
+                    <a 
+                      href={doc.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="font-medium text-primary hover:underline truncate"
+                    >
+                      {doc.name}
+                    </a>
+                    
+                    {/* Display document category as a badge if it exists */}
+                    {doc.category && (
+                      <Badge variant="outline" className="ml-2">
+                        {doc.category}
+                      </Badge>
+                    )}
+                    
+                    {/* Badge for versioned documents */}
+                    {doc.latestVersionId && (
+                      <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                        v{doc.version || 1}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Uploaded {formatDistanceToNow(new Date(doc.uploadedAt), { addSuffix: true })} • {(doc.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  {/* Version History Button */}
+                  {onSelectDocument && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleDocumentVersions(doc)}
+                      className="text-muted-foreground"
+                    >
+                      {isExpanded ? 
+                        <ChevronUp className="h-4 w-4" /> : 
+                        <History className="h-4 w-4" />
+                      }
+                    </Button>
+                  )}
                   
-                  {/* Display document category as a badge if it exists */}
-                  {doc.category && (
-                    <Badge variant="outline" className="ml-2">
-                      {doc.category}
-                    </Badge>
+                  {/* Delete Document Button */}
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteDocument(doc)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Uploaded {new Date(doc.uploadedAt).toLocaleDateString()} • {(doc.size / 1024).toFixed(1)} KB
-                </p>
               </div>
               
-              {canDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDeleteDocument(doc)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              {/* Document Versions Panel */}
+              {isExpanded && selectedDocument && selectedDocument.id === doc.id && (
+                <DocumentVersionList 
+                  documentId={doc.id}
+                  versions={documentVersions}
+                  isLoading={loadingVersions}
+                  userRole={userRole}
+                  userId={userId}
+                  onDeleteVersion={onDeleteVersion}
+                  isParticipant={isParticipant}
+                />
               )}
             </li>
           );
@@ -103,6 +171,6 @@ const DocumentList = ({
       </ul>
     </div>
   );
-}
+};
 
 export default DocumentList;
