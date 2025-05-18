@@ -1,5 +1,6 @@
 
 import { Settings, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,15 @@ interface HeaderProps {
 
 const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleNavigateToProfile = () => {
+    navigate('/profile');
+  };
+  
+  const handleNavigateToSettings = () => {
+    navigate('/settings');
+  };
   
   return (
     <header className="sticky top-0 z-30 border-b bg-background flex h-16 items-center px-4 md:px-6">
@@ -47,16 +57,16 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleNavigateToSettings} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => logout()}>
+            <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
