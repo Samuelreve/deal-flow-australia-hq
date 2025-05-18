@@ -76,7 +76,21 @@ export const useDealFormSubmit = () => {
       console.log('Deal created successfully:', newDeal);
 
       // Use the appropriate user role from the profile or default to seller
-      const userRole = user.profile?.role as UserRole || 'seller';
+      const userRole = user.profile?.role || 'seller';
+      
+      // For database compatibility, ensure we only use roles that are valid in the database
+      // This is a temporary solution until the database enum is updated
+      let dbRole: "seller" | "buyer" | "lawyer" | "admin";
+      
+      if (userRole === "seller" || userRole === "buyer" || userRole === "lawyer" || userRole === "admin") {
+        dbRole = userRole;
+      } else if (userRole === "advisor") {
+        // Map advisor to an existing role that makes sense in the current schema
+        dbRole = "lawyer";
+      } else {
+        // Default fallback
+        dbRole = "seller";
+      }
 
       // Add the creator as a participant
       const { error: participantError } = await supabase
@@ -84,7 +98,7 @@ export const useDealFormSubmit = () => {
         .insert({
           deal_id: newDeal.id,
           user_id: user.id,
-          role: userRole
+          role: dbRole
         });
 
       if (participantError) {

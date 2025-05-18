@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
+import { UserRole } from "@/types/auth";
 
 type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
 type UserProfessional = boolean;
@@ -42,7 +43,7 @@ const OnboardingIntentPage: React.FC = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          role: intent,
+          role: intent as UserRole,
           is_professional: isProfessional,
           onboarding_complete: true
         })
@@ -58,7 +59,7 @@ const OnboardingIntentPage: React.FC = () => {
           ...user,
           profile: {
             ...user.profile,
-            role: intent,
+            role: intent as UserRole,
             is_professional: isProfessional,
             onboarding_complete: true
           }

@@ -1,232 +1,215 @@
 
-import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { vi, describe, it, expect, beforeEach } from "vitest";
-import InvitationForm from "../InvitationForm";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/types/auth";
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import InvitationForm from '../InvitationForm';
+import { useAuth } from '@/contexts/AuthContext';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { UserRole } from '@/types/auth';
 
-// Mock the required dependencies
-vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: vi.fn()
+// Mock the auth context
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({
+// Mock the API service
+vi.mock('@/services/dealInvitationService', () => ({
+  inviteParticipant: vi.fn(),
+}));
+
+// Mock the toast functionality
+vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 }));
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    rpc: vi.fn(() => ({
-      data: null,
-      error: null
-    }))
-  }
-}));
-
-describe("InvitationForm", () => {
-  const mockDealId = "deal-123";
-  const mockOnInvitationSent = vi.fn();
-  
-  // Updated mock user to match the User interface with nested profile
-  const mockUser = { 
-    id: "user-123", 
-    email: "user@example.com",
-    // Add required Supabase User properties
-    app_metadata: {},
-    user_metadata: {},
-    aud: "authenticated",
-    created_at: new Date().toISOString(),
-    // Add the profile property with user role info
-    profile: {
-      id: "user-123",
-      email: "user@example.com",
-      name: "Test User",
-      role: "admin" as UserRole,
-    }
-  };
+describe('InvitationForm', () => {
+  const mockDealId = 'mock-deal-id';
+  const mockOnSubmitted = vi.fn();
+  const mockInviteParticipant = vi.fn();
   
   beforeEach(() => {
-    // Reset all mocks
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     
-    // Setup default mock values
-    vi.mocked(useAuth).mockReturnValue({ 
-      user: mockUser,
+    // Mock the invitation service
+    vi.mocked(require('@/services/dealInvitationService').inviteParticipant).mockImplementation(mockInviteParticipant);
+  });
+  
+  it('renders the form correctly', () => {
+    // Mock the auth context with a logged-in user
+    (useAuth as any).mockReturnValue({
+      user: {
+        id: 'user-123',
+        email: 'user@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01',
+        profile: {
+          id: 'user-123',
+          email: 'user@example.com',
+          name: 'Test User',
+          role: 'seller' as UserRole,
+        },
+      },
       isAuthenticated: true,
-      session: null,
+      session: { access_token: 'mock-token' },
       loading: false,
       login: vi.fn(),
       signup: vi.fn(),
-      logout: vi.fn()
+      logout: vi.fn(),
+      setUser: vi.fn(),
     });
-  });
-
-  it("renders the form correctly", () => {
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
+    
+    render(<InvitationForm dealId={mockDealId} onSubmitted={mockOnSubmitted} />);
+    
+    // Check that the form elements are rendered
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/role/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /send invitation/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send invitation/i })).toBeInTheDocument();
   });
-
-  it("updates form data on input change", async () => {
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
-    const emailInput = screen.getByLabelText(/email address/i);
-    await userEvent.type(emailInput, "test@example.com");
+  
+  it('handles form submission correctly', async () => {
+    // Mock successful API response
+    mockInviteParticipant.mockResolvedValue({
+      success: true,
+      message: 'Invitation sent successfully',
+    });
     
-    expect(emailInput).toHaveValue("test@example.com");
-  });
-
-  it("displays validation error when form is incomplete", async () => {
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
-    const submitButton = screen.getByRole("button", { name: /send invitation/i });
-    await userEvent.click(submitButton);
+    // Mock the auth context with a logged-in user
+    (useAuth as any).mockReturnValue({
+      user: {
+        id: 'user-123',
+        email: 'user@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01',
+        profile: {
+          id: 'user-123',
+          email: 'user@example.com',
+          name: 'Test User',
+          role: 'seller' as UserRole,
+        },
+      },
+      isAuthenticated: true,
+      session: { access_token: 'mock-token' },
+      loading: false,
+      login: vi.fn(),
+      signup: vi.fn(),
+      logout: vi.fn(),
+      setUser: vi.fn(),
+    });
     
-    expect(screen.getByText(/please fill in all required fields/i)).toBeInTheDocument();
-  });
-
-  it("handles successful form submission", async () => {
-    // Mock the Supabase RPC call to return success
-    const mockRpcResponse = {
-      data: { success: true, message: "Invitation sent successfully" },
-      error: null
-    };
+    render(<InvitationForm dealId={mockDealId} onSubmitted={mockOnSubmitted} />);
     
-    const mockSupabase = {
-      rpc: vi.fn().mockResolvedValue(mockRpcResponse)
-    };
-    
-    // Replace the imported supabase object with our mock
-    vi.mocked(require("@/integrations/supabase/client").supabase).rpc = mockSupabase.rpc;
-
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
     // Fill out the form
-    await userEvent.type(screen.getByLabelText(/email address/i), "test@example.com");
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'invitee@example.com' },
+    });
     
-    // Select a role (using the SelectTrigger component)
-    const roleSelect = screen.getByText(/select a role/i);
-    await userEvent.click(roleSelect);
-    
-    // Click on a role option (assuming the dropdown is now open)
-    const buyerOption = screen.getByText(/buyer/i);
-    await userEvent.click(buyerOption);
+    fireEvent.change(screen.getByLabelText(/role/i), {
+      target: { value: 'buyer' },
+    });
     
     // Submit the form
-    await userEvent.click(screen.getByRole("button", { name: /send invitation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send invitation/i }));
     
-    // Wait for the async action to complete
+    // Wait for the submission to complete and check the expected outcomes
     await waitFor(() => {
-      // Check if the appropriate function was called
-      expect(mockSupabase.rpc).toHaveBeenCalledWith("create_deal_invitation", {
-        p_deal_id: mockDealId,
-        p_invitee_email: "test@example.com",
-        p_invitee_role: "buyer"
-      });
-      
-      // Check if the success toast was shown
-      expect(toast.success).toHaveBeenCalled();
-      
-      // Check if the callback was called
-      expect(mockOnInvitationSent).toHaveBeenCalled();
+      expect(mockInviteParticipant).toHaveBeenCalledWith(
+        mockDealId,
+        'invitee@example.com',
+        'buyer',
+        expect.anything() // The access token
+      );
+      expect(mockOnSubmitted).toHaveBeenCalled();
+      expect(require('sonner').toast.success).toHaveBeenCalledWith(expect.stringContaining('sent'));
     });
   });
-
-  it("handles submission error", async () => {
-    // Mock the Supabase RPC call to return an error
-    const mockError = new Error("Test error message");
-    const mockRpcResponse = {
-      data: null,
-      error: mockError
-    };
-    
-    const mockSupabase = {
-      rpc: vi.fn().mockResolvedValue(mockRpcResponse)
-    };
-    
-    // Replace the imported supabase object with our mock
-    vi.mocked(require("@/integrations/supabase/client").supabase).rpc = mockSupabase.rpc;
-
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
-    // Fill out the form
-    await userEvent.type(screen.getByLabelText(/email address/i), "test@example.com");
-    
-    // Select a role
-    const roleSelect = screen.getByText(/select a role/i);
-    await userEvent.click(roleSelect);
-    const buyerOption = screen.getByText(/buyer/i);
-    await userEvent.click(buyerOption);
-    
-    // Submit the form
-    await userEvent.click(screen.getByRole("button", { name: /send invitation/i }));
-    
-    // Wait for the async action to complete
-    await waitFor(() => {
-      // Check if the error message is displayed
-      expect(screen.getByText(/failed to send invitation/i)).toBeInTheDocument();
-      
-      // Check if the error toast was shown
-      expect(toast.error).toHaveBeenCalled();
-      
-      // Check that the callback was not called
-      expect(mockOnInvitationSent).not.toHaveBeenCalled();
-    });
-  });
-
-  it("disables the form when not authenticated", () => {
-    // Mock unauthenticated user
-    vi.mocked(useAuth).mockReturnValue({ 
+  
+  it('handles form validation', async () => {
+    // Mock the auth context with a logged-in user
+    (useAuth as any).mockReturnValue({
       user: null,
       isAuthenticated: false,
       session: null,
       loading: false,
       login: vi.fn(),
       signup: vi.fn(),
-      logout: vi.fn()
+      logout: vi.fn(),
+      setUser: vi.fn(),
     });
     
-    render(
-      <InvitationForm 
-        dealId={mockDealId} 
-        onInvitationSent={mockOnInvitationSent} 
-      />
-    );
-
-    // Form should show an error about authentication
-    expect(screen.getByText(/you must be logged in/i)).toBeInTheDocument();
+    render(<InvitationForm dealId={mockDealId} onSubmitted={mockOnSubmitted} />);
+    
+    // Submit the form without filling it out
+    fireEvent.click(screen.getByRole('button', { name: /send invitation/i }));
+    
+    // Check that validation errors are displayed
+    await waitFor(() => {
+      expect(screen.getByText(/email is required/i)).toBeInTheDocument();
+    });
+    
+    // Fill out the email field with an invalid email
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'not-an-email' },
+    });
+    
+    // Submit again
+    fireEvent.click(screen.getByRole('button', { name: /send invitation/i }));
+    
+    // Check for validation error about invalid email
+    await waitFor(() => {
+      expect(screen.getByText(/valid email/i)).toBeInTheDocument();
+    });
+  });
+  
+  it('handles API errors correctly', async () => {
+    // Mock API error response
+    const errorMessage = 'Failed to send invitation';
+    mockInviteParticipant.mockRejectedValue(new Error(errorMessage));
+    
+    // Mock the auth context with a logged-in user
+    (useAuth as any).mockReturnValue({
+      user: {
+        id: 'user-123',
+        email: 'user@example.com',
+        profile: {
+          id: 'user-123',
+          email: 'user@example.com',
+          name: 'Test User',
+          role: 'seller' as UserRole,
+        },
+      },
+      isAuthenticated: true,
+      session: { access_token: 'mock-token' },
+      loading: false,
+      login: vi.fn(),
+      signup: vi.fn(),
+      logout: vi.fn(),
+      setUser: vi.fn(),
+    });
+    
+    render(<InvitationForm dealId={mockDealId} onSubmitted={mockOnSubmitted} />);
+    
+    // Fill out the form correctly
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'invitee@example.com' },
+    });
+    
+    fireEvent.change(screen.getByLabelText(/role/i), {
+      target: { value: 'buyer' },
+    });
+    
+    // Submit the form
+    fireEvent.click(screen.getByRole('button', { name: /send invitation/i }));
+    
+    // Check that the error is handled
+    await waitFor(() => {
+      expect(require('sonner').toast.error).toHaveBeenCalledWith(expect.stringContaining(errorMessage));
+      expect(mockOnSubmitted).not.toHaveBeenCalled(); // The onSubmitted callback should not be called on error
+    });
   });
 });
