@@ -2,9 +2,18 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getUserInitials } from "@/lib/utils";
 import RemoveParticipantButton from './RemoveParticipantButton';
 import { DealParticipant } from '@/components/deals/DealParticipants';
+
+// Helper function to get user initials from display name
+export const getUserInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+};
 
 interface ParticipantItemProps {
   participant: DealParticipant;
