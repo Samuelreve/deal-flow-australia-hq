@@ -1,273 +1,59 @@
 
-import { useState, useEffect } from "react";
 import { Document, DocumentVersion } from "@/types/deal";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/components/ui/use-toast";
-import { documentService } from "@/services/documentService";
-import { supabase } from "@/integrations/supabase/client";
+import { useDocumentsList } from "./useDocumentsList";
+import { useDocumentVersions } from "./useDocumentVersions";
+import { useDocumentOperations } from "./useDocumentOperations";
 
 /**
- * Hook for managing documents state and operations
+ * Main hook for document management that combines the functionality 
+ * of the more focused hooks
  */
 export const useDocuments = (dealId: string, initialDocuments: Document[] = []) => {
-  const { user } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>(initialDocuments);
-  const [isLoading, setIsLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-  const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
-  const [loadingVersions, setLoadingVersions] = useState(false);
-  const [permissions, setPermissions] = useState({
-    canUpload: false,
-    canDelete: false,
-    canAddVersions: false,
-    userRole: null as string | null
-  });
-
-  // Fetch documents and permissions when component mounts or dealId changes
-  useEffect(() => {
-    const fetchDocumentsAndPermissions = async () => {
-      if (initialDocuments.length > 0) {
-        setDocuments(initialDocuments);
-        setIsLoading(false);
-      } else {
-        await fetchDocuments();
-      }
-      
-      if (user) {
-        await fetchPermissions();
-      }
-    };
-    
-    fetchDocumentsAndPermissions();
-  }, [dealId, initialDocuments, user?.id]);
-
-  // Fetch documents from the server
-  const fetchDocuments = async () => {
-    try {
-      setIsLoading(true);
-      const fetchedDocuments = await documentService.getDocuments(dealId);
-      setDocuments(fetchedDocuments);
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch documents. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch user permissions for document operations
-  const fetchPermissions = async () => {
-    if (!user) return;
-    
-    try {
-      const accessControl = await documentService.getDocumentAccessControl(dealId, user.id);
-      setPermissions({
-        canUpload: accessControl.canUpload,
-        canDelete: accessControl.canDelete,
-        canAddVersions: accessControl.canAddVersions,
-        userRole: accessControl.userRole
-      });
-    } catch (error) {
-      console.error("Error fetching document permissions:", error);
-    }
-  };
-
-  // Fetch versions for a specific document
-  const fetchDocumentVersions = async (documentId: string) => {
-    setLoadingVersions(true);
-    try {
-      const versions = await documentService.getDocumentVersions(dealId, documentId);
-      setDocumentVersions(versions);
-      return versions;
-    } catch (error) {
-      console.error("Error fetching document versions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch document versions.",
-        variant: "destructive",
-      });
-      return [];
-    } finally {
-      setLoadingVersions(false);
-    }
-  };
-
-  /**
-   * Select a document to view its versions
-   */
-  const selectDocument = async (document: Document) => {
-    setSelectedDocument(document);
-    await fetchDocumentVersions(document.id);
-  };
-
-  /**
-   * Upload a document (new document or new version)
-   */
-  const uploadDocument = async (file: File, category: string, existingDocumentId?: string) => {
-    if (!user) {
-      throw new Error('You must be logged in to upload files.');
-    }
-
-    setUploading(true);
-
-    try {
-      const newDocument = await documentService.uploadDocument(
-        file, 
-        category, 
-        dealId, 
-        user.id,
-        existingDocumentId
-      );
-      
-      if (existingDocumentId) {
-        // Update the existing document in the list
-        setDocuments(prevDocuments => 
-          prevDocuments.map(doc => 
-            doc.id === existingDocumentId ? newDocument : doc
-          )
-        );
-        
-        // Refresh versions if this document is selected
-        if (selectedDocument && selectedDocument.id === existingDocumentId) {
-          await fetchDocumentVersions(existingDocumentId);
-        }
-        
-        toast({
-          title: "New version uploaded",
-          description: `Version ${newDocument.version} of ${file.name} has been uploaded.`,
-        });
-      } else {
-        // Add the new document to the list
-        setDocuments(prevDocuments => [newDocument, ...prevDocuments]);
-        
-        toast({
-          title: "File uploaded successfully!",
-          description: `${file.name} has been uploaded.`,
-        });
-      }
-
-      return newDocument;
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "There was a problem uploading your file.",
-        variant: "destructive",
-      });
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  /**
-   * Delete a document
-   */
-  const deleteDocument = async (document: Document) => {
-    if (!user) {
-      throw new Error('You must be logged in to delete files.');
-    }
-    
-    try {
-      const success = await documentService.deleteDocument(document, dealId, user.id);
-      
-      if (success) {
-        setDocuments(prevDocuments => 
-          prevDocuments.filter(doc => doc.id !== document.id)
-        );
-        
-        // Clear selected document if it was deleted
-        if (selectedDocument && selectedDocument.id === document.id) {
-          setSelectedDocument(null);
-          setDocumentVersions([]);
-        }
-        
-        toast({
-          title: "Document deleted",
-          description: `${document.name} has been deleted.`,
-        });
-      }
-      
-      return success;
-    } catch (error: any) {
-      console.error("Delete error:", error);
-      toast({
-        title: "Delete failed",
-        description: error.message || "There was a problem deleting the file.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  /**
-   * Delete a specific version of a document
-   */
-  const deleteDocumentVersion = async (version: DocumentVersion) => {
-    if (!user) {
-      throw new Error('You must be logged in to delete document versions.');
-    }
-    
-    try {
-      // Extract storage path from URL
-      const storagePath = version.url.split('?')[0].split('/').pop();
-      if (!storagePath) {
-        throw new Error("Could not determine file path from URL");
-      }
-      
-      const success = await documentService.deleteDocumentVersion(
-        version.id, 
-        version.documentId, 
-        dealId, 
-        storagePath,
-        user.id
-      );
-      
-      if (success) {
-        // Remove from versions list
-        setDocumentVersions(prevVersions => 
-          prevVersions.filter(v => v.id !== version.id)
-        );
-        
-        // Refresh documents list to get updated latest_version_id
-        const updatedDocuments = await documentService.getDocuments(dealId);
-        setDocuments(updatedDocuments);
-        
-        toast({
-          title: "Version deleted",
-          description: `Version ${version.versionNumber} has been deleted.`,
-        });
-      }
-      
-      return success;
-    } catch (error: any) {
-      console.error("Delete version error:", error);
-      toast({
-        title: "Delete failed",
-        description: error.message || "There was a problem deleting the version.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  return {
+  const {
     documents,
     isLoading,
+    permissions,
+    refreshDocuments,
+    setDocuments
+  } = useDocumentsList(dealId, initialDocuments);
+  
+  const {
+    selectedDocument,
+    documentVersions,
+    loadingVersions,
+    selectDocument,
+    fetchDocumentVersions,
+    setDocumentVersions
+  } = useDocumentVersions(dealId);
+  
+  const {
     uploading,
     uploadDocument,
     deleteDocument,
+    deleteDocumentVersion
+  } = useDocumentOperations(
+    dealId,
+    setDocuments,
+    setDocumentVersions
+  );
+  
+  return {
+    // From useDocumentsList
+    documents,
+    isLoading,
+    permissions,
+    
+    // From useDocumentVersions
     selectedDocument,
-    selectDocument,
     documentVersions,
     loadingVersions,
+    selectDocument,
     fetchDocumentVersions,
-    deleteDocumentVersion,
-    permissions
+    
+    // From useDocumentOperations
+    uploading,
+    uploadDocument,
+    deleteDocument,
+    deleteDocumentVersion
   };
 };

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/auth";
 
@@ -59,7 +60,7 @@ export const authService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, name, role, avatar')
+        .select('id, email, name, role, avatar_url')
         .eq('id', userId)
         .single();
         
@@ -73,7 +74,7 @@ export const authService = {
         email: data.email,
         name: data.name,
         role: data.role,
-        avatar: data.avatar
+        avatar: data.avatar_url
       };
     } catch (error) {
       console.error("Error in getCurrentUserProfile:", error);
