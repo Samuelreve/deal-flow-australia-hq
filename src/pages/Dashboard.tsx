@@ -45,7 +45,7 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            seller:profiles(name)
+            profiles!seller_id(name)
           `);
           
         // Rely on RLS to filter deals the user has access to
@@ -66,7 +66,7 @@ const Dashboard = () => {
             healthScore: deal.health_score,
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
-            sellerName: deal.seller?.name || "Unknown",
+            sellerName: deal.profiles?.name || "Unknown",
             businessName: "", // Removed column that doesn't exist
           }));
           
@@ -168,10 +168,10 @@ const Dashboard = () => {
       
       {/* Metrics Cards */}
       <DealMetrics 
-        total={metrics.total}
-        active={metrics.active}
-        completed={metrics.completed}
-        pending={metrics.pending}
+        total={deals.length}
+        active={deals.filter(d => d.status === "active").length}
+        completed={deals.filter(d => d.status === "completed").length}
+        pending={deals.filter(d => d.status === "pending").length}
         loading={loading}
       />
       
