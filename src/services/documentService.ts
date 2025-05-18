@@ -52,8 +52,8 @@ export const documentService = {
   /**
    * Delete a document
    */
-  async deleteDocument(document: Document, dealId: string): Promise<boolean> {
-    return documentDeleteService.deleteDocument(document, dealId);
+  async deleteDocument(document: Document, dealId: string, userId: string): Promise<boolean> {
+    return documentDeleteService.deleteDocument(document, dealId, userId);
   },
 
   /**
@@ -63,8 +63,16 @@ export const documentService = {
     versionId: string, 
     documentId: string, 
     dealId: string, 
-    storagePath: string
+    storagePath: string,
+    userId: string
   ): Promise<boolean> {
-    return documentVersionService.deleteDocumentVersion(versionId, documentId, dealId, storagePath);
+    return documentVersionService.deleteDocumentVersion(versionId, documentId, dealId, storagePath, userId);
+  },
+  
+  /**
+   * Check if user has access to a document
+   */
+  async verifyDocumentAccess(documentId: string, userId: string): Promise<boolean> {
+    return documentRetrievalService.verifyDocumentAccess(documentId, userId);
   }
 };

@@ -38,6 +38,172 @@ export interface DocumentVersionMetadata {
  */
 export const documentDatabaseService = {
   /**
+   * Check if a user is a participant in a deal
+   */
+  async checkUserCanUploadToDeal(dealId: string, userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('deal_participants')
+      .select('role')
+      .eq('deal_id', dealId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !data) {
+      return false;
+    }
+    
+    // Check if the participant role is allowed to upload documents
+    // You can customize this logic based on your application's requirements
+    const allowedRoles = ['admin', 'seller', 'lawyer'];
+    return allowedRoles.includes(data.role);
+  },
+  
+  /**
+   * Check if user has access to a document
+   */
+  async checkDocumentAccess(documentId: string, userId: string): Promise<boolean> {
+    // Get the deal ID for this document
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('deal_id')
+      .eq('id', documentId)
+      .single();
+    
+    if (docError || !document) {
+      return false;
+    }
+    
+    // Check if user is a participant in this deal
+    const { data, error } = await supabase
+      .from('deal_participants')
+      .select('id')
+      .eq('deal_id', document.deal_id)
+      .eq('user_id', userId);
+    
+    return !error && data && data.length > 0;
+  },
+  
+  /**
+   * Check if user can modify a document
+   */
+  async checkUserCanModifyDocument(documentId: string, userId: string): Promise<boolean> {
+    // Get the document details
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('deal_id, uploaded_by')
+      .eq('id', documentId)
+      .single();
+    
+    if (docError || !document) {
+      return false;
+    }
+    
+    // Check if user is the uploader or has admin/seller role
+    const { data: participant, error } = await supabase
+      .from('deal_participants')
+      .select('role')
+      .eq('deal_id', document.deal_id)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !participant) {
+      return false;
+    }
+    
+    // Document uploader can always modify their document
+    if (document.uploaded_by === userId) {
+      return true;
+    }
+    
+    // Admins and sellers can modify any document
+    return ['admin', 'seller'].includes(participant.role);
+  },
+  
+  /**
+   * Check if user can delete a document
+   */
+  async checkUserCanDeleteDocument(documentId: string, userId: string): Promise<boolean> {
+    // Get the document details
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('deal_id, uploaded_by')
+      .eq('id', documentId)
+      .single();
+    
+    if (docError || !document) {
+      return false;
+    }
+    
+    // Check if user is the uploader or has admin/seller role
+    const { data: participant, error } = await supabase
+      .from('deal_participants')
+      .select('role')
+      .eq('deal_id', document.deal_id)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !participant) {
+      return false;
+    }
+    
+    // Document uploader can delete their own document
+    if (document.uploaded_by === userId) {
+      return true;
+    }
+    
+    // Only admins and sellers can delete others' documents
+    return ['admin', 'seller'].includes(participant.role);
+  },
+  
+  /**
+   * Check if user can delete a document version
+   */
+  async checkUserCanDeleteVersion(documentId: string, versionId: string, userId: string): Promise<boolean> {
+    // Get the document details
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('deal_id')
+      .eq('id', documentId)
+      .single();
+    
+    if (docError || !document) {
+      return false;
+    }
+    
+    // Get the version details
+    const { data: version, error: versionError } = await supabase
+      .from('document_versions')
+      .select('uploaded_by')
+      .eq('id', versionId)
+      .eq('document_id', documentId)
+      .single();
+    
+    if (versionError || !version) {
+      return false;
+    }
+    
+    // Check participant role
+    const { data: participant, error } = await supabase
+      .from('deal_participants')
+      .select('role')
+      .eq('deal_id', document.deal_id)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !participant) {
+      return false;
+    }
+    
+    // Version uploader can delete their own version
+    if (version.uploaded_by === userId) {
+      return true;
+    }
+    
+    // Only admins and sellers can delete others' versions
+    return ['admin', 'seller'].includes(participant.role);
+  },
+
+  /**
    * Fetch all documents for a deal
    */
   async fetchDocuments(dealId: string): Promise<DocumentMetadata[]> {

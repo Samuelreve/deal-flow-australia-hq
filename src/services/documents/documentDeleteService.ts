@@ -10,8 +10,15 @@ export const documentDeleteService = {
   /**
    * Delete a document
    */
-  async deleteDocument(document: Document, dealId: string): Promise<boolean> {
+  async deleteDocument(document: Document, dealId: string, userId: string): Promise<boolean> {
     try {
+      // Verify user has permission to delete this document
+      const canDelete = await documentDatabaseService.checkUserCanDeleteDocument(document.id, userId);
+      
+      if (!canDelete) {
+        throw new Error("Permission denied: You are not authorized to delete this document");
+      }
+      
       // 1. Get all versions to delete their files
       const versions = await documentDatabaseService.fetchDocumentVersions(document.id);
       

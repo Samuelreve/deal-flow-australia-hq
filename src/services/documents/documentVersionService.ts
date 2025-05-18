@@ -38,6 +38,13 @@ export const documentVersionService = {
     description: string = ''
   ) {
     try {
+      // Verify user has permission to add versions to this document
+      const canAddVersion = await documentDatabaseService.checkUserCanModifyDocument(documentId, userId);
+      
+      if (!canAddVersion) {
+        throw new Error("Permission denied: You are not authorized to add versions to this document");
+      }
+      
       // 1. Get the existing document and its versions to determine next version number
       const { data: versions } = await supabase
         .from('document_versions')
@@ -89,9 +96,19 @@ export const documentVersionService = {
     versionId: string, 
     documentId: string, 
     dealId: string, 
-    storagePath: string
+    storagePath: string,
+    userId: string
   ): Promise<boolean> {
     try {
+      // Verify user has permission to delete versions of this document
+      const canDeleteVersion = await documentDatabaseService.checkUserCanDeleteVersion(
+        documentId, versionId, userId
+      );
+      
+      if (!canDeleteVersion) {
+        throw new Error("Permission denied: You are not authorized to delete this document version");
+      }
+      
       // 1. Delete the version file from storage
       await documentStorageService.deleteFile(storagePath, dealId);
       

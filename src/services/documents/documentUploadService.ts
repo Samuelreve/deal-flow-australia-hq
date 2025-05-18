@@ -1,3 +1,4 @@
+
 import { Document } from "@/types/deal";
 import { documentDatabaseService } from "./documentDatabaseService";
 import { documentStorageService } from "./documentStorageService";
@@ -19,8 +20,22 @@ export const documentUploadService = {
     documentId?: string
   ): Promise<Document> {
     try {
+      // Verify user participation in the deal
+      const canUpload = await documentDatabaseService.checkUserCanUploadToDeal(dealId, userId);
+      
+      if (!canUpload) {
+        throw new Error("Permission denied: You are not authorized to upload documents to this deal");
+      }
+      
       // If documentId is provided, add a new version to an existing document
       if (documentId) {
+        // Verify user has permission to add versions to this document
+        const canAddVersion = await documentDatabaseService.checkUserCanModifyDocument(documentId, userId);
+        
+        if (!canAddVersion) {
+          throw new Error("Permission denied: You are not authorized to add versions to this document");
+        }
+        
         return await documentVersionService.addDocumentVersion(file, dealId, documentId, userId);
       }
       

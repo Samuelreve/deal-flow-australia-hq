@@ -138,8 +138,12 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
    * Delete a document
    */
   const deleteDocument = async (document: Document) => {
+    if (!user) {
+      throw new Error('You must be logged in to delete files.');
+    }
+    
     try {
-      const success = await documentService.deleteDocument(document, dealId);
+      const success = await documentService.deleteDocument(document, dealId, user.id);
       
       if (success) {
         setDocuments(prevDocuments => 
@@ -174,6 +178,10 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
    * Delete a specific version of a document
    */
   const deleteDocumentVersion = async (version: DocumentVersion) => {
+    if (!user) {
+      throw new Error('You must be logged in to delete document versions.');
+    }
+    
     try {
       // Extract storage path from URL
       const storagePath = version.url.split('?')[0].split('/').pop();
@@ -185,7 +193,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
         version.id, 
         version.documentId, 
         dealId, 
-        storagePath
+        storagePath,
+        user.id
       );
       
       if (success) {
