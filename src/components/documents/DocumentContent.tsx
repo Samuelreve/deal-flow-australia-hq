@@ -2,6 +2,10 @@
 import React from 'react';
 import DocumentSelectionActions from './DocumentSelectionActions';
 import DocumentCommentInput from './DocumentCommentInput';
+import DocumentLoadingState from './DocumentLoadingState';
+import DocumentErrorState from './DocumentErrorState';
+import DocumentIframe from './DocumentIframe';
+import { useDocumentLoader } from '@/hooks/useDocumentLoader';
 
 interface DocumentContentProps {
   documentContainerRef: React.RefObject<HTMLDivElement>;
@@ -40,23 +44,12 @@ const DocumentContent: React.FC<DocumentContentProps> = ({
   handleSubmitComment,
   handleCloseCommentInput,
 }) => {
-  const [documentLoading, setDocumentLoading] = React.useState(true);
-  const [documentError, setDocumentError] = React.useState<string | null>(null);
-
-  // Effect to simulate document loading
-  React.useEffect(() => {
-    // Simulate document loading process
-    const timer = setTimeout(() => {
-      if (documentVersionUrl) {
-        setDocumentLoading(false);
-      } else {
-        setDocumentError('No document URL provided');
-        setDocumentLoading(false);
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [documentVersionUrl]);
+  const {
+    documentLoading,
+    documentError,
+    handleDocumentLoad,
+    handleDocumentError
+  } = useDocumentLoader(documentVersionUrl);
 
   return (
     <div
@@ -66,33 +59,18 @@ const DocumentContent: React.FC<DocumentContentProps> = ({
       style={{ minHeight: '400px' }}
     >
       {/* Loading state */}
-      {documentLoading && (
-        <div className="flex justify-center items-center h-full">
-          <p className="text-muted-foreground animate-pulse">Loading document...</p>
-        </div>
-      )}
+      {documentLoading && <DocumentLoadingState />}
 
       {/* Error state */}
-      {documentError && (
-        <div className="flex justify-center items-center h-full">
-          <p className="text-destructive">Error loading document: {documentError}</p>
-        </div>
-      )}
+      {documentError && <DocumentErrorState error={documentError} />}
 
       {/* Document content */}
       {!documentLoading && !documentError && (
-        <div className="h-full">
-          <iframe 
-            src={documentVersionUrl}
-            className="w-full h-full border-0" 
-            title="Document Viewer"
-            onLoad={() => setDocumentLoading(false)}
-            onError={() => {
-              setDocumentError('Failed to load document');
-              setDocumentLoading(false);
-            }}
-          />
-        </div>
+        <DocumentIframe
+          documentVersionUrl={documentVersionUrl}
+          onLoad={handleDocumentLoad}
+          onError={handleDocumentError}
+        />
       )}
 
       {/* Selection action buttons */}
