@@ -12,16 +12,11 @@ export const documentRetrievalService = {
    * Note: RLS policies at the database level ensure users only see documents from deals they participate in
    */
   async getDocuments(dealId: string): Promise<Document[]> {
-    try {
-      const documentsMetadata = await documentDatabaseService.fetchDocuments(dealId);
+    const documentsMetadata = await documentDatabaseService.fetchDocuments(dealId);
       
-      return await Promise.all(
-        documentsMetadata.map(doc => documentMapperService.mapToDocument(doc, dealId))
-      );
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      throw error;
-    }
+    return Promise.all(
+      documentsMetadata.map(doc => documentMapperService.mapToDocument(doc, dealId))
+    );
   },
 
   /**
@@ -29,8 +24,7 @@ export const documentRetrievalService = {
    */
   async verifyDocumentAccess(documentId: string, userId: string): Promise<boolean> {
     try {
-      const result = await documentDatabaseService.checkDocumentAccess(documentId, userId);
-      return result;
+      return await documentDatabaseService.checkDocumentAccess(documentId, userId);
     } catch (error) {
       console.error("Error checking document access:", error);
       return false;

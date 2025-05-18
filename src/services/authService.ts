@@ -32,5 +32,15 @@ export const authService = {
   logout: async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  },
+  
+  getCurrentSession: async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session;
+  },
+  
+  onAuthStateChange: (callback: (event: string, session: any) => void) => {
+    return supabase.auth.onAuthStateChange(callback);
   }
 };

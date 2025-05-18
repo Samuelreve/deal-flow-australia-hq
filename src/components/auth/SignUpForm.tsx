@@ -1,71 +1,23 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { toast as sonnerToast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useSignUp } from "@/hooks/useSignUp";
 
 const SignUpForm = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { 
+    email, setEmail,
+    password, setPassword,
+    name, setName,
+    isLoading, error, showSuccess,
+    handleSubmit
+  } = useSignUp();
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name || email.split('@')[0], // Use provided name or generate from email
-          }
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data?.user) {
-        if (data.session) {
-          // User is automatically signed in (email verification disabled)
-          sonnerToast.success("Account created successfully!");
-          navigate("/dashboard");
-        } else {
-          // Email verification required
-          setShowSuccess(true);
-          toast({
-            title: "Account created!",
-            description: "Please check your email for confirmation",
-          });
-          // Clear form
-          setEmail("");
-          setPassword("");
-          setName("");
-        }
-      }
-    } catch (err: any) {
-      console.error("Signup error:", err);
-      setError(err.message || "Failed to create account");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4 md:p-8">
