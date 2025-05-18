@@ -24,6 +24,9 @@ import {
 import { useInviteParticipant } from "@/hooks/useInviteParticipant";
 import { InvitationFormData } from "@/types/invitation";
 
+// Define the subset of UserRole that we'll use for the form
+type InviteeRole = "buyer" | "lawyer" | "admin";
+
 const formSchema = z.object({
   inviteeEmail: z
     .string()
@@ -48,7 +51,7 @@ const InvitationForm: React.FC<InvitationFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       inviteeEmail: "",
-      inviteeRole: "buyer" as UserRole,
+      inviteeRole: "buyer" as InviteeRole,
     },
   });
 
