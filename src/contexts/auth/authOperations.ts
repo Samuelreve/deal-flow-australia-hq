@@ -1,0 +1,121 @@
+
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { authService } from "@/services/authService";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { handleAuthError, showAuthSuccess } from "./authUtils";
+import { AUTH_ROUTES } from "./constants";
+
+export const useAuthOperations = () => {
+  const {
+    user,
+    session,
+    isAuthenticated,
+    loading,
+    setLoading,
+    setUser,
+    setIsAuthenticated
+  } = useAuthSession();
+  
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const data = await authService.login(email, password);
+      
+      if (data.user) {
+        // Session will be handled by the onAuthStateChange listener
+        toast({
+          title: "Login successful",
+          description: `Welcome back!`,
+        });
+        
+        // The full user with profile will be set by useAuthSession's auth state change handler
+        // Just make sure we're authenticated and navigate to dashboard
+        setIsAuthenticated(true);
+        
+        // Explicitly navigate to dashboard
+        navigate(AUTH_ROUTES.DASHBOARD);
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      handleAuthError(error, toast);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, toast, setIsAuthenticated, navigate]);
+
+  const signup = useCallback(async (email: string, password: string, name?: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      // Standard signup - will need email confirmation unless disabled in Supabase dashboard
+      const data = await authService.signup(email, password, name);
+      
+      if (data?.user) {
+        if (data.session) {
+          // User is automatically logged in with a session
+          console.log("Signup successful with session, user logged in", data.user);
+          
+          // The full user with profile will be set by useAuthSession's auth state change handler
+          // Just make sure we're authenticated and navigate to dashboard
+          setIsAuthenticated(true);
+          
+          // Explicitly navigate to dashboard
+          navigate(AUTH_ROUTES.DASHBOARD);
+          
+          toast({
+            title: "Account created successfully",
+            description: "Welcome to DealPilot!",
+          });
+          return true;
+        } else {
+          // This happens if email confirmation is required in Supabase settings
+          toast({
+            title: "Account created",
+            description: "Please log in with your new account",
+          });
+          navigate(AUTH_ROUTES.LOGIN);
+          return false;
+        }
+      }
+      
+      return false;
+    } catch (error: any) {
+      handleAuthError(error, toast);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, toast, navigate, setIsAuthenticated]);
+
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+      // Session change will be handled by the onAuthStateChange listener
+      showAuthSuccess("Logged out successfully");
+      navigate(AUTH_ROUTES.LOGIN);
+    } catch (error) {
+      console.error("Logout error:", error);
+      showAuthSuccess("Failed to log out", "Error");
+    }
+  }, [navigate]);
+
+  return {
+    user,
+    session,
+    isAuthenticated,
+    login,
+    signup,
+    logout,
+    loading
+  };
+};
