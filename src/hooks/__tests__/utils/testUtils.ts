@@ -55,4 +55,12 @@ export const mockSupabaseDeals = mockDeals.map(deal => ({
 // Setup and teardown helpers
 export const setupMocks = () => {
   vi.clearAllMocks();
+  
+  // Add extra setup for mocking select method
+  vi.mock("@/integrations/supabase/client", () => ({
+    supabase: {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+    },
+  }), { virtual: true });
 };
