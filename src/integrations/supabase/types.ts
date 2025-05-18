@@ -668,6 +668,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: boolean
+      }
       create_deal_invitation: {
         Args: {
           p_deal_id: string
