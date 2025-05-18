@@ -1,6 +1,6 @@
 
 import { Document, DocumentVersion } from "@/types/deal";
-import { DocumentMetadata } from "./documentDatabaseService";
+import type { DocumentMetadata } from "./documentDatabaseTypes";
 import { documentStorageService } from "./documentStorageService";
 
 /**

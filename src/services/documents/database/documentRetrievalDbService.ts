@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { DocumentMetadata, DocumentVersionMetadata } from "../documentDatabaseTypes";
+import type { DocumentMetadata, DocumentVersionMetadata } from "../documentDatabaseTypes";
 
 /**
  * Service for document retrieval database operations

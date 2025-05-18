@@ -4,17 +4,13 @@ import { documentPermissionService } from "./database/documentPermissionService"
 import { documentRetrievalDbService } from "./database/documentRetrievalDbService";
 import { documentCreationService } from "./database/documentCreationService";
 import { documentDeletionService } from "./database/documentDeletionService";
-import { DocumentMetadata, DocumentVersionMetadata } from "./documentDatabaseTypes";
+import type { DocumentMetadata, DocumentVersionMetadata } from "./documentDatabaseTypes";
 
 /**
  * Service responsible for database operations related to documents
  * This is a facade that combines all document database services
  */
 export const documentDatabaseService = {
-  // Re-export types
-  DocumentMetadata,
-  DocumentVersionMetadata,
-
   // Re-export methods from base service
   checkUserCanUploadToDeal: documentBaseService.checkUserCanUploadToDeal,
   checkDocumentAccess: documentBaseService.checkDocumentAccess,
