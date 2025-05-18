@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyAuth, verifyDealParticipant, getUserDealRole } from "../_shared/rbac.ts";
@@ -16,6 +15,7 @@ interface RequestPayload {
   operation: OperationType;
   dealId: string;
   documentId?: string;
+  documentVersionId?: string; // Added for document summarization
   content: string;
   userId: string;
   context?: Record<string, any>;
@@ -164,27 +164,103 @@ async function handleGenerateTemplate(content: string, dealId: string, userId: s
   }
 }
 
-async function handleSummarizeDocument(content: string) {
+async function handleSummarizeDocument(content: string, dealId?: string, documentId?: string, documentVersionId?: string) {
+  // If content is directly provided (e.g., from the frontend), use that
+  let documentContent = content;
+  
+  // If documentId and documentVersionId are provided but no content, fetch the document content
+  if (documentId && documentVersionId && !content.trim() && dealId) {
+    try {
+      documentContent = await fetchDocumentContent(dealId, documentId, documentVersionId);
+    } catch (error) {
+      console.error("Error fetching document content:", error);
+      throw new Error(`Failed to retrieve document content: ${error.message}`);
+    }
+  }
+
+  if (!documentContent || documentContent.trim() === "") {
+    throw new Error("No document content provided for summarization");
+  }
+
+  // Limit content length for API efficiency
+  const maxContentLength = 12000; // Approximate token limit for GPT models
+  const trimmedContent = documentContent.length > maxContentLength 
+    ? documentContent.substring(0, maxContentLength) + "... [content truncated due to length]" 
+    : documentContent;
+
+  // Call OpenAI for summarization
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4o-mini", // Using a more efficient model for summarization
     messages: [
       {
         role: "system",
-        content: "You are a document summarization assistant. Provide concise, accurate summaries of legal documents."
+        content: "You are a document summarization assistant specialized in business and legal documents. Provide clear, accurate summaries focusing on key points, obligations, and important details. Format your response with clear sections and bullet points where appropriate."
       },
       {
         role: "user",
-        content: `Summarize the following document content: "${content}"`
+        content: `Please summarize the following document content:\n\n${trimmedContent}`
       }
     ],
-    temperature: 0.3,
-    max_tokens: 500
+    temperature: 0.3, // Lower temperature for more factual summaries
+    max_tokens: 800  // Adjust based on desired summary length
   });
 
   return {
     summary: response.choices[0].message.content,
     disclaimer: "This summary is provided for convenience only and does not capture all details of the original document."
   };
+}
+
+// New function to fetch document content from Supabase Storage
+async function fetchDocumentContent(dealId: string, documentId: string, documentVersionId: string) {
+  // Get Supabase admin client
+  const supabaseAdmin = getSupabaseAdmin();
+  
+  try {
+    // First, get the storage path for the document version
+    const { data: versionData, error: versionError } = await supabaseAdmin
+      .from('document_versions')
+      .select('storage_path, document_id')
+      .eq('id', documentVersionId)
+      .eq('document_id', documentId)
+      .single();
+    
+    if (versionError || !versionData) {
+      throw new Error(`Error fetching document version: ${versionError?.message || "Version not found"}`);
+    }
+    
+    // Verify this document belongs to the specified deal
+    const { data: documentData, error: documentError } = await supabaseAdmin
+      .from('documents')
+      .select('deal_id')
+      .eq('id', documentId)
+      .single();
+    
+    if (documentError || !documentData) {
+      throw new Error(`Error fetching document: ${documentError?.message || "Document not found"}`);
+    }
+    
+    if (documentData.deal_id !== dealId) {
+      throw new Error("Document does not belong to specified deal");
+    }
+    
+    // Now download the file from storage
+    const storagePath = `${dealId}/${versionData.storage_path}`;
+    const { data: fileData, error: fileError } = await supabaseAdmin.storage
+      .from('deal-documents')
+      .download(storagePath);
+    
+    if (fileError || !fileData) {
+      throw new Error(`Error downloading document from storage: ${fileError?.message}`);
+    }
+    
+    // Convert Blob to text
+    const text = await fileData.text();
+    return text;
+  } catch (error) {
+    console.error(`Error in fetchDocumentContent for deal ${dealId}, document ${documentId}:`, error);
+    throw error;
+  }
 }
 
 // Import functions from shared modules for authentication and authorization
@@ -199,9 +275,9 @@ function getSupabaseAdmin() {
 
 async function handleRequest(req: Request): Promise<Response> {
   try {
-    const { operation, content, context, dealId, userId } = await req.json() as RequestPayload;
+    const { operation, content, context, dealId, userId, documentId, documentVersionId } = await req.json() as RequestPayload & { documentVersionId?: string };
     
-    if (!operation || !content || !dealId || !userId) {
+    if (!operation || !dealId || !userId) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -232,7 +308,7 @@ async function handleRequest(req: Request): Promise<Response> {
         result = await handleGenerateTemplate(content, dealId, userId, templateType, context);
         break;
       case "summarize_document":
-        result = await handleSummarizeDocument(content);
+        result = await handleSummarizeDocument(content, dealId, documentId, documentVersionId);
         break;
       default:
         return new Response(

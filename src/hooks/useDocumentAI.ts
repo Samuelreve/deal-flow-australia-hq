@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -13,6 +12,7 @@ interface UseDocumentAIProps {
 interface AIRequestOptions {
   content: string;
   documentId?: string;
+  documentVersionId?: string; // Added for document summarization
   context?: Record<string, any>;
 }
 
@@ -48,6 +48,7 @@ export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
           operation,
           dealId,
           documentId: options.documentId || documentId,
+          documentVersionId: options.documentVersionId,
           content: options.content,
           userId: user.id,
           context: options.context
@@ -91,8 +92,18 @@ export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
     return processAIRequest('generate_template', { content: requirements, context });
   };
   
-  const summarizeDocument = async (documentContent: string, documentId?: string) => {
-    return processAIRequest('summarize_document', { content: documentContent, documentId });
+  const summarizeDocument = async (
+    documentContent?: string, 
+    documentId?: string, 
+    documentVersionId?: string
+  ) => {
+    // If documentContent is provided, use it directly
+    // Otherwise, the backend will fetch it using the IDs
+    return processAIRequest('summarize_document', { 
+      content: documentContent || '', 
+      documentId, 
+      documentVersionId 
+    });
   };
   
   return {
