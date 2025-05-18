@@ -88,7 +88,9 @@ const DocumentList = ({
       <div className="border rounded-lg overflow-hidden">
         <DocumentVersionHeader 
           document={selectedDocument} 
-          onBack={() => onSelectDocument?.(undefined as any)} 
+          onBack={() => onSelectDocument?.(undefined as any)}
+          dealId={selectedDocument.dealId}
+          userRole={userRole}
         />
 
         <DocumentVersionList
