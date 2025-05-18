@@ -102,17 +102,33 @@ export const useComments = ({ dealId }: UseCommentsProps) => {
     }
     
     try {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-        
-      if (error) throw error;
+      const { session } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Unauthorized: No auth token");
+      }
+
+      const response = await fetch(
+        `https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/delete-comment/${commentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        }
+      );
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete comment");
+      }
+      
       toast.success('Comment deleted successfully');
       setComments(prevComments => prevComments.filter(c => c.id !== commentId));
     } catch (err: any) {
       console.error("Error deleting comment:", err);
-      toast.error("Failed to delete comment");
+      toast.error(err.message || "Failed to delete comment");
     }
   };
 
