@@ -1,14 +1,26 @@
-
 import { Document } from "@/types/deal";
 import { documentDatabaseService } from "./documentDatabaseService";
 import { documentStorageService } from "./documentStorageService";
 import { documentMapperService } from "./documentMapperService";
 import { documentVersionService } from "./documentVersionService";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Service responsible for document upload operations
  */
 export const documentUploadService = {
+  /**
+   * Check if a user can add a version to a document
+   */
+  async canAddVersionToDocument(documentId: string, userId: string): Promise<boolean> {
+    try {
+      return await documentDatabaseService.checkUserCanModifyDocument(documentId, userId);
+    } catch (error) {
+      console.error("Error checking if user can add version to document:", error);
+      return false;
+    }
+  },
+  
   /**
    * Upload a document (first version or new version)
    */

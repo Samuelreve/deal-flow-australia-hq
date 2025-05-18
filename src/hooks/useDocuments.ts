@@ -17,34 +17,65 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [documentVersions, setDocumentVersions] = useState<DocumentVersion[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [permissions, setPermissions] = useState({
+    canUpload: false,
+    canDelete: false,
+    canAddVersions: false,
+    userRole: null as string | null
+  });
 
-  // Fetch documents when component mounts or dealId changes
+  // Fetch documents and permissions when component mounts or dealId changes
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchDocumentsAndPermissions = async () => {
       if (initialDocuments.length > 0) {
         setDocuments(initialDocuments);
         setIsLoading(false);
-        return;
+      } else {
+        await fetchDocuments();
       }
       
-      try {
-        setIsLoading(true);
-        const fetchedDocuments = await documentService.getDocuments(dealId);
-        setDocuments(fetchedDocuments);
-      } catch (error) {
-        console.error("Error fetching documents:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch documents. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      if (user) {
+        await fetchPermissions();
       }
     };
     
-    fetchDocuments();
-  }, [dealId, initialDocuments]);
+    fetchDocumentsAndPermissions();
+  }, [dealId, initialDocuments, user?.id]);
+
+  // Fetch documents from the server
+  const fetchDocuments = async () => {
+    try {
+      setIsLoading(true);
+      const fetchedDocuments = await documentService.getDocuments(dealId);
+      setDocuments(fetchedDocuments);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch documents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch user permissions for document operations
+  const fetchPermissions = async () => {
+    if (!user) return;
+    
+    try {
+      const accessControl = await documentService.getDocumentAccessControl(dealId, user.id);
+      setPermissions({
+        canUpload: accessControl.canUpload,
+        canDelete: accessControl.canDelete,
+        canAddVersions: accessControl.canAddVersions,
+        userRole: accessControl.userRole
+      });
+    } catch (error) {
+      console.error("Error fetching document permissions:", error);
+    }
+  };
 
   // Fetch versions for a specific document
   const fetchDocumentVersions = async (documentId: string) => {
@@ -236,6 +267,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     documentVersions,
     loadingVersions,
     fetchDocumentVersions,
-    deleteDocumentVersion
+    deleteDocumentVersion,
+    permissions
   };
 };

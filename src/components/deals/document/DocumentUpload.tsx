@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Document } from "@/types/deal";
 import { Select } from "@/components/ui/select";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define document categories
 const documentCategories = [
@@ -21,6 +23,12 @@ interface DocumentUploadProps {
   userRole?: string;
   isParticipant?: boolean;
   documents?: Document[];
+  permissions?: {
+    canUpload: boolean;
+    canAddVersions: boolean;
+    userRole: string | null;
+  };
+  dealStatus?: string | null;
 }
 
 const DocumentUpload = ({ 
@@ -28,7 +36,9 @@ const DocumentUpload = ({
   uploading, 
   userRole = 'user',
   isParticipant = true,
-  documents = []
+  documents = [],
+  permissions,
+  dealStatus
 }: DocumentUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -37,11 +47,27 @@ const DocumentUpload = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Check if user has permission to upload documents
-  const canUploadDocuments = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+  // Check if user has permission to upload documents based on passed permissions or fallback to role check
+  const canUploadDocuments = permissions?.canUpload ?? 
+    (isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()));
+  
+  // Check if deal status allows uploads
+  const isDealStatusAllowingUploads = !dealStatus || ['draft', 'active', 'pending'].includes(dealStatus);
 
-  if (!canUploadDocuments) {
-    return null; // Don't render the upload section for users who can't upload
+  // Don't render if user can't upload or deal status doesn't allow uploads
+  if (!canUploadDocuments || !isDealStatusAllowingUploads) {
+    // If it's a status restriction, show an explanation
+    if (isParticipant && !isDealStatusAllowingUploads) {
+      return (
+        <Alert variant="warning" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Document uploads are not allowed when the deal is in {dealStatus} status.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +130,7 @@ const DocumentUpload = ({
     }
   };
 
+  // Only render upload functionality if the user has appropriate permissions
   return (
     <div className="border-t pt-4 mt-4">
       <h4 className="text-lg font-semibold mb-3">Upload Document</h4>
