@@ -132,4 +132,3 @@ export const toggleCommentResolved = async (commentId: string): Promise<{ newSta
     throw error;
   }
 };
-

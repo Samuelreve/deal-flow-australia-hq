@@ -16,13 +16,18 @@ import {
   updateCommentResolvedStatus
 } from "./commentStateUpdaters";
 
+/**
+ * Custom hook for managing document comments
+ */
 export function useDocumentComments(documentVersionId?: string) {
   const { user } = useAuth();
   const [comments, setComments] = useState<DocumentComment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   
-  // Load comments for a document version
+  /**
+   * Load comments for a document version
+   */
   const fetchComments = useCallback(async () => {
     if (!documentVersionId) return;
     
@@ -35,6 +40,9 @@ export function useDocumentComments(documentVersionId?: string) {
     }
   }, [documentVersionId]);
 
+  /**
+   * Initialize comments when document version changes
+   */
   useEffect(() => {
     if (documentVersionId) {
       fetchComments();
@@ -43,7 +51,9 @@ export function useDocumentComments(documentVersionId?: string) {
     }
   }, [documentVersionId, fetchComments]);
 
-  // Add a new comment
+  /**
+   * Add a new comment
+   */
   const addComment = async (newCommentData: Omit<CreateDocumentCommentDto, 'documentVersionId'>) => {
     if (!documentVersionId || !user) return null;
 
@@ -51,7 +61,6 @@ export function useDocumentComments(documentVersionId?: string) {
     try {
       const newComment = await addDocumentComment(documentVersionId, newCommentData, user.id);
       
-      // Update comments list if comment was added successfully
       if (newComment) {
         setComments(prevComments => addCommentToState(prevComments, newComment));
       }
@@ -62,13 +71,14 @@ export function useDocumentComments(documentVersionId?: string) {
     }
   };
 
-  // Edit a comment
+  /**
+   * Edit a comment
+   */
   const editComment = async (commentId: string, content: string) => {
     setSubmitting(true);
     try {
       const success = await editDocumentComment(commentId, content);
       
-      // Update the comment in our state if edit was successful
       if (success) {
         setComments(prevComments => updateCommentInState(prevComments, commentId, content));
       }
@@ -79,11 +89,12 @@ export function useDocumentComments(documentVersionId?: string) {
     }
   };
 
-  // Delete a comment
+  /**
+   * Delete a comment
+   */
   const deleteComment = async (commentId: string, parentId?: string) => {
     const success = await deleteDocumentComment(commentId);
     
-    // Update our state if deletion was successful
     if (success) {
       setComments(prevComments => removeCommentFromState(prevComments, commentId, parentId));
     }
@@ -91,12 +102,13 @@ export function useDocumentComments(documentVersionId?: string) {
     return success;
   };
 
-  // Toggle resolved status
+  /**
+   * Toggle resolved status
+   */
   const toggleResolved = async (commentId: string) => {
     try {
       const { newStatus } = await toggleCommentResolved(commentId);
       
-      // Update our state
       if (newStatus !== undefined) {
         setComments(prevComments => 
           updateCommentResolvedStatus(prevComments, commentId, newStatus)
