@@ -599,6 +599,10 @@ export type Database = {
         Args: { p_deal_id: string }
         Returns: Json
       }
+      get_auth_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_deal_invitations: {
         Args: { p_deal_id: string }
         Returns: Json

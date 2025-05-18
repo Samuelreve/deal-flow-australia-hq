@@ -19,7 +19,7 @@ export const useAuthSession = () => {
         .eq('id', userId)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Profile fetch error:", error);
         return null;
       }
@@ -43,65 +43,73 @@ export const useAuthSession = () => {
     }
   };
 
+  // Function to create a new profile
+  const createUserProfile = async (supabaseUser: any): Promise<UserProfile | null> => {
+    try {
+      const newProfile: UserProfile = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || "",
+        name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+        role: 'seller' as const
+      };
+      
+      const { error } = await supabase
+        .from('profiles')
+        .insert([newProfile]);
+        
+      if (error) {
+        console.error("Profile creation error:", error);
+        return null;
+      }
+      
+      console.log("Created new profile for user", newProfile);
+      return newProfile;
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST to avoid missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
         setSession(currentSession);
         
-        if (event === 'SIGNED_IN' && currentSession?.user) {
-          // Use setTimeout to defer Supabase calls
+        if (currentSession) {
+          setIsAuthenticated(true);
+          
+          // Defer profile fetch to avoid recursion issues
           setTimeout(async () => {
-            try {
-              console.log("Processing SIGNED_IN event");
-              
-              const supabaseUser = currentSession.user;
-              
-              // Check if user profile exists
-              const profileData = await fetchUserProfile(supabaseUser.id);
-              
-              if (!profileData) {
-                // Create a new profile with default values
-                const newProfile: UserProfile = {
-                  id: supabaseUser.id,
-                  email: supabaseUser.email || "",
-                  name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-                  role: 'seller' as const
-                };
+            const supabaseUser = currentSession.user;
+            if (supabaseUser) {
+              try {
+                // Try to fetch existing profile
+                const profileData = await fetchUserProfile(supabaseUser.id);
                 
-                const { error: insertError } = await supabase
-                  .from('profiles')
-                  .insert([newProfile]);
+                if (profileData) {
+                  // Use existing profile
+                  const fullUser = {
+                    ...supabaseUser,
+                    profile: profileData
+                  } as User;
                   
-                if (insertError) {
-                  console.error("Profile creation error:", insertError);
-                  return;
+                  setUser(fullUser);
+                } else if (event === 'SIGNED_IN') {
+                  // Only try to create a profile when signing in and no profile exists
+                  const newProfile = await createUserProfile(supabaseUser);
+                  if (newProfile) {
+                    const fullUser = {
+                      ...supabaseUser,
+                      profile: newProfile
+                    } as User;
+                    setUser(fullUser);
+                  }
                 }
-                
-                console.log("Created new profile for user", newProfile);
-                
-                // Create combined User object
-                const fullUser = {
-                  ...supabaseUser,
-                  profile: newProfile
-                } as User;
-                
-                setUser(fullUser);
-              } else {
-                // Use existing profile
-                const fullUser = {
-                  ...supabaseUser,
-                  profile: profileData
-                } as User;
-                
-                console.log("Using existing profile for user", fullUser);
-                setUser(fullUser);
+              } catch (error) {
+                console.error("Auth processing error:", error);
               }
-              
-              setIsAuthenticated(true);
-            } catch (error) {
-              console.error("Authentication processing error:", error);
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {
@@ -118,25 +126,38 @@ export const useAuthSession = () => {
         console.log("Checking for existing session...");
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         
         if (existingSession) {
           console.log("Found existing session for user", existingSession.user.id);
           setSession(existingSession);
+          setIsAuthenticated(true);
           
-          const profileData = await fetchUserProfile(existingSession.user.id);
-          
-          if (profileData) {
-            const fullUser = {
-              ...existingSession.user,
-              profile: profileData
-            } as User;
+          try {
+            const profileData = await fetchUserProfile(existingSession.user.id);
             
-            console.log("Setting user from existing session", fullUser);
-            setUser(fullUser);
-            setIsAuthenticated(true);
-          } else {
-            console.log("No profile found for user with existing session");
+            if (profileData) {
+              const fullUser = {
+                ...existingSession.user,
+                profile: profileData
+              } as User;
+              
+              setUser(fullUser);
+            } else {
+              // If no profile, try to create one (rare case)
+              const newProfile = await createUserProfile(existingSession.user);
+              if (newProfile) {
+                const fullUser = {
+                  ...existingSession.user,
+                  profile: newProfile
+                } as User;
+                setUser(fullUser);
+              }
+            }
+          } catch (profileError) {
+            console.error("Error processing user profile during session check:", profileError);
           }
         } else {
           console.log("No existing session found");
