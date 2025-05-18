@@ -20,9 +20,11 @@ export interface Notification {
 
 interface NotificationItemProps {
   notification: Notification;
-  onNotificationClick: (notification: Notification) => void;
+  onNotificationClick?: (notification: Notification) => void;
   onMarkAsRead: (id: string) => Promise<void>;
-  updatingNotificationId: string | null;
+  updatingNotificationId?: string | null;
+  onDelete?: (id: string) => Promise<void>;
+  onClose?: () => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
@@ -30,6 +32,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onNotificationClick,
   onMarkAsRead,
   updatingNotificationId,
+  onDelete,
+  onClose,
 }) => {
   // Helper function to get icon based on notification type
   const getNotificationIcon = (type: string) => {
@@ -53,10 +57,23 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
+  const handleClick = () => {
+    if (onNotificationClick) {
+      onNotificationClick(notification);
+    } else if (!notification.read) {
+      onMarkAsRead(notification.id);
+    }
+    
+    // If in dropdown, close it
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <li
       className={`flex items-start space-x-3 p-3 rounded-md cursor-pointer ${notification.read ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-gray-900 hover:bg-blue-100'}`}
-      onClick={() => onNotificationClick(notification)}
+      onClick={handleClick}
     >
       {/* Notification Icon */}
       <div className="flex-shrink-0 mt-1">
