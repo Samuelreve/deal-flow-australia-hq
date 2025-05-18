@@ -1,7 +1,13 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
-import { DocumentComment, CreateDocumentCommentDto, documentCommentService } from "@/services/documentCommentService";
+import { 
+  DocumentComment, 
+  CreateDocumentCommentDto, 
+  documentCommentService 
+} from "@/services/documentCommentService";
+import { getCommentCount } from "./utils/documentCommentUtils";
 
 export function useDocumentComments(documentVersionId?: string) {
   const { user } = useAuth();
@@ -221,7 +227,5 @@ export function useDocumentComments(documentVersionId?: string) {
   };
 }
 
-// Add a new exported function to get comment count for a version
-export function getCommentCount(comments: DocumentComment[]): number {
-  return comments.length;
-}
+// Re-export the getCommentCount function for convenience
+export { getCommentCount } from "./utils/documentCommentUtils";
