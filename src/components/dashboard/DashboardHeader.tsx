@@ -18,7 +18,7 @@ const DashboardHeader = ({ title, subtitle }: DashboardHeaderProps) => {
         {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
       </div>
       
-      <Button onClick={() => navigate("/deals/new")}>
+      <Button onClick={() => navigate("/create-deal")}>
         <Plus className="h-4 w-4 mr-2" />
         New Deal
       </Button>
