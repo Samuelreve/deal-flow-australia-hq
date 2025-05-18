@@ -6,6 +6,7 @@ import DocumentList from "./document/DocumentList";
 import DocumentUpload from "./document/DocumentUpload";
 import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
 import { useDocuments } from "@/hooks/useDocuments";
+// The import won't need to change since we've created a compatibility export
 
 interface DeleteVersionDialogProps {
   version: DocumentVersion | null;
