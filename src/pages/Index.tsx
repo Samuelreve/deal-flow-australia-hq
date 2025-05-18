@@ -2,7 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle, BarChart3, ShieldCheck, Clock, Calendar, FileText, MessageSquare } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Index = () => {
           ) : (
             <>
               <Button variant="ghost" onClick={() => navigate("/login")}>Log in</Button>
-              <Button onClick={() => navigate("/login")}>Get Started</Button>
+              <Button onClick={() => navigate("/signup")}>Get Started</Button>
             </>
           )}
         </div>
@@ -26,62 +27,260 @@ const Index = () => {
       
       <main>
         {/* Hero Section */}
-        <section className="py-16 md:py-24 lg:py-32 px-4 md:px-6">
+        <section className="py-16 md:py-24 lg:py-32 px-4 md:px-6 bg-gradient-to-b from-background to-muted/40">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Streamlined Business Exchange Platform
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70 animate-fade-in">
+                Revolutionizing Business Transactions
               </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
-                Dramatically speed up the process of buying and selling businesses, reducing the typical timeline from months to weeks.
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10 animate-fade-in">
+                DealPilot reduces the typical business sale timeline from months to weeks through AI-powered workflows, secure document management, and intelligent collaboration.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" onClick={() => navigate("/login")}>
-                  Start Now <ArrowRight className="ml-2 h-5 w-5" />
+                <Button size="lg" onClick={() => navigate("/signup")} className="animate-fade-in">
+                  Start For Free <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
-                  Learn More
+                <Button size="lg" variant="outline" onClick={() => navigate("#how-it-works")} className="animate-fade-in">
+                  See How It Works
                 </Button>
+              </div>
+            </div>
+            
+            {/* Stats Section */}
+            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+              <div className="bg-card p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow animate-fade-in">
+                <div className="text-3xl font-bold text-primary mb-2">40%</div>
+                <p className="text-muted-foreground">Faster Deal Completion</p>
+              </div>
+              <div className="bg-card p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow animate-fade-in">
+                <div className="text-3xl font-bold text-primary mb-2">90%</div>
+                <p className="text-muted-foreground">Reduced Documentation Errors</p>
+              </div>
+              <div className="bg-card p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow animate-fade-in">
+                <div className="text-3xl font-bold text-primary mb-2">60%</div>
+                <p className="text-muted-foreground">Less Legal Back-and-Forth</p>
               </div>
             </div>
           </div>
         </section>
         
         {/* Features Section */}
-        <section className="py-16 bg-muted/50 px-4 md:px-6">
+        <section id="features" className="py-16 bg-muted/50 px-4 md:px-6">
           <div className="container mx-auto max-w-5xl">
-            <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-card p-6 rounded-lg shadow-sm border">
+            <h2 className="text-3xl font-bold text-center mb-4">Our Platform Features</h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+              DealPilot combines cutting-edge technology with industry expertise to streamline every aspect of business sales.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-card p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="h-12 w-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
-                  </svg>
+                  <ShieldCheck className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Guided Workflow</h3>
-                <p className="text-muted-foreground">Step-by-step process engine with customizable milestones for each business deal.</p>
+                <h3 className="text-xl font-semibold mb-2">AI-Powered Document Intelligence</h3>
+                <p className="text-muted-foreground">
+                  Our advanced AI explains complex legal clauses in plain language, generates customized document templates, and provides quick summaries of lengthy documents.
+                </p>
               </div>
               
-              <div className="bg-card p-6 rounded-lg shadow-sm border">
+              <div className="bg-card p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="h-12 w-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                  </svg>
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Deal Room</h3>
-                <p className="text-muted-foreground">A central, secure space for all communications, documents, and progress tracking.</p>
+                <h3 className="text-xl font-semibold mb-2">Smart Document Management</h3>
+                <p className="text-muted-foreground">
+                  Secure storage with version history, automated organization, and role-based access ensures everyone sees exactly what they need to see.
+                </p>
               </div>
               
-              <div className="bg-card p-6 rounded-lg shadow-sm border">
+              <div className="bg-card p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="h-12 w-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                  </svg>
+                  <MessageSquare className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Collaboration</h3>
-                <p className="text-muted-foreground">Real-time notes, chat, and commenting features within the deal room.</p>
+                <h3 className="text-xl font-semibold mb-2">Unified Communication</h3>
+                <p className="text-muted-foreground">
+                  Centralized messaging, contextual commenting, and document annotations keep all communications in one place, eliminating confusion.
+                </p>
+              </div>
+              
+              <div className="bg-card p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                <div className="h-12 w-12 bg-primary/10 rounded-md flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
+                <p className="text-muted-foreground">
+                  Visual milestone tracking with automated updates keeps everyone informed of deal progress and upcoming steps.
+                </p>
               </div>
             </div>
+          </div>
+        </section>
+        
+        {/* How It Works Section */}
+        <section id="how-it-works" className="py-16 md:py-20 px-4 md:px-6">
+          <div className="container mx-auto max-w-5xl">
+            <h2 className="text-3xl font-bold text-center mb-4">How DealPilot Works</h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+              Our structured approach simplifies even the most complex business transactions.
+            </p>
+            
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="md:w-1/2 order-2 md:order-1">
+                  <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                    <h3 className="text-xl font-medium flex items-center mb-3">
+                      <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center mr-3">1</span>
+                      Deal Creation
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Set up your deal with basic information, invite all relevant stakeholders, and establish the initial timeline. DealPilot configures the appropriate workflow based on transaction type.
+                    </p>
+                  </div>
+                </div>
+                <div className="md:w-1/2 order-1 md:order-2 flex justify-center">
+                  <div className="bg-card rounded-lg border p-4 shadow-sm w-full max-w-md aspect-video flex items-center justify-center">
+                    <Calendar className="h-16 w-16 text-primary/60" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="md:w-1/2 flex justify-center">
+                  <div className="bg-card rounded-lg border p-4 shadow-sm w-full max-w-md aspect-video flex items-center justify-center">
+                    <FileText className="h-16 w-16 text-primary/60" />
+                  </div>
+                </div>
+                <div className="md:w-1/2">
+                  <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                    <h3 className="text-xl font-medium flex items-center mb-3">
+                      <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
+                      Document Management
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Upload, generate, and share crucial documents. AI assistance helps clarify legal terms, generate templates, and ensure everyone understands their commitments.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="md:w-1/2 order-2 md:order-1">
+                  <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                    <h3 className="text-xl font-medium flex items-center mb-3">
+                      <span className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+                      Milestone Progress
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Track the deal's progression through key milestones with automated notifications and reminders to keep things moving forward efficiently.
+                    </p>
+                  </div>
+                </div>
+                <div className="md:w-1/2 order-1 md:order-2 flex justify-center">
+                  <div className="bg-card rounded-lg border p-4 shadow-sm w-full max-w-md aspect-video flex items-center justify-center">
+                    <Clock className="h-16 w-16 text-primary/60" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Benefits Section */}
+        <section id="benefits" className="py-16 bg-muted/50 px-4 md:px-6">
+          <div className="container mx-auto max-w-5xl">
+            <h2 className="text-3xl font-bold text-center mb-12">Why Choose DealPilot</h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Speed & Efficiency</h3>
+                <p className="text-sm text-muted-foreground">Reduce transaction time by up to 40% with structured workflows and automation.</p>
+              </div>
+              
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Transparency</h3>
+                <p className="text-sm text-muted-foreground">Everyone knows exactly where things stand at all times.</p>
+              </div>
+              
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Reduced Legal Costs</h3>
+                <p className="text-sm text-muted-foreground">AI-assisted document generation and review save on expensive legal hours.</p>
+              </div>
+              
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Security & Compliance</h3>
+                <p className="text-sm text-muted-foreground">Bank-level encryption and role-based access protects sensitive information.</p>
+              </div>
+              
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Stress Reduction</h3>
+                <p className="text-sm text-muted-foreground">Clear processes and better communication eliminate deal anxiety.</p>
+              </div>
+              
+              <div className="p-5 border rounded-lg bg-card hover:shadow-md transition-shadow">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                <h3 className="font-semibold text-lg mb-2">Higher Success Rate</h3>
+                <p className="text-sm text-muted-foreground">More deals close successfully with fewer last-minute surprises.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* FAQ Section */}
+        <section className="py-16 md:py-20 px-4 md:px-6">
+          <div className="container mx-auto max-w-3xl">
+            <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left">
+                  How does DealPilot speed up the business sale process?
+                </AccordionTrigger>
+                <AccordionContent>
+                  DealPilot eliminates common bottlenecks by providing a structured workflow, automated document management, clear milestone tracking, and AI-assisted document creation and review. This significantly reduces the back-and-forth between parties and minimizes delays.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left">
+                  Is my sensitive business information secure on the platform?
+                </AccordionTrigger>
+                <AccordionContent>
+                  Absolutely. DealPilot uses bank-level encryption, role-based access controls, and secure cloud infrastructure. Each participant only sees the information they're authorized to access based on their role in the transaction.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left">
+                  Can my lawyer and accountant collaborate on the platform?
+                </AccordionTrigger>
+                <AccordionContent>
+                  Yes, DealPilot is designed for multi-party collaboration. You can invite any professional advisors to the platform and assign them appropriate roles and permissions. They'll be able to review documents, provide input, and communicate efficiently with all parties.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left">
+                  How accurate is the AI document assistance?
+                </AccordionTrigger>
+                <AccordionContent>
+                  Our AI tools are trained on extensive legal and business transaction datasets. While they provide excellent assistance for understanding and generating standard documents, we always recommend professional review for critical legal documents. The AI serves as an efficiency tool, not a replacement for professional advice.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-5">
+                <AccordionTrigger className="text-left">
+                  What types of businesses is DealPilot appropriate for?
+                </AccordionTrigger>
+                <AccordionContent>
+                  DealPilot is flexible and works for businesses of all sizes, from small local establishments to mid-market companies. The platform is particularly valuable for transactions between $500,000 and $50 million where efficiency and organization are critical, but legal resources might be limited.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </section>
         
@@ -90,14 +289,19 @@ const Index = () => {
           <div className="container mx-auto max-w-5xl">
             <div className="bg-primary text-primary-foreground rounded-lg p-8 md:p-12 text-center">
               <h2 className="text-3xl font-bold mb-4">
-                Ready to transform your business deals?
+                Ready to transform your business sale experience?
               </h2>
               <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-                Join DealPilot today and experience the future of business buying and selling.
+                Join thousands of business owners who have streamlined their transactions with DealPilot. Get started for free today.
               </p>
-              <Button size="lg" variant="secondary" onClick={() => navigate("/login")}>
-                Get Started
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" variant="secondary" onClick={() => navigate("/signup")}>
+                  Create Free Account
+                </Button>
+                <Button size="lg" variant="outline" className="bg-primary/90 border-primary-foreground/20" onClick={() => navigate("/login")}>
+                  Log In
+                </Button>
+              </div>
             </div>
           </div>
         </section>
