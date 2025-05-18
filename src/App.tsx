@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import ProfilePage from "./pages/ProfilePage";
 import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
 import OnboardingIntentPage from "./pages/OnboardingIntentPage";
+import IntentCapturePage from "./pages/IntentCapturePage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -50,8 +51,9 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/professionals" element={<ProfessionalsDirectoryPage />} />
 
-            {/* Onboarding route */}
+            {/* Onboarding routes */}
             <Route path="/onboarding/intent" element={<OnboardingIntentPage />} />
+            <Route path="/onboarding/capture" element={<IntentCapturePage />} />
 
             {/* Protected routes with onboarding check */}
             <Route element={<ProtectedRoute />}>
