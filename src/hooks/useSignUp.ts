@@ -29,7 +29,7 @@ export const useSignUp = () => {
       if (success) {
         // User should be automatically signed in if email verification is disabled in Supabase
         sonnerToast.success("Account created successfully!");
-        navigate("/dashboard");
+        // No need to navigate here as it's handled in the signup function
       } else {
         // Fallback if auto-login fails
         navigate("/login");

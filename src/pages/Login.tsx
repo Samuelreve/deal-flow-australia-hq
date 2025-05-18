@@ -23,6 +23,7 @@ const Login = () => {
   // If already authenticated, redirect to dashboard
   useEffect(() => {
     if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -36,7 +37,7 @@ const Login = () => {
       const success = await login(email, password);
       if (success) {
         console.log("Login successful, redirecting to dashboard");
-        navigate("/dashboard", { replace: true });
+        // The navigate is now handled in the login function directly
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during login");

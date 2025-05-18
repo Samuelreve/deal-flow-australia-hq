@@ -1,17 +1,26 @@
 
-import { Session } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
-// User types
-export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
-
-export interface User {
+// Define the user profile structure
+export interface UserProfile {
   id: string;
   email: string;
   name: string;
   role: UserRole;
-  avatar?: string;
+  avatar_url?: string;
+  company?: string;
+  phone?: string;
 }
 
+// User roles
+export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
+
+// Combined user type with Supabase user and profile data
+export interface User extends SupabaseUser {
+  profile: UserProfile | null;
+}
+
+// Auth context type definition
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
