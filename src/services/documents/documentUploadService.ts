@@ -1,0 +1,67 @@
+import { Document } from "@/types/deal";
+import { documentDatabaseService } from "./documentDatabaseService";
+import { documentStorageService } from "./documentStorageService";
+import { documentMapperService } from "./documentMapperService";
+import { documentVersionService } from "./documentVersionService";
+
+/**
+ * Service responsible for document upload operations
+ */
+export const documentUploadService = {
+  /**
+   * Upload a document (first version or new version)
+   */
+  async uploadDocument(
+    file: File, 
+    category: string, 
+    dealId: string, 
+    userId: string, 
+    documentId?: string
+  ): Promise<Document> {
+    try {
+      // If documentId is provided, add a new version to an existing document
+      if (documentId) {
+        return await documentVersionService.addDocumentVersion(file, dealId, documentId, userId);
+      }
+      
+      // Otherwise, create a new document with its first version
+      // 1. Upload file to storage
+      const filePath = await documentStorageService.uploadFile(file, dealId, userId);
+      
+      // 2. Save metadata to database
+      const documentData = await documentDatabaseService.saveDocumentMetadata({
+        deal_id: dealId,
+        name: file.name,
+        description: '',
+        storage_path: filePath,
+        uploaded_by: userId,
+        size: file.size,
+        type: file.type,
+        status: "draft",
+        version: 1,
+        milestone_id: null,
+        category
+      });
+      
+      // 3. Create initial version record
+      const versionData = await documentDatabaseService.saveDocumentVersion({
+        document_id: documentData.id,
+        version_number: 1,
+        storage_path: filePath,
+        size: file.size,
+        type: file.type,
+        uploaded_by: userId,
+        description: 'Initial version'
+      });
+      
+      // 4. Map to domain model
+      return await documentMapperService.mapToDocument({
+        ...documentData,
+        latest_version_id: versionData.id
+      }, dealId);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      throw error;
+    }
+  }
+};
