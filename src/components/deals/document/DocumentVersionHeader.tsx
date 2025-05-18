@@ -6,7 +6,7 @@ import { FileText, Download, Trash2, ChevronLeft } from "lucide-react";
 import DocumentSummaryButton from "./DocumentSummaryButton";
 
 interface DocumentVersionHeaderProps {
-  document: Document;
+  document?: Document; // Make document optional
   version?: DocumentVersion;
   onDelete?: (version: DocumentVersion) => void;
   canDelete?: boolean;
@@ -25,7 +25,7 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
   onBack
 }) => {
   // If we have onBack but no version, this is the document header in the versions list view
-  if (onBack && !version) {
+  if (onBack && document && !version) {
     return (
       <div className="flex justify-between items-center border-b pb-3 mb-3">
         <div>
@@ -43,8 +43,8 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
     );
   }
 
-  // If no version provided, return null
-  if (!version || !dealId) {
+  // If no document or version provided, return empty header
+  if (!document || !version || !dealId) {
     return null;
   }
 

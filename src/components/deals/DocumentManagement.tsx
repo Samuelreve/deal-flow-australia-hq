@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Document, DocumentVersion } from "@/types/deal";
@@ -74,6 +75,7 @@ const DocumentManagement = ({
   const [versionToDelete, setVersionToDelete] = useState<DocumentVersion | null>(null);
   const [isDeletingVersion, setIsDeletingVersion] = useState(false);
   const [selectedVersionUrl, setSelectedVersionUrl] = useState<string>('');
+  const [selectedVersionId, setSelectedVersionId] = useState<string>('');
 
   const { 
     documents, 
@@ -143,6 +145,7 @@ const DocumentManagement = ({
   const handleSelectVersion = (version: DocumentVersion) => {
     if (version && version.url) {
       setSelectedVersionUrl(version.url);
+      setSelectedVersionId(version.id);
     }
   };
 
@@ -164,6 +167,7 @@ const DocumentManagement = ({
             loadingVersions={loadingVersions}
             onDeleteVersion={openVersionDeleteDialog}
             onSelectVersion={handleSelectVersion}
+            selectedVersionId={selectedVersionId}
           />
 
           {/* Document Upload Section - Only shown if user has appropriate permissions */}
@@ -184,7 +188,7 @@ const DocumentManagement = ({
               documentVersionUrl={selectedVersionUrl}
               dealId={dealId}
               documentId={selectedDocument?.id}
-              versionId={documentVersions.find(v => v.url === selectedVersionUrl)?.id}
+              versionId={selectedVersionId}
             />
           ) : (
             <div className="flex h-full items-center justify-center bg-muted/50 rounded-lg border">

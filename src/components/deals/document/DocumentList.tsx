@@ -19,6 +19,8 @@ interface DocumentListProps {
   documentVersions: DocumentVersion[];
   loadingVersions: boolean;
   onDeleteVersion?: (version: DocumentVersion) => void;
+  onSelectVersion?: (version: DocumentVersion) => void; // Add missing prop
+  selectedVersionId?: string; // Add missing prop
 }
 
 const DocumentList = ({
@@ -32,48 +34,20 @@ const DocumentList = ({
   selectedDocument,
   documentVersions,
   loadingVersions,
-  onDeleteVersion
+  onDeleteVersion,
+  onSelectVersion, // Add the prop here
+  selectedVersionId // Add the prop here
 }: DocumentListProps) => {
-  // Add state for selected version
-  const [selectedVersion, setSelectedVersion] = useState<DocumentVersion | null>(null);
-
   // Handle version selection
   const handleSelectVersion = (version: DocumentVersion) => {
-    setSelectedVersion(version);
+    onSelectVersion?.(version);
   };
 
-  // Reset selected version when document changes
+  // Handle document selection
   const handleSelectDocument = (document: Document) => {
-    setSelectedVersion(null);
     onSelectDocument?.(document);
   };
   
-  // If a version is selected, show it with comments
-  if (selectedVersion) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-2 border-b flex justify-between items-center">
-          <button 
-            className="text-sm text-muted-foreground hover:text-primary flex items-center"
-            onClick={() => setSelectedVersion(null)}
-          >
-            ← Back to Versions
-          </button>
-          <span className="text-sm font-medium">
-            {selectedDocument?.name} - Version {selectedVersion.versionNumber}
-          </span>
-        </div>
-        <div className="flex-grow">
-          <DocumentVersionWithComments
-            version={selectedVersion}
-            currentUserDealRole={userRole}
-            isParticipant={isParticipant}
-          />
-        </div>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return <DocumentLoadingState />;
   }
@@ -102,7 +76,7 @@ const DocumentList = ({
           onDeleteVersion={onDeleteVersion}
           isParticipant={isParticipant}
           onSelectVersion={handleSelectVersion}
-          selectedVersionId={selectedVersion?.id}
+          selectedVersionId={selectedVersionId}
         />
       </div>
     );
@@ -111,24 +85,22 @@ const DocumentList = ({
   // Otherwise, show the list of documents
   return (
     <div className="space-y-4">
-      {documents.map((document) => {
-        const canDelete = 
-          isParticipant && 
-          onDeleteDocument &&
-          (document.uploadedBy === userId || 
-           userRole === 'admin' || 
-           userRole === 'seller');
-        
-        return (
-          <DocumentListItem
-            key={document.id}
-            document={document}
-            canDelete={canDelete}
-            onDelete={(doc) => onDeleteDocument?.(doc)}
-            onSelect={handleSelectDocument}
-          />
-        );
-      })}
+      {documents.map((document) => (
+        <DocumentListItem
+          key={document.id}
+          document={document}
+          isSelected={selectedDocument?.id === document.id}
+          onSelect={() => handleSelectDocument(document)}
+          onDelete={onDeleteDocument ? () => onDeleteDocument(document) : undefined}
+          versions={documentVersions.filter(v => v.document_id === document.id)}
+          loadingVersions={loadingVersions}
+          userRole={userRole}
+          userId={userId}
+          onDeleteVersion={onDeleteVersion}
+          onSelectVersion={onSelectVersion}
+          isParticipant={isParticipant}
+        />
+      ))}
     </div>
   );
 };

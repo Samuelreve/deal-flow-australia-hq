@@ -13,6 +13,8 @@ interface DocumentVersionListProps {
   onSelectVersion?: (version: DocumentVersion) => void;
   userId?: string;
   isParticipant?: boolean;
+  documentId?: string; // Add the missing documentId prop
+  selectedVersionId?: string;
 }
 
 const DocumentVersionList: React.FC<DocumentVersionListProps> = ({
@@ -22,7 +24,9 @@ const DocumentVersionList: React.FC<DocumentVersionListProps> = ({
   onDeleteVersion,
   onSelectVersion,
   userId,
-  isParticipant = false
+  isParticipant = false,
+  documentId,
+  selectedVersionId
 }) => {
   // Check if user has permission to delete versions
   const canDeleteVersion = (version: DocumentVersion): boolean => {
@@ -52,12 +56,16 @@ const DocumentVersionList: React.FC<DocumentVersionListProps> = ({
 
   return (
     <div className="space-y-1">
-      <DocumentVersionHeader />
+      {/* We need to render an empty header without requiring document prop */}
+      <div className="flex items-center justify-between p-2 text-sm font-medium text-muted-foreground border-b">
+        <div>Version</div>
+        <div>Actions</div>
+      </div>
       
       {versions.map((version) => (
         <div 
           key={version.id} 
-          className="flex items-center justify-between p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors text-sm"
+          className={`flex items-center justify-between p-2 hover:bg-accent hover:text-accent-foreground rounded-md transition-colors text-sm ${selectedVersionId === version.id ? 'bg-accent text-accent-foreground' : ''}`}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
