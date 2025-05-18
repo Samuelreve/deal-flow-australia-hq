@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import OnboardingCheck from "@/components/auth/OnboardingCheck";
 
 // Pages
 import Index from "./pages/Index";
@@ -21,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import ProfilePage from "./pages/ProfilePage";
 import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
+import OnboardingIntentPage from "./pages/OnboardingIntentPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -48,14 +50,19 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/professionals" element={<ProfessionalsDirectoryPage />} />
 
-            {/* Protected routes */}
+            {/* Onboarding route */}
+            <Route path="/onboarding/intent" element={<OnboardingIntentPage />} />
+
+            {/* Protected routes with onboarding check */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/deals" element={<DealsPage />} />
-              <Route path="/deals/:id" element={<DealDetails />} />
-              <Route path="/create-deal" element={<CreateDealPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route element={<OnboardingCheck />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/deals" element={<DealsPage />} />
+                <Route path="/deals/:id" element={<DealDetails />} />
+                <Route path="/create-deal" element={<CreateDealPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
             </Route>
 
             {/* Catch-all route */}

@@ -6,6 +6,7 @@ import { authService } from "@/services/authService";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { handleAuthError, showAuthSuccess } from "./authUtils";
 import { AUTH_ROUTES } from "./constants";
+import { User } from "@/types/auth";
 
 export const useAuthOperations = () => {
   const {
@@ -15,7 +16,8 @@ export const useAuthOperations = () => {
     loading,
     setLoading,
     setUser,
-    setIsAuthenticated
+    setIsAuthenticated,
+    setSession
   } = useAuthSession();
   
   const { toast } = useToast();
@@ -116,6 +118,7 @@ export const useAuthOperations = () => {
     login,
     signup,
     logout,
-    loading
+    loading,
+    setUser
   };
 };

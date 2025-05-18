@@ -606,6 +606,7 @@ export type Database = {
           id: string
           is_professional: boolean | null
           name: string
+          onboarding_complete: boolean
           phone: string | null
           professional_bio: string | null
           professional_contact_email: string | null
@@ -626,6 +627,7 @@ export type Database = {
           id: string
           is_professional?: boolean | null
           name: string
+          onboarding_complete?: boolean
           phone?: string | null
           professional_bio?: string | null
           professional_contact_email?: string | null
@@ -646,6 +648,7 @@ export type Database = {
           id?: string
           is_professional?: boolean | null
           name?: string
+          onboarding_complete?: boolean
           phone?: string | null
           professional_bio?: string | null
           professional_contact_email?: string | null

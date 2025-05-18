@@ -19,10 +19,11 @@ export interface UserProfile {
   professional_website?: string;
   professional_location?: string;
   professional_specializations?: string[];
+  onboarding_complete?: boolean;
 }
 
 // User roles
-export type UserRole = "seller" | "buyer" | "lawyer" | "admin";
+export type UserRole = "seller" | "buyer" | "lawyer" | "admin" | "advisor" | "browsing";
 
 // Combined user type with Supabase user and profile data
 export interface User extends SupabaseUser {
@@ -38,4 +39,5 @@ export interface AuthContextType {
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
+  setUser: (user: User | null) => void;
 }
