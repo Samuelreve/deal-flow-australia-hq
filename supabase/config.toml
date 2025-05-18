@@ -80,3 +80,5 @@ verify_jwt = true
 verify_jwt = true
 [functions.delete-document]
 verify_jwt = true
+[functions.document-ai-assistant]
+verify_jwt = true
