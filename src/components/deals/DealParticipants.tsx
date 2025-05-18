@@ -75,6 +75,12 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
     });
   };
 
+  // Handle participant removed
+  const handleParticipantRemoved = () => {
+    // Refresh participants list after participant is removed
+    fetchParticipants();
+  };
+
   return (
     <div className="space-y-4">
       {/* Participants List */}
@@ -83,6 +89,10 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
         currentUserId={user?.id}
         isLoading={loadingParticipants}
         error={fetchError}
+        dealId={deal.id}
+        currentUserRole={currentUserDealRole}
+        dealSellerId={deal.sellerId}
+        onParticipantRemoved={handleParticipantRemoved}
       />
 
       {/* Pending Invitations Section */}
