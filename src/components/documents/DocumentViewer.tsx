@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
 import { useDocumentComments } from '@/hooks/documentComments';
@@ -95,7 +94,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         const rect = range.getBoundingClientRect();
         const containerRect = documentContainerRef.current.getBoundingClientRect();
 
-        // Position the button below and to the right of the selection
+        // Position the button below and centered on the selection
         setButtonPosition({
           top: rect.bottom - containerRect.top + 5, // 5px below selection
           left: rect.left - containerRect.left + (rect.width / 2), // Center horizontally
@@ -257,6 +256,31 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setDocumentError(null);
   }, [documentVersionUrl]);
 
+  // Effect to clear selection when clicking outside the button
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (documentContainerRef.current && !documentContainerRef.current.contains(event.target as Node)) {
+        // Don't clear if clicking on the comment or explanation UI
+        const commentInput = document.getElementById('comment-input-container');
+        const explanationDisplay = document.getElementById('explanation-display');
+        
+        if (
+          (!commentInput || !commentInput.contains(event.target as Node)) && 
+          (!explanationDisplay || !explanationDisplay.contains(event.target as Node))
+        ) {
+          // Only clear selection and buttons if not clicking UI elements we want to keep open
+          if (!showCommentInput && !showExplanation) {
+            setSelectedText(null);
+            setButtonPosition(null);
+          }
+        }
+      }
+    };
+
+    document.body.addEventListener('click', handleClickOutside);
+    return () => document.body.removeEventListener('click', handleClickOutside);
+  }, [documentContainerRef, showCommentInput, showExplanation]);
+
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex items-center justify-between">
@@ -319,6 +343,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 left: `${buttonPosition.left}px`,
                 transform: 'translateX(-50%)' // Center horizontally
               }}
+              id="selection-buttons"
             >
               <Button
                 onClick={handleExplainSelectedText}
@@ -332,6 +357,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 className="text-xs"
                 size="sm"
                 variant="secondary"
+                id="add-comment-button"
               >
                 <MessageSquarePlus className="mr-1 h-3 w-3" /> Comment
               </Button>
@@ -340,12 +366,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
           {/* Comment input form */}
           {showCommentInput && (
-            <div className="absolute z-20 bg-background border rounded-lg shadow-lg p-4 w-80"
-                 style={{ 
-                   top: buttonPosition ? `${buttonPosition.top}px` : '50%', 
-                   left: buttonPosition ? `${buttonPosition.left}px` : '50%',
-                   transform: buttonPosition ? 'translateX(-50%)' : 'translate(-50%, -50%)'
-                 }}
+            <div 
+              className="absolute z-20 bg-background border rounded-lg shadow-lg p-4 w-80"
+              style={{ 
+                top: buttonPosition ? `${buttonPosition.top}px` : '50%', 
+                left: buttonPosition ? `${buttonPosition.left}px` : '50%',
+                transform: buttonPosition ? 'translateX(-50%)' : 'translate(-50%, -50%)'
+              }}
+              id="comment-input-container"
             >
               <div className="flex justify-between items-center mb-2">
                 <h4 className="font-medium">Add Comment</h4>
@@ -433,7 +461,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       {/* AI Explanation Display */}
       {showExplanation && (
-        <div className="p-4 border rounded-lg bg-muted/50">
+        <div className="p-4 border rounded-lg bg-muted/50" id="explanation-display">
           <div className="flex justify-between items-center mb-2">
             <h4 className="text-lg font-semibold">AI Explanation</h4>
             <Button
