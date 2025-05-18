@@ -45,7 +45,7 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            businessName:business_name,
+            business_name,
             profiles:seller_id(name)
           `);
           
@@ -68,7 +68,7 @@ const Dashboard = () => {
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
             sellerName: deal.profiles?.name || "Unknown",
-            businessName: deal.businessName, // Using the alias from the query
+            businessName: deal.business_name, // Use the column name directly as it appears in the database
           }));
           
           setDeals(formattedDeals);
