@@ -28,6 +28,31 @@ export const NotificationsDropdown = () => {
   
   const navigate = useNavigate();
   
+  // Handle notification click with navigation
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read if needed
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    
+    // Navigate to linked content if available
+    if (notification.link) {
+      // Close dropdown first
+      const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
+      if (trigger) trigger.click();
+      
+      // Navigate to the link
+      navigate(notification.link);
+    } else if (notification.deal_id) {
+      // Close dropdown first
+      const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
+      if (trigger) trigger.click();
+      
+      // Navigate to the deal
+      navigate(`/deals/${notification.deal_id}`);
+    }
+  };
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -81,6 +106,7 @@ export const NotificationsDropdown = () => {
                   notification={notification}
                   onMarkAsRead={markAsRead}
                   onDelete={deleteNotification}
+                  onNotificationClick={handleNotificationClick}
                   onClose={() => {
                     const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
                     if (trigger) trigger.click(); // Close the dropdown

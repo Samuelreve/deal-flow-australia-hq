@@ -1,7 +1,6 @@
 
 import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { createNotificationSubscription } from "@/services/notificationService";
 import { Notification } from "@/types/notifications";
 import { toast } from "sonner";
 
