@@ -89,7 +89,7 @@ const DocumentList = ({
         <DocumentVersionHeader 
           document={selectedDocument} 
           onBack={() => onSelectDocument?.(undefined as any)}
-          dealId={selectedDocument.dealId}
+          dealId={selectedDocument.id}
           userRole={userRole}
         />
 
