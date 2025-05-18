@@ -11,14 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { LockIcon, InfoIcon, ArrowRightIcon, BuildingIcon, FileTextIcon, UserIcon } from 'lucide-react';
+import { LockIcon, InfoIcon, ArrowRightIcon, BuildingIcon, FileTextIcon, UserIcon, CalendarIcon } from 'lucide-react';
 
 // Define the shape of the form data
 interface DealFormData {
   // Business Details
   businessName: string;
+  businessLegalName: string;
+  businessTradingNames: string;
   businessLegalEntity: string;
   businessIdentifier: string; // ABN/ACN
+  businessABN: string;
+  businessACN: string;
+  businessRegisteredAddress: string;
+  businessPrincipalAddress: string;
+  businessState: string;
   industry: string;
   yearsInOperation: string;
   
@@ -26,6 +33,11 @@ interface DealFormData {
   title: string;
   description: string;
   askingPrice: string;
+  dealType: string;
+  keyAssetsIncluded: string;
+  keyAssetsExcluded: string;
+  reasonForSelling: string;
+  targetCompletionDate: string;
   
   // Seller Info (if different from user)
   sellerName: string;
@@ -42,13 +54,25 @@ const DealCreationForm: React.FC = () => {
   const form = useForm<DealFormData>({
     defaultValues: {
       businessName: '',
+      businessLegalName: '',
+      businessTradingNames: '',
       businessLegalEntity: '',
       businessIdentifier: '',
+      businessABN: '',
+      businessACN: '',
+      businessRegisteredAddress: '',
+      businessPrincipalAddress: '',
+      businessState: '',
       industry: '',
       yearsInOperation: '',
       title: '',
       description: '',
       askingPrice: '',
+      dealType: '',
+      keyAssetsIncluded: '',
+      keyAssetsExcluded: '',
+      reasonForSelling: '',
+      targetCompletionDate: '',
       sellerName: user?.profile?.name || '',
       sellerEntityType: '',
       sellerRepresentative: '',
@@ -69,28 +93,44 @@ const DealCreationForm: React.FC = () => {
     try {
       console.log('Creating deal with user ID:', user.id);
       
-      // Create the deal in Supabase
+      // Create the deal in Supabase using the new schema
       const { data: newDeal, error } = await supabase
         .from('deals')
         .insert([
           {
+            // Basic deal info
             title: data.title,
             seller_id: user.id,
             status: 'draft',
-            health_score: 0, // Default value
-            // Store additional fields in a structured format
-            description: JSON.stringify({
-              businessName: data.businessName,
-              businessLegalEntity: data.businessLegalEntity,
-              businessIdentifier: data.businessIdentifier,
-              industry: data.industry,
-              yearsInOperation: data.yearsInOperation,
-              askingPrice: data.askingPrice,
-              sellerName: data.sellerName,
-              sellerEntityType: data.sellerEntityType,
-              sellerRepresentative: data.sellerRepresentative,
-              dealDescription: data.description
-            })
+            health_score: 0,
+            
+            // Business structure and location
+            business_legal_name: data.businessLegalName,
+            business_trading_names: data.businessTradingNames,
+            business_legal_entity_type: data.businessLegalEntity,
+            business_abn: data.businessABN,
+            business_acn: data.businessACN,
+            business_registered_address: data.businessRegisteredAddress,
+            business_principal_place_address: data.businessPrincipalAddress,
+            business_state: data.businessState,
+            business_industry: data.industry,
+            business_years_in_operation: data.yearsInOperation ? parseInt(data.yearsInOperation) : null,
+            
+            // Deal structure and terms
+            deal_type: data.dealType,
+            asking_price: data.askingPrice ? parseFloat(data.askingPrice) : null,
+            key_assets_included: data.keyAssetsIncluded,
+            key_assets_excluded: data.keyAssetsExcluded,
+            reason_for_selling: data.reasonForSelling,
+            
+            // Deal timeline
+            target_completion_date: data.targetCompletionDate || null,
+            
+            // Seller info
+            primary_seller_contact_name: data.sellerName,
+            
+            // Store detailed description separately
+            description: data.description
           }
         ])
         .select()
@@ -150,12 +190,43 @@ const DealCreationForm: React.FC = () => {
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Business Name</FormLabel>
+                      <FormLabel>Business Trading Name</FormLabel>
                       <FormControl>
                         <Input placeholder="Coastal Cafe" {...field} />
                       </FormControl>
                       <FormDescription>
-                        The trading name of the business
+                        The primary trading name of the business
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="businessLegalName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Legal Entity Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Coastal Cafe Pty Ltd" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessTradingNames"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Trading Names</FormLabel>
+                      <FormControl>
+                        <Input placeholder="The Beach Bistro, Coastal Catering" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Separate multiple trading names with commas
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -167,9 +238,9 @@ const DealCreationForm: React.FC = () => {
                   name="businessLegalEntity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Legal Entity Name</FormLabel>
+                      <FormLabel>Legal Entity Type</FormLabel>
                       <FormControl>
-                        <Input placeholder="Coastal Cafe Pty Ltd" {...field} />
+                        <Input placeholder="Pty Ltd, Sole Trader, Partnership" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -178,12 +249,71 @@ const DealCreationForm: React.FC = () => {
                 
                 <FormField
                   control={form.control}
-                  name="businessIdentifier"
+                  name="businessABN"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Business Identifier (ABN/ACN)</FormLabel>
+                      <FormLabel>Australian Business Number (ABN)</FormLabel>
                       <FormControl>
                         <Input placeholder="12 345 678 901" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="businessACN"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Australian Company Number (ACN)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 456 789" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessRegisteredAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Registered Business Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Business St, Sydney NSW 2000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessPrincipalAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Principal Place of Business</FormLabel>
+                      <FormControl>
+                        <Input placeholder="42 Main St, Melbourne VIC 3000" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        If different from registered address
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessState"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary State/Territory</FormLabel>
+                      <FormControl>
+                        <Input placeholder="NSW, VIC, QLD, etc." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -197,7 +327,7 @@ const DealCreationForm: React.FC = () => {
                     <FormItem>
                       <FormLabel>Industry</FormLabel>
                       <FormControl>
-                        <Input placeholder="Food & Beverage" {...field} />
+                        <Input placeholder="Food & Beverage, Technology, Retail" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -211,7 +341,7 @@ const DealCreationForm: React.FC = () => {
                     <FormItem>
                       <FormLabel>Years in Operation</FormLabel>
                       <FormControl>
-                        <Input placeholder="5" {...field} />
+                        <Input placeholder="5" type="number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -229,7 +359,7 @@ const DealCreationForm: React.FC = () => {
                 <h2 className="text-xl font-medium">Deal Information</h2>
               </div>
               
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
                   name="title"
@@ -249,6 +379,20 @@ const DealCreationForm: React.FC = () => {
                 
                 <FormField
                   control={form.control}
+                  name="dealType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deal Type</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Asset Sale, Share Sale" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="askingPrice"
                   render={({ field }) => (
                     <FormItem>
@@ -263,18 +407,52 @@ const DealCreationForm: React.FC = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
-                  name="description"
+                  name="targetCompletionDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Deal Description</FormLabel>
+                      <FormLabel>Target Completion Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="col-span-1 md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deal Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Provide details about the business sale, including key assets, growth potential, and reason for sale..."
+                            className="min-h-32"
+                            required
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="keyAssetsIncluded"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Key Assets Included</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Provide details about the business sale, including key assets, growth potential, and reason for sale..."
-                          className="min-h-32"
-                          required
+                          placeholder="Equipment, intellectual property, customer lists, etc."
+                          className="min-h-24"
                           {...field} 
                         />
                       </FormControl>
@@ -282,6 +460,44 @@ const DealCreationForm: React.FC = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="keyAssetsExcluded"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Key Assets Excluded</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Personal items, selected equipment, etc."
+                          className="min-h-24"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="col-span-1 md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="reasonForSelling"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reason for Selling</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Retirement, relocation, strategic exit, etc."
+                            className="min-h-24"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -159,41 +159,92 @@ export type Database = {
       }
       deals: {
         Row: {
+          asking_price: number | null
+          business_abn: string | null
+          business_acn: string | null
+          business_industry: string | null
+          business_legal_entity_type: string | null
+          business_legal_name: string | null
+          business_principal_place_address: string | null
+          business_registered_address: string | null
+          business_state: string | null
+          business_trading_names: string | null
+          business_years_in_operation: number | null
           buyer_id: string | null
           closing_date: string | null
           created_at: string
+          deal_type: string | null
           description: string | null
           health_score: number
           id: string
+          key_assets_excluded: string | null
+          key_assets_included: string | null
           price: number | null
+          primary_seller_contact_name: string | null
+          reason_for_selling: string | null
           seller_id: string
           status: Database["public"]["Enums"]["deal_status"]
+          target_completion_date: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          asking_price?: number | null
+          business_abn?: string | null
+          business_acn?: string | null
+          business_industry?: string | null
+          business_legal_entity_type?: string | null
+          business_legal_name?: string | null
+          business_principal_place_address?: string | null
+          business_registered_address?: string | null
+          business_state?: string | null
+          business_trading_names?: string | null
+          business_years_in_operation?: number | null
           buyer_id?: string | null
           closing_date?: string | null
           created_at?: string
+          deal_type?: string | null
           description?: string | null
           health_score?: number
           id?: string
+          key_assets_excluded?: string | null
+          key_assets_included?: string | null
           price?: number | null
+          primary_seller_contact_name?: string | null
+          reason_for_selling?: string | null
           seller_id: string
           status?: Database["public"]["Enums"]["deal_status"]
+          target_completion_date?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          asking_price?: number | null
+          business_abn?: string | null
+          business_acn?: string | null
+          business_industry?: string | null
+          business_legal_entity_type?: string | null
+          business_legal_name?: string | null
+          business_principal_place_address?: string | null
+          business_registered_address?: string | null
+          business_state?: string | null
+          business_trading_names?: string | null
+          business_years_in_operation?: number | null
           buyer_id?: string | null
           closing_date?: string | null
           created_at?: string
+          deal_type?: string | null
           description?: string | null
           health_score?: number
           id?: string
+          key_assets_excluded?: string | null
+          key_assets_included?: string | null
           price?: number | null
+          primary_seller_contact_name?: string | null
+          reason_for_selling?: string | null
           seller_id?: string
           status?: Database["public"]["Enums"]["deal_status"]
+          target_completion_date?: string | null
           title?: string
           updated_at?: string
         }

@@ -23,9 +23,12 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
         health_score, 
         seller_id,
         buyer_id,
+        asking_price,
+        business_legal_name,
+        business_industry,
+        target_completion_date,
         seller:profiles!seller_id(name),
-        buyer:profiles!buyer_id(name),
-        business_name:title
+        buyer:profiles!buyer_id(name)
       `)
       .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
     
@@ -48,9 +51,12 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
       healthScore: deal.health_score,
       sellerId: deal.seller_id,
       buyerId: deal.buyer_id,
+      askingPrice: deal.asking_price,
       sellerName: deal.seller?.name || "Unknown",
-      businessName: deal.business_name || "",
-      buyerName: deal.buyer?.name || ""
+      buyerName: deal.buyer?.name || "",
+      businessName: deal.business_legal_name || deal.title || "",
+      businessIndustry: deal.business_industry || "",
+      targetCompletionDate: deal.target_completion_date ? new Date(deal.target_completion_date) : undefined
     }));
   } catch (err) {
     console.error('Failed to fetch deals:', err);
