@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/layout/AppLayout";
 import { Plus } from "lucide-react";
 import { DealSummary } from "@/types/deal";
-import { getMockDealSummariesForUser } from "@/data/mockData";
 import DealsDashboard from "@/components/deals/DealsDashboard";
 import DealMetrics from "@/components/dashboard/DealMetrics";
 import DealFilters from "@/components/dashboard/DealFilters";
@@ -46,7 +45,7 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            business_name,
+            businessName:business_name,
             profiles:seller_id(name)
           `);
           
@@ -69,7 +68,7 @@ const Dashboard = () => {
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
             sellerName: deal.profiles?.name || "Unknown",
-            businessName: deal.business_name,
+            businessName: deal.businessName, // Using the alias from the query
           }));
           
           setDeals(formattedDeals);
