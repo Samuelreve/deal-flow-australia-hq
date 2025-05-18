@@ -20,9 +20,9 @@ export function useCommentCounts(versionIds: string[]) {
         // Fetch counts for each version ID
         const { data, error } = await supabase
           .from("document_comments")
-          .select('document_version_id, count(*)')
+          .select('document_version_id, count')
           .in("document_version_id", versionIds)
-          .group('document_version_id');
+          .groupBy('document_version_id');
 
         if (error) throw new Error(error.message);
 
