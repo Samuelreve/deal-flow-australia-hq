@@ -701,7 +701,13 @@ export type Database = {
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"
       document_status: "draft" | "final" | "signed"
       milestone_status: "not_started" | "in_progress" | "completed" | "blocked"
-      user_role: "seller" | "buyer" | "lawyer" | "admin"
+      user_role:
+        | "seller"
+        | "buyer"
+        | "lawyer"
+        | "admin"
+        | "advisor"
+        | "browsing"
     }
     CompositeTypes: {
       timeline_event: {
@@ -829,7 +835,7 @@ export const Constants = {
       deal_status: ["draft", "active", "pending", "completed", "cancelled"],
       document_status: ["draft", "final", "signed"],
       milestone_status: ["not_started", "in_progress", "completed", "blocked"],
-      user_role: ["seller", "buyer", "lawyer", "admin"],
+      user_role: ["seller", "buyer", "lawyer", "admin", "advisor", "browsing"],
     },
   },
 } as const

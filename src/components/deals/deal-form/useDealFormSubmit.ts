@@ -79,16 +79,13 @@ export const useDealFormSubmit = () => {
       const userRole = user.profile?.role || 'seller';
       
       // For database compatibility, ensure we only use roles that are valid in the database
-      // This is a temporary solution until the database enum is updated
-      let dbRole: "seller" | "buyer" | "lawyer" | "admin";
+      // Now that we've updated the database enum, we can use advisor and browsing roles
+      let dbRole: "seller" | "buyer" | "lawyer" | "admin" | "advisor";
       
-      if (userRole === "seller" || userRole === "buyer" || userRole === "lawyer" || userRole === "admin") {
+      if (userRole === "seller" || userRole === "buyer" || userRole === "lawyer" || userRole === "admin" || userRole === "advisor") {
         dbRole = userRole;
-      } else if (userRole === "advisor") {
-        // Map advisor to an existing role that makes sense in the current schema
-        dbRole = "lawyer";
       } else {
-        // Default fallback
+        // Default fallback for browsing or any undefined roles
         dbRole = "seller";
       }
 

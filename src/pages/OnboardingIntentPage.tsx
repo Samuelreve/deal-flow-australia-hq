@@ -40,6 +40,7 @@ const OnboardingIntentPage: React.FC = () => {
 
     try {
       // Update user profile with intent and onboarding completion
+      // We now know that intent is a valid UserRole because we added 'advisor' and 'browsing' to the enum
       const { error } = await supabase
         .from('profiles')
         .update({

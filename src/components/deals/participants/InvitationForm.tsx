@@ -38,14 +38,14 @@ const formSchema = z.object({
 
 interface InvitationFormProps {
   dealId: string;
-  onInvitationSent: () => void;
+  onSubmitted: () => void;  // Changed from onInvitationSent to onSubmitted to match tests
 }
 
 const InvitationForm: React.FC<InvitationFormProps> = ({
   dealId,
-  onInvitationSent,
+  onSubmitted,  // Changed from onInvitationSent to onSubmitted
 }) => {
-  const { inviteParticipant, isSubmitting } = useInviteParticipant(dealId, onInvitationSent);
+  const { inviteParticipant, isSubmitting } = useInviteParticipant(dealId, onSubmitted);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

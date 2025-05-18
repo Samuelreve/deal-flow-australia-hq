@@ -83,14 +83,15 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
       role: 'seller' as const
     };
     
+    // Fix the insert operation by properly formatting the object (not as an array)
     const { error } = await supabase
       .from('profiles')
-      .insert([{
+      .insert({
         id: newProfile.id,
         email: newProfile.email,
         name: newProfile.name,
         role: newProfile.role
-      }]);
+      });
       
     if (error) {
       console.error("Profile creation error:", error);
