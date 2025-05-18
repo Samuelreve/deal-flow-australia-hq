@@ -17,8 +17,8 @@ export function useCommentCounts(versionIds: string[]) {
 
       setIsLoading(true);
       try {
-        // Fetch counts for each version ID
-        // Using groupBy() instead of group() - this matches the method available in your Supabase client version
+        // Looking at your actual Supabase client and database structure,
+        // we need to use the correct method for your installed version
         const { data, error } = await supabase
           .from("document_comments")
           .select('document_version_id, count(*)')
