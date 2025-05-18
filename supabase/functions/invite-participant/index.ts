@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Initialize Supabase clients
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://wntmgfuclbdrezxcvzmw.supabase.co";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndudG1nZnVjbGJkcmV6eGN2em13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMDQ1MzMsImV4cCI6MjA2MDc4MDUzM30.B6_rR0UtjgKvwdsRqEcyLl9jh_aT51XrZm17XtqMm0g";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -236,9 +237,66 @@ serve(async (req) => {
       }
 
       // --- 7b. Process existing user ---
-      // For existing users, we'll directly add them to deal_participants 
-      // OR send an invitation email with a link to join the deal
-      // Here, we'll just create an invitation for simplicity and consistency
+      // For existing users, we'll directly add them to deal_participants
+      const { data: newParticipant, error: addParticipantError } = await supabaseAdmin
+        .from("deal_participants")
+        .insert([
+          {
+            deal_id: dealId,
+            user_id: existingUser.id,
+            role: inviteeRole
+          }
+        ])
+        .select("*")
+        .single();
+      
+      if (addParticipantError) {
+        console.error("Error adding existing user as participant:", addParticipantError);
+        return new Response(
+          JSON.stringify({ error: "Failed to add user as participant" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      try {
+        // Create email HTML content for existing user
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">You've Been Added to a Deal</h2>
+            <p>Hello,</p>
+            <p>${inviterName} has added you to the deal "${dealData.title}" as a ${inviteeRole}.</p>
+            <p>You can access this deal by logging into your DealPilot account:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${APP_BASE_URL}/deals/${dealId}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                View Deal
+              </a>
+            </div>
+            <p>Regards,<br/>The Deal Pilot Team</p>
+          </div>
+        `;
+
+        // Send the notification email
+        if (RESEND_API_KEY) {
+          await sendEmail({
+            to: inviteeEmail,
+            subject: `You've been added to deal "${dealData.title}"`,
+            html: emailHtml,
+            from: `DealPilot <${SENDER_EMAIL}>`
+          });
+        }
+      } catch (emailError) {
+        console.error("Email sending error for existing user:", emailError);
+        // Continue since the user has already been added
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Existing user has been added to the deal",
+          participant: newParticipant
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
     // Check if there's an existing invitation for this email and deal
