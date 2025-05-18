@@ -7,11 +7,12 @@ type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document'
 
 interface UseDocumentAIProps {
   dealId: string;
+  documentId?: string;
 }
 
 interface AIRequestOptions {
-  documentId?: string;
   content: string;
+  documentId?: string;
   context?: Record<string, any>;
 }
 
@@ -22,7 +23,7 @@ interface AIResponse {
   disclaimer: string;
 }
 
-export const useDocumentAI = ({ dealId }: UseDocumentAIProps) => {
+export const useDocumentAI = ({ dealId, documentId }: UseDocumentAIProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AIResponse | null>(null);
@@ -46,7 +47,7 @@ export const useDocumentAI = ({ dealId }: UseDocumentAIProps) => {
         body: {
           operation,
           dealId,
-          documentId: options.documentId,
+          documentId: options.documentId || documentId,
           content: options.content,
           userId: user.id,
           context: options.context
@@ -81,7 +82,12 @@ export const useDocumentAI = ({ dealId }: UseDocumentAIProps) => {
     return processAIRequest('explain_clause', { content: clause, context });
   };
   
-  const generateTemplate = async (requirements: string, context?: Record<string, any>) => {
+  const generateTemplate = async (requirements: string, templateType: string, additionalContext?: Record<string, any>) => {
+    const context = {
+      templateType,
+      ...additionalContext
+    };
+    
     return processAIRequest('generate_template', { content: requirements, context });
   };
   
