@@ -10,7 +10,6 @@ import DealsDashboard from "@/components/deals/DealsDashboard";
 import DealMetrics from "@/components/dashboard/DealMetrics";
 import DealFilters from "@/components/dashboard/DealFilters";
 import { supabase } from "@/integrations/supabase/client";
-import { useCommentCounts } from "@/hooks/useCommentCounts";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -24,15 +23,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("updatedAt");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  // Get all document version IDs for comment counts
-  const allVersionIds = deals.flatMap(deal => 
-    deal.documentVersionIds || []
-  ).filter(Boolean);
   
-  // Use our comment counts hook to get counts for all document versions
-  const { commentCounts } = useCommentCounts(allVersionIds);
-
   useEffect(() => {
     const fetchDeals = async () => {
       if (!user?.id) {
@@ -77,9 +68,6 @@ const Dashboard = () => {
             buyerId: deal.buyer_id,
             sellerName: deal.profiles?.name || "Unknown",
             businessName: "", // Removed column that doesn't exist
-            // This is just a placeholder for document version IDs associated with the deal
-            // In a real implementation, you would fetch these separately or as part of the deal query
-            documentVersionIds: [],
           }));
           
           setDeals(formattedDeals);
