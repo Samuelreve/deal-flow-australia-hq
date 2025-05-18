@@ -31,7 +31,6 @@ const formSchema = z.object({
     .min(1, "Email is required"),
   inviteeRole: z
     .enum(["buyer", "lawyer", "admin"] as const)
-    .refine((val) => val !== "", { message: "Please select a role" }),
 });
 
 interface InvitationFormProps {
@@ -49,7 +48,7 @@ const InvitationForm: React.FC<InvitationFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       inviteeEmail: "",
-      inviteeRole: "" as UserRole | "",
+      inviteeRole: "buyer" as UserRole,
     },
   });
 

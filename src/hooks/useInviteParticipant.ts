@@ -29,7 +29,7 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
         throw new Error("You must be logged in to invite participants");
       }
 
-      const response = await fetch(`${supabase.functions.url}/invite-participant`, {
+      const response = await fetch("https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/invite-participant", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
