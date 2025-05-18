@@ -10,6 +10,7 @@ import { getMockDealSummariesForUser } from "@/data/mockData";
 import DealsDashboard from "@/components/deals/DealsDashboard";
 import DealMetrics from "@/components/dashboard/DealMetrics";
 import DealFilters from "@/components/dashboard/DealFilters";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -25,12 +26,63 @@ const Dashboard = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    // Always load mock data regardless of authentication status
-    const mockUserId = user?.id || "mock-user-id";
-    const mockUserRole = user?.role || "admin";
-    const userDeals = getMockDealSummariesForUser(mockUserId, mockUserRole as any);
-    setDeals(userDeals);
-    setLoading(false);
+    const fetchDeals = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        
+        let query = supabase
+          .from('deals')
+          .select(`
+            id,
+            title,
+            status,
+            created_at,
+            updated_at,
+            health_score,
+            seller_id,
+            buyer_id,
+            business_name,
+            profiles:seller_id(name)
+          `);
+          
+        // Rely on RLS to filter deals the user has access to
+        // The user should only see deals where they are a participant
+
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching deals:', error);
+          setDeals([]);
+        } else if (data) {
+          const formattedDeals: DealSummary[] = data.map(deal => ({
+            id: deal.id,
+            title: deal.title,
+            status: deal.status,
+            createdAt: new Date(deal.created_at),
+            updatedAt: new Date(deal.updated_at),
+            healthScore: deal.health_score,
+            sellerId: deal.seller_id,
+            buyerId: deal.buyer_id,
+            sellerName: deal.profiles?.name || "Unknown",
+            businessName: deal.business_name,
+          }));
+          
+          setDeals(formattedDeals);
+        }
+      } catch (err) {
+        console.error('Failed to fetch deals:', err);
+        setDeals([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDeals();
   }, [user]);
   
   useEffect(() => {
