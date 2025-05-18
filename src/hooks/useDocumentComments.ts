@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
@@ -6,7 +5,7 @@ import {
   DocumentComment, 
   CreateDocumentCommentDto, 
   documentCommentService 
-} from "@/services/documentCommentService";
+} from "@/services/documentComment";
 import { getCommentCount } from "./utils/documentCommentUtils";
 
 export function useDocumentComments(documentVersionId?: string) {
