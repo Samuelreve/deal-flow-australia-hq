@@ -43,7 +43,7 @@ const ParticipantInvitationForm: React.FC<ParticipantInvitationFormProps> = ({
         </DialogHeader>
         <InvitationForm 
           dealId={dealId}
-          onInvitationSent={handleInvitationSent}
+          onSubmitted={handleInvitationSent}
         />
         <DialogClose asChild>
           <Button type="button" variant="outline" className="mt-2">
