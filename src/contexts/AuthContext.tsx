@@ -55,28 +55,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      // Force autoconfirm by passing specific data options
-      const data = await authService.signup(email, password, name, {
-        data: {
-          name: name || email.split('@')[0],
-          // Setting this explicitly for clarity
-          email_confirm: true
-        }
-      });
+      // Direct signup without email confirmation requirements
+      const data = await authService.signup(email, password, name);
       
       if (data?.user) {
         if (data.session) {
-          // Auto-login (email confirmation disabled or automatically confirmed)
+          // User should be automatically logged in with a session
           toast({
             title: "Account created successfully",
             description: "Welcome to DealPilot!",
           });
           return true;
         } else {
-          // This shouldn't happen with our settings, but just in case
+          // Fallback in case session isn't returned (shouldn't happen with our settings)
           toast({
             title: "Account created",
-            description: "Please try logging in now",
+            description: "Please log in with your new account",
           });
           navigate("/login");
           return false;

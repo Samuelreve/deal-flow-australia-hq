@@ -23,14 +23,15 @@ export const useSignUp = () => {
     setIsLoading(true);
     
     try {
+      // No need to check for email confirmation, user should be logged in right away
       const success = await signup(email, password, name);
       
       if (success) {
-        // User is automatically signed in
+        // User should be automatically signed in 
         sonnerToast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
-        // This case should be rare with our updated settings
+        // This is a fallback that should rarely happen
         navigate("/login");
         toast({
           title: "Account created!",
