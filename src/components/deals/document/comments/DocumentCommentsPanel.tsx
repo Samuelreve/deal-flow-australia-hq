@@ -1,5 +1,5 @@
 
-import { useDocumentComments } from "@/hooks/useDocumentComments";
+import { useDocumentComments } from "@/hooks/documentComments";
 import { useAuth } from "@/contexts/AuthContext";
 import DocumentCommentsList from "./DocumentCommentsList";
 
