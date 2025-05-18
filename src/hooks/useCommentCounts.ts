@@ -17,21 +17,28 @@ export function useCommentCounts(versionIds: string[]) {
 
       setIsLoading(true);
       try {
-        // Looking at your actual Supabase client and database structure,
-        // we need to use the correct method for your installed version
+        // Instead of using groupBy, let's try a different approach that should work
+        // with your version of Supabase client
         const { data, error } = await supabase
           .from("document_comments")
-          .select('document_version_id, count(*)')
-          .in("document_version_id", versionIds)
-          .groupBy('document_version_id');
+          .select('*')
+          .in("document_version_id", versionIds);
 
         if (error) throw new Error(error.message);
 
-        // Convert the result to a record of {versionId: count}
+        // Manually count comments for each version ID
         const counts: Record<string, number> = {};
+        
+        // Initialize counts for all requested version IDs
+        versionIds.forEach(id => {
+          counts[id] = 0;
+        });
+        
+        // Count comments for each version ID
         if (data) {
-          data.forEach((item) => {
-            counts[item.document_version_id] = parseInt(item.count, 10);
+          data.forEach((comment) => {
+            const versionId = comment.document_version_id;
+            counts[versionId] = (counts[versionId] || 0) + 1;
           });
         }
 
