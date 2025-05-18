@@ -11,6 +11,7 @@ interface DealMetricsProps {
   pending?: number;
   cancelled?: number;
   loading?: boolean;
+  averageHealth?: number; // New prop for average health score
 }
 
 const DealMetrics: React.FC<DealMetricsProps> = ({ 
@@ -20,7 +21,8 @@ const DealMetrics: React.FC<DealMetricsProps> = ({
   draft = 0, 
   pending = 0, 
   cancelled = 0,
-  loading = false
+  loading = false,
+  averageHealth = 0 // Default to 0
 }) => {
   if (loading) {
     return (
@@ -38,7 +40,7 @@ const DealMetrics: React.FC<DealMetricsProps> = ({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8"> {/* Changed to 5 columns */}
       <Card>
         <CardContent className="p-6">
           <div className="text-sm font-medium text-muted-foreground">
@@ -83,6 +85,24 @@ const DealMetrics: React.FC<DealMetricsProps> = ({
           <div className="text-3xl font-bold text-amber-600">{pending}</div>
           <p className="text-xs text-muted-foreground mt-1">
             Require your attention
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* New Card for Average Health Score */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-sm font-medium text-muted-foreground">
+            Average Health Score
+          </div>
+          <div className={`text-3xl font-bold ${
+            averageHealth >= 70 ? 'text-green-600' : 
+            averageHealth >= 40 ? 'text-amber-600' : 'text-red-600'
+          }`}>
+            {averageHealth.toFixed(0)}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            For active deals
           </p>
         </CardContent>
       </Card>
