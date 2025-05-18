@@ -162,6 +162,7 @@ const DocumentManagement = ({
         userRole={userRole}
         isParticipant={isParticipant}
         documents={documents}
+        dealId={dealId} // Pass dealId to DocumentUpload
       />
       
       {/* Delete Confirmation Dialog */}

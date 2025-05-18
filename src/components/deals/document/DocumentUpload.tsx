@@ -3,6 +3,7 @@ import { Document } from "@/types/deal";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import DocumentUploadForm from "./DocumentUploadForm";
+import SmartTemplateButton from "./SmartTemplateButton";
 
 interface DocumentUploadProps {
   onUpload: (file: File, category: string, documentId?: string) => Promise<void>;
@@ -16,6 +17,7 @@ interface DocumentUploadProps {
     userRole: string | null;
   };
   dealStatus?: string | null;
+  dealId: string; // Add dealId prop for the SmartTemplateButton
 }
 
 const DocumentUpload = ({ 
@@ -25,7 +27,8 @@ const DocumentUpload = ({
   isParticipant = true,
   documents = [],
   permissions,
-  dealStatus
+  dealStatus,
+  dealId
 }: DocumentUploadProps) => {
   // Check if user has permission to upload documents based on passed permissions or fallback to role check
   const canUploadDocuments = permissions?.canUpload ?? 
@@ -53,11 +56,24 @@ const DocumentUpload = ({
   return (
     <div className="border-t pt-4 mt-4">
       <h4 className="text-lg font-semibold mb-3">Upload Document</h4>
-      <DocumentUploadForm 
-        onUpload={onUpload}
-        uploading={uploading}
-        documents={documents}
-      />
+      
+      <div className="flex items-center gap-3 mb-4">
+        <DocumentUploadForm 
+          onUpload={onUpload}
+          uploading={uploading}
+          documents={documents}
+        />
+        
+        {/* Add the Smart Template Button */}
+        <SmartTemplateButton 
+          dealId={dealId}
+          onDocumentSaved={() => {
+            // This function will be called after a document is saved
+            // Could be used to refresh the document list
+          }}
+          userRole={userRole}
+        />
+      </div>
     </div>
   );
 };

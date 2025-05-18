@@ -77,6 +77,33 @@ export const useDocumentOperations = (
   };
 
   /**
+   * Save a generated template as a document
+   */
+  const saveGeneratedTemplate = async (content: string, fileName: string, category: string) => {
+    if (!user) {
+      throw new Error('You must be logged in to save templates.');
+    }
+
+    setUploading(true);
+
+    try {
+      // Convert text content to a file object
+      const blob = new Blob([content], { type: 'text/plain' });
+      const file = new File([blob], fileName, { type: 'text/plain' });
+      
+      // Use the existing upload mechanism
+      const newDocument = await uploadDocument(file, category);
+      
+      return newDocument;
+    } catch (error) {
+      // Error is already handled in uploadDocument, just rethrow
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /**
    * Delete a document
    */
   const deleteDocument = async (document: Document) => {
@@ -168,6 +195,7 @@ export const useDocumentOperations = (
   return {
     uploading,
     uploadDocument,
+    saveGeneratedTemplate,
     deleteDocument,
     deleteDocumentVersion
   };
