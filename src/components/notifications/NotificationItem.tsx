@@ -1,120 +1,97 @@
 
-import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { Check, Trash2, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Notification } from "@/types/deal";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2 } from 'lucide-react';
+
+// Define the interface for a single notification
+export interface Notification {
+  id: string;
+  user_id: string;
+  deal_id: string | null;
+  type: string;
+  title: string;
+  message: string | null;
+  read: boolean;
+  created_at: string;
+  related_entity_id: string | null;
+  related_entity_type: string | null;
+  link: string | null;
+}
 
 interface NotificationItemProps {
   notification: Notification;
+  onNotificationClick: (notification: Notification) => void;
   onMarkAsRead: (id: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-  onClose?: () => void;
-  displayFull?: boolean; // Add this prop for full notification view
+  updatingNotificationId: string | null;
 }
 
-const NotificationItem = ({ 
-  notification, 
-  onMarkAsRead, 
-  onDelete,
-  onClose,
-  displayFull = false // Default to dropdown view
-}: NotificationItemProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  
-  const handleNavigate = () => {
-    if (notification.link) {
-      if (onClose) onClose();
-      navigate(notification.link);
-      if (!notification.read) {
-        onMarkAsRead(notification.id);
-      }
+const NotificationItem: React.FC<NotificationItemProps> = ({
+  notification,
+  onNotificationClick,
+  onMarkAsRead,
+  updatingNotificationId,
+}) => {
+  // Helper function to get icon based on notification type
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'milestone_status_updated': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'document_uploaded': return <FileText className="h-5 w-5 text-blue-500" />;
+      case 'message_added': return <Info className="h-5 w-5 text-gray-500" />;
+      case 'participant_added': return <Users className="h-5 w-5 text-purple-500" />;
+      case 'deal_status_changed': return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      default: return <Bell className="h-5 w-5 text-gray-500" />;
     }
   };
-  
-  const handleMarkAsRead = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsLoading(true);
-    await onMarkAsRead(notification.id);
-    setIsLoading(false);
-  };
-  
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsLoading(true);
-    await onDelete(notification.id);
-    setIsLoading(false);
-  };
-  
-  // Get notification type style
-  const getTypeStyles = () => {
-    switch (notification.type) {
-      case "error":
-        return "border-l-destructive";
-      case "warning":
-        return "border-l-yellow-500";
-      case "success":
-        return "border-l-green-500";
-      default:
-        return "border-l-blue-500";
+
+  // Helper function to format time distance
+  const formatTimeAgo = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch (e) {
+      console.error('Error formatting time:', timestamp, e);
+      return timestamp;
     }
   };
-  
+
   return (
-    <div 
-      className={cn(
-        "p-4 border-l-4 rounded bg-card hover:bg-accent transition-colors",
-        getTypeStyles(),
-        notification.read ? "opacity-70" : "",
-        notification.link ? "cursor-pointer" : "",
-        displayFull ? "m-0" : "mb-2" // Adjust margin for full display
-      )}
-      onClick={notification.link ? handleNavigate : undefined}
+    <li
+      className={`flex items-start space-x-3 p-3 rounded-md cursor-pointer ${notification.read ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-gray-900 hover:bg-blue-100'}`}
+      onClick={() => onNotificationClick(notification)}
     >
-      <div className="flex justify-between items-start mb-1">
-        <h4 className={cn("text-sm font-medium", !notification.read && "font-semibold")}>
-          {notification.title}
-        </h4>
-        <div className="flex items-center space-x-1">
-          {!notification.read && (
-            <Button
-              onClick={handleMarkAsRead}
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-primary"
-              disabled={isLoading}
-              title="Mark as read"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          <Button
-            onClick={handleDelete}
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive"
-            disabled={isLoading}
-            title="Delete notification"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+      {/* Notification Icon */}
+      <div className="flex-shrink-0 mt-1">
+        {getNotificationIcon(notification.type)}
       </div>
-      <p className="text-xs text-muted-foreground mb-2">{notification.message}</p>
-      <div className="flex justify-between items-center text-xs">
-        <span className="text-muted-foreground">
-          {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
-        </span>
+      <div className="flex-1">
+        {/* Notification Title */}
+        <p className={`text-sm font-semibold ${notification.read ? 'text-gray-600' : 'text-gray-800'}`}>
+          {notification.title}
+        </p>
+        {/* Notification Body (Optional) */}
+        {notification.message && (
+          <p className="text-sm mt-1">{notification.message}</p>
+        )}
+        {/* Timestamp */}
+        <p className="text-xs text-gray-500 mt-1">
+          {formatTimeAgo(notification.created_at)}
+        </p>
         {notification.link && (
-          <span className="text-primary flex items-center">
-            View <ExternalLink className="h-3 w-3 ml-1" />
-          </span>
+          <p className="text-xs text-blue-600 mt-1 hover:underline">View Details</p>
         )}
       </div>
-    </div>
+      {/* Mark as Read button if not read */}
+      {!notification.read && updatingNotificationId !== notification.id && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onMarkAsRead(notification.id); }}
+          className="flex-shrink-0 px-2 py-0.5 text-xs text-blue-600 border border-blue-600 rounded-full hover:bg-blue-100"
+        >
+          Mark as Read
+        </button>
+      )}
+      {updatingNotificationId === notification.id && (
+        <span className="flex-shrink-0 text-xs text-blue-600">Updating...</span>
+      )}
+    </li>
   );
 };
 
