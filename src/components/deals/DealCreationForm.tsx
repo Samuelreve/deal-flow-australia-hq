@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // Define the shape of the form data
 interface DealFormData {
@@ -64,6 +65,7 @@ const DealCreationForm: React.FC = () => {
 
     try {
       console.log('Creating deal with user ID:', user.id);
+      console.log('User profile:', user.profile);
       
       // Create the deal in Supabase
       const { data: newDeal, error } = await supabase
@@ -128,7 +130,7 @@ const DealCreationForm: React.FC = () => {
           <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="title">
             Deal Name
           </label>
-          <input
+          <Input
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
             id="title"
             type="text"
@@ -146,7 +148,7 @@ const DealCreationForm: React.FC = () => {
           <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="businessName">
             Business Name
           </label>
-          <input
+          <Input
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
             id="businessName"
             type="text"
