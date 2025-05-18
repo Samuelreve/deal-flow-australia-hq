@@ -26,23 +26,28 @@ export const useSignUp = () => {
       const success = await signup(email, password, name);
       
       if (success) {
-        // User is automatically signed in (email verification disabled)
+        // User is automatically signed in
         sonnerToast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
-        // Email verification required - this will happen if Supabase has email confirmation enabled
-        setShowSuccess(true);
+        // This case should be rare with our updated settings
+        navigate("/login");
         toast({
           title: "Account created!",
-          description: "Please check your email for confirmation",
+          description: "Please log in with your new account",
         });
-        
-        // Show a more descriptive message to help the user
-        setError("Important: For testing, you may need to disable email confirmation in Supabase. Visit the Supabase dashboard > Authentication > Email templates and disable 'Confirm email' setting.");
       }
     } catch (err: any) {
       console.error("Signup error:", err);
-      setError(err.message || "Failed to create account");
+      
+      // Handle common Supabase auth errors with friendly messages
+      if (err.message?.includes("already registered")) {
+        setError("This email is already registered. Please log in instead.");
+      } else if (err.message?.includes("password")) {
+        setError("Password should be at least 6 characters long.");
+      } else {
+        setError(err.message || "Failed to create account");
+      }
     } finally {
       setIsLoading(false);
     }

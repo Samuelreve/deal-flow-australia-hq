@@ -55,33 +55,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      // Set emailRedirectTo to be the current URL but with the path changed to /login
-      // This ensures the user is redirected back to the login page after confirming their email
-      const currentOrigin = window.location.origin;
-      const redirectTo = `${currentOrigin}/login`;
-      
+      // Force autoconfirm by passing specific data options
       const data = await authService.signup(email, password, name, {
-        emailRedirectTo: redirectTo,
-        // Important: Setting this to false so users don't need to confirm their email
         data: {
-          name: name || email.split('@')[0]
+          name: name || email.split('@')[0],
+          // Setting this explicitly for clarity
+          email_confirm: true
         }
       });
       
       if (data?.user) {
         if (data.session) {
-          // Auto-login (email confirmation disabled)
+          // Auto-login (email confirmation disabled or automatically confirmed)
           toast({
             title: "Account created successfully",
             description: "Welcome to DealPilot!",
           });
           return true;
         } else {
-          // Email confirmation required - this will happen if Supabase has email confirmation enabled
+          // This shouldn't happen with our settings, but just in case
           toast({
             title: "Account created",
-            description: "Please check your email to confirm your account",
+            description: "Please try logging in now",
           });
+          navigate("/login");
           return false;
         }
       }

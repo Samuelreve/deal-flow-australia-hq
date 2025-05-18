@@ -18,6 +18,8 @@ export const authService = {
     emailRedirectTo?: string;
     data?: Record<string, any>;
   }) => {
+    // Note: With Supabase, to disable email confirmation during signup,
+    // you need to disable it in the Supabase dashboard under Authentication > Email Templates
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

@@ -132,9 +132,9 @@ export const useAuthSession = () => {
     session,
     isAuthenticated,
     loading,
+    setLoading,
     setUser,
     setSession,
-    setIsAuthenticated,
-    setLoading
+    setIsAuthenticated
   };
 };
