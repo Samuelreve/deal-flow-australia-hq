@@ -83,7 +83,7 @@ const DealsPage = () => {
         </div>
         
         {(user?.role === "seller" || user?.role === "admin") && (
-          <Button onClick={() => navigate("/deals/new")}>
+          <Button onClick={() => navigate("/create-deal")}>
             <Plus className="h-4 w-4 mr-2" />
             New Deal
           </Button>
@@ -139,7 +139,7 @@ const DealsPage = () => {
                     : "Create a new deal to get started"}
                 </p>
                 {(user?.role === "seller" || user?.role === "admin") && !searchTerm && statusFilter === "all" && (
-                  <Button onClick={() => navigate("/deals/new")}>
+                  <Button onClick={() => navigate("/create-deal")}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Deal
                   </Button>

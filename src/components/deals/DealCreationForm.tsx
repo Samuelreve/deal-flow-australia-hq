@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
+import { Button } from '@/components/ui/button';
 
 // Define the shape of the form data
 interface DealFormData {
@@ -62,6 +63,8 @@ const DealCreationForm: React.FC = () => {
     setSubmitError(null);
 
     try {
+      console.log('Creating deal with user ID:', user.id);
+      
       // Create the deal in Supabase
       const { data: newDeal, error } = await supabase
         .from('deals')
@@ -77,7 +80,12 @@ const DealCreationForm: React.FC = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Deal creation error details:', error);
+        throw error;
+      }
+
+      console.log('Deal created successfully:', newDeal);
 
       // Use the appropriate user role from the profile or default to seller
       const userRole = user.profile?.role as UserRole || 'seller';
@@ -96,7 +104,6 @@ const DealCreationForm: React.FC = () => {
         // Continue anyway since the deal was created
       }
 
-      console.log('Deal created successfully:', newDeal);
       toast.success('Deal created successfully!');
 
       // Redirect to the new Deal Details page
@@ -176,13 +183,13 @@ const DealCreationForm: React.FC = () => {
 
         {/* Submit Button */}
         <div className="flex items-center justify-center">
-          <button
-            className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 ease-in-out ${submitting || !user ? 'opacity-50 cursor-not-allowed' : ''}`}
+          <Button
+            className={`w-full ${submitting || !user ? 'opacity-50 cursor-not-allowed' : ''}`}
             type="submit"
             disabled={submitting || !user}
           >
             {submitting ? 'Creating Deal...' : 'Create Deal'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
