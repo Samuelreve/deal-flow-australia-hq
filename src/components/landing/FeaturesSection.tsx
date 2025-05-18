@@ -4,8 +4,18 @@ import FeatureCard from "./FeatureCard";
 import { ShieldCheck, FileText, MessageSquare, BarChart3 } from "lucide-react";
 
 const FeaturesSection = () => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
   return (
-    <section id="features" className="py-20 bg-gradient-to-b from-muted/30 to-background px-4 md:px-6">
+    <section id="features" className="py-24 bg-gradient-to-b from-muted/30 to-background px-4 md:px-6">
       <div className="container mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -13,13 +23,19 @@ const FeaturesSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl font-bold text-center mb-4">Our Platform Features</h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">Our Platform Features</h2>
+          <p className="text-center text-muted-foreground mb-16 max-w-3xl mx-auto">
             DealPilot combines cutting-edge technology with industry expertise to streamline every aspect of business sales.
           </p>
         </motion.div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 gap-8"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
           <FeatureCard 
             icon={<ShieldCheck className="h-6 w-6 text-primary" />}
             title="AI-Powered Document Intelligence"
@@ -43,7 +59,7 @@ const FeaturesSection = () => {
             title="Progress Tracking"
             description="Visual milestone tracking with automated updates keeps everyone informed of deal progress and upcoming steps."
           />
-        </div>
+        </motion.div>
       </div>
     </section>
   );
