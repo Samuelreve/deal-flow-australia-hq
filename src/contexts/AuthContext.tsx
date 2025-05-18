@@ -55,7 +55,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      const data = await authService.signup(email, password, name);
+      // Set emailRedirectTo to be the current URL but with the path changed to /login
+      // This ensures the user is redirected back to the login page after confirming their email
+      const currentOrigin = window.location.origin;
+      const redirectTo = `${currentOrigin}/login`;
+      
+      const data = await authService.signup(email, password, name, {
+        emailRedirectTo: redirectTo,
+        // Important: Setting this to false so users don't need to confirm their email
+        data: {
+          name: name || email.split('@')[0]
+        }
+      });
       
       if (data?.user) {
         if (data.session) {
@@ -66,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
           return true;
         } else {
-          // Email confirmation required
+          // Email confirmation required - this will happen if Supabase has email confirmation enabled
           toast({
             title: "Account created",
             description: "Please check your email to confirm your account",

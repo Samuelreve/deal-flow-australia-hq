@@ -30,16 +30,15 @@ export const useSignUp = () => {
         sonnerToast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
-        // Email verification required
+        // Email verification required - this will happen if Supabase has email confirmation enabled
         setShowSuccess(true);
         toast({
           title: "Account created!",
           description: "Please check your email for confirmation",
         });
-        // Clear form
-        setEmail("");
-        setPassword("");
-        setName("");
+        
+        // Show a more descriptive message to help the user
+        setError("Important: For testing, you may need to disable email confirmation in Supabase. Visit the Supabase dashboard > Authentication > Email templates and disable 'Confirm email' setting.");
       }
     } catch (err: any) {
       console.error("Signup error:", err);

@@ -14,13 +14,18 @@ export const authService = {
     return data;
   },
   
-  signup: async (email: string, password: string, name?: string) => {
+  signup: async (email: string, password: string, name?: string, options?: {
+    emailRedirectTo?: string;
+    data?: Record<string, any>;
+  }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: options?.emailRedirectTo,
         data: {
           name: name || email.split('@')[0], // Basic name from email if not provided
+          ...options?.data
         }
       }
     });
