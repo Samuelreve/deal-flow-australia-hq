@@ -45,10 +45,8 @@ const Dashboard = () => {
             health_score,
             seller_id,
             buyer_id,
-            // 'business_name' doesn't exist in the database
-            // Instead, let's use businessName field if it exists
             businessName,
-            profiles:seller_id(name)
+            seller:profiles(name)
           `);
           
         // Rely on RLS to filter deals the user has access to
@@ -69,8 +67,8 @@ const Dashboard = () => {
             healthScore: deal.health_score,
             sellerId: deal.seller_id,
             buyerId: deal.buyer_id,
-            sellerName: deal.profiles?.name || "Unknown",
-            businessName: deal.businessName || "", // Use businessName if it exists
+            sellerName: deal.seller?.name || "Unknown",
+            businessName: deal.businessName || "", 
           }));
           
           setDeals(formattedDeals);
