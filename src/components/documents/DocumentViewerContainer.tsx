@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
 import { useDocumentComments } from '@/hooks/documentComments';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
-import DocumentSelectionActions from './DocumentSelectionActions';
-import DocumentCommentInput from './DocumentCommentInput';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
 import DocumentContent from './DocumentContent';
