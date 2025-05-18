@@ -53,6 +53,14 @@ const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   
+  // Add a function to handle scrolling to the "how it works" section
+  const scrollToSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
   return (
     <div className="min-h-screen">
       {/* Hero Section with gradient background */}
@@ -98,7 +106,7 @@ const Index = () => {
                 <Button size="lg" onClick={() => navigate("/signup")} className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0">
                   Start For Free <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("#how-it-works")}>
+                <Button size="lg" variant="outline" onClick={() => scrollToSection("how-it-works")}>
                   See How It Works
                 </Button>
               </motion.div>
