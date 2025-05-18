@@ -1,7 +1,9 @@
+
 import { Document, DocumentVersion } from "@/types/deal";
 import { documentDatabaseService } from "./documents/documentDatabaseService";
 import { documentStorageService } from "./documents/documentStorageService";
 import { documentMapperService } from "./documents/documentMapperService";
+import { supabase } from "@/integrations/supabase/client"; // Add this import
 
 /**
  * Main document service that orchestrates operations between storage and database
