@@ -2,37 +2,112 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import AppLayout from "@/components/layout/AppLayout";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import { DealSummary } from "@/types/deal";
 import { getMockDealSummariesForUser } from "@/data/mockData";
-import { cn } from "@/lib/utils";
 import DealsDashboard from "@/components/deals/DealsDashboard";
+import DealMetrics from "@/components/dashboard/DealMetrics";
+import DealFilters from "@/components/dashboard/DealFilters";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [deals, setDeals] = useState<DealSummary[]>([]);
+  const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
+  const [loading, setLoading] = useState(true);
   
+  // Filter and sort states
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("updatedAt");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   useEffect(() => {
     // Always load mock data regardless of authentication status
-    // Use a mock user ID if user is not authenticated
     const mockUserId = user?.id || "mock-user-id";
     const mockUserRole = user?.role || "admin";
     const userDeals = getMockDealSummariesForUser(mockUserId, mockUserRole as any);
     setDeals(userDeals);
+    setLoading(false);
   }, [user]);
+  
+  useEffect(() => {
+    // Filter and sort deals when dependencies change
+    let result = [...deals];
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter(deal => deal.status === statusFilter);
+    }
+    
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(deal => 
+        deal.title.toLowerCase().includes(searchLower) ||
+        (deal.businessName && deal.businessName.toLowerCase().includes(searchLower)) ||
+        (deal.sellerName && deal.sellerName.toLowerCase().includes(searchLower)) ||
+        (deal.buyerName && deal.buyerName.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      let valueA, valueB;
+      
+      // Determine which field to sort by
+      switch (sortBy) {
+        case "title":
+          valueA = a.title.toLowerCase();
+          valueB = b.title.toLowerCase();
+          break;
+        case "status":
+          valueA = a.status;
+          valueB = b.status;
+          break;
+        case "healthScore":
+          valueA = a.healthScore;
+          valueB = b.healthScore;
+          break;
+        case "createdAt":
+          valueA = new Date(a.createdAt).getTime();
+          valueB = new Date(b.createdAt).getTime();
+          break;
+        case "updatedAt":
+        default:
+          valueA = new Date(a.updatedAt).getTime();
+          valueB = new Date(b.updatedAt).getTime();
+      }
+      
+      // Apply sort order
+      if (sortOrder === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
+    
+    setFilteredDeals(result);
+  }, [deals, statusFilter, searchTerm, sortBy, sortOrder]);
+  
+  // Calculate metrics
+  const metrics = {
+    total: deals.length,
+    active: deals.filter(d => d.status === "active").length,
+    completed: deals.filter(d => d.status === "completed").length,
+    pending: deals.filter(d => d.status === "pending").length,
+    draft: deals.filter(d => d.status === "draft").length,
+    cancelled: deals.filter(d => d.status === "cancelled").length,
+  };
   
   return (
     <AppLayout>
       <div className="mb-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome to the demo dashboard</p>
+          <p className="text-muted-foreground">Welcome to your deal management dashboard</p>
         </div>
         
         <Button onClick={() => navigate("/deals/new")}>
@@ -41,65 +116,29 @@ const Dashboard = () => {
         </Button>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Deals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deals.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Across all statuses
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Deals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deals.filter(d => d.status === "active").length}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Currently in progress
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completed Deals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deals.filter(d => d.status === "completed").length}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Successfully finalized
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Require your attention
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Metrics Cards */}
+      <DealMetrics 
+        total={metrics.total}
+        active={metrics.active}
+        completed={metrics.completed}
+        pending={metrics.pending}
+        loading={loading}
+      />
       
-      <DealsDashboard deals={deals} />
+      {/* Filters and Sorting */}
+      <DealFilters 
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+      />
+      
+      {/* Deals List */}
+      <DealsDashboard deals={filteredDeals} />
     </AppLayout>
   );
 };
