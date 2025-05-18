@@ -1,8 +1,8 @@
 
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Comment } from "./useComments";
-import { formatDate } from "./useComments";
+import { Comment } from "./types";
+import { formatDate } from "./commentUtils";
 
 interface CommentItemProps {
   comment: Comment;

@@ -2,7 +2,7 @@
 import React from "react";
 import { MessageSquare } from "lucide-react";
 import CommentItem from "./CommentItem";
-import { Comment } from "./useComments";
+import { Comment } from "./types";
 
 interface CommentsListProps {
   comments: Comment[];
