@@ -55,19 +55,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       
-      // Direct signup without email confirmation requirements
+      // Standard signup - will need email confirmation unless disabled in Supabase dashboard
       const data = await authService.signup(email, password, name);
       
       if (data?.user) {
         if (data.session) {
-          // User should be automatically logged in with a session
+          // User is automatically logged in with a session
           toast({
             title: "Account created successfully",
             description: "Welcome to DealPilot!",
           });
           return true;
         } else {
-          // Fallback in case session isn't returned (shouldn't happen with our settings)
+          // This happens if email confirmation is required in Supabase settings
           toast({
             title: "Account created",
             description: "Please log in with your new account",

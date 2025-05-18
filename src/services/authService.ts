@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/auth";
 
@@ -18,7 +17,8 @@ export const authService = {
     emailRedirectTo?: string;
     data?: Record<string, any>;
   }) => {
-    // We're using admin mode to disable email confirmation completely
+    // We need to use the standard signUp method but make sure Supabase is configured
+    // to not require email confirmation via the dashboard settings
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -27,9 +27,7 @@ export const authService = {
           name: name || email.split('@')[0], // Basic name from email if not provided
           ...options?.data
         },
-        emailRedirectTo: options?.emailRedirectTo,
-        // This setting should make email confirmation unnecessary
-        emailConfirm: false
+        emailRedirectTo: options?.emailRedirectTo
       }
     });
     

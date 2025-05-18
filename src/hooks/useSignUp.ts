@@ -23,15 +23,15 @@ export const useSignUp = () => {
     setIsLoading(true);
     
     try {
-      // No need to check for email confirmation, user should be logged in right away
+      // Try to sign up and get immediate session
       const success = await signup(email, password, name);
       
       if (success) {
-        // User should be automatically signed in 
+        // User should be automatically signed in if email verification is disabled in Supabase
         sonnerToast.success("Account created successfully!");
         navigate("/dashboard");
       } else {
-        // This is a fallback that should rarely happen
+        // Fallback if auto-login fails
         navigate("/login");
         toast({
           title: "Account created!",
