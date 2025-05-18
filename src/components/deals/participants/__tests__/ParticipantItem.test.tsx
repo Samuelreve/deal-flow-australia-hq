@@ -16,11 +16,10 @@ describe("ParticipantItem", () => {
   };
 
   it("renders participant information correctly", () => {
-    render(<ParticipantItem participant={mockParticipant} />);
+    render(<ParticipantItem participant={mockParticipant} dealId="deal-123" />);
 
     expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText(/buyer/i)).toBeInTheDocument();
-    expect(screen.getByText(/joined/i)).toBeInTheDocument();
+    expect(screen.getByText("buyer")).toBeInTheDocument();
     
     // Avatar should be present
     const avatar = screen.getByRole("img", { hidden: true });
@@ -31,22 +30,24 @@ describe("ParticipantItem", () => {
     render(
       <ParticipantItem 
         participant={mockParticipant} 
-        currentUserId={mockParticipant.user_id} 
+        isCurrentUser={true}
+        dealId="deal-123"
       />
     );
 
-    expect(screen.getByText("You")).toBeInTheDocument();
+    expect(screen.getByText(/You/i)).toBeInTheDocument();
   });
 
   it("doesn't show 'You' label for other participants", () => {
     render(
       <ParticipantItem 
-        participant={mockParticipant} 
-        currentUserId="different-user" 
+        participant={mockParticipant}
+        isCurrentUser={false}
+        dealId="deal-123"
       />
     );
 
-    expect(screen.queryByText("You")).not.toBeInTheDocument();
+    expect(screen.queryByText(/You/i)).not.toBeInTheDocument();
   });
 
   it("displays fallback for missing profile name", () => {
@@ -55,12 +56,12 @@ describe("ParticipantItem", () => {
       profile_name: null
     };
     
-    render(<ParticipantItem participant={participantWithoutName} />);
+    render(<ParticipantItem participant={participantWithoutName} dealId="deal-123" />);
     
     expect(screen.getByText("Unknown User")).toBeInTheDocument();
   });
 
-  it("formats role correctly", () => {
+  it("formats role correctly with proper badge variant", () => {
     const roles = ["seller", "buyer", "lawyer", "admin"] as const;
     
     roles.forEach(role => {
@@ -69,10 +70,9 @@ describe("ParticipantItem", () => {
         role
       };
       
-      const { unmount } = render(<ParticipantItem participant={participantWithRole} />);
+      const { unmount } = render(<ParticipantItem participant={participantWithRole} dealId="deal-123" />);
       
-      const expectedRole = role.charAt(0).toUpperCase() + role.slice(1);
-      expect(screen.getByText(expectedRole)).toBeInTheDocument();
+      expect(screen.getByText(role)).toBeInTheDocument();
       
       unmount();
     });

@@ -7,14 +7,14 @@ import { describe, it, expect, vi } from "vitest";
 
 // Mock the ParticipantItem component
 vi.mock("../ParticipantItem", () => ({
-  default: ({ participant, currentUserId }: { 
+  default: ({ participant, isCurrentUser }: { 
     participant: DealParticipant; 
-    currentUserId?: string 
+    isCurrentUser?: boolean 
   }) => (
     <div data-testid="participant-item">
       <span>Name: {participant.profile_name}</span>
       <span>Role: {participant.role}</span>
-      {currentUserId === participant.user_id && <span>Current User</span>}
+      {isCurrentUser && <span>Current User</span>}
     </div>
   )
 }));
@@ -39,16 +39,19 @@ describe("ParticipantsList", () => {
     }
   ];
 
+  const mockDealId = "deal-123";
+
   it("renders loading state", () => {
     render(
       <ParticipantsList 
         participants={[]} 
         isLoading={true} 
-        error={null} 
+        error={null}
+        dealId={mockDealId}
       />
     );
 
-    expect(screen.getByText(/loading participants/i)).toBeInTheDocument();
+    expect(screen.getAllByTestId("skeleton")).toBeTruthy();
   });
 
   it("renders error message", () => {
@@ -57,10 +60,12 @@ describe("ParticipantsList", () => {
       <ParticipantsList 
         participants={[]} 
         isLoading={false} 
-        error={errorMessage} 
+        error={errorMessage}
+        dealId={mockDealId}
       />
     );
 
+    expect(screen.getByText(/Error loading participants/i)).toBeInTheDocument();
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
@@ -69,11 +74,12 @@ describe("ParticipantsList", () => {
       <ParticipantsList 
         participants={[]} 
         isLoading={false} 
-        error={null} 
+        error={null}
+        dealId={mockDealId}
       />
     );
 
-    expect(screen.getByText(/no participants found/i)).toBeInTheDocument();
+    expect(screen.getByText(/No participants found/i)).toBeInTheDocument();
   });
 
   it("renders list of participants", () => {
@@ -81,7 +87,8 @@ describe("ParticipantsList", () => {
       <ParticipantsList 
         participants={mockParticipants} 
         isLoading={false} 
-        error={null} 
+        error={null}
+        dealId={mockDealId}
       />
     );
 
@@ -100,7 +107,8 @@ describe("ParticipantsList", () => {
         participants={mockParticipants} 
         currentUserId={currentUserId}
         isLoading={false} 
-        error={null} 
+        error={null}
+        dealId={mockDealId}
       />
     );
 
