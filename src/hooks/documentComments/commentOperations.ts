@@ -111,7 +111,7 @@ export const deleteDocumentComment = async (commentId: string): Promise<boolean>
 /**
  * Toggle a comment's resolved status
  */
-export const toggleCommentResolved = async (commentId: string): Promise<boolean> => {
+export const toggleCommentResolved = async (commentId: string): Promise<{ newStatus: boolean }> => {
   try {
     const newStatus = await documentCommentService.toggleResolved(commentId);
     
@@ -121,7 +121,7 @@ export const toggleCommentResolved = async (commentId: string): Promise<boolean>
         ? "The comment has been marked as resolved" 
         : "The comment has been reopened",
     });
-    return true;
+    return { newStatus };
   } catch (error: any) {
     console.error("Error toggling comment status:", error);
     toast({
@@ -129,6 +129,7 @@ export const toggleCommentResolved = async (commentId: string): Promise<boolean>
       description: "Failed to update comment status",
       variant: "destructive",
     });
-    return false;
+    throw error;
   }
 };
+
