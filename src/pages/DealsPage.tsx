@@ -22,7 +22,7 @@ const DealsPage = () => {
   useEffect(() => {
     if (user) {
       // In a real app, this would be an API call
-      const userDeals = getMockDealSummariesForUser(user.id, user.role);
+      const userDeals = getMockDealSummariesForUser(user.id, user.profile?.role);
       setDeals(userDeals);
       setFilteredDeals(userDeals);
     }
@@ -49,8 +49,8 @@ const DealsPage = () => {
     setFilteredDeals(filtered);
   }, [searchTerm, statusFilter, deals]);
   
-  const canCreateDeals = user?.role === "seller" || user?.role === "admin";
-  const isFiltered = searchTerm || statusFilter !== "all";
+  const canCreateDeals = user?.profile?.role === "seller" || user?.profile?.role === "admin";
+  const isFiltered = searchTerm !== "" || statusFilter !== "all";
   
   return (
     <AppLayout>
