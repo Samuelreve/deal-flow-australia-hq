@@ -5,7 +5,7 @@ import { useDocumentComments } from '@/hooks/documentComments';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, X, MessageSquare } from 'lucide-react';
+import { Loader2, X, MessageSquare, MessageSquarePlus } from 'lucide-react';
 
 // Define props for the DocumentViewer component
 interface DocumentViewerProps {
@@ -14,6 +14,7 @@ interface DocumentViewerProps {
   documentId?: string; // The ID of the logical document (optional for AI context)
   versionId?: string; // The ID of the specific document version (optional for AI context)
   // Add other props if needed (e.g., initialPage, onPageChange)
+  onCommentTriggered?: (selection: { text: string; pageNumber?: number; locationData: any }) => void;
 }
 
 const DocumentViewer: React.FC<DocumentViewerProps> = ({
@@ -21,6 +22,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   dealId,
   documentId,
   versionId,
+  onCommentTriggered,
 }) => {
   // Use the useDocumentAI hook to access AI functionalities
   const { explainClause, loading: aiLoading, result, error, clearResult } = useDocumentAI({
@@ -52,6 +54,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [locationData, setLocationData] = useState<any>(null);
   // State to control comment sidebar visibility
   const [showCommentSidebar, setShowCommentSidebar] = useState(false);
+  // Conceptual Document Viewer State
+  const [numPages, setNumPages] = useState<number | null>(null);
 
   // Refs for the document container and comment input
   const documentContainerRef = useRef<HTMLDivElement>(null);
@@ -94,7 +98,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         // Position the button below and to the right of the selection
         setButtonPosition({
           top: rect.bottom - containerRect.top + 5, // 5px below selection
-          left: rect.right - containerRect.left,
+          left: rect.left - containerRect.left + (rect.width / 2), // Center horizontally
         });
 
         // Store location data for the selection
@@ -106,6 +110,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             width: rect.width,
             height: rect.height,
           },
+          quote: text,
+          context: range.startContainer.textContent?.substring(
+            Math.max(0, range.startOffset - 50), 
+            range.startOffset
+          ) + text + range.startContainer.textContent?.substring(
+            range.endOffset, 
+            Math.min(range.endOffset + 50, (range.startContainer.textContent || '').length)
+          ),
           selectedText: text
         });
       } else {
@@ -160,6 +172,15 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setTimeout(() => {
       commentInputRef.current?.focus();
     }, 100);
+
+    // If there's an onCommentTriggered prop, call it
+    if (onCommentTriggered && locationData) {
+      onCommentTriggered({
+        text: selectedText || '',
+        pageNumber: locationData.pageNumber,
+        locationData: locationData
+      });
+    }
   };
 
   // Handle submitting a comment
@@ -224,6 +245,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setShowCommentSidebar(prev => !prev);
   };
 
+  // Effect to clear selection when documentVersionUrl changes
+  useEffect(() => {
+    setSelectedText(null);
+    setButtonPosition(null);
+    setLocationData(null);
+    setCurrentPage(1);
+    setShowExplanation(false);
+    setShowCommentInput(false);
+    setDocumentLoading(true);
+    setDocumentError(null);
+  }, [documentVersionUrl]);
+
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex items-center justify-between">
@@ -244,8 +277,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <div
           ref={documentContainerRef}
           onMouseUp={handleMouseUp}
-          className={`flex-1 overflow-y-auto border rounded-lg p-4 bg-white shadow-sm ${showCommentSidebar ? 'w-2/3' : 'w-full'}`}
-          style={{ minHeight: '400px', position: 'relative' }}
+          className={`flex-1 overflow-y-auto border rounded-lg p-4 bg-white shadow-sm relative ${showCommentSidebar ? 'w-2/3' : 'w-full'}`}
+          style={{ minHeight: '400px' }}
         >
           {/* Loading state */}
           {documentLoading && (
@@ -283,7 +316,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               className="absolute z-10 flex gap-2"
               style={{ 
                 top: `${buttonPosition.top}px`, 
-                left: `${buttonPosition.left}px` 
+                left: `${buttonPosition.left}px`,
+                transform: 'translateX(-50%)' // Center horizontally
               }}
             >
               <Button
@@ -299,7 +333,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 size="sm"
                 variant="secondary"
               >
-                Comment
+                <MessageSquarePlus className="mr-1 h-3 w-3" /> Comment
               </Button>
             </div>
           )}
@@ -310,7 +344,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                  style={{ 
                    top: buttonPosition ? `${buttonPosition.top}px` : '50%', 
                    left: buttonPosition ? `${buttonPosition.left}px` : '50%',
-                   transform: buttonPosition ? 'none' : 'translate(-50%, -50%)'
+                   transform: buttonPosition ? 'translateX(-50%)' : 'translate(-50%, -50%)'
                  }}
             >
               <div className="flex justify-between items-center mb-2">
