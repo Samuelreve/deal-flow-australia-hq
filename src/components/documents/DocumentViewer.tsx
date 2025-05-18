@@ -1,9 +1,11 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
+import { useDocumentComments } from '@/hooks/documentComments';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, X, MessageSquare } from 'lucide-react';
 
 // Define props for the DocumentViewer component
 interface DocumentViewerProps {
@@ -21,21 +23,39 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   versionId,
 }) => {
   // Use the useDocumentAI hook to access AI functionalities
-  const { explainClause, loading, result, error, clearResult } = useDocumentAI({
+  const { explainClause, loading: aiLoading, result, error, clearResult } = useDocumentAI({
     dealId,
   });
 
+  // Use the useDocumentComments hook for managing comments
+  const { 
+    comments, 
+    loading: commentsLoading, 
+    submitting,
+    addComment,
+  } = useDocumentComments(versionId);
+
   // State to manage the selected text by the user
   const [selectedText, setSelectedText] = useState<string | null>(null);
-  // State to manage the position of the "Explain Clause" button
-  const [explainButtonPosition, setExplainButtonPosition] = useState<{ top: number; left: number } | null>(null);
+  // State to manage the position of interaction buttons
+  const [buttonPosition, setButtonPosition] = useState<{ top: number; left: number } | null>(null);
   // State to control visibility of the AI explanation display
   const [showExplanation, setShowExplanation] = useState(false);
   // State to store the AI explanation result for display
   const [explanationResult, setExplanationResult] = useState<{ explanation?: string; disclaimer: string } | null>(null);
+  // State for comment input visibility and content
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  // State to track current page number
+  const [currentPage, setCurrentPage] = useState(1);
+  // State to store location data of the selection
+  const [locationData, setLocationData] = useState<any>(null);
+  // State to control comment sidebar visibility
+  const [showCommentSidebar, setShowCommentSidebar] = useState(false);
 
-  // Ref for the document container to capture text selections
+  // Refs for the document container and comment input
   const documentContainerRef = useRef<HTMLDivElement>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Document viewer state
   const [documentLoading, setDocumentLoading] = useState(true);
@@ -72,33 +92,48 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         const containerRect = documentContainerRef.current.getBoundingClientRect();
 
         // Position the button below and to the right of the selection
-        setExplainButtonPosition({
+        setButtonPosition({
           top: rect.bottom - containerRect.top + 5, // 5px below selection
           left: rect.right - containerRect.left,
         });
+
+        // Store location data for the selection
+        setLocationData({
+          pageNumber: currentPage,
+          rect: {
+            top: rect.top - containerRect.top,
+            left: rect.left - containerRect.left,
+            width: rect.width,
+            height: rect.height,
+          },
+          selectedText: text
+        });
       } else {
-        setExplainButtonPosition(null);
+        setButtonPosition(null);
+        setLocationData(null);
       }
     } else {
       // No text selected or selection is outside the document container
       setSelectedText(null);
-      setExplainButtonPosition(null);
+      setButtonPosition(null);
+      setLocationData(null);
       
-      // Hide the explanation if no text is selected and modal is not open
-      if (!showExplanation) {
+      // Don't hide the explanation or comment input if they're showing
+      if (!showExplanation && !showCommentInput) {
         setExplanationResult(null);
       }
     }
-  }, [showExplanation]);
+  }, [showExplanation, showCommentInput, currentPage]);
 
   // Handle triggering AI explanation
   const handleExplainSelectedText = async () => {
-    if (!selectedText || loading) {
+    if (!selectedText || aiLoading) {
       return;
     }
 
-    setExplainButtonPosition(null); // Hide the trigger button immediately
+    setButtonPosition(null); // Hide the trigger button immediately
     setShowExplanation(true);
+    setShowCommentInput(false);
     setExplanationResult(null);
 
     try {
@@ -115,12 +150,66 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   };
 
+  // Handle opening comment input
+  const handleAddComment = () => {
+    setButtonPosition(null);
+    setShowCommentInput(true);
+    setShowExplanation(false);
+
+    // Focus the comment input when it appears
+    setTimeout(() => {
+      commentInputRef.current?.focus();
+    }, 100);
+  };
+
+  // Handle submitting a comment
+  const handleSubmitComment = async () => {
+    if (!commentContent.trim() || !versionId) {
+      toast({
+        title: "Error",
+        description: "Please enter a comment and ensure document version is selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await addComment({
+        content: commentContent,
+        pageNumber: locationData?.pageNumber || currentPage,
+        locationData: locationData
+      });
+
+      // Reset comment UI
+      setCommentContent('');
+      setShowCommentInput(false);
+      
+      toast({
+        title: "Success",
+        description: "Comment added successfully.",
+      });
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      toast({
+        title: "Error",
+        description: "Failed to add comment.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle closing explanation display
   const handleCloseExplanation = () => {
     setShowExplanation(false);
     setExplanationResult(null);
     setSelectedText(null);
     clearResult();
+  };
+
+  // Handle closing comment input
+  const handleCloseCommentInput = () => {
+    setShowCommentInput(false);
+    setCommentContent('');
   };
 
   // Effect to update explanationResult when hook's result changes
@@ -130,66 +219,200 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
   }, [result]);
 
+  // Toggle comment sidebar
+  const handleToggleCommentSidebar = () => {
+    setShowCommentSidebar(prev => !prev);
+  };
+
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* Document viewer area */}
-      <div
-        ref={documentContainerRef}
-        onMouseUp={handleMouseUp}
-        className="flex-1 overflow-y-auto border rounded-lg p-4 bg-white shadow-sm"
-        style={{ minHeight: '400px', position: 'relative' }}
-      >
-        {/* Loading state */}
-        {documentLoading && (
-          <div className="flex justify-center items-center h-full">
-            <p className="text-muted-foreground animate-pulse">Loading document...</p>
-          </div>
-        )}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Document Viewer</h3>
+        <Button
+          onClick={handleToggleCommentSidebar}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <MessageSquare className="h-4 w-4" />
+          <span>{comments.length} Comments</span>
+        </Button>
+      </div>
 
-        {/* Error state */}
-        {documentError && (
-          <div className="flex justify-center items-center h-full">
-            <p className="text-destructive">Error loading document: {documentError}</p>
-          </div>
-        )}
+      <div className="flex flex-1 gap-4">
+        {/* Document viewer area */}
+        <div
+          ref={documentContainerRef}
+          onMouseUp={handleMouseUp}
+          className={`flex-1 overflow-y-auto border rounded-lg p-4 bg-white shadow-sm ${showCommentSidebar ? 'w-2/3' : 'w-full'}`}
+          style={{ minHeight: '400px', position: 'relative' }}
+        >
+          {/* Loading state */}
+          {documentLoading && (
+            <div className="flex justify-center items-center h-full">
+              <p className="text-muted-foreground animate-pulse">Loading document...</p>
+            </div>
+          )}
 
-        {/* Document content */}
-        {!documentLoading && !documentError && (
-          <div className="h-full">
-            <iframe 
-              src={documentVersionUrl}
-              className="w-full h-full border-0" 
-              title="Document Viewer"
-              onLoad={() => setDocumentLoading(false)}
-              onError={() => {
-                setDocumentError('Failed to load document');
-                setDocumentLoading(false);
+          {/* Error state */}
+          {documentError && (
+            <div className="flex justify-center items-center h-full">
+              <p className="text-destructive">Error loading document: {documentError}</p>
+            </div>
+          )}
+
+          {/* Document content */}
+          {!documentLoading && !documentError && (
+            <div className="h-full">
+              <iframe 
+                src={documentVersionUrl}
+                className="w-full h-full border-0" 
+                title="Document Viewer"
+                onLoad={() => setDocumentLoading(false)}
+                onError={() => {
+                  setDocumentError('Failed to load document');
+                  setDocumentLoading(false);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Interaction buttons - positioned near selection */}
+          {selectedText && buttonPosition && !showExplanation && !showCommentInput && !aiLoading && (
+            <div
+              className="absolute z-10 flex gap-2"
+              style={{ 
+                top: `${buttonPosition.top}px`, 
+                left: `${buttonPosition.left}px` 
               }}
-            />
-          </div>
-        )}
+            >
+              <Button
+                onClick={handleExplainSelectedText}
+                className="text-xs"
+                size="sm"
+              >
+                Explain
+              </Button>
+              <Button
+                onClick={handleAddComment}
+                className="text-xs"
+                size="sm"
+                variant="secondary"
+              >
+                Comment
+              </Button>
+            </div>
+          )}
 
-        {/* Explain button - positioned near selection */}
-        {selectedText && explainButtonPosition && !showExplanation && !loading && (
-          <Button
-            onClick={handleExplainSelectedText}
-            className="absolute z-10 text-xs"
-            size="sm"
-            style={{ 
-              top: `${explainButtonPosition.top}px`, 
-              left: `${explainButtonPosition.left}px` 
-            }}
-          >
-            Explain Selected Text
-          </Button>
+          {/* Comment input form */}
+          {showCommentInput && (
+            <div className="absolute z-20 bg-background border rounded-lg shadow-lg p-4 w-80"
+                 style={{ 
+                   top: buttonPosition ? `${buttonPosition.top}px` : '50%', 
+                   left: buttonPosition ? `${buttonPosition.left}px` : '50%',
+                   transform: buttonPosition ? 'none' : 'translate(-50%, -50%)'
+                 }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-medium">Add Comment</h4>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleCloseCommentInput}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {selectedText && (
+                <div className="bg-muted p-2 rounded-sm mb-2 text-xs italic">
+                  {selectedText.length > 100 ? selectedText.substring(0, 100) + '...' : selectedText}
+                </div>
+              )}
+              
+              <Textarea 
+                ref={commentInputRef}
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder="Type your comment here..."
+                className="min-h-[100px] mb-2"
+              />
+              
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleSubmitComment}
+                  disabled={submitting || !commentContent.trim()}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : 'Save Comment'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Comments sidebar */}
+        {showCommentSidebar && (
+          <div className="w-1/3 border rounded-lg overflow-y-auto bg-background p-4">
+            <h3 className="font-medium mb-4">Document Comments</h3>
+            
+            {commentsLoading ? (
+              <div className="flex justify-center items-center h-20">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span className="text-muted-foreground">Loading comments...</span>
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="border rounded-md p-3 bg-card">
+                    <div className="flex justify-between items-start">
+                      <div className="font-medium">{comment.user?.name || 'User'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    
+                    {comment.locationData?.selectedText && (
+                      <div className="mt-1 text-xs italic bg-muted p-2 rounded">
+                        "{comment.locationData.selectedText}"
+                      </div>
+                    )}
+                    
+                    <div className="mt-2">{comment.content}</div>
+                    
+                    {comment.pageNumber && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Page {comment.pageNumber}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No comments yet for this document.
+              </div>
+            )}
+          </div>
         )}
       </div>
 
       {/* AI Explanation Display */}
       {showExplanation && (
         <div className="p-4 border rounded-lg bg-muted/50">
-          <h4 className="text-lg font-semibold mb-2">AI Explanation</h4>
-          {loading ? (
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-lg font-semibold">AI Explanation</h4>
+            <Button
+              onClick={handleCloseExplanation}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {aiLoading ? (
             <div className="flex items-center text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Getting explanation...
             </div>
@@ -203,15 +426,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           ) : (
             <p className="text-muted-foreground">Select text in the document to get an explanation.</p>
           )}
-          <div className="flex justify-end mt-3">
-            <Button
-              onClick={handleCloseExplanation}
-              variant="outline"
-              size="sm"
-            >
-              Close
-            </Button>
-          </div>
         </div>
       )}
     </div>

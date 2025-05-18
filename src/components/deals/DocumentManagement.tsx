@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Document, DocumentVersion } from "@/types/deal";
@@ -6,7 +5,7 @@ import DocumentList from "./document/DocumentList";
 import DocumentUpload from "./document/DocumentUpload";
 import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
 import { useDocuments } from "@/hooks/useDocuments";
-// The import won't need to change since we've created a compatibility export
+import DocumentViewer from "@/components/documents/DocumentViewer";
 
 interface DeleteVersionDialogProps {
   version: DocumentVersion | null;
@@ -74,6 +73,7 @@ const DocumentManagement = ({
   const [showVersionDeleteDialog, setShowVersionDeleteDialog] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<DocumentVersion | null>(null);
   const [isDeletingVersion, setIsDeletingVersion] = useState(false);
+  const [selectedVersionUrl, setSelectedVersionUrl] = useState<string>('');
 
   const { 
     documents, 
@@ -139,32 +139,64 @@ const DocumentManagement = ({
     await uploadDocument(file, category, documentId);
   };
 
+  // Handle selecting a version for viewing
+  const handleSelectVersion = (version: DocumentVersion) => {
+    if (version && version.url) {
+      setSelectedVersionUrl(version.url);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Document List */}
-      <DocumentList 
-        documents={documents}
-        isLoading={isLoading}
-        onDeleteDocument={openDeleteDialog}
-        userRole={userRole}
-        userId={user?.id}
-        isParticipant={isParticipant}
-        onSelectDocument={selectDocument}
-        selectedDocument={selectedDocument}
-        documentVersions={documentVersions}
-        loadingVersions={loadingVersions}
-        onDeleteVersion={openVersionDeleteDialog}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1">
+          {/* Document List */}
+          <DocumentList 
+            documents={documents}
+            isLoading={isLoading}
+            onDeleteDocument={openDeleteDialog}
+            userRole={userRole}
+            userId={user?.id}
+            isParticipant={isParticipant}
+            onSelectDocument={selectDocument}
+            selectedDocument={selectedDocument}
+            documentVersions={documentVersions}
+            loadingVersions={loadingVersions}
+            onDeleteVersion={openVersionDeleteDialog}
+            onSelectVersion={handleSelectVersion}
+          />
 
-      {/* Document Upload Section - Only shown if user has appropriate permissions */}
-      <DocumentUpload 
-        onUpload={handleUpload}
-        uploading={uploading}
-        userRole={userRole}
-        isParticipant={isParticipant}
-        documents={documents}
-        dealId={dealId} // Pass dealId to DocumentUpload
-      />
+          {/* Document Upload Section - Only shown if user has appropriate permissions */}
+          <DocumentUpload 
+            onUpload={handleUpload}
+            uploading={uploading}
+            userRole={userRole}
+            isParticipant={isParticipant}
+            documents={documents}
+            dealId={dealId} // Pass dealId to DocumentUpload
+          />
+        </div>
+        
+        <div className="lg:col-span-2 h-[600px]">
+          {/* Document Viewer */}
+          {selectedVersionUrl && documentVersions.length > 0 ? (
+            <DocumentViewer 
+              documentVersionUrl={selectedVersionUrl}
+              dealId={dealId}
+              documentId={selectedDocument?.id}
+              versionId={documentVersions.find(v => v.url === selectedVersionUrl)?.id}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-muted/50 rounded-lg border">
+              <p className="text-muted-foreground">
+                {documentVersions.length > 0 
+                  ? "Select a document version to view" 
+                  : "No documents available for viewing"}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
       
       {/* Delete Confirmation Dialog */}
       <DeleteDocumentDialog

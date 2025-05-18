@@ -1,92 +1,114 @@
 
-import { Document } from "@/types/deal";
-import { FileText, Trash2, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { useState } from 'react';
+import { Document, DocumentVersion } from '@/types/deal';
+import { ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import DocumentVersionList from './DocumentVersionList';
+import { getCommentCount } from '@/hooks/utils/documentCommentUtils';
+import { useDocumentComments } from '@/hooks/documentComments';
 
 interface DocumentListItemProps {
   document: Document;
-  canDelete: boolean;
-  onDelete: (document: Document) => void;
-  onSelect: (document: Document) => void;
+  isSelected: boolean;
+  onSelect: () => void;
+  onDelete?: () => void;
+  versions: DocumentVersion[];
+  loadingVersions: boolean;
+  userRole: string;
+  userId?: string;
+  onDeleteVersion?: (version: DocumentVersion) => void;
+  onSelectVersion?: (version: DocumentVersion) => void;
+  isParticipant?: boolean;
 }
 
-const DocumentListItem = ({ 
-  document, 
-  canDelete, 
-  onDelete, 
-  onSelect 
+const DocumentListItem = ({
+  document,
+  isSelected,
+  onSelect,
+  onDelete,
+  versions,
+  loadingVersions,
+  userRole,
+  userId,
+  onDeleteVersion,
+  onSelectVersion,
+  isParticipant = false
 }: DocumentListItemProps) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  const canDelete = () => {
+    if (!isParticipant) return false;
+    if (userRole === 'admin') return true;
+    if (userRole === 'seller' || userRole === 'buyer') {
+      return document.uploadedBy === userId;
+    }
+    return false;
+  };
+  
+  // Calculate total comments for all versions of this document
+  let commentCount = 0;
+  versions.forEach(version => {
+    const { comments } = useDocumentComments(version.id);
+    commentCount += getCommentCount(comments);
+  });
+  
+  const handleToggleExpand = () => {
+    setExpanded(!expanded);
+    if (!expanded) {
+      onSelect();
+    }
+  };
+  
   return (
-    <div className="border rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow">
+    <div className="border rounded-md overflow-hidden mb-2">
       <div 
-        className="p-4 cursor-pointer"
-        onClick={() => onSelect(document)}
+        className={`flex items-center justify-between p-3 ${isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'} cursor-pointer`}
+        onClick={handleToggleExpand}
       >
-        <div className="flex justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center">
-              <FileText className="h-5 w-5 text-primary mr-2" />
-              <h3 className="font-medium truncate">{document.name}</h3>
-              {document.category && (
-                <span className="ml-2 px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs">
-                  {document.category}
-                </span>
-              )}
+        <div className="flex items-center gap-2">
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+          <FileText className="h-5 w-5 text-primary" />
+          <div>
+            <div className="font-medium">{document.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {document.category || document.type} • {versions.length} version{versions.length !== 1 ? 's' : ''}
+              {commentCount > 0 && ` • ${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
             </div>
-            
-            <div className="mt-1 text-sm text-muted-foreground">
-              Uploaded {formatDistanceToNow(new Date(document.uploadedAt), { addSuffix: true })}
-              {document.category && (
-                <span className="mx-1">•</span>
-              )}
-              {document.category}
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {/* Download Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              onClick={(e) => e.stopPropagation()}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <a href={document.url} target="_blank" rel="noopener noreferrer">
-                <Download className="h-4 w-4" />
-              </a>
-            </Button>
-            
-            {/* Delete Button */}
-            {canDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(document);
-                }}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
+        
+        {canDelete() && onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       
-      <div className="px-4 py-2 bg-slate-50 border-t text-xs text-muted-foreground flex justify-between">
-        <div>
-          Version {document.version} • {(document.size / 1024).toFixed(1)} KB
+      {expanded && (
+        <div className="p-3 pt-0 border-t">
+          <DocumentVersionList
+            versions={versions}
+            isLoading={loadingVersions}
+            userRole={userRole}
+            onDeleteVersion={onDeleteVersion}
+            onSelectVersion={onSelectVersion}
+            userId={userId}
+            isParticipant={isParticipant}
+          />
         </div>
-        <button 
-          className="text-primary hover:underline"
-          onClick={() => onSelect(document)}
-        >
-          View all versions
-        </button>
-      </div>
+      )}
     </div>
   );
 };
