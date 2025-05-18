@@ -1,9 +1,11 @@
+
+import { useState } from "react";
 import { DocumentVersion } from "@/types/deal";
 import { Loader2, FileText, Trash2, Download, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow, format } from "date-fns";
-import { useDocumentComments } from "@/hooks/useDocumentComments";
+import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useCommentCounts } from "@/hooks/useCommentCounts";
 
 interface DocumentVersionListProps {
   documentId: string;
@@ -28,12 +30,11 @@ const DocumentVersionList = ({
   onSelectVersion,
   selectedVersionId
 }: DocumentVersionListProps) => {
-  // Get comment counts for each version
-  const getCommentCount = (versionId: string) => {
-    const { comments } = useDocumentComments(versionId);
-    return comments.length;
-  };
-
+  // Get comment counts for versions
+  const { commentCounts, isLoading: isLoadingCounts } = useCommentCounts(
+    versions.map(v => v.id)
+  );
+  
   if (isLoading) {
     return (
       <div className="bg-slate-50 p-4 border-t flex justify-center items-center">
@@ -67,6 +68,7 @@ const DocumentVersionList = ({
              versions.length > 1; // Don't allow deleting the last version
           
           const isSelected = selectedVersionId === version.id;
+          const commentCount = commentCounts[version.id] || 0;
           
           return (
             <li 
@@ -89,7 +91,7 @@ const DocumentVersionList = ({
                     className="ml-2 text-xs flex items-center gap-1 py-0 h-5"
                   >
                     <MessageSquare className="h-3 w-3" />
-                    {getCommentCount(version.id)}
+                    {isLoadingCounts ? "..." : commentCount}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

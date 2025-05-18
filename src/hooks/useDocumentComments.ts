@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
@@ -220,4 +219,9 @@ export function useDocumentComments(documentVersionId?: string) {
     deleteComment,
     toggleResolved
   };
+}
+
+// Add a new exported function to get comment count for a version
+export function getCommentCount(comments: DocumentComment[]): number {
+  return comments.length;
 }
