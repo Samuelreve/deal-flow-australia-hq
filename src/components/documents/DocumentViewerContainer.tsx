@@ -4,7 +4,7 @@ import { useDocumentComments } from '@/hooks/documentComments';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
-import DocumentContent from './DocumentContent';
+import DocumentViewerContent from './DocumentViewerContent';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
@@ -29,13 +29,16 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [showCommentSidebar, setShowCommentSidebar] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  const [explanationResult, setExplanationResult] = useState<{ explanation?: string; disclaimer: string } | null>(null);
 
-  // Use the useDocumentAI hook to access AI functionalities
+  // Use hooks for functionality
   const { explainClause, loading: aiLoading, result, error, clearResult } = useDocumentAI({
     dealId,
   });
 
-  // Use the useDocumentComments hook for managing comments
   const { 
     comments, 
     loading: commentsLoading, 
@@ -43,7 +46,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     addComment,
   } = useDocumentComments(versionId);
 
-  // Use our custom hook for selection handling
   const {
     selectedText,
     buttonPosition,
@@ -55,31 +57,18 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setButtonPosition,
   } = useDocumentSelection(currentPage);
 
-  // State to control visibility of UI elements
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [commentContent, setCommentContent] = useState('');
-  const [explanationResult, setExplanationResult] = useState<{ explanation?: string; disclaimer: string } | null>(null);
-
   // Handle triggering AI explanation
   const handleExplainSelectedText = async () => {
-    if (!selectedText || aiLoading) {
-      return;
-    }
+    if (!selectedText || aiLoading) return;
 
-    setButtonPosition(null); // Hide the trigger button immediately
+    setButtonPosition(null);
     setShowExplanation(true);
     setShowCommentInput(false);
     setExplanationResult(null);
 
     try {
       const result = await explainClause(selectedText);
-
-      if (result) {
-        setExplanationResult(result);
-      } else {
-        setExplanationResult({ explanation: 'Could not get explanation.', disclaimer: 'Failed to retrieve explanation.' });
-      }
+      setExplanationResult(result || { explanation: 'Could not get explanation.', disclaimer: 'Failed to retrieve explanation.' });
     } catch (err) {
       console.error('Error explaining clause:', err);
       setExplanationResult({ explanation: 'An error occurred while getting the explanation.', disclaimer: 'Error occurred.' });
@@ -92,7 +81,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setShowCommentInput(true);
     setShowExplanation(false);
 
-    // If there's an onCommentTriggered prop, call it
     if (onCommentTriggered && locationData) {
       onCommentTriggered({
         text: selectedText || '',
@@ -120,7 +108,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
         locationData: locationData
       });
 
-      // Reset comment UI
       setCommentContent('');
       setShowCommentInput(false);
       
@@ -159,8 +146,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
 
   // Handle comment click in sidebar
   const handleCommentClick = (commentId: string, commentLocationData: any) => {
-    // Handle clicking on a comment in the sidebar
-    // This could scroll to the comment location or highlight it in the document
     console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
   };
 
@@ -183,7 +168,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (documentContainerRef.current && !documentContainerRef.current.contains(event.target as Node)) {
-        // Don't clear if clicking on the comment or explanation UI
         const commentInput = document.getElementById('comment-input-container');
         const explanationDisplay = document.getElementById('explanation-display');
         
@@ -191,7 +175,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
           (!commentInput || !commentInput.contains(event.target as Node)) && 
           (!explanationDisplay || !explanationDisplay.contains(event.target as Node))
         ) {
-          // Only clear selection and buttons if not clicking UI elements we want to keep open
           if (!showCommentInput && !showExplanation) {
             setSelectedText(null);
             setButtonPosition(null);
@@ -220,26 +203,24 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
       </div>
 
       <div className="flex flex-1 gap-4">
-        <DocumentContent 
+        <DocumentViewerContent
           documentContainerRef={documentContainerRef}
           handleMouseUp={handleMouseUp}
           documentVersionUrl={documentVersionUrl}
           showCommentSidebar={showCommentSidebar}
           selectedText={selectedText}
           buttonPosition={buttonPosition}
-          showExplanation={showExplanation}
-          showCommentInput={showCommentInput}
           aiLoading={aiLoading}
-          handleExplainSelectedText={handleExplainSelectedText}
-          handleAddComment={handleAddComment}
+          showCommentInput={showCommentInput}
           commentContent={commentContent}
-          setCommentContent={setCommentContent}
           submitting={submitting}
-          handleSubmitComment={handleSubmitComment}
-          handleCloseCommentInput={handleCloseCommentInput}
+          onExplainClick={handleExplainSelectedText}
+          onCommentClick={handleAddComment}
+          onCommentChange={setCommentContent}
+          onCommentSubmit={handleSubmitComment}
+          onCommentClose={handleCloseCommentInput}
         />
 
-        {/* Comments sidebar */}
         {showCommentSidebar && (
           <DocumentCommentsSidebar 
             comments={comments} 
@@ -249,7 +230,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
         )}
       </div>
 
-      {/* AI Explanation Display */}
       {showExplanation && (
         <DocumentAIExplanation
           loading={aiLoading}
