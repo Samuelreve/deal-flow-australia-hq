@@ -1,5 +1,5 @@
 
-import { DocumentComment } from "@/services/documentCommentService";
+import { DocumentComment } from "@/services/documentComment";
 
 /**
  * Get comment count for a version
