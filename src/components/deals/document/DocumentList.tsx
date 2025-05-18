@@ -166,7 +166,7 @@ const DocumentList = ({
                   </div>
                   
                   <div className="mt-1 text-sm text-muted-foreground">
-                    Uploaded {formatDistanceToNow(new Date(document.createdAt), { addSuffix: true })}
+                    Uploaded {formatDistanceToNow(new Date(document.uploadedAt), { addSuffix: true })}
                     {document.description && (
                       <span className="mx-1">•</span>
                     )}

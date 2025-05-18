@@ -49,7 +49,11 @@ const DocumentVersionWithComments = ({
                 className="flex flex-col items-center text-center px-6 py-12 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <FileText className="h-12 w-12 text-primary mb-4" />
-                <div className="font-semibold">{version.fileName}</div>
+                {/* Use document name or type as fallback since fileName doesn't exist */}
+                <div className="font-semibold">
+                  Version {version.versionNumber} 
+                  {version.description && `: ${version.description}`}
+                </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   Click to open document in a new tab
                 </div>
