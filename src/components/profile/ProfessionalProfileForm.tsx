@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { UserProfile } from "@/types/auth";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { professionalProfileSchema, formatSpecializations } from "./validation/professionalProfileSchema";
+import { professionalProfileSchema, formatSpecializations, ProfessionalProfileFormValues } from "./validation/professionalProfileSchema";
 import { useProfessionalProfileForm } from "./hooks/useProfessionalProfileForm";
 import ProfessionalFormFields from "./ProfessionalFormFields";
 
@@ -29,7 +29,7 @@ const ProfessionalProfileForm: React.FC<ProfessionalProfileFormProps> = ({
   // Convert array of specializations to comma-separated string for the form
   const specializations = formatSpecializations(profile.professional_specializations);
   
-  const form = useForm({
+  const form = useForm<ProfessionalProfileFormValues>({
     resolver: zodResolver(professionalProfileSchema),
     defaultValues: {
       is_professional: profile.is_professional || false,

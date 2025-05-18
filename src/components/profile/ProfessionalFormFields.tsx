@@ -31,6 +31,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
                 placeholder="e.g. Business M&A Lawyer" 
                 {...field} 
                 className="focus:border-primary" 
+                value={field.value || ""}
               />
             </FormControl>
             <FormDescription>
@@ -52,6 +53,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
                 placeholder="Describe your experience and expertise..."
                 className="resize-y min-h-[120px]"
                 {...field}
+                value={field.value || ""}
               />
             </FormControl>
             <FormDescription>
@@ -70,7 +72,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
             <FormItem>
               <FormLabel>Firm/Company</FormLabel>
               <FormControl>
-                <Input placeholder="Your firm or company name" {...field} />
+                <Input placeholder="Your firm or company name" {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -84,7 +86,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
             <FormItem>
               <FormLabel>Location</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Melbourne, VIC" {...field} />
+                <Input placeholder="e.g. Melbourne, VIC" {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -100,7 +102,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
             <FormItem>
               <FormLabel>Professional Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="professional@email.com" {...field} />
+                <Input type="email" placeholder="professional@email.com" {...field} value={field.value || ""} />
               </FormControl>
               <FormDescription>
                 This email will be visible to potential clients.
@@ -117,7 +119,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
             <FormItem>
               <FormLabel>Phone</FormLabel>
               <FormControl>
-                <Input placeholder="Your contact number" {...field} />
+                <Input placeholder="Your contact number" {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -132,7 +134,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
           <FormItem>
             <FormLabel>Website</FormLabel>
             <FormControl>
-              <Input placeholder="https://yourwebsite.com" {...field} />
+              <Input placeholder="https://yourwebsite.com" {...field} value={field.value || ""} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -146,7 +148,7 @@ const ProfessionalFormFields: React.FC<ProfessionalFormFieldsProps> = ({ control
           <FormItem>
             <FormLabel>Specializations</FormLabel>
             <FormControl>
-              <Input placeholder="M&A, Commercial Contracts, Property Law" {...field} />
+              <Input placeholder="M&A, Commercial Contracts, Property Law" {...field} value={field.value || ""} />
             </FormControl>
             <FormDescription>
               Enter your specializations separated by commas.
