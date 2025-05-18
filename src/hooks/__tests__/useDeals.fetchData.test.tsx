@@ -1,5 +1,5 @@
 
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useDeals } from "../useDeals";
 import { supabase } from "@/integrations/supabase/client";
 import { mockDeals, mockSupabaseDeals, setupMocks } from "./utils/testUtils";
