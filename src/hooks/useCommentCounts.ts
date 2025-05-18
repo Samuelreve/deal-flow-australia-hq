@@ -20,17 +20,19 @@ export function useCommentCounts(versionIds: string[]) {
         // Fetch counts for each version ID
         const { data, error } = await supabase
           .from("document_comments")
-          .select("document_version_id, count")
+          .select('document_version_id, count(*)', { count: 'exact' })
           .in("document_version_id", versionIds)
-          .group("document_version_id");
+          .groupby('document_version_id');
 
         if (error) throw new Error(error.message);
 
         // Convert the result to a record of {versionId: count}
         const counts: Record<string, number> = {};
-        data.forEach((item) => {
-          counts[item.document_version_id] = parseInt(item.count, 10);
-        });
+        if (data) {
+          data.forEach((item) => {
+            counts[item.document_version_id] = parseInt(item.count, 10);
+          });
+        }
 
         setCommentCounts(counts);
       } catch (err) {
