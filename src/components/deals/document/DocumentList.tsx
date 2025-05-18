@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Document, DocumentVersion } from "@/types/deal";
 import DocumentVersionList from "./DocumentVersionList";
@@ -19,8 +20,8 @@ interface DocumentListProps {
   documentVersions: DocumentVersion[];
   loadingVersions: boolean;
   onDeleteVersion?: (version: DocumentVersion) => void;
-  onSelectVersion?: (version: DocumentVersion) => void; // Add missing prop
-  selectedVersionId?: string; // Add missing prop
+  onSelectVersion?: (version: DocumentVersion) => void;
+  selectedVersionId?: string;
 }
 
 const DocumentList = ({
@@ -35,8 +36,8 @@ const DocumentList = ({
   documentVersions,
   loadingVersions,
   onDeleteVersion,
-  onSelectVersion, // Add the prop here
-  selectedVersionId // Add the prop here
+  onSelectVersion,
+  selectedVersionId
 }: DocumentListProps) => {
   // Handle version selection
   const handleSelectVersion = (version: DocumentVersion) => {
@@ -92,7 +93,7 @@ const DocumentList = ({
           isSelected={selectedDocument?.id === document.id}
           onSelect={() => handleSelectDocument(document)}
           onDelete={onDeleteDocument ? () => onDeleteDocument(document) : undefined}
-          versions={documentVersions.filter(v => v.document_id === document.id)}
+          versions={documentVersions.filter(v => v.documentId === document.id)}
           loadingVersions={loadingVersions}
           userRole={userRole}
           userId={userId}
