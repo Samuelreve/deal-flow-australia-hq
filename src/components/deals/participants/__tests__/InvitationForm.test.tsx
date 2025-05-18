@@ -32,11 +32,23 @@ vi.mock("@/integrations/supabase/client", () => ({
 describe("InvitationForm", () => {
   const mockDealId = "deal-123";
   const mockOnInvitationSent = vi.fn();
+  
+  // Updated mock user to match the User interface with nested profile
   const mockUser = { 
     id: "user-123", 
     email: "user@example.com",
-    name: "Test User",
-    role: "admin" as UserRole
+    // Add required Supabase User properties
+    app_metadata: {},
+    user_metadata: {},
+    aud: "authenticated",
+    created_at: new Date().toISOString(),
+    // Add the profile property with user role info
+    profile: {
+      id: "user-123",
+      email: "user@example.com",
+      name: "Test User",
+      role: "admin" as UserRole,
+    }
   };
   
   beforeEach(() => {
