@@ -4,15 +4,17 @@ import { useInvitationAcceptance } from '../useInvitationAcceptance';
 import { invitationService } from '@/services/invitationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { toast } from 'sonner';
 
 // Mock dependencies
-jest.mock('@/services/invitationService');
-jest.mock('@/contexts/AuthContext');
-jest.mock('react-router-dom');
-jest.mock('sonner', () => ({
+vi.mock('@/services/invitationService');
+vi.mock('@/contexts/AuthContext');
+vi.mock('react-router-dom');
+vi.mock('sonner', () => ({
   toast: {
-    success: jest.fn(),
-    error: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
   }
 }));
 
@@ -20,10 +22,10 @@ describe('useInvitationAcceptance', () => {
   // Setup mocks before each test
   beforeEach(() => {
     // Mock navigation
-    (useNavigate as jest.Mock).mockReturnValue(jest.fn());
+    (useNavigate as unknown as ReturnType<typeof vi.fn>).mockReturnValue(vi.fn());
     
     // Default auth mock
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: { id: 'test-user-id' },
       session: { access_token: 'test-token' },
       loading: false
@@ -31,12 +33,12 @@ describe('useInvitationAcceptance', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should handle authentication loading state', () => {
     // Override auth mock for this test
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: null,
       session: null,
       loading: true
@@ -57,7 +59,7 @@ describe('useInvitationAcceptance', () => {
 
   it('should prompt unauthenticated user to log in', () => {
     // Override auth mock for this test
-    (useAuth as jest.Mock).mockReturnValue({
+    (useAuth as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: null,
       session: null,
       loading: false
@@ -71,7 +73,7 @@ describe('useInvitationAcceptance', () => {
 
   it('should handle successful invitation acceptance', async () => {
     // Mock successful API response
-    (invitationService.acceptInvitation as jest.Mock).mockResolvedValueOnce({
+    (invitationService.acceptInvitation as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       success: true,
       data: {
         message: 'Invitation accepted successfully',
@@ -95,7 +97,7 @@ describe('useInvitationAcceptance', () => {
 
   it('should handle invitation acceptance errors', async () => {
     // Mock API error
-    (invitationService.acceptInvitation as jest.Mock).mockResolvedValueOnce({
+    (invitationService.acceptInvitation as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       success: false,
       error: 'Invitation not found'
     });
