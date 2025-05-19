@@ -18,7 +18,7 @@ interface DocumentViewerContentProps {
   documentId?: string;
   versionId?: string;
   showCommentInput: boolean;
-  showCommentSidebar?: boolean; // Add this prop
+  showCommentSidebar?: boolean;
   setShowCommentInput: (show: boolean) => void;
   onCommentPosted?: () => void;
   onCommentCancel?: () => void;
@@ -30,7 +30,8 @@ interface DocumentViewerContentProps {
   onCommentChange?: (content: string) => void;
   onCommentSubmit?: () => void;
   onCommentClose?: () => void;
-  commentContent?: string; // Add this prop
+  commentContent?: string;
+  submitting?: boolean; // Add the missing submitting prop
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
