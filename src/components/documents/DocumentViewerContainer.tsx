@@ -30,6 +30,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     currentPage,
     showCommentSidebar,
     showExplanation,
+    setShowExplanation,
     handleToggleCommentSidebar
   } = useDocumentViewerState({ documentVersionUrl });
 
@@ -90,8 +91,8 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     await handleSubmitComment(locationData, currentPage);
   };
 
-  // Handle comment click in sidebar
-  const handleCommentClick = (commentId: string, commentLocationData: any) => {
+  // Handle comment sidebar item click
+  const handleSidebarCommentClick = (commentId: string, commentLocationData: any) => {
     console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
     // Future implementation: highlight the text in the document
   };
@@ -148,7 +149,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
         {showCommentSidebar && (
           <DocumentCommentsSidebar 
             versionId={versionId}
-            onCommentClick={handleCommentClick} 
+            onCommentClick={handleSidebarCommentClick} 
           />
         )}
       </div>
