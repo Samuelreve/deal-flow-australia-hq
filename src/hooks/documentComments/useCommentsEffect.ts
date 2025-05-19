@@ -1,22 +1,29 @@
 
 import { useEffect } from 'react';
 import { DocumentComment } from '@/types/documentComment';
+import { DocumentViewerRef } from '@/components/documents/DocumentViewer';
 
-/**
- * Hook for managing comment highlighting and selection effects
- */
-export function useCommentsEffect(
+export const useCommentsEffect = (
   activeCommentId: string | null,
   comments: DocumentComment[],
-  documentViewerRef: React.RefObject<{ highlightLocation: (locationData: any) => void }>
-) {
-  // Effect to highlight active comment's location when it changes
+  documentViewerRef: React.RefObject<DocumentViewerRef> | null
+) => {
+  // Effect to scroll to and highlight the selected comment's location
   useEffect(() => {
-    if (activeCommentId && comments.length > 0 && documentViewerRef.current) {
-      const activeComment = comments.find(comment => comment.id === activeCommentId);
-      if (activeComment?.location_data) {
-        documentViewerRef.current.highlightLocation(activeComment.location_data);
-      }
+    // Only proceed if we have an active comment ID and a valid ref
+    if (!activeCommentId || !documentViewerRef || !documentViewerRef.current) {
+      return;
+    }
+
+    // Find the active comment in the comments array
+    const activeComment = comments.find(comment => comment.id === activeCommentId);
+    if (!activeComment) {
+      return;
+    }
+
+    // If the comment has location data, highlight it
+    if (activeComment.location_data) {
+      documentViewerRef.current.highlightLocation(activeComment.location_data);
     }
   }, [activeCommentId, comments, documentViewerRef]);
-}
+};

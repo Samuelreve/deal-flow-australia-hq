@@ -1,10 +1,10 @@
 
-import { useState } from 'react';
+import { useState, ForwardedRef } from 'react';
 import { DocumentComment } from '@/types/documentComment';
 import { DocumentViewerRef } from '@/components/documents/DocumentViewer';
 
 export function useDocumentCommentSidebar(
-  documentViewerRef: React.RefObject<DocumentViewerRef>
+  documentViewerRef: ForwardedRef<DocumentViewerRef>
 ) {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
@@ -14,7 +14,10 @@ export function useDocumentCommentSidebar(
   const handleCommentClick = (commentId: string, commentLocationData: any) => {
     setActiveCommentId(commentId === activeCommentId ? null : commentId);
     
-    if (documentViewerRef.current && commentLocationData) {
+    // We need to check if documentViewerRef is a ref object or a function
+    if (typeof documentViewerRef === 'function') {
+      console.warn('Function ref cannot be used directly for highlighting');
+    } else if (documentViewerRef && documentViewerRef.current && commentLocationData) {
       documentViewerRef.current.highlightLocation(commentLocationData);
     }
   };

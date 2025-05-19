@@ -1,5 +1,5 @@
 
-import { useRef, useImperativeHandle } from 'react';
+import { useRef, useImperativeHandle, ForwardedRef } from 'react';
 import { DocumentViewerRef } from '@/components/documents/DocumentViewer';
 
 export function useDocumentViewerRef(
@@ -7,7 +7,7 @@ export function useDocumentViewerRef(
     highlightElement: HTMLElement | null;
     highlightLocation: (locationData: any) => void;
   }>,
-  ref: React.ForwardedRef<DocumentViewerRef>
+  ref: ForwardedRef<DocumentViewerRef>
 ) {
   // Create a mutable ref that will store the methods exposed via useImperativeHandle
   const internalDocumentViewerRef = useRef<DocumentViewerRef | null>(null);

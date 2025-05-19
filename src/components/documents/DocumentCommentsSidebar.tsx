@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, ForwardedRef } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
 import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
@@ -14,7 +13,7 @@ interface DocumentCommentsSidebarProps {
   versionId?: string;
   documentId?: string;
   dealId?: string;
-  documentViewerRef: React.RefObject<DocumentViewerRef>;
+  documentViewerRef: ForwardedRef<DocumentViewerRef>;
   onCommentClick?: (commentId: string, locationData: any) => void;
   onSidebarToggle?: (isOpen: boolean) => void;
 }
@@ -40,8 +39,15 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     locationData: any;
   } | null>(null);
 
-  // Use our comments effect hook
-  useCommentsEffect(activeCommentId, comments, documentViewerRef);
+  // Use our comments effect hook with updated handling for the ForwardedRef
+  const handleRefForEffect = () => {
+    if (typeof documentViewerRef === 'function') {
+      return null; // Function refs can't be directly used in this context
+    }
+    return documentViewerRef;
+  };
+  
+  useCommentsEffect(activeCommentId, comments, handleRefForEffect());
 
   // Handle comment triggered from viewer
   const handleCommentTriggeredFromViewer = (details: {
@@ -81,8 +87,10 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     // Set active comment
     setActiveCommentId(commentId === activeCommentId ? null : commentId);
     
-    // If we have a documentViewerRef and it has a highlightLocation method
-    if (documentViewerRef?.current?.highlightLocation && locationData) {
+    // Check if documentViewerRef is a function ref or an object ref
+    if (typeof documentViewerRef === 'function') {
+      console.warn('Function ref cannot be used directly for highlighting');
+    } else if (documentViewerRef?.current?.highlightLocation && locationData) {
       documentViewerRef.current.highlightLocation(locationData);
       console.log(`Highlighting comment ${commentId} with location data:`, locationData);
     } else {

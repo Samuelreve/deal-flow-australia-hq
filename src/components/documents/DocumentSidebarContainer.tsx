@@ -8,7 +8,7 @@ interface DocumentSidebarContainerProps {
   versionId?: string;
   documentId?: string;
   dealId?: string;
-  documentViewerRef: React.RefObject<DocumentViewerRef>;
+  documentViewerRef: React.ForwardedRef<DocumentViewerRef>;
   onCommentClick?: (commentId: string, locationData: any) => void;
   onSidebarToggle?: () => void;
 }
