@@ -1,178 +1,25 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import React from 'react';
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import AccountInformation from './AccountInformation';
+import PasswordChangeForm from './PasswordChangeForm';
+import DangerZone from './DangerZone';
 
 const AccountSettings: React.FC = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswordForm({
-      ...passwordForm,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmitPasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "New password and confirm password must match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.updateUser({ 
-        password: passwordForm.newPassword 
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
-      });
-      
-      // Clear form
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error updating password",
-        description: error.message || "There was a problem updating your password.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Account Information Section */}
-      <div>
-        <h3 className="text-lg font-medium">Account Information</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          View your account details
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
-              value={user?.profile?.email || ''} 
-              readOnly
-              disabled
-            />
-            <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
-          </div>
-        </div>
-      </div>
+      <AccountInformation />
 
       <Separator />
       
       {/* Password Change Section */}
-      <form onSubmit={handleSubmitPasswordChange}>
-        <h3 className="text-lg font-medium mb-4">Change Password</h3>
-        
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input 
-                id="currentPassword" 
-                name="currentPassword"
-                type="password"
-                value={passwordForm.currentPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input 
-                id="newPassword" 
-                name="newPassword"
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input 
-                id="confirmPassword" 
-                name="confirmPassword"
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Updating Password..." : "Update Password"}
-            </Button>
-          </CardContent>
-        </Card>
-      </form>
+      <PasswordChangeForm />
 
       {/* Account Deactivation Section - Just a placeholder for now */}
       <Separator />
       
-      <div>
-        <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Permanent actions that affect your account
-        </p>
-        
-        <Button 
-          variant="destructive" 
-          onClick={() => {
-            toast({
-              title: "Account deactivation",
-              description: "This feature is not yet implemented.",
-            });
-          }}
-        >
-          Deactivate Account
-        </Button>
-      </div>
+      <DangerZone />
     </div>
   );
 };
