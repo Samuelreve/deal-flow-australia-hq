@@ -18,13 +18,7 @@ export interface DocumentViewerRef {
 
 // This component is now a thin wrapper around DocumentViewerContainer that exposes the ref
 const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>((props, ref) => {
-  useImperativeHandle(ref, () => ({
-    highlightLocation: (locationData: any) => {
-      console.log('DocumentViewer: Highlighting location:', locationData);
-      // The actual implementation is delegated to the DocumentViewerContainer
-    }
-  }));
-
+  // Simply forward the ref to the DocumentViewerContainer
   return <DocumentViewerContainer {...props} ref={ref} />;
 });
 

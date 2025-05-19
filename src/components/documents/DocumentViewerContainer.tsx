@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
@@ -30,6 +29,9 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
   },
   ref
 ) => {
+  // Create a mutable ref that will store the methods exposed via useImperativeHandle
+  const internalDocumentViewerRef = useRef<DocumentViewerRef | null>(null);
+  
   // Use our custom hooks to manage state and functionality
   const {
     currentPage,
@@ -135,11 +137,20 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
   });
   
   // Expose the highlightLocation method via ref
-  useImperativeHandle(ref, () => ({
-    highlightLocation: (locationData: any) => {
-      highlightRef.current.highlightLocation(locationData);
-    }
-  }));
+  useImperativeHandle(ref, () => {
+    // Create an object that implements DocumentViewerRef interface
+    const refValue: DocumentViewerRef = {
+      highlightLocation: (locationData: any) => {
+        highlightRef.current.highlightLocation(locationData);
+      }
+    };
+    
+    // Store the ref value in our internal ref so we can use it in the component
+    internalDocumentViewerRef.current = refValue;
+    
+    // Return the ref value
+    return refValue;
+  });
 
   // Handle triggering AI explanation
   const handleExplainClick = () => {
@@ -240,7 +251,7 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
             versionId={versionId}
             documentId={documentId}
             dealId={dealId}
-            documentViewerRef={ref}
+            documentViewerRef={internalDocumentViewerRef}
             onCommentClick={handleSidebarCommentClick}
             onSidebarToggle={handleToggleCommentSidebar}
           />
