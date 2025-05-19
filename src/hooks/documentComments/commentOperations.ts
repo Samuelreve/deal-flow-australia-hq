@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { DocumentComment } from '@/types/documentComment';
+import { DocumentComment, DocumentCommentCreateData } from '@/types/documentComment';
 
 /**
  * Fetch all comments for a specific document version
@@ -36,7 +36,11 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
 /**
  * Add a new document comment
  */
-export async function addDocumentComment(versionId: string, commentData: any, userId: string) {
+export async function addDocumentComment(
+  versionId: string, 
+  commentData: Partial<DocumentCommentCreateData>, 
+  userId: string
+): Promise<DocumentComment | null> {
   try {
     const { parent_comment_id, content, page_number, location_data, selected_text } = commentData;
     

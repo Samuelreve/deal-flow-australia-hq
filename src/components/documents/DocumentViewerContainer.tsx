@@ -9,7 +9,8 @@ import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
 import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
 import { useDocumentCommentHandling } from '@/hooks/useDocumentCommentHandling';
 import { DocumentViewerRef } from './DocumentViewer';
-import { toast } from '@/components/ui/use-toast';
+import { useDocumentHighlighting } from '@/hooks/useDocumentHighlighting';
+import { useDocumentViewerRef } from '@/hooks/useDocumentViewerRef';
 
 // Define props for the DocumentViewerContainer component
 interface DocumentViewerContainerProps {
@@ -30,8 +31,8 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
   },
   ref
 ) => {
-  // Create a mutable ref that will store the methods exposed via useImperativeHandle
-  const internalDocumentViewerRef = useRef<DocumentViewerRef | null>(null);
+  // Document container ref
+  const documentContainerRef = useRef<HTMLDivElement>(null);
   
   // Use our custom hooks to manage state and functionality
   const {
@@ -67,91 +68,17 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
     selectedText,
     buttonPosition,
     locationData,
-    documentContainerRef,
     handleMouseUp,
     clearSelection,
     setSelectedText,
     setButtonPosition,
   } = useDocumentSelection(currentPage);
 
-  // Internal ref for highlighting functionality
-  const highlightRef = useRef({
-    // This function will be implemented with the actual highlighting logic
-    highlightElement: null as HTMLElement | null,
-    
-    highlightLocation: (locationData: any) => {
-      // Remove any existing highlight
-      if (highlightRef.current.highlightElement) {
-        highlightRef.current.highlightElement.remove();
-      }
-      
-      try {
-        if (!locationData) {
-          console.warn('No location data provided for highlighting');
-          return;
-        }
-        
-        console.log('Highlighting location:', locationData);
-        
-        if (locationData.selectedText) {
-          // Create a highlight overlay
-          const highlightElement = document.createElement('div');
-          highlightElement.className = 'absolute bg-yellow-200 bg-opacity-50 pointer-events-none transition-opacity duration-300 z-10';
-          highlightElement.style.position = 'absolute';
-          highlightElement.style.top = `${locationData.rect?.top || 0}px`;
-          highlightElement.style.left = `${locationData.rect?.left || 0}px`;
-          highlightElement.style.width = `${locationData.rect?.width || 100}px`;
-          highlightElement.style.height = `${locationData.rect?.height || 30}px`;
-          
-          // Add to the document container
-          if (documentContainerRef.current) {
-            documentContainerRef.current.appendChild(highlightElement);
-            highlightRef.current.highlightElement = highlightElement;
-            
-            // Auto-fade the highlight after a few seconds
-            setTimeout(() => {
-              if (highlightElement.parentNode) {
-                highlightElement.classList.add('opacity-0');
-                setTimeout(() => highlightElement.remove(), 1000);
-                highlightRef.current.highlightElement = null;
-              }
-            }, 3000);
-          }
-        }
-        
-        // Scroll to the page if page number is available
-        if (locationData.pageNumber && documentContainerRef.current) {
-          const pageElements = documentContainerRef.current.querySelectorAll('.page');
-          if (pageElements.length >= locationData.pageNumber) {
-            pageElements[locationData.pageNumber - 1].scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      } catch (error) {
-        console.error('Error highlighting location:', error);
-        toast({
-          title: "Highlighting Error",
-          description: "Could not highlight the selected location",
-          variant: "destructive"
-        });
-      }
-    }
-  });
+  // Use the highlighting hook
+  const highlightRef = useDocumentHighlighting(documentContainerRef);
   
-  // Expose the highlightLocation method via ref
-  useImperativeHandle(ref, () => {
-    // Create an object that implements DocumentViewerRef interface
-    const refValue: DocumentViewerRef = {
-      highlightLocation: (locationData: any) => {
-        highlightRef.current.highlightLocation(locationData);
-      }
-    };
-    
-    // Store the ref value in our internal ref so we can use it in the component
-    internalDocumentViewerRef.current = refValue;
-    
-    // Return the ref value
-    return refValue;
-  });
+  // Setup document viewer ref
+  const internalDocumentViewerRef = useDocumentViewerRef(highlightRef, ref);
 
   // Handle triggering AI explanation
   const handleExplainClick = () => {
@@ -178,7 +105,6 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
 
   // Handle submitting a comment
   const handleCommentSubmit = async () => {
-    // Fix: Call without parameters as per the function signature
     await handleSubmitComment();
   };
 
