@@ -1,10 +1,11 @@
 
-import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, forwardRef } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
 import DocumentViewerContent from './DocumentViewerContent';
 import DocumentViewerHeader from './DocumentViewerHeader';
+import DocumentSelectionOverlay from './DocumentSelectionOverlay';
 import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
 import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
 import { useDocumentCommentHandling } from '@/hooks/useDocumentCommentHandling';
@@ -150,11 +151,6 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
           handleMouseUp={handleMouseUp}
           documentVersionUrl={documentVersionUrl}
           showCommentSidebar={showCommentSidebar}
-          selectedText={selectedText}
-          buttonPosition={buttonPosition}
-          aiLoading={aiLoading}
-          showCommentInput={showCommentInput}
-          setShowCommentInput={setShowCommentInput}
           documentLoading={false}
           documentError={null}
           setDocumentLoading={() => {}}
@@ -163,14 +159,6 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
           documentId={documentId}
           versionId={versionId}
           onCommentPosted={() => {}}
-          onCommentCancel={() => {}}
-          submitting={submitting}
-          onExplainClick={handleExplainClick}
-          onCommentClick={handleCommentClick}
-          onCommentChange={setCommentContent}
-          onCommentSubmit={handleCommentSubmit}
-          onCommentClose={handleCloseCommentInput}
-          commentContent={commentContent}
         />
 
         {showCommentSidebar && (
@@ -184,6 +172,25 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
           />
         )}
       </div>
+      
+      <DocumentSelectionOverlay
+        selectedText={selectedText}
+        buttonPosition={buttonPosition}
+        aiLoading={aiLoading}
+        showCommentInput={showCommentInput}
+        dealId={dealId}
+        documentId={documentId}
+        versionId={versionId}
+        onExplainClick={handleExplainClick}
+        onCommentClick={handleCommentClick}
+        onCommentSubmit={handleCommentSubmit}
+        onCommentClose={handleCloseCommentInput}
+        onCommentChange={setCommentContent}
+        commentContent={commentContent}
+        submitting={submitting}
+        onCommentPosted={() => {}}
+        onCommentCancel={handleCloseCommentInput}
+      />
 
       {showExplanation && (
         <DocumentAIExplanation

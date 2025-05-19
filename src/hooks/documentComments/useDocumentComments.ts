@@ -1,22 +1,10 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DocumentComment } from "@/types/documentComment";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  fetchVersionComments, 
-  addDocumentComment, 
-  editDocumentComment,
-  deleteDocumentComment,
-  toggleCommentResolved
-} from "./commentOperations";
-import { 
-  addCommentToState, 
-  updateCommentInState, 
-  removeCommentFromState,
-  updateCommentResolvedStatus
-} from "./commentStateUpdaters";
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { fetchVersionComments, addDocumentComment, editDocumentComment, deleteDocumentComment, toggleCommentResolved } from "./commentOperations";
+import { addCommentToState, updateCommentInState, removeCommentFromState, updateCommentResolvedStatus } from "./commentStateUpdaters";
+import { useCommentRealtime } from "./useCommentRealtime";
 
 /**
  * Custom hook for managing document comments
@@ -26,7 +14,6 @@ export function useDocumentComments(documentVersionId?: string) {
   const [comments, setComments] = useState<DocumentComment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [commentsChannel, setCommentsChannel] = useState<RealtimeChannel | null>(null);
   
   /**
    * Load comments for a document version
@@ -43,115 +30,60 @@ export function useDocumentComments(documentVersionId?: string) {
     }
   }, [documentVersionId]);
 
-  /**
-   * Initialize comments when document version changes and setup realtime subscription
-   */
-  useEffect(() => {
+  // Set up real-time updates for comments
+  const handleNewComment = useCallback((newComment: DocumentComment) => {
+    // Get the new comment and fetch related user data
+    const fetchCommentDetails = async () => {
+      try {
+        const result = await fetchVersionComments(documentVersionId as string);
+        const fullComment = result.find(c => c.id === newComment.id);
+        if (fullComment) {
+          setComments(prevComments => addCommentToState(prevComments, fullComment));
+        }
+      } catch (err) {
+        console.error('Error fetching new comment details:', err);
+      }
+    };
+    
+    fetchCommentDetails();
+  }, [documentVersionId]);
+
+  const handleUpdatedComment = useCallback((updatedComment: DocumentComment) => {
+    if (updatedComment.content) {
+      // Content update
+      setComments(prevComments => 
+        updateCommentInState(prevComments, updatedComment.id, updatedComment.content)
+      );
+    }
+    
+    // Update resolved status if it has changed
+    if ('resolved' in updatedComment) {
+      setComments(prevComments => 
+        updateCommentResolvedStatus(prevComments, updatedComment.id, updatedComment.resolved)
+      );
+    }
+  }, []);
+
+  const handleDeletedComment = useCallback((deletedComment: DocumentComment) => {
+    setComments(prevComments => 
+      removeCommentFromState(prevComments, deletedComment.id, deletedComment.parent_comment_id)
+    );
+  }, []);
+
+  // Initialize the real-time subscription
+  useCommentRealtime(
+    documentVersionId,
+    handleNewComment,
+    handleUpdatedComment,
+    handleDeletedComment
+  );
+
+  // Initialize comments when documentVersionId changes
+  useCallback(() => {
     if (documentVersionId) {
       fetchComments();
-      
-      // Setup realtime subscription
-      const channel = supabase.channel(`document_comments:${documentVersionId}`);
-
-      channel
-        .on(
-          'postgres_changes',
-          { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'document_comments', 
-            filter: `document_version_id=eq.${documentVersionId}` 
-          },
-          (payload) => {
-            console.log('Realtime comment INSERT received:', payload);
-            
-            // Get the new comment and fetch related user data
-            const fetchCommentDetails = async () => {
-              try {
-                const { data, error } = await supabase
-                  .from('document_comments')
-                  .select(`
-                    *,
-                    user:profiles(id, name, email, avatar_url)
-                  `)
-                  .eq('id', payload.new.id)
-                  .single();
-                
-                if (error) throw error;
-                
-                if (data) {
-                  setComments(prevComments => addCommentToState(prevComments, data));
-                }
-              } catch (err) {
-                console.error('Error fetching new comment details:', err);
-              }
-            };
-            
-            fetchCommentDetails();
-          }
-        )
-        .on(
-          'postgres_changes',
-          { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'document_comments', 
-            filter: `document_version_id=eq.${documentVersionId}` 
-          },
-          (payload) => {
-            console.log('Realtime comment UPDATE received:', payload);
-            const updatedComment = payload.new as DocumentComment;
-            
-            if (updatedComment.content) {
-              // Content update
-              setComments(prevComments => 
-                updateCommentInState(prevComments, updatedComment.id, updatedComment.content)
-              );
-            }
-            
-            // Update resolved status if it has changed
-            if (payload.old.resolved !== updatedComment.resolved) {
-              setComments(prevComments => 
-                updateCommentResolvedStatus(prevComments, updatedComment.id, updatedComment.resolved)
-              );
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          { 
-            event: 'DELETE', 
-            schema: 'public', 
-            table: 'document_comments', 
-            filter: `document_version_id=eq.${documentVersionId}` 
-          },
-          (payload) => {
-            console.log('Realtime comment DELETE received:', payload);
-            const deletedComment = payload.old as DocumentComment;
-            setComments(prevComments => 
-              removeCommentFromState(prevComments, deletedComment.id, deletedComment.parent_comment_id)
-            );
-          }
-        )
-        .subscribe();
-      
-      setCommentsChannel(channel);
-      
-      // Cleanup function
-      return () => {
-        console.log('Cleaning up document comments subscription');
-        if (channel) {
-          supabase.removeChannel(channel);
-        }
-      };
     } else {
       setComments([]);
-      
-      // Clean up any existing channel when documentVersionId changes/becomes undefined
-      if (commentsChannel) {
-        supabase.removeChannel(commentsChannel);
-        setCommentsChannel(null);
-      }
     }
   }, [documentVersionId, fetchComments]);
 

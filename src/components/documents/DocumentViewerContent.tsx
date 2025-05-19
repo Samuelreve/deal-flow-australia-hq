@@ -1,10 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
 import DocumentErrorState from './DocumentErrorState';
-import DocumentCommentForm from './DocumentCommentForm';
-import DocumentSelectionActions from './DocumentSelectionActions';
 
 interface DocumentViewerContentProps {
   documentVersionUrl: string;
@@ -12,26 +10,13 @@ interface DocumentViewerContentProps {
   documentError: string | null;
   setDocumentLoading: (loading: boolean) => void;
   setDocumentError: (error: string | null) => void;
-  selectedText: string | null;
-  buttonPosition: { top: number; left: number } | null;
   dealId?: string;
   documentId?: string;
   versionId?: string;
-  showCommentInput: boolean;
   showCommentSidebar?: boolean;
-  setShowCommentInput: (show: boolean) => void;
-  onCommentPosted?: () => void;
-  onCommentCancel?: () => void;
   documentContainerRef: React.RefObject<HTMLDivElement>;
   handleMouseUp: () => void;
-  aiLoading?: boolean;
-  onExplainClick?: () => void;
-  onCommentClick?: () => void;
-  onCommentChange?: (content: string) => void;
-  onCommentSubmit?: () => void;
-  onCommentClose?: () => void;
-  commentContent?: string;
-  submitting?: boolean;
+  onCommentPosted?: () => void;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
@@ -40,26 +25,9 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   documentError,
   setDocumentLoading,
   setDocumentError,
-  selectedText,
-  buttonPosition,
-  dealId,
-  documentId,
-  versionId,
-  showCommentInput,
-  setShowCommentInput,
-  onCommentPosted,
-  onCommentCancel,
   documentContainerRef,
   handleMouseUp,
   showCommentSidebar,
-  aiLoading,
-  onExplainClick,
-  onCommentClick,
-  onCommentChange,
-  onCommentSubmit,
-  onCommentClose,
-  commentContent,
-  submitting
 }) => {
   // Handle document load/error
   const handleDocumentLoad = () => {
@@ -70,20 +38,6 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   const handleDocumentError = () => {
     setDocumentError('Failed to load document');
     setDocumentLoading(false);
-  };
-
-  // Reset state when document URL changes
-  useEffect(() => {
-    setDocumentLoading(true);
-    setDocumentError(null);
-  }, [documentVersionUrl, setDocumentLoading, setDocumentError]);
-
-  // Comment handling
-  const handleCommentCancel = () => {
-    setShowCommentInput(false);
-    if (onCommentCancel) {
-      onCommentCancel();
-    }
   };
 
   return (
@@ -101,28 +55,6 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
           documentVersionUrl={documentVersionUrl}
           onLoad={handleDocumentLoad}
           onError={handleDocumentError}
-        />
-      )}
-
-      {/* Selection action buttons */}
-      {selectedText && buttonPosition && !showCommentInput && !aiLoading && (
-        <DocumentSelectionActions
-          buttonPosition={buttonPosition}
-          onExplain={onExplainClick}
-          onAddComment={onCommentClick}
-        />
-      )}
-
-      {/* Comment form */}
-      {showCommentInput && selectedText && buttonPosition && versionId && (
-        <DocumentCommentForm
-          selectedText={selectedText}
-          buttonPosition={buttonPosition}
-          dealId={dealId}
-          documentId={documentId}
-          versionId={versionId}
-          onCommentPosted={onCommentPosted}
-          onCancel={handleCommentCancel}
         />
       )}
     </div>

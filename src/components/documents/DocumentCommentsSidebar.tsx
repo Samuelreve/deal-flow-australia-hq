@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
 import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
@@ -8,6 +8,7 @@ import { Loader2, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { DocumentViewerRef } from './DocumentViewer';
+import { useCommentsEffect } from '@/hooks/documentComments/useCommentsEffect';
 
 interface DocumentCommentsSidebarProps {
   versionId?: string;
@@ -39,12 +40,8 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     locationData: any;
   } | null>(null);
 
-  // Fetch comments when versionId changes
-  useEffect(() => {
-    if (versionId) {
-      fetchComments();
-    }
-  }, [versionId, fetchComments]);
+  // Use our comments effect hook
+  useCommentsEffect(activeCommentId, comments, documentViewerRef);
 
   // Handle comment triggered from viewer
   const handleCommentTriggeredFromViewer = (details: {
@@ -77,7 +74,6 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       title: "Comment posted",
       description: "Your comment has been added successfully"
     });
-    // With real-time updates, we don't need to manually refresh comments
   };
 
   // Handle clicking on a comment to highlight in the viewer
@@ -106,15 +102,12 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     setShowInputForm(true);
   };
 
-  // Effect to highlight active comment's location when it changes
-  useEffect(() => {
-    if (activeCommentId && documentViewerRef?.current?.highlightLocation) {
-      const activeComment = comments.find(comment => comment.id === activeCommentId);
-      if (activeComment?.location_data) {
-        documentViewerRef.current.highlightLocation(activeComment.location_data);
-      }
+  // Fetch comments when versionId changes
+  React.useEffect(() => {
+    if (versionId) {
+      fetchComments();
     }
-  }, [activeCommentId, comments, documentViewerRef]);
+  }, [versionId, fetchComments]);
 
   return (
     <div className="h-full border rounded-lg overflow-y-auto bg-background p-4 w-full">
