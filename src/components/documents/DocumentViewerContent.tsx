@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
@@ -18,7 +17,6 @@ interface DocumentViewerContentProps {
   documentId?: string;
   versionId?: string;
   showCommentInput: boolean;
-  showCommentSidebar?: boolean;
   setShowCommentInput: (show: boolean) => void;
   onCommentPosted?: () => void;
   onCommentCancel?: () => void;

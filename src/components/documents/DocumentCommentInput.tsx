@@ -1,9 +1,20 @@
 
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
+
+// Define the interface for new document comment data
+interface NewDocumentCommentData {
+  document_version_id: string;
+  content: string;
+  page_number?: number | null;
+  location_data?: any;
+  selected_text?: string | null;
+  parent_comment_id?: string | null;
+}
 
 interface DocumentCommentInputProps {
   selectedText: string | null;
