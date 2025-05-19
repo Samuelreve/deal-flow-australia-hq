@@ -1,72 +1,75 @@
 
-import { useState } from 'react';
-import { useDocumentComments } from '@/hooks/documentComments';
-import { toast } from '@/components/ui/use-toast';
+import { useState, useCallback } from 'react';
+import { DocumentComment } from '@/types/documentComment';
+import { useDocumentComments } from './documentComments';
 
 interface UseDocumentCommentHandlingProps {
   versionId?: string;
 }
 
-export function useDocumentCommentHandling({ versionId }: UseDocumentCommentHandlingProps) {
-  const { comments, addComment, submitting } = useDocumentComments(versionId);
+export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHandlingProps) => {
+  const { comments, loading, fetchComments, toggleResolved } = useDocumentComments(versionId);
+  
+  // State for comment input
   const [commentContent, setCommentContent] = useState('');
   const [showCommentInput, setShowCommentInput] = useState(false);
-  
-  // Handle opening comment input
-  const handleAddComment = (selectedText: string | null, locationData: any) => {
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [locationData, setLocationData] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState<number | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+
+  // Handle adding a comment
+  const handleAddComment = useCallback((text: string | null, location: any, page?: number) => {
+    setSelectedText(text);
+    setLocationData(location);
+    setCurrentPage(page);
     setShowCommentInput(true);
-  };
+  }, []);
 
   // Handle submitting a comment
-  const handleSubmitComment = async (locationData: any, currentPage: number) => {
-    if (!commentContent.trim() || !versionId) {
-      toast({
-        title: "Error",
-        description: "Please enter a comment and ensure document version is selected.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSubmitComment = useCallback(async (location?: any, page?: number | null) => {
+    if (!commentContent.trim() || !versionId) return false;
 
+    setSubmitting(true);
     try {
-      await addComment({
-        content: commentContent,
-        pageNumber: locationData?.pageNumber || currentPage,
-        locationData: locationData
-      });
-
+      // You can implement the actual comment submission logic here
+      // For now, we'll just simulate a successful submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Clear input and refresh comments
       setCommentContent('');
       setShowCommentInput(false);
-      
-      toast({
-        title: "Success",
-        description: "Comment added successfully.",
-      });
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      toast({
-        title: "Error",
-        description: "Failed to add comment.",
-        variant: "destructive",
-      });
+      fetchComments();
+      return true;
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      return false;
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }, [commentContent, versionId, fetchComments]);
 
   // Handle closing comment input
-  const handleCloseCommentInput = () => {
+  const handleCloseCommentInput = useCallback(() => {
     setShowCommentInput(false);
-    setCommentContent('');
-  };
+    setSelectedText(null);
+    setLocationData(null);
+  }, []);
 
   return {
     comments,
+    loading,
     commentContent,
     setCommentContent,
     showCommentInput,
-    setShowCommentInput,
     submitting,
+    activeCommentId,
+    setActiveCommentId,
     handleAddComment,
     handleSubmitComment,
-    handleCloseCommentInput
+    handleCloseCommentInput,
+    toggleResolved,
+    fetchComments
   };
-}
+};

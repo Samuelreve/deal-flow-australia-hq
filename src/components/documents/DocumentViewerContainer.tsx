@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
@@ -46,6 +47,8 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setCommentContent,
     showCommentInput,
     submitting,
+    activeCommentId,
+    setActiveCommentId,
     handleAddComment,
     handleSubmitComment,
     handleCloseCommentInput
@@ -62,6 +65,15 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setButtonPosition,
   } = useDocumentSelection(currentPage);
 
+  // Reference to expose highlightLocation method
+  const viewerRef = useRef({
+    highlightLocation: (locationData: any) => {
+      console.log('Highlight location:', locationData);
+      // Implementation would depend on your document viewer capabilities
+      // This could involve scrolling to a specific position and highlighting text
+    }
+  });
+
   // Handle triggering AI explanation
   const handleExplainClick = () => {
     if (!selectedText || aiLoading) return;
@@ -74,12 +86,12 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   // Handle opening comment input
   const handleCommentClick = () => {
     setButtonPosition(null);
-    handleAddComment(selectedText, locationData);
+    handleAddComment(selectedText, locationData, currentPage);
 
     if (onCommentTriggered && locationData) {
       onCommentTriggered({
         text: selectedText || '',
-        pageNumber: locationData.pageNumber,
+        pageNumber: locationData.pageNumber || currentPage,
         locationData: locationData
       });
     }
@@ -92,6 +104,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
 
   // Handle comment sidebar item click
   const handleSidebarCommentClick = (commentId: string, commentLocationData: any) => {
+    setActiveCommentId(commentId);
     console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
     // Future implementation: highlight the text in the document
   };
@@ -136,24 +149,33 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
           buttonPosition={buttonPosition}
           aiLoading={aiLoading}
           showCommentInput={showCommentInput}
-          commentContent={commentContent}
-          setShowCommentInput={() => {}}
+          setShowCommentInput={setShowCommentInput}
           documentLoading={false}
           documentError={null}
           setDocumentLoading={() => {}}
           setDocumentError={() => {}}
+          dealId={dealId}
+          documentId={documentId}
+          versionId={versionId}
+          onCommentPosted={() => {}}
+          onCommentCancel={() => {}}
           submitting={submitting}
           onExplainClick={handleExplainClick}
           onCommentClick={handleCommentClick}
           onCommentChange={setCommentContent}
           onCommentSubmit={handleCommentSubmit}
           onCommentClose={handleCloseCommentInput}
+          commentContent={commentContent}
         />
 
         {showCommentSidebar && (
           <DocumentCommentsSidebar 
             versionId={versionId}
-            onCommentClick={handleSidebarCommentClick} 
+            documentId={documentId}
+            dealId={dealId}
+            documentViewerRef={viewerRef}
+            onCommentClick={handleSidebarCommentClick}
+            onSidebarToggle={handleToggleCommentSidebar}
           />
         )}
       </div>

@@ -9,15 +9,17 @@ interface DocumentCommentsListProps {
   loading: boolean;
   onCommentClick: (commentId: string, locationData: any) => void;
   onToggleResolved: (commentId: string) => void;
+  activeCommentId?: string | null;
 }
 
 const DocumentCommentsList: React.FC<DocumentCommentsListProps> = ({
   comments,
   loading,
   onCommentClick,
-  onToggleResolved
+  onToggleResolved,
+  activeCommentId = null
 }) => {
-  if (loading) {
+  if (loading && comments.length === 0) {
     return (
       <div className="flex justify-center items-center h-20">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -43,6 +45,7 @@ const DocumentCommentsList: React.FC<DocumentCommentsListProps> = ({
           comment={comment}
           onCommentClick={onCommentClick}
           onToggleResolved={onToggleResolved}
+          isActive={comment.id === activeCommentId}
         />
       ))}
     </div>

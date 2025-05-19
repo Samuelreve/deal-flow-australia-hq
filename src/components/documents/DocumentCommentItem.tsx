@@ -9,12 +9,14 @@ interface DocumentCommentItemProps {
   comment: DocumentComment;
   onCommentClick: (commentId: string, locationData: any) => void;
   onToggleResolved: (commentId: string) => void;
+  isActive?: boolean;
 }
 
 const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   comment,
   onCommentClick,
-  onToggleResolved
+  onToggleResolved,
+  isActive = false
 }) => {
   const { user } = useAuth();
   
@@ -34,7 +36,11 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   
   return (
     <div 
-      className={`border rounded-md p-3 ${comment.resolved ? 'bg-muted' : 'bg-card'} hover:bg-accent/80 cursor-pointer transition-colors`}
+      className={`border rounded-md p-3 ${
+        isActive ? 'ring-2 ring-primary' : ''
+      } ${
+        comment.resolved ? 'bg-muted' : 'bg-card'
+      } hover:bg-accent/80 cursor-pointer transition-colors`}
       onClick={() => onCommentClick(comment.id, comment.location_data)}
     >
       <div className="flex justify-between items-start">
@@ -80,7 +86,10 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-3 pl-3 border-l-2">
-          <CommentReplies replies={comment.replies} />
+          <CommentReplies 
+            replies={comment.replies} 
+            isActive={isActive}
+          />
         </div>
       )}
     </div>
@@ -88,7 +97,13 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
 };
 
 // Helper component for rendering replies
-const CommentReplies = ({ replies }: { replies: DocumentComment[] }) => {
+const CommentReplies = ({ 
+  replies,
+  isActive
+}: { 
+  replies: DocumentComment[];
+  isActive?: boolean;
+}) => {
   return (
     <>
       <p className="text-xs text-muted-foreground mb-2 flex items-center">
@@ -96,7 +111,7 @@ const CommentReplies = ({ replies }: { replies: DocumentComment[] }) => {
         {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
       </p>
       {replies.map((reply) => (
-        <div key={reply.id} className="mt-2 p-2 bg-muted/50 rounded-sm">
+        <div key={reply.id} className={`mt-2 p-2 ${isActive ? 'bg-accent/50' : 'bg-muted/50'} rounded-sm`}>
           <div className="flex justify-between items-start">
             <div className="text-xs font-medium">{reply.user?.name || 'User'}</div>
             <div className="text-xs text-muted-foreground">

@@ -1,8 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
+import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
 import DocumentCommentsList from './DocumentCommentsList';
+import { Loader2, MessageSquare, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
 
 interface DocumentCommentsSidebarProps {
   versionId?: string;
@@ -21,11 +25,13 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   onCommentClick,
   onSidebarToggle
 }) => {
+  const { user } = useAuth();
   const { comments, loading, fetchComments, toggleResolved } = useDocumentComments(versionId);
   
-  // State for managing the comment form
-  const [showInputForm, setShowInputForm] = React.useState(false);
-  const [selectionDetails, setSelectionDetails] = React.useState<{
+  // State for managing the comment form and selections
+  const [showInputForm, setShowInputForm] = useState(false);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [selectionDetails, setSelectionDetails] = useState<{
     selectedText: string | null;
     pageNumber?: number;
     locationData: any;
@@ -62,12 +68,19 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   const handleCommentPosted = () => {
     setShowInputForm(false);
     setSelectionDetails(null);
+    toast({
+      title: "Comment posted",
+      description: "Your comment has been added successfully"
+    });
     // Refresh comments list
     fetchComments();
   };
 
   // Handle clicking on a comment to highlight in the viewer
   const handleCommentClick = (commentId: string, locationData: any) => {
+    // Set active comment
+    setActiveCommentId(commentId === activeCommentId ? null : commentId);
+    
     // If we have a documentViewerRef and it has a highlightLocation method
     if (documentViewerRef?.current?.highlightLocation && locationData) {
       documentViewerRef.current.highlightLocation(locationData);
@@ -79,20 +92,64 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     }
   };
 
+  // Effect to highlight active comment's location when it changes
+  useEffect(() => {
+    if (activeCommentId && documentViewerRef?.current?.highlightLocation) {
+      const activeComment = comments.find(comment => comment.id === activeCommentId);
+      if (activeComment?.location_data) {
+        documentViewerRef.current.highlightLocation(activeComment.location_data);
+      }
+    }
+  }, [activeCommentId, comments, documentViewerRef]);
+
   return (
-    <div className="h-full border rounded-lg overflow-y-auto bg-background p-4 w-1/3">
-      <h3 className="font-medium mb-4">Document Comments</h3>
+    <div className="h-full border rounded-lg overflow-y-auto bg-background p-4 w-full">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-medium">Document Comments ({comments.length})</h3>
+        {onSidebarToggle && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onSidebarToggle(false)}
+            className="h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       
-      <DocumentCommentsList 
-        comments={comments}
-        loading={loading}
-        onCommentClick={handleCommentClick}
-        onToggleResolved={toggleResolved}
-      />
+      {/* Loading state */}
+      {loading && comments.length === 0 && (
+        <div className="flex justify-center items-center h-20">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <span className="text-muted-foreground">Loading comments...</span>
+        </div>
+      )}
+      
+      {/* Empty state */}
+      {!loading && comments.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
+          <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/60" />
+          <p>No comments yet for this document.</p>
+          <p className="text-sm">Select text in the document to add comments.</p>
+        </div>
+      )}
+      
+      {/* Comments list */}
+      {comments.length > 0 && (
+        <DocumentCommentsList 
+          comments={comments}
+          loading={loading}
+          onCommentClick={handleCommentClick}
+          onToggleResolved={toggleResolved}
+          activeCommentId={activeCommentId}
+        />
+      )}
       
       {/* Comment Input Form */}
       {showInputForm && selectionDetails && (
         <div className="mt-4 border-t pt-4">
+          <h4 className="text-sm font-medium mb-2">Add Comment</h4>
           <DocumentCommentForm
             selectedText={selectionDetails.selectedText}
             buttonPosition={null} // Not applicable in sidebar context
