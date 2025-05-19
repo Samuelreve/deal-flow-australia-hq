@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2 } from 'lucide-react';
+import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2, Clock } from 'lucide-react';
 
 // Define the interface for a single notification
 export interface Notification {
@@ -37,12 +37,21 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 }) => {
   // Helper function to get icon based on notification type
   const getNotificationIcon = (type: string) => {
+    // First check if it's a progress nudging type
+    if (type === 'deal_inactive' || type === 'milestone_overdue') {
+      return <Clock className="h-5 w-5 text-yellow-500" />;
+    }
+    
+    // Then check standard types
     switch (type) {
       case 'milestone_status_updated': return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'document_uploaded': return <FileText className="h-5 w-5 text-blue-500" />;
       case 'message_added': return <Info className="h-5 w-5 text-gray-500" />;
       case 'participant_added': return <Users className="h-5 w-5 text-purple-500" />;
       case 'deal_status_changed': return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      case 'warning': return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      case 'error': return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
       default: return <Bell className="h-5 w-5 text-gray-500" />;
     }
   };

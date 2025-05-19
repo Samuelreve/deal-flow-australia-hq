@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NotificationItem from "./NotificationItem";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export const NotificationsDropdown = () => {
   const {
@@ -24,9 +26,20 @@ export const NotificationsDropdown = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    fetchNotifications
   } = useNotifications();
   
   const navigate = useNavigate();
+  
+  // Auto-refresh notifications periodically to check for new nudges
+  useEffect(() => {
+    // Fetch notifications every 5 minutes
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
   
   // Handle notification click with navigation
   const handleNotificationClick = (notification: Notification) => {
