@@ -1,138 +1,146 @@
 
-import { toast } from "@/components/ui/use-toast";
-import { DocumentComment } from "@/types/documentComment";
-import { 
-  getDocumentComments, 
-  createDocumentComment, 
-  updateCommentContent, 
-  deleteComment as deleteCommentApi,
-  toggleCommentResolved as toggleCommentResolvedApi
-} from "@/services/documentComments";
+import { supabase } from '@/integrations/supabase/client';
+import { DocumentComment } from '@/types/documentComment';
 
 /**
- * Helper functions for document comment operations
+ * Fetch all comments for a specific document version
  */
-
-/**
- * Fetch comments for a document version
- */
-export const fetchVersionComments = async (documentVersionId: string): Promise<DocumentComment[]> => {
+export async function fetchVersionComments(versionId: string): Promise<DocumentComment[]> {
   try {
-    return await getDocumentComments(documentVersionId);
-  } catch (error: any) {
-    console.error("Error fetching document comments:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load document comments",
-      variant: "destructive",
-    });
+    const { data, error } = await supabase
+      .from('document_comments')
+      .select(`
+        *,
+        user:profiles(id, name, email, avatar_url),
+        replies:document_comments(
+          *,
+          user:profiles(id, name, email, avatar_url)
+        )
+      `)
+      .eq('document_version_id', versionId)
+      .is('parent_comment_id', null)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching comments:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in fetchVersionComments:", error);
     return [];
   }
-};
+}
 
 /**
- * Add a new comment to a document version
+ * Add a new document comment
  */
-export const addDocumentComment = async (
-  documentVersionId: string, 
-  newCommentData: Omit<any, 'documentVersionId'>,
-  userId?: string
-): Promise<DocumentComment | null> => {
-  if (!documentVersionId || !userId) {
-    toast({
-      title: "Error",
-      description: "You must be logged in to add comments",
-      variant: "destructive",
-    });
+export async function addDocumentComment(versionId: string, commentData: any, userId: string) {
+  try {
+    const { parent_comment_id, content, page_number, location_data, selected_text } = commentData;
+    
+    const { data, error } = await supabase
+      .from('document_comments')
+      .insert({
+        document_version_id: versionId,
+        user_id: userId,
+        content,
+        page_number,
+        location_data,
+        parent_comment_id,
+        selected_text: selected_text || (location_data?.selectedText || null)
+      })
+      .select('*, user:profiles(id, name, email, avatar_url)')
+      .single();
+    
+    if (error) {
+      console.error("Error adding comment:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in addDocumentComment:", error);
     return null;
   }
-
-  try {
-    const commentData = {
-      document_version_id: documentVersionId,
-      content: newCommentData.content || '', // Ensure content is never undefined
-      ...newCommentData
-    };
-    
-    return await createDocumentComment(commentData);
-  } catch (error: any) {
-    console.error("Error adding comment:", error);
-    toast({
-      title: "Error",
-      description: "Failed to add your comment",
-      variant: "destructive",
-    });
-    return null;
-  }
-};
+}
 
 /**
- * Edit an existing comment
+ * Edit an existing document comment
  */
-export const editDocumentComment = async (commentId: string, content: string): Promise<boolean> => {
+export async function editDocumentComment(commentId: string, content: string): Promise<boolean> {
   try {
-    await updateCommentContent(commentId, content);
+    const { error } = await supabase
+      .from('document_comments')
+      .update({ content, updated_at: new Date().toISOString() })
+      .eq('id', commentId);
     
-    toast({
-      title: "Comment updated",
-      description: "Your comment has been updated successfully",
-    });
+    if (error) {
+      console.error("Error editing comment:", error);
+      throw error;
+    }
+    
     return true;
-  } catch (error: any) {
-    console.error("Error updating comment:", error);
-    toast({
-      title: "Error",
-      description: "Failed to update your comment",
-      variant: "destructive",
-    });
+  } catch (error) {
+    console.error("Error in editDocumentComment:", error);
     return false;
   }
-};
+}
 
 /**
- * Delete a comment
+ * Delete a document comment
  */
-export const deleteDocumentComment = async (commentId: string): Promise<boolean> => {
+export async function deleteDocumentComment(commentId: string): Promise<boolean> {
   try {
-    await deleteCommentApi(commentId);
+    const { error } = await supabase
+      .from('document_comments')
+      .delete()
+      .eq('id', commentId);
     
-    toast({
-      title: "Comment deleted",
-      description: "The comment has been deleted successfully",
-    });
+    if (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
+    
     return true;
-  } catch (error: any) {
-    console.error("Error deleting comment:", error);
-    toast({
-      title: "Error",
-      description: "Failed to delete comment",
-      variant: "destructive",
-    });
+  } catch (error) {
+    console.error("Error in deleteDocumentComment:", error);
     return false;
   }
-};
+}
 
 /**
- * Toggle a comment's resolved status
+ * Toggle the resolved status of a comment
  */
-export const toggleCommentResolved = async (commentId: string): Promise<{ newStatus: boolean }> => {
+export async function toggleCommentResolved(commentId: string): Promise<{ newStatus: boolean }> {
   try {
-    const newStatus = await toggleCommentResolvedApi(commentId);
+    // First get the current status
+    const { data: comment, error: fetchError } = await supabase
+      .from('document_comments')
+      .select('resolved')
+      .eq('id', commentId)
+      .single();
     
-    toast({
-      title: newStatus ? "Comment resolved" : "Comment reopened",
-      description: newStatus 
-        ? "The comment has been marked as resolved" 
-        : "The comment has been reopened",
-    });
+    if (fetchError) {
+      throw fetchError;
+    }
+    
+    // Toggle the status
+    const newStatus = !comment.resolved;
+    
+    const { error: updateError } = await supabase
+      .from('document_comments')
+      .update({ resolved: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', commentId);
+    
+    if (updateError) {
+      throw updateError;
+    }
+    
     return { newStatus };
-  } catch (error: any) {
-    console.error("Error toggling comment status:", error);
-    toast({
-      title: "Error",
-      description: "Failed to update comment status",
-      variant: "destructive",
-    });
+  } catch (error) {
+    console.error("Error in toggleCommentResolved:", error);
     throw error;
   }
-};
+}

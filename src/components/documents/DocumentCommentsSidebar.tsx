@@ -13,7 +13,7 @@ interface DocumentCommentsSidebarProps {
   versionId?: string;
   documentId?: string;
   dealId?: string;
-  documentViewerRef?: React.RefObject<DocumentViewerRef>;
+  documentViewerRef: React.RefObject<DocumentViewerRef>;
   onCommentClick?: (commentId: string, locationData: any) => void;
   onSidebarToggle?: (isOpen: boolean) => void;
 }
@@ -77,8 +77,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       title: "Comment posted",
       description: "Your comment has been added successfully"
     });
-    // Refresh comments list
-    fetchComments();
+    // With real-time updates, we don't need to manually refresh comments
   };
 
   // Handle clicking on a comment to highlight in the viewer
