@@ -3,12 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
-// Define the expected structure of the successful backend acceptance response
-interface AcceptanceSuccessResponse {
-  message: string;
-  dealId: string;
-}
+import { invitationService } from '@/services/invitationService';
 
 export const useInvitationAcceptance = (inviteToken: string | null) => {
   const { user, session, loading: authLoading } = useAuth();
@@ -19,54 +14,35 @@ export const useInvitationAcceptance = (inviteToken: string | null) => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [acceptedDealId, setAcceptedDealId] = useState<string | null>(null);
   
-  // Backend API endpoint for accepting invitation
-  const acceptInvitationUrl = '/api/invitations/accept'; // Example URL
-  
   // Function to handle invitation acceptance
   const handleAcceptInvitation = async (token: string, userId: string) => {
-    setStatusMessage(null);
+    setAcceptanceStatus('loading');
+    setStatusMessage('Accepting invitation...');
     
-    try {
-      // Make the POST request to your backend acceptance endpoint
-      const response = await fetch(acceptInvitationUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ token: token, userId: userId }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 400) {
-          throw new Error(errorData.message || 'Invalid invitation data.');
-        }
-        if (response.status === 404) {
-          throw new Error(errorData.message || 'Invitation not found or expired.');
-        }
-        if (response.status === 409) {
-          throw new Error(errorData.message || 'Invitation already accepted or you are already a participant.');
-        }
-        if (response.status === 403) {
-          throw new Error(errorData.message || 'Permission denied to accept this invitation.');
-        }
-        throw new Error(errorData.message || `Invitation acceptance failed with status: ${response.status}`);
-      }
-      
-      const result: AcceptanceSuccessResponse = await response.json();
-      
-      console.log('Invitation accepted successfully:', result);
-      setStatusMessage(result.message || 'Invitation accepted successfully!');
-      setAcceptedDealId(result.dealId);
-      setAcceptanceStatus('success');
-      toast.success(result.message || 'Invitation accepted!');
-      
-    } catch (error: any) {
-      console.error('Invitation acceptance error:', error);
-      setStatusMessage(`Failed to accept invitation: ${error.message}`);
+    if (!session?.access_token) {
       setAcceptanceStatus('error');
-      toast.error(`Failed to accept invitation: ${error.message}`);
+      setStatusMessage('Authentication token missing');
+      toast.error('Authentication token missing');
+      return;
+    }
+    
+    const result = await invitationService.acceptInvitation(
+      token,
+      userId,
+      session.access_token
+    );
+    
+    if (result.success && result.data) {
+      console.log('Invitation accepted successfully:', result.data);
+      setStatusMessage(result.data.message || 'Invitation accepted successfully!');
+      setAcceptedDealId(result.data.dealId);
+      setAcceptanceStatus('success');
+      toast.success(result.data.message || 'Invitation accepted!');
+    } else {
+      console.error('Invitation acceptance error:', result.error);
+      setStatusMessage(`Failed to accept invitation: ${result.error}`);
+      setAcceptanceStatus('error');
+      toast.error(`Failed to accept invitation: ${result.error}`);
     }
   };
   
@@ -86,14 +62,11 @@ export const useInvitationAcceptance = (inviteToken: string | null) => {
     }
     
     if (user) {
-      setAcceptanceStatus('loading');
-      setStatusMessage('Accepting invitation...');
       handleAcceptInvitation(inviteToken, user.id);
     } else {
       setAcceptanceStatus('idle');
       setStatusMessage('Please log in or sign up to accept this invitation.');
     }
-    
   }, [authLoading, user, inviteToken]);
   
   // Effect to redirect on success
