@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import QRCode from 'qrcode.react';
+import TwoFactorQRCode from './TwoFactorQRCode';
+import VerificationCodeInput from './VerificationCodeInput';
+import TwoFactorActionButtons from './TwoFactorActionButtons';
 
 interface TwoFactorSetupProps {
   totpSecret: string;
@@ -100,61 +100,21 @@ const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         or manually enter the secret key.
       </p>
       
-      <div className="flex flex-col items-center mb-4">
-        <div className="mb-4 p-2 border rounded-md bg-white">
-          <QRCode value={otpAuthUrl} size={160} level="H" />
-        </div>
-        
-        <div className="w-full mt-2">
-          <p className="text-xs mb-1">Secret key (for manual entry):</p>
-          <p className="text-sm font-mono bg-muted p-2 rounded-md break-all text-center">
-            {totpSecret}
-          </p>
-        </div>
-      </div>
+      <TwoFactorQRCode otpAuthUrl={otpAuthUrl} totpSecret={totpSecret} />
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="verification-code">
-          Enter Code from App
-        </label>
-        <input
-          type="text"
-          id="verification-code"
-          value={verificationCode}
-          onChange={(e) => setVerificationCode(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-center"
-          placeholder="000000"
-          maxLength={6}
-          disabled={isVerifying2fa}
-        />
-      </div>
+      <VerificationCodeInput
+        verificationCode={verificationCode}
+        setVerificationCode={setVerificationCode}
+        isVerifying={isVerifying2fa}
+        error={enableError}
+      />
 
-      {enableError && (
-        <p className="text-destructive text-sm">{enableError}</p>
-      )}
-
-      <div className="flex flex-col space-y-2">
-        <Button
-          onClick={handleVerify2faSetup}
-          disabled={isVerifying2fa || verificationCode.length !== 6}
-          variant="default"
-        >
-          {isVerifying2fa ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : "Verify and Enable"}
-        </Button>
-        
-        <Button
-          onClick={handleCancel}
-          variant="outline"
-          disabled={isVerifying2fa}
-        >
-          Cancel
-        </Button>
-      </div>
+      <TwoFactorActionButtons
+        onVerify={handleVerify2faSetup}
+        onCancel={handleCancel}
+        isVerifying={isVerifying2fa}
+        isDisabled={verificationCode.length !== 6}
+      />
     </div>
   );
 };
