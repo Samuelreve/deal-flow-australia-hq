@@ -2,24 +2,39 @@
 import { DealSummary } from "@/types/deal";
 
 /**
- * Calculates metrics from a list of deals
+ * Calculate various metrics from a collection of deals
  */
 export const calculateMetrics = (deals: DealSummary[]) => {
+  // Basic counts
+  const total = deals.length;
+  const active = deals.filter(d => d.status === "active").length;
+  const completed = deals.filter(d => d.status === "completed").length;
+  const pending = deals.filter(d => d.status === "pending").length;
+  const draft = deals.filter(d => d.status === "draft").length;
+  const cancelled = deals.filter(d => d.status === "cancelled").length;
+  
+  // Average health score (for active deals)
+  const activeDeals = deals.filter(d => d.status === "active");
+  const averageHealthScore = calculateAverageHealthScore(activeDeals);
+  
+  // Aggregated statistics
   return {
-    total: deals.length,
-    active: deals.filter(d => d.status === "active").length,
-    completed: deals.filter(d => d.status === "completed").length,
-    pending: deals.filter(d => d.status === "pending").length,
-    draft: deals.filter(d => d.status === "draft").length,
-    cancelled: deals.filter(d => d.status === "cancelled").length,
+    total,
+    active,
+    completed,
+    pending,
+    draft,
+    cancelled,
+    averageHealthScore
   };
 };
 
 /**
- * Calculates the average health score of active deals
+ * Calculate the average health score for a collection of deals
  */
-export const calculateAverageHealthScore = (activeDeals: DealSummary[]) => {
-  return activeDeals.length > 0 
-    ? activeDeals.reduce((sum, deal) => sum + deal.healthScore, 0) / activeDeals.length 
-    : 0;
+export const calculateAverageHealthScore = (deals: DealSummary[]) => {
+  if (!deals.length) return 0;
+  
+  const sum = deals.reduce((total, deal) => total + deal.healthScore, 0);
+  return Math.round(sum / deals.length);
 };
