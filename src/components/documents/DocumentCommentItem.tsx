@@ -1,14 +1,16 @@
 
 import React from 'react';
-import { CheckCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, MessageSquare, Reply } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DocumentComment } from '@/types/documentComment';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 interface DocumentCommentItemProps {
   comment: DocumentComment;
   onCommentClick: (commentId: string, locationData: any) => void;
   onToggleResolved: (commentId: string) => void;
+  onReplyClick?: (commentId: string) => void;
   isActive?: boolean;
 }
 
@@ -16,6 +18,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   comment,
   onCommentClick,
   onToggleResolved,
+  onReplyClick,
   isActive = false
 }) => {
   const { user } = useAuth();
@@ -23,6 +26,13 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   const handleResolveToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleResolved(comment.id);
+  };
+
+  const handleReplyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onReplyClick) {
+      onReplyClick(comment.id);
+    }
   };
 
   // Format the timestamp as a relative time (e.g., "2 hours ago")
@@ -83,12 +93,30 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
           Page {comment.page_number}
         </div>
       )}
+
+      {/* Reply button */}
+      {onReplyClick && (
+        <div className="mt-2 flex justify-end">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleReplyClick}
+            className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Reply className="h-3 w-3 mr-1" />
+            Reply
+          </Button>
+        </div>
+      )}
       
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-3 pl-3 border-l-2">
           <CommentReplies 
             replies={comment.replies} 
             isActive={isActive}
+            onReplyClick={onReplyClick}
+            onCommentClick={onCommentClick}
+            onToggleResolved={onToggleResolved}
           />
         </div>
       )}
@@ -99,10 +127,16 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
 // Helper component for rendering replies
 const CommentReplies = ({ 
   replies,
-  isActive
+  isActive,
+  onReplyClick,
+  onCommentClick,
+  onToggleResolved
 }: { 
   replies: DocumentComment[];
   isActive?: boolean;
+  onReplyClick?: (commentId: string) => void;
+  onCommentClick: (commentId: string, locationData: any) => void;
+  onToggleResolved: (commentId: string) => void;
 }) => {
   return (
     <>
@@ -111,15 +145,14 @@ const CommentReplies = ({
         {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
       </p>
       {replies.map((reply) => (
-        <div key={reply.id} className={`mt-2 p-2 ${isActive ? 'bg-accent/50' : 'bg-muted/50'} rounded-sm`}>
-          <div className="flex justify-between items-start">
-            <div className="text-xs font-medium">{reply.user?.name || 'User'}</div>
-            <div className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-            </div>
-          </div>
-          <div className="mt-1 text-sm">{reply.content}</div>
-        </div>
+        <DocumentCommentItem
+          key={reply.id}
+          comment={reply}
+          onCommentClick={onCommentClick}
+          onToggleResolved={onToggleResolved}
+          onReplyClick={onReplyClick}
+          isActive={isActive}
+        />
       ))}
     </>
   );

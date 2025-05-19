@@ -9,6 +9,7 @@ interface DocumentCommentsListProps {
   loading: boolean;
   onCommentClick: (commentId: string, locationData: any) => void;
   onToggleResolved: (commentId: string) => void;
+  onReplyClick?: (commentId: string) => void;
   activeCommentId?: string | null;
 }
 
@@ -17,6 +18,7 @@ const DocumentCommentsList: React.FC<DocumentCommentsListProps> = ({
   loading,
   onCommentClick,
   onToggleResolved,
+  onReplyClick,
   activeCommentId = null
 }) => {
   if (loading && comments.length === 0) {
@@ -37,14 +39,18 @@ const DocumentCommentsList: React.FC<DocumentCommentsListProps> = ({
     );
   }
 
+  // Filter to only show top-level comments (those without a parent_comment_id)
+  const topLevelComments = comments.filter(comment => !comment.parent_comment_id);
+
   return (
     <div className="space-y-4">
-      {comments.map((comment) => (
+      {topLevelComments.map((comment) => (
         <DocumentCommentItem 
           key={comment.id}
           comment={comment}
           onCommentClick={onCommentClick}
           onToggleResolved={onToggleResolved}
+          onReplyClick={onReplyClick}
           isActive={comment.id === activeCommentId}
         />
       ))}

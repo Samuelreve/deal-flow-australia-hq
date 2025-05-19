@@ -8,6 +8,7 @@ interface DocumentCommentFormProps {
   buttonPosition: { top: number; left: number } | null;
   pageNumber?: number;
   locationData?: any;
+  parentCommentId?: string | null;
   dealId?: string;
   documentId?: string;
   versionId?: string;
@@ -20,6 +21,7 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
   buttonPosition,
   pageNumber,
   locationData,
+  parentCommentId,
   dealId,
   documentId,
   versionId,
@@ -38,7 +40,7 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
   });
 
   const handleSubmit = () => {
-    return handleSubmitComment(locationData, pageNumber, selectedText);
+    return handleSubmitComment(locationData, pageNumber, selectedText, parentCommentId);
   };
 
   return (
@@ -55,6 +57,7 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
       setCommentContent={setCommentContent}
       onSubmit={handleSubmit}
       onClose={onCancel || (() => {})}
+      isReply={!!parentCommentId}
     />
   );
 };

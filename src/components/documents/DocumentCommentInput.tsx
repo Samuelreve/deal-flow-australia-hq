@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, X } from 'lucide-react';
@@ -30,6 +30,7 @@ interface DocumentCommentInputProps {
   documentId?: string;
   versionId?: string;
   submitting?: boolean; // For backward compatibility
+  isReply?: boolean;
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -46,6 +47,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   dealId,
   documentId,
   versionId,
+  isReply = false,
 }) => {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
@@ -67,7 +69,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
       id="comment-input-container"
     >
       <div className="flex justify-between items-center mb-2">
-        <h4 className="font-medium">Add Comment{pageNumber ? ` (Page ${pageNumber})` : ''}</h4>
+        <h4 className="font-medium">{isReply ? 'Reply to Comment' : `Add Comment${pageNumber ? ` (Page ${pageNumber})` : ''}`}</h4>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -83,7 +85,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
         ref={commentInputRef}
         value={commentContent}
         onChange={(e) => setCommentContent(e.target.value)}
-        placeholder="Type your comment here..."
+        placeholder={isReply ? "Write your reply..." : "Type your comment here..."}
         className="min-h-[100px] mb-2"
         autoFocus
       />
@@ -103,9 +105,9 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
+              {isReply ? 'Posting Reply...' : 'Submitting...'}
             </>
-          ) : 'Save Comment'}
+          ) : isReply ? 'Post Reply' : 'Save Comment'}
         </Button>
       </div>
     </div>

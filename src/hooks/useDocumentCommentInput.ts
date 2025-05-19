@@ -19,7 +19,7 @@ export const useDocumentCommentInput = ({
   const [commentContent, setCommentContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
-  const handleSubmitComment = async (locationData?: any, pageNumber?: number, selectedText?: string | null) => {
+  const handleSubmitComment = async (locationData?: any, pageNumber?: number, selectedText?: string | null, parentCommentId?: string | null) => {
     if (!commentContent.trim()) {
       toast({
         title: "Error",
@@ -47,7 +47,8 @@ export const useDocumentCommentInput = ({
         content: commentContent.trim(),
         page_number: pageNumber || null,
         location_data: locationData || null,
-        selected_text: selectedText || null
+        selected_text: selectedText || null,
+        parent_comment_id: parentCommentId || null
       };
 
       // Create the comment
@@ -66,7 +67,7 @@ export const useDocumentCommentInput = ({
       
       toast({
         title: "Success",
-        description: "Comment added successfully",
+        description: parentCommentId ? "Reply added successfully" : "Comment added successfully",
       });
       
       return true;

@@ -18,17 +18,28 @@ export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHand
   const [currentPage, setCurrentPage] = useState<number | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
 
   // Handle adding a comment
   const handleAddComment = useCallback((text: string | null, location: any, page?: number) => {
     setSelectedText(text);
     setLocationData(location);
     setCurrentPage(page);
+    setReplyToCommentId(null);
+    setShowCommentInput(true);
+  }, []);
+
+  // Handle replying to a comment
+  const handleReplyToComment = useCallback((commentId: string) => {
+    setReplyToCommentId(commentId);
+    setSelectedText(null);
+    setLocationData(null);
+    setCurrentPage(undefined);
     setShowCommentInput(true);
   }, []);
 
   // Handle submitting a comment
-  const handleSubmitComment = useCallback(async (location?: any, page?: number | null) => {
+  const handleSubmitComment = useCallback(async () => {
     if (!commentContent.trim() || !versionId) return false;
 
     setSubmitting(true);
@@ -40,6 +51,7 @@ export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHand
       // Clear input and refresh comments
       setCommentContent('');
       setShowCommentInput(false);
+      setReplyToCommentId(null);
       fetchComments();
       return true;
     } catch (error) {
@@ -55,6 +67,7 @@ export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHand
     setShowCommentInput(false);
     setSelectedText(null);
     setLocationData(null);
+    setReplyToCommentId(null);
   }, []);
 
   return {
@@ -67,7 +80,10 @@ export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHand
     submitting,
     activeCommentId,
     setActiveCommentId,
+    replyToCommentId,
+    setReplyToCommentId,
     handleAddComment,
+    handleReplyToComment,
     handleSubmitComment,
     handleCloseCommentInput,
     toggleResolved,

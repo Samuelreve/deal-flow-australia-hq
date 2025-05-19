@@ -31,6 +31,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   // State for managing the comment form and selections
   const [showInputForm, setShowInputForm] = useState(false);
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
   const [selectionDetails, setSelectionDetails] = useState<{
     selectedText: string | null;
     pageNumber?: number;
@@ -55,6 +56,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       pageNumber: details.pageNumber,
       locationData: details.locationData
     });
+    setReplyToCommentId(null);
     setShowInputForm(true);
   };
 
@@ -62,12 +64,14 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   const handleCancelInput = () => {
     setShowInputForm(false);
     setSelectionDetails(null);
+    setReplyToCommentId(null);
   };
 
   // Handle comment posted successfully
   const handleCommentPosted = () => {
     setShowInputForm(false);
     setSelectionDetails(null);
+    setReplyToCommentId(null);
     toast({
       title: "Comment posted",
       description: "Your comment has been added successfully"
@@ -90,6 +94,13 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     if (onCommentClick) {
       onCommentClick(commentId, locationData);
     }
+  };
+
+  // Handle replying to a comment
+  const handleReplyClick = (commentId: string) => {
+    setReplyToCommentId(commentId);
+    setSelectionDetails(null);
+    setShowInputForm(true);
   };
 
   // Effect to highlight active comment's location when it changes
@@ -142,19 +153,23 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
           loading={loading}
           onCommentClick={handleCommentClick}
           onToggleResolved={toggleResolved}
+          onReplyClick={handleReplyClick}
           activeCommentId={activeCommentId}
         />
       )}
       
       {/* Comment Input Form */}
-      {showInputForm && selectionDetails && (
+      {showInputForm && (
         <div className="mt-4 border-t pt-4">
-          <h4 className="text-sm font-medium mb-2">Add Comment</h4>
+          <h4 className="text-sm font-medium mb-2">
+            {replyToCommentId ? 'Reply to Comment' : 'Add Comment'}
+          </h4>
           <DocumentCommentForm
-            selectedText={selectionDetails.selectedText}
+            selectedText={selectionDetails?.selectedText}
             buttonPosition={null} // Not applicable in sidebar context
-            pageNumber={selectionDetails.pageNumber}
-            locationData={selectionDetails.locationData}
+            pageNumber={selectionDetails?.pageNumber}
+            locationData={selectionDetails?.locationData}
+            parentCommentId={replyToCommentId}
             dealId={dealId}
             documentId={documentId}
             versionId={versionId}
