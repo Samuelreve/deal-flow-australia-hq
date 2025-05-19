@@ -3,6 +3,7 @@ import React from 'react';
 import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
 import DocumentErrorState from './DocumentErrorState';
+import { useDocumentLoader } from '@/hooks/useDocumentLoader';
 
 interface DocumentViewerContentProps {
   documentVersionUrl: string;
@@ -21,24 +22,16 @@ interface DocumentViewerContentProps {
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   documentVersionUrl,
-  documentLoading,
-  documentError,
-  setDocumentLoading,
-  setDocumentError,
-  documentContainerRef,
-  handleMouseUp,
   showCommentSidebar,
+  documentContainerRef,
+  handleMouseUp
 }) => {
-  // Handle document load/error
-  const handleDocumentLoad = () => {
-    setDocumentLoading(false);
-    setDocumentError(null);
-  };
-
-  const handleDocumentError = () => {
-    setDocumentError('Failed to load document');
-    setDocumentLoading(false);
-  };
+  const {
+    documentLoading,
+    documentError,
+    handleDocumentLoad,
+    handleDocumentError
+  } = useDocumentLoader(documentVersionUrl);
 
   return (
     <div 

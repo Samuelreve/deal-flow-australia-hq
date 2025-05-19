@@ -1,11 +1,8 @@
 
-import React, { useRef } from 'react';
-import DocumentViewerContent from './DocumentViewerContent';
-import DocumentCommentsSidebar from './DocumentCommentsSidebar';
+import React from 'react';
+import DocumentContentArea from './DocumentContentArea';
+import DocumentSidebarContainer from './DocumentSidebarContainer';
 import { DocumentViewerRef } from './DocumentViewer';
-import { useDocumentHighlighting } from '@/hooks/useDocumentHighlighting';
-import { useDocumentViewerRef } from '@/hooks/useDocumentViewerRef';
-import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import { useDocumentCommentSidebar } from '@/hooks/useDocumentCommentSidebar';
 
 interface DocumentViewerContentContainerProps {
@@ -27,52 +24,38 @@ const DocumentViewerContentContainer: React.FC<DocumentViewerContentContainerPro
   dealId,
   documentId,
   versionId,
-  currentPage,
   onMouseUp,
   ref,
   onCommentClick,
   onToggleSidebar
 }) => {
-  // Document container ref
-  const documentContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Setup highlighting and viewer refs
-  const highlightRef = useDocumentHighlighting(documentContainerRef);
-  const internalDocumentViewerRef = useDocumentViewerRef(highlightRef, ref);
-  
   // Set up comment sidebar handling
   const {
     activeCommentId,
     handleCommentClick: handleSidebarCommentClick
-  } = useDocumentCommentSidebar(internalDocumentViewerRef);
+  } = useDocumentCommentSidebar(ref);
 
   return (
     <div className="flex flex-1 gap-4">
-      <DocumentViewerContent
-        documentContainerRef={documentContainerRef}
-        handleMouseUp={onMouseUp}
+      <DocumentContentArea
         documentVersionUrl={documentVersionUrl}
         showCommentSidebar={showCommentSidebar}
-        documentLoading={false}
-        documentError={null}
-        setDocumentLoading={() => {}}
-        setDocumentError={() => {}}
         dealId={dealId}
         documentId={documentId}
         versionId={versionId}
-        onCommentPosted={() => {}}
+        onMouseUp={onMouseUp}
+        forwardedRef={ref}
       />
 
-      {showCommentSidebar && (
-        <DocumentCommentsSidebar 
-          versionId={versionId}
-          documentId={documentId}
-          dealId={dealId}
-          documentViewerRef={internalDocumentViewerRef}
-          onCommentClick={onCommentClick || handleSidebarCommentClick}
-          onSidebarToggle={onToggleSidebar}
-        />
-      )}
+      <DocumentSidebarContainer
+        showSidebar={showCommentSidebar}
+        versionId={versionId}
+        documentId={documentId}
+        dealId={dealId}
+        documentViewerRef={ref as React.RefObject<DocumentViewerRef>}
+        onCommentClick={onCommentClick || handleSidebarCommentClick}
+        onSidebarToggle={onToggleSidebar}
+      />
     </div>
   );
 };
