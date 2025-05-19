@@ -17,6 +17,7 @@ interface DocumentViewerContentProps {
   documentId?: string;
   versionId?: string;
   showCommentInput: boolean;
+  showCommentSidebar?: boolean;
   setShowCommentInput: (show: boolean) => void;
   onCommentPosted?: () => void;
   onCommentCancel?: () => void;
