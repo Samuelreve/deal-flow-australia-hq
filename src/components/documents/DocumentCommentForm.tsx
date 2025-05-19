@@ -13,6 +13,9 @@ interface DocumentCommentFormProps {
   onClose: () => void;
   pageNumber?: number;
   locationData?: any;
+  dealId?: string;
+  documentId?: string;
+  versionId?: string;
 }
 
 const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
@@ -25,7 +28,12 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
   onClose,
   pageNumber,
   locationData,
+  dealId,
+  documentId,
+  versionId,
 }) => {
+  const { user } = useAuth();
+  
   return (
     <DocumentCommentInput
       selectedText={selectedText}
@@ -37,6 +45,9 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
       onClose={onClose}
       pageNumber={pageNumber}
       locationData={locationData}
+      dealId={dealId}
+      documentId={documentId}
+      versionId={versionId}
     />
   );
 };

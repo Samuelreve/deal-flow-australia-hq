@@ -15,6 +15,9 @@ interface DocumentCommentInputProps {
   onClose: () => void;
   pageNumber?: number;
   locationData?: any;
+  dealId?: string;
+  documentId?: string;
+  versionId?: string;
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -27,18 +30,24 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   onClose,
   pageNumber,
   locationData,
+  dealId,
+  documentId,
+  versionId,
 }) => {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
 
+  // Determine if this is displayed as an absolute positioned form or inline in sidebar
+  const isAbsolutePositioned = !!buttonPosition;
+
   return (
     <div 
-      className="absolute z-20 bg-background border rounded-lg shadow-lg p-4 w-80"
-      style={{ 
-        top: buttonPosition ? `${buttonPosition.top}px` : '50%', 
-        left: buttonPosition ? `${buttonPosition.left}px` : '50%',
-        transform: buttonPosition ? 'translateX(-50%)' : 'translate(-50%, -50%)'
-      }}
+      className={`${isAbsolutePositioned ? 'absolute z-20' : ''} bg-background border rounded-lg shadow-lg p-4 ${isAbsolutePositioned ? 'w-80' : 'w-full'}`}
+      style={isAbsolutePositioned ? { 
+        top: `${buttonPosition.top}px`, 
+        left: `${buttonPosition.left}px`,
+        transform: 'translateX(-50%)'
+      } : undefined}
       id="comment-input-container"
     >
       <div className="flex justify-between items-center mb-2">
