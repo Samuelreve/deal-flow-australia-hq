@@ -1,94 +1,103 @@
-
-import { DocumentComment } from "@/services/documentComment";
+import { DocumentComment } from '@/types/documentComment';
 
 /**
- * Update comments state when a new comment is added
+ * Add a new comment to the state
  */
 export const addCommentToState = (
-  prevComments: DocumentComment[],
+  prevComments: DocumentComment[], 
   newComment: DocumentComment
 ): DocumentComment[] => {
-  if (newComment.parentCommentId) {
-    // For replies, find parent and add to its replies
-    return prevComments.map(comment => 
-      comment.id === newComment.parentCommentId 
-        ? { 
-            ...comment, 
-            replies: [...(comment.replies || []), newComment]
-          }
-        : comment
-    );
-  } else {
-    // For top-level comments, add to the list
-    return [...prevComments, newComment];
+  // If it's a reply, find the parent comment and add to its replies
+  if (newComment.parent_comment_id) {
+    return prevComments.map(comment => {
+      if (comment.id === newComment.parent_comment_id) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), newComment]
+        };
+      }
+      return comment;
+    });
   }
+  
+  // Otherwise, add as a top-level comment
+  return [...prevComments, newComment];
 };
 
 /**
- * Update comments state when a comment is edited
+ * Update an existing comment's content in the state
  */
 export const updateCommentInState = (
   prevComments: DocumentComment[],
   commentId: string,
   content: string
 ): DocumentComment[] => {
+  // Check if it's a top-level comment
+  const topLevelComment = prevComments.find(comment => comment.id === commentId);
+  
+  if (topLevelComment) {
+    // Update top-level comment
+    return prevComments.map(comment => {
+      if (comment.id === commentId) {
+        return { ...comment, content };
+      }
+      return comment;
+    });
+  }
+  
+  // Check if it's a reply
   return prevComments.map(comment => {
-    if (comment.id === commentId) {
-      return { ...comment, content };
-    }
-    // Check in replies if not found at top level
-    if (comment.replies?.length) {
-      const updatedReplies = comment.replies.map(reply => 
-        reply.id === commentId ? { ...reply, content } : reply
-      );
-      return { ...comment, replies: updatedReplies };
+    if (comment.replies?.some(reply => reply.id === commentId)) {
+      return {
+        ...comment,
+        replies: comment.replies.map(reply => {
+          if (reply.id === commentId) {
+            return { ...reply, content };
+          }
+          return reply;
+        })
+      };
     }
     return comment;
   });
 };
 
 /**
- * Update comments state when a comment is deleted
+ * Remove a comment from the state
  */
 export const removeCommentFromState = (
   prevComments: DocumentComment[],
   commentId: string,
   parentId?: string
 ): DocumentComment[] => {
+  // If it has a parent ID, it's a reply
   if (parentId) {
-    // If it's a reply, remove from parent's replies
-    return prevComments.map(comment => 
-      comment.id === parentId
-        ? { 
-            ...comment, 
-            replies: comment.replies?.filter(reply => reply.id !== commentId) || []
-          }
-        : comment
-    );
-  } else {
-    // If it's a top-level comment, remove from the list
-    return prevComments.filter(comment => comment.id !== commentId);
+    return prevComments.map(comment => {
+      if (comment.id === parentId) {
+        return {
+          ...comment,
+          replies: (comment.replies || []).filter(reply => reply.id !== commentId)
+        };
+      }
+      return comment;
+    });
   }
+  
+  // Otherwise it's a top-level comment
+  return prevComments.filter(comment => comment.id !== commentId);
 };
 
 /**
- * Update comments state when a comment's resolved status changes
+ * Update a comment's resolved status
  */
 export const updateCommentResolvedStatus = (
   prevComments: DocumentComment[],
   commentId: string,
-  newStatus: boolean
+  resolved: boolean
 ): DocumentComment[] => {
   return prevComments.map(comment => {
     if (comment.id === commentId) {
-      return { ...comment, resolved: newStatus };
-    }
-    // Check in replies if not found at top level
-    if (comment.replies?.length) {
-      const updatedReplies = comment.replies.map(reply => 
-        reply.id === commentId ? { ...reply, resolved: newStatus } : reply
-      );
-      return { ...comment, replies: updatedReplies };
+      return { ...comment, resolved };
     }
     return comment;
   });

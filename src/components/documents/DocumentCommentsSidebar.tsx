@@ -1,10 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
-import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
 import DocumentCommentsList from './DocumentCommentsList';
-import { toast } from '@/components/ui/use-toast';
 
 interface DocumentCommentsSidebarProps {
   versionId?: string;
@@ -24,11 +22,10 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   onSidebarToggle
 }) => {
   const { comments, loading, fetchComments, toggleResolved } = useDocumentComments(versionId);
-  const { user } = useAuth();
   
   // State for managing the comment form
-  const [showInputForm, setShowInputForm] = useState(false);
-  const [selectionDetails, setSelectionDetails] = useState<{
+  const [showInputForm, setShowInputForm] = React.useState(false);
+  const [selectionDetails, setSelectionDetails] = React.useState<{
     selectedText: string | null;
     pageNumber?: number;
     locationData: any;

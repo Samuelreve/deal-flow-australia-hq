@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { DocumentComment } from "@/services/documentComment";
+import { DocumentComment } from "@/types/documentComment";
 import { 
   fetchVersionComments, 
   addDocumentComment, 

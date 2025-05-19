@@ -1,10 +1,13 @@
 
 import { toast } from "@/components/ui/use-toast";
+import { DocumentComment } from "@/types/documentComment";
 import { 
-  DocumentComment, 
-  CreateDocumentCommentDto, 
-  documentCommentService 
-} from "@/services/documentComment";
+  getDocumentComments, 
+  createDocumentComment, 
+  updateCommentContent, 
+  deleteComment as deleteCommentApi,
+  toggleCommentResolved as toggleCommentResolvedApi
+} from "@/services/documentComments";
 
 /**
  * Helper functions for document comment operations
@@ -15,7 +18,7 @@ import {
  */
 export const fetchVersionComments = async (documentVersionId: string): Promise<DocumentComment[]> => {
   try {
-    return await documentCommentService.getCommentsByVersionId(documentVersionId);
+    return await getDocumentComments(documentVersionId);
   } catch (error: any) {
     console.error("Error fetching document comments:", error);
     toast({
@@ -32,7 +35,7 @@ export const fetchVersionComments = async (documentVersionId: string): Promise<D
  */
 export const addDocumentComment = async (
   documentVersionId: string, 
-  newCommentData: Omit<CreateDocumentCommentDto, 'documentVersionId'>,
+  newCommentData: Omit<any, 'documentVersionId'>,
   userId?: string
 ): Promise<DocumentComment | null> => {
   if (!documentVersionId || !userId) {
@@ -45,12 +48,12 @@ export const addDocumentComment = async (
   }
 
   try {
-    const commentData: CreateDocumentCommentDto = {
-      ...newCommentData,
-      documentVersionId
+    const commentData = {
+      document_version_id: documentVersionId,
+      ...newCommentData
     };
     
-    return await documentCommentService.createComment(commentData);
+    return await createDocumentComment(commentData);
   } catch (error: any) {
     console.error("Error adding comment:", error);
     toast({
@@ -67,7 +70,7 @@ export const addDocumentComment = async (
  */
 export const editDocumentComment = async (commentId: string, content: string): Promise<boolean> => {
   try {
-    await documentCommentService.updateComment(commentId, content);
+    await updateCommentContent(commentId, content);
     
     toast({
       title: "Comment updated",
@@ -90,7 +93,7 @@ export const editDocumentComment = async (commentId: string, content: string): P
  */
 export const deleteDocumentComment = async (commentId: string): Promise<boolean> => {
   try {
-    await documentCommentService.deleteComment(commentId);
+    await deleteCommentApi(commentId);
     
     toast({
       title: "Comment deleted",
@@ -113,7 +116,7 @@ export const deleteDocumentComment = async (commentId: string): Promise<boolean>
  */
 export const toggleCommentResolved = async (commentId: string): Promise<{ newStatus: boolean }> => {
   try {
-    const newStatus = await documentCommentService.toggleResolved(commentId);
+    const newStatus = await toggleCommentResolvedApi(commentId);
     
     toast({
       title: newStatus ? "Comment resolved" : "Comment reopened",

@@ -1,18 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
-interface CommentCreateData {
-  document_version_id: string;
-  content: string;
-  page_number?: number | null;
-  location_data?: any;
-  selected_text?: string | null;
-}
+import { DocumentComment, DocumentCommentCreateData } from '@/types/documentComment';
 
 /**
  * Creates a new document comment
  */
-export const createDocumentComment = async (data: CommentCreateData) => {
+export const createDocumentComment = async (data: DocumentCommentCreateData): Promise<DocumentComment> => {
   // Get current user
   const { data: userData, error: userError } = await supabase.auth.getUser();
   
@@ -40,7 +33,7 @@ export const createDocumentComment = async (data: CommentCreateData) => {
 /**
  * Get comments for a document version
  */
-export const getDocumentComments = async (versionId: string) => {
+export const getDocumentComments = async (versionId: string): Promise<DocumentComment[]> => {
   const { data, error } = await supabase
     .from('document_comments')
     .select(`
@@ -60,4 +53,62 @@ export const getDocumentComments = async (versionId: string) => {
   }
   
   return data;
+};
+
+/**
+ * Toggle the resolved status of a comment
+ */
+export const toggleCommentResolved = async (commentId: string): Promise<boolean> => {
+  // First, get the current status
+  const { data: currentComment, error: fetchError } = await supabase
+    .from('document_comments')
+    .select('resolved')
+    .eq('id', commentId)
+    .single();
+  
+  if (fetchError) {
+    throw fetchError;
+  }
+  
+  // Toggle the status
+  const newStatus = !currentComment.resolved;
+  
+  const { error: updateError } = await supabase
+    .from('document_comments')
+    .update({ resolved: newStatus })
+    .eq('id', commentId);
+  
+  if (updateError) {
+    throw updateError;
+  }
+  
+  return newStatus;
+};
+
+/**
+ * Update a comment's content
+ */
+export const updateCommentContent = async (commentId: string, content: string): Promise<void> => {
+  const { error } = await supabase
+    .from('document_comments')
+    .update({ content })
+    .eq('id', commentId);
+  
+  if (error) {
+    throw error;
+  }
+};
+
+/**
+ * Delete a comment
+ */
+export const deleteComment = async (commentId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('document_comments')
+    .delete()
+    .eq('id', commentId);
+  
+  if (error) {
+    throw error;
+  }
 };
