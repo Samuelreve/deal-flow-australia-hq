@@ -21,6 +21,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
 import OnboardingIntentPage from "./pages/OnboardingIntentPage";
 import IntentCapturePage from "./pages/IntentCapturePage";
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/create-deal" element={<CreateDealPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
 
