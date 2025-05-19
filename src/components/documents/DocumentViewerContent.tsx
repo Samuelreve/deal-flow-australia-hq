@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
@@ -54,6 +55,11 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   aiLoading,
   onExplainClick,
   onCommentClick,
+  onCommentChange,
+  onCommentSubmit,
+  onCommentClose,
+  commentContent,
+  submitting
 }) => {
   // Handle document load/error
   const handleDocumentLoad = () => {
