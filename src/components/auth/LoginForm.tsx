@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import StandardLoginForm from "./StandardLoginForm";
+import TwoFactorVerification from "./TwoFactorVerification";
 
 interface LoginFormProps {
   onSignUp: () => void;
@@ -17,8 +18,6 @@ interface LoginFormProps {
 
 export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -28,21 +27,8 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
   const [needs2fa, setNeeds2fa] = useState(false);
   const [enrolledFactorId, setEnrolledFactorId] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [isVerifying2faLogin, setIsVerifying2faLogin] = useState(false);
   
-  useEffect(() => {
-    if (isAuthenticated && inviteToken) {
-      // Redirect to accept invitation page if logged in with invite token
-      navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
-    } else if (isAuthenticated) {
-      // Standard redirect to dashboard
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate, inviteToken]);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSubmit = async (email: string, password: string) => {
     setError("");
     setIsLoading(true);
     
@@ -50,8 +36,6 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
     setNeeds2fa(false);
     setEnrolledFactorId(null);
     setChallengeId(null);
-    setTwoFactorCode('');
-    setIsVerifying2faLogin(false);
     
     try {
       // Use supabase client directly to check for MFA first
@@ -100,7 +84,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
       const success = await login(email, password);
       if (success) {
         console.log("Login successful");
-        // The navigation will be handled by the useEffect above
+        // The navigation will be handled by the useEffect in Login page
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during login");
@@ -110,15 +94,12 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
     }
   };
   
-  const handleVerify2faCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!challengeId || !twoFactorCode) {
+  const handleVerify2faCode = async (code: string) => {
+    if (!challengeId || !code) {
       setError("Please enter the verification code.");
       return;
     }
     
-    setIsVerifying2faLogin(true);
     setError("");
     
     try {
@@ -126,13 +107,12 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
       const { data, error } = await supabase.auth.mfa.verify({
         factorId: enrolledFactorId as string,
         challengeId,
-        code: twoFactorCode,
+        code,
       });
       
       if (error) {
         console.error('2FA Verification Error:', error.message);
         setError('Invalid verification code. Please try again.');
-        setIsVerifying2faLogin(false);
         return;
       }
       
@@ -143,36 +123,20 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during 2FA verification");
       console.error(err);
-    } finally {
-      setIsVerifying2faLogin(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError("Please enter your email address to reset your password");
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password',
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast.success("Password reset instructions sent to your email");
-    } catch (err: any) {
-      setError(err.message || "Failed to send password reset email");
-    } finally {
-      setIsLoading(false);
     }
   };
   
+  const handleCancelTwoFactor = () => {
+    setNeeds2fa(false);
+    setChallengeId(null);
+    setEnrolledFactorId(null);
+  };
+
+  const handleResetPassword = async () => {
+    // This will be implemented in an upcoming feature
+    toast.info("Password reset functionality coming soon");
+  };
+
   return (
     <Card className="border-accent-foreground/20 shadow-lg">
       <CardHeader>
@@ -184,13 +148,6 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
         {showSuccess && (
           <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
             <AlertDescription>
@@ -200,109 +157,19 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
         )}
         
         {needs2fa ? (
-          // 2FA Verification form
-          <form onSubmit={handleVerify2faCode} className="space-y-4">
-            <div className="text-center mb-4">
-              <p>Please enter the verification code from your authenticator app.</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="twoFactorCode">Verification Code</Label>
-              <Input
-                id="twoFactorCode"
-                type="text"
-                placeholder="000000"
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value)}
-                className="text-center text-lg"
-                required
-                maxLength={6}
-                disabled={isVerifying2faLogin}
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isVerifying2faLogin || twoFactorCode.length !== 6}
-            >
-              {isVerifying2faLogin ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : "Verify"}
-            </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => {
-                setNeeds2fa(false);
-                setTwoFactorCode('');
-                setChallengeId(null);
-                setEnrolledFactorId(null);
-              }}
-              disabled={isVerifying2faLogin}
-            >
-              Back to Login
-            </Button>
-          </form>
+          <TwoFactorVerification 
+            challengeId={challengeId || ""}
+            onVerify={handleVerify2faCode}
+            onCancel={handleCancelTwoFactor}
+            error={error}
+          />
         ) : (
-          // Regular login form
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="border-input/50"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="px-0 h-auto text-primary" 
-                  type="button"
-                  onClick={handleResetPassword}
-                  disabled={isLoading}
-                >
-                  Forgot password?
-                </Button>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-input/50"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : "Sign in"}
-            </Button>
+          <>
+            <StandardLoginForm 
+              onSubmit={handleLoginSubmit}
+              error={error}
+              isLoading={isLoading}
+            />
             
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
@@ -322,7 +189,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
             >
               Create an account
             </Button>
-          </form>
+          </>
         )}
       </CardContent>
       <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground p-6 pt-0">
