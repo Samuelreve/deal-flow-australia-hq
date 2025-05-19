@@ -63,6 +63,7 @@ export const useDocumentCommentHandling = ({ versionId }: UseDocumentCommentHand
     commentContent,
     setCommentContent,
     showCommentInput,
+    setShowCommentInput,
     submitting,
     activeCommentId,
     setActiveCommentId,

@@ -51,7 +51,8 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setActiveCommentId,
     handleAddComment,
     handleSubmitComment,
-    handleCloseCommentInput
+    handleCloseCommentInput,
+    setShowCommentInput
   } = useDocumentCommentHandling({ versionId });
 
   const {
