@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
 import { useDocumentComments } from '@/hooks/documentComments';
@@ -147,6 +148,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   // Handle comment click in sidebar
   const handleCommentClick = (commentId: string, commentLocationData: any) => {
     console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
+    // Future implementation: highlight the text in the document
   };
 
   // Effect to update explanationResult when hook's result changes
@@ -223,8 +225,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
 
         {showCommentSidebar && (
           <DocumentCommentsSidebar 
-            comments={comments} 
-            loading={commentsLoading}
+            versionId={versionId}
             onCommentClick={handleCommentClick} 
           />
         )}

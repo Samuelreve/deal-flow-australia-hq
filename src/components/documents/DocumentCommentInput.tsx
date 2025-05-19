@@ -12,6 +12,7 @@ interface DocumentCommentInputProps {
   submitting: boolean;
   onSubmit: () => void;
   onClose: () => void;
+  pageNumber?: number;
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -22,6 +23,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   submitting,
   onSubmit,
   onClose,
+  pageNumber,
 }) => {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,7 +38,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
       id="comment-input-container"
     >
       <div className="flex justify-between items-center mb-2">
-        <h4 className="font-medium">Add Comment</h4>
+        <h4 className="font-medium">Add Comment{pageNumber ? ` (Page ${pageNumber})` : ''}</h4>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -44,7 +46,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
       
       {selectedText && (
         <div className="bg-muted p-2 rounded-sm mb-2 text-xs italic">
-          {selectedText.length > 100 ? selectedText.substring(0, 100) + '...' : selectedText}
+          "{selectedText.length > 100 ? selectedText.substring(0, 100) + '...' : selectedText}"
         </div>
       )}
       
@@ -54,9 +56,17 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
         onChange={(e) => setCommentContent(e.target.value)}
         placeholder="Type your comment here..."
         className="min-h-[100px] mb-2"
+        autoFocus
       />
       
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button 
+          variant="outline"
+          onClick={onClose}
+          disabled={submitting}
+        >
+          Cancel
+        </Button>
         <Button 
           onClick={onSubmit}
           disabled={submitting || !commentContent.trim()}
