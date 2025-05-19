@@ -25,6 +25,9 @@ interface DocumentViewerContentProps {
   onCommentClose: () => void;
   locationData?: any;
   pageNumber?: number;
+  dealId?: string;
+  documentId?: string;
+  versionId?: string;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
@@ -45,6 +48,9 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   onCommentClose,
   locationData,
   pageNumber,
+  dealId,
+  documentId,
+  versionId,
 }) => {
   const {
     documentLoading,
@@ -98,6 +104,9 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
           onClose={onCommentClose}
           pageNumber={pageNumber}
           locationData={locationData}
+          dealId={dealId}
+          documentId={documentId}
+          versionId={versionId}
         />
       )}
     </div>

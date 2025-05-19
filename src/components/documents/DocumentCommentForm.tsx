@@ -1,53 +1,60 @@
 
 import React from 'react';
 import DocumentCommentInput from './DocumentCommentInput';
-import { useAuth } from '@/contexts/AuthContext';
+import { useDocumentCommentInput } from '@/hooks/useDocumentCommentInput';
 
 interface DocumentCommentFormProps {
   selectedText: string | null;
   buttonPosition: { top: number; left: number } | null;
-  commentContent: string;
-  submitting: boolean;
-  onCommentChange: (content: string) => void;
-  onSubmit: () => void;
-  onClose: () => void;
   pageNumber?: number;
   locationData?: any;
   dealId?: string;
   documentId?: string;
   versionId?: string;
+  onCommentPosted?: (newComment: any) => void;
+  onCancel?: () => void;
 }
 
 const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
   selectedText,
   buttonPosition,
-  commentContent,
-  submitting,
-  onCommentChange,
-  onSubmit,
-  onClose,
   pageNumber,
   locationData,
   dealId,
   documentId,
   versionId,
+  onCommentPosted,
+  onCancel
 }) => {
-  const { user } = useAuth();
-  
+  const {
+    commentContent,
+    setCommentContent,
+    isPosting,
+    handleSubmitComment
+  } = useDocumentCommentInput({
+    versionId,
+    onCommentPosted,
+    onCancel
+  });
+
+  const handleSubmit = () => {
+    return handleSubmitComment(locationData, pageNumber, selectedText);
+  };
+
   return (
     <DocumentCommentInput
-      selectedText={selectedText}
-      buttonPosition={buttonPosition}
-      commentContent={commentContent}
-      setCommentContent={onCommentChange}
-      submitting={submitting}
-      onSubmit={onSubmit}
-      onClose={onClose}
-      pageNumber={pageNumber}
-      locationData={locationData}
       dealId={dealId}
       documentId={documentId}
       versionId={versionId}
+      pageNumber={pageNumber}
+      locationData={locationData}
+      selectedText={selectedText}
+      buttonPosition={buttonPosition}
+      isPosting={isPosting}
+      commentContent={commentContent}
+      setCommentContent={setCommentContent}
+      onSubmit={handleSubmit}
+      onCancel={onCancel}
     />
   );
 };

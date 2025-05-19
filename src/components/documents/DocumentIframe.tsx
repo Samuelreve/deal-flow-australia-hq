@@ -1,16 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface DocumentIframeProps {
   documentVersionUrl: string;
-  onLoad: () => void;
-  onError: () => void;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
-const DocumentIframe: React.FC<DocumentIframeProps> = ({
+const DocumentIframe: React.FC<DocumentIframeProps> = ({ 
   documentVersionUrl,
   onLoad,
-  onError,
+  onError
 }) => {
   return (
     <div className="h-full">
