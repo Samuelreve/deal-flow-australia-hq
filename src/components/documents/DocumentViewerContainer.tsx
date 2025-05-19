@@ -100,7 +100,9 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
 
   // Handle submitting a comment
   const handleCommentSubmit = async () => {
-    await handleSubmitComment(locationData, currentPage);
+    // Here's the issue - we need to fix this line to match the expected parameters
+    // or adjust it to not pass any parameters if the function doesn't accept any
+    await handleSubmitComment();
   };
 
   // Handle comment sidebar item click
