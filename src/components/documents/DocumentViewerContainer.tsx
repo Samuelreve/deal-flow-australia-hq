@@ -1,14 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { useDocumentAI } from '@/hooks/useDocumentAI';
-import { useDocumentComments } from '@/hooks/documentComments';
+import React, { useEffect } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
 import DocumentViewerContent from './DocumentViewerContent';
-import { toast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
+import DocumentViewerHeader from './DocumentViewerHeader';
+import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
+import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
+import { useDocumentCommentHandling } from '@/hooks/useDocumentCommentHandling';
 
 // Define props for the DocumentViewerContainer component
 interface DocumentViewerContainerProps {
@@ -26,26 +25,31 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   versionId,
   onCommentTriggered,
 }) => {
-  // Document viewer state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [showCommentSidebar, setShowCommentSidebar] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [commentContent, setCommentContent] = useState('');
-  const [explanationResult, setExplanationResult] = useState<{ explanation?: string; disclaimer: string } | null>(null);
+  // Use our custom hooks to manage state and functionality
+  const {
+    currentPage,
+    showCommentSidebar,
+    showExplanation,
+    handleToggleCommentSidebar
+  } = useDocumentViewerState({ documentVersionUrl });
 
-  // Use hooks for functionality
-  const { explainClause, loading: aiLoading, result, error, clearResult } = useDocumentAI({
-    dealId,
-  });
+  const {
+    aiLoading,
+    explanationResult,
+    handleExplainSelectedText,
+    handleCloseExplanation
+  } = useDocumentExplanation({ dealId });
 
-  const { 
-    comments, 
-    loading: commentsLoading, 
+  const {
+    comments,
+    commentContent,
+    setCommentContent,
+    showCommentInput,
     submitting,
-    addComment,
-  } = useDocumentComments(versionId);
+    handleAddComment,
+    handleSubmitComment,
+    handleCloseCommentInput
+  } = useDocumentCommentHandling({ versionId });
 
   const {
     selectedText,
@@ -59,28 +63,18 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   } = useDocumentSelection(currentPage);
 
   // Handle triggering AI explanation
-  const handleExplainSelectedText = async () => {
+  const handleExplainClick = () => {
     if (!selectedText || aiLoading) return;
 
     setButtonPosition(null);
     setShowExplanation(true);
-    setShowCommentInput(false);
-    setExplanationResult(null);
-
-    try {
-      const result = await explainClause(selectedText);
-      setExplanationResult(result || { explanation: 'Could not get explanation.', disclaimer: 'Failed to retrieve explanation.' });
-    } catch (err) {
-      console.error('Error explaining clause:', err);
-      setExplanationResult({ explanation: 'An error occurred while getting the explanation.', disclaimer: 'Error occurred.' });
-    }
+    handleExplainSelectedText(selectedText);
   };
 
   // Handle opening comment input
-  const handleAddComment = () => {
+  const handleCommentClick = () => {
     setButtonPosition(null);
-    setShowCommentInput(true);
-    setShowExplanation(false);
+    handleAddComment(selectedText, locationData);
 
     if (onCommentTriggered && locationData) {
       onCommentTriggered({
@@ -92,57 +86,8 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   };
 
   // Handle submitting a comment
-  const handleSubmitComment = async () => {
-    if (!commentContent.trim() || !versionId) {
-      toast({
-        title: "Error",
-        description: "Please enter a comment and ensure document version is selected.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await addComment({
-        content: commentContent,
-        pageNumber: locationData?.pageNumber || currentPage,
-        locationData: locationData
-      });
-
-      setCommentContent('');
-      setShowCommentInput(false);
-      
-      toast({
-        title: "Success",
-        description: "Comment added successfully.",
-      });
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      toast({
-        title: "Error",
-        description: "Failed to add comment.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle closing explanation display
-  const handleCloseExplanation = () => {
-    setShowExplanation(false);
-    setExplanationResult(null);
-    setSelectedText(null);
-    clearResult();
-  };
-
-  // Handle closing comment input
-  const handleCloseCommentInput = () => {
-    setShowCommentInput(false);
-    setCommentContent('');
-  };
-
-  // Toggle comment sidebar
-  const handleToggleCommentSidebar = () => {
-    setShowCommentSidebar(prev => !prev);
+  const handleCommentSubmit = async () => {
+    await handleSubmitComment(locationData, currentPage);
   };
 
   // Handle comment click in sidebar
@@ -150,21 +95,6 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
     // Future implementation: highlight the text in the document
   };
-
-  // Effect to update explanationResult when hook's result changes
-  useEffect(() => {
-    if (result) {
-      setExplanationResult(result);
-    }
-  }, [result]);
-
-  // Effect to clear selection when documentVersionUrl changes
-  useEffect(() => {
-    clearSelection();
-    setCurrentPage(1);
-    setShowExplanation(false);
-    setShowCommentInput(false);
-  }, [documentVersionUrl, clearSelection]);
 
   // Effect to clear selection when clicking outside the button
   useEffect(() => {
@@ -191,18 +121,10 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Document Viewer</h3>
-        <Button
-          onClick={handleToggleCommentSidebar}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1"
-        >
-          <MessageSquare className="h-4 w-4" />
-          <span>{comments.length} Comments</span>
-        </Button>
-      </div>
+      <DocumentViewerHeader 
+        commentsCount={comments.length} 
+        onToggleCommentSidebar={handleToggleCommentSidebar} 
+      />
 
       <div className="flex flex-1 gap-4">
         <DocumentViewerContent
@@ -216,10 +138,10 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
           showCommentInput={showCommentInput}
           commentContent={commentContent}
           submitting={submitting}
-          onExplainClick={handleExplainSelectedText}
-          onCommentClick={handleAddComment}
+          onExplainClick={handleExplainClick}
+          onCommentClick={handleCommentClick}
           onCommentChange={setCommentContent}
-          onCommentSubmit={handleSubmitComment}
+          onCommentSubmit={handleCommentSubmit}
           onCommentClose={handleCloseCommentInput}
         />
 
