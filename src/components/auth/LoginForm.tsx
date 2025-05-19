@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -74,7 +73,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
           throw factorError;
         }
         
-        const totpFactor = factorData.factors?.find(f => 
+        const totpFactor = factorData.totp?.find(f => 
           f.factor_type === 'totp' && f.status === 'verified'
         );
         
