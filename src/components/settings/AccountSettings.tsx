@@ -3,6 +3,7 @@ import React from 'react';
 import { Separator } from "@/components/ui/separator";
 import AccountInformation from './AccountInformation';
 import PasswordChangeForm from './PasswordChangeForm';
+import AccountSecuritySection from './AccountSecuritySection';
 import DangerZone from './DangerZone';
 
 const AccountSettings: React.FC = () => {
@@ -16,7 +17,12 @@ const AccountSettings: React.FC = () => {
       {/* Password Change Section */}
       <PasswordChangeForm />
 
-      {/* Account Deactivation Section - Just a placeholder for now */}
+      <Separator />
+      
+      {/* Account Security Section with 2FA */}
+      <AccountSecuritySection />
+
+      {/* Account Deactivation Section */}
       <Separator />
       
       <DangerZone />
