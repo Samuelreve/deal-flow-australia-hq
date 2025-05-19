@@ -96,11 +96,25 @@ const AccountSecuritySection: React.FC = () => {
       // Verify the code against the challenge
       const { data, error } = await supabase.auth.mfa.challenge({
         factorId: challengeId,
-        code: verificationCode,
       });
 
       if (error) {
-        console.error('2FA Verification Error:', error.message);
+        console.error('2FA Challenge Error:', error.message);
+        setEnableError('Failed to create challenge. Please try again.');
+        toast.error('2FA verification failed.');
+        setIsVerifying2fa(false);
+        return;
+      }
+
+      // Now verify the code
+      const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: challengeId,
+        challengeId: data.id,
+        code: verificationCode,
+      });
+
+      if (verifyError) {
+        console.error('2FA Verification Error:', verifyError.message);
         setEnableError('Invalid code. Please try again.');
         toast.error('2FA verification failed.');
         setIsVerifying2fa(false);
@@ -108,7 +122,7 @@ const AccountSecuritySection: React.FC = () => {
       }
 
       // Verification successful! 2FA is now enabled.
-      console.log('2FA setup verified successfully:', data);
+      console.log('2FA setup verified successfully:', verifyData);
       setIs2faEnabled(true);
       setTotpSecret(null);
       setChallengeId(null);

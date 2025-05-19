@@ -66,7 +66,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
       }
       
       // Check if 2FA is required
-      if (data?.user?.mfa_enabled) {
+      if (data?.user) {
         // User has 2FA enabled, get factors
         const { data: factorData, error: factorError } = await supabase.auth.mfa.listFactors();
         
