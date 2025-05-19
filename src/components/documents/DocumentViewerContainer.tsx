@@ -1,9 +1,7 @@
 
-import React, { useEffect, useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
-import DocumentCommentsSidebar from './DocumentCommentsSidebar';
-import DocumentViewerContent from './DocumentViewerContent';
 import DocumentViewerHeader from './DocumentViewerHeader';
 import DocumentSelectionOverlay from './DocumentSelectionOverlay';
 import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
@@ -12,6 +10,8 @@ import { useDocumentCommentHandling } from '@/hooks/useDocumentCommentHandling';
 import { DocumentViewerRef } from './DocumentViewer';
 import { useDocumentHighlighting } from '@/hooks/useDocumentHighlighting';
 import { useDocumentViewerRef } from '@/hooks/useDocumentViewerRef';
+import { useDocumentSelectionState } from '@/hooks/useDocumentSelectionState';
+import DocumentViewerContentContainer from './DocumentViewerContentContainer';
 
 // Define props for the DocumentViewerContainer component
 interface DocumentViewerContainerProps {
@@ -115,28 +115,14 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
     highlightRef.current.highlightLocation(commentLocationData);
   };
 
-  // Effect to clear selection when clicking outside the button
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (documentContainerRef.current && !documentContainerRef.current.contains(event.target as Node)) {
-        const commentInput = document.getElementById('comment-input-container');
-        const explanationDisplay = document.getElementById('explanation-display');
-        
-        if (
-          (!commentInput || !commentInput.contains(event.target as Node)) && 
-          (!explanationDisplay || !explanationDisplay.contains(event.target as Node))
-        ) {
-          if (!showCommentInput && !showExplanation) {
-            setSelectedText(null);
-            setButtonPosition(null);
-          }
-        }
-      }
-    };
-
-    document.body.addEventListener('click', handleClickOutside);
-    return () => document.body.removeEventListener('click', handleClickOutside);
-  }, [documentContainerRef, showCommentInput, showExplanation, setSelectedText, setButtonPosition]);
+  // Set up selection state
+  useDocumentSelectionState(
+    documentContainerRef,
+    showCommentInput,
+    showExplanation,
+    setSelectedText,
+    setButtonPosition
+  );
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -145,33 +131,18 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
         onToggleCommentSidebar={handleToggleCommentSidebar} 
       />
 
-      <div className="flex flex-1 gap-4">
-        <DocumentViewerContent
-          documentContainerRef={documentContainerRef}
-          handleMouseUp={handleMouseUp}
-          documentVersionUrl={documentVersionUrl}
-          showCommentSidebar={showCommentSidebar}
-          documentLoading={false}
-          documentError={null}
-          setDocumentLoading={() => {}}
-          setDocumentError={() => {}}
-          dealId={dealId}
-          documentId={documentId}
-          versionId={versionId}
-          onCommentPosted={() => {}}
-        />
-
-        {showCommentSidebar && (
-          <DocumentCommentsSidebar 
-            versionId={versionId}
-            documentId={documentId}
-            dealId={dealId}
-            documentViewerRef={internalDocumentViewerRef}
-            onCommentClick={handleSidebarCommentClick}
-            onSidebarToggle={handleToggleCommentSidebar}
-          />
-        )}
-      </div>
+      <DocumentViewerContentContainer 
+        documentVersionUrl={documentVersionUrl}
+        showCommentSidebar={showCommentSidebar}
+        dealId={dealId}
+        documentId={documentId}
+        versionId={versionId}
+        currentPage={currentPage}
+        onMouseUp={handleMouseUp}
+        ref={ref}
+        onCommentClick={handleSidebarCommentClick}
+        onToggleSidebar={handleToggleCommentSidebar}
+      />
       
       <DocumentSelectionOverlay
         selectedText={selectedText}
