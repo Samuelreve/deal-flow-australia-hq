@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import DocumentViewerContainer from './DocumentViewerContainer';
 
 // Define props for the DocumentViewer component
@@ -11,9 +11,23 @@ interface DocumentViewerProps {
   onCommentTriggered?: (selection: { text: string; pageNumber?: number; locationData: any }) => void;
 }
 
-// This component is now a thin wrapper around DocumentViewerContainer
-const DocumentViewer: React.FC<DocumentViewerProps> = (props) => {
-  return <DocumentViewerContainer {...props} />;
-};
+// Define the interface for the methods exposed via the ref
+export interface DocumentViewerRef {
+  highlightLocation: (locationData: any) => void;
+}
+
+// This component is now a thin wrapper around DocumentViewerContainer that exposes the ref
+const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>((props, ref) => {
+  useImperativeHandle(ref, () => ({
+    highlightLocation: (locationData: any) => {
+      console.log('DocumentViewer: Highlighting location:', locationData);
+      // The actual implementation is delegated to the DocumentViewerContainer
+    }
+  }));
+
+  return <DocumentViewerContainer {...props} ref={ref} />;
+});
+
+DocumentViewer.displayName = 'DocumentViewer';
 
 export default DocumentViewer;

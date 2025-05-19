@@ -7,12 +7,13 @@ import DocumentCommentsList from './DocumentCommentsList';
 import { Loader2, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { DocumentViewerRef } from './DocumentViewer';
 
 interface DocumentCommentsSidebarProps {
   versionId?: string;
   documentId?: string;
   dealId?: string;
-  documentViewerRef?: React.RefObject<any>;
+  documentViewerRef?: React.RefObject<DocumentViewerRef>;
   onCommentClick?: (commentId: string, locationData: any) => void;
   onSidebarToggle?: (isOpen: boolean) => void;
 }
@@ -88,6 +89,9 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     // If we have a documentViewerRef and it has a highlightLocation method
     if (documentViewerRef?.current?.highlightLocation && locationData) {
       documentViewerRef.current.highlightLocation(locationData);
+      console.log(`Highlighting comment ${commentId} with location data:`, locationData);
+    } else {
+      console.warn('Cannot highlight location: Viewer ref not available or location data missing');
     }
     
     // Call the passed onCommentClick if available

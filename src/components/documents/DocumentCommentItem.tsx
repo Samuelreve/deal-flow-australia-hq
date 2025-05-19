@@ -46,10 +46,10 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   
   return (
     <div 
-      className={`border rounded-md p-3 ${
+      className={`border rounded-md p-3 mb-2 ${
         isActive ? 'ring-2 ring-primary' : ''
       } ${
-        comment.resolved ? 'bg-muted' : 'bg-card'
+        comment.resolved ? 'bg-muted/50' : 'bg-card'
       } hover:bg-accent/80 cursor-pointer transition-colors`}
       onClick={() => onCommentClick(comment.id, comment.location_data)}
     >

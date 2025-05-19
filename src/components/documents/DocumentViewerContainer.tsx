@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
@@ -8,6 +8,8 @@ import DocumentViewerHeader from './DocumentViewerHeader';
 import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
 import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
 import { useDocumentCommentHandling } from '@/hooks/useDocumentCommentHandling';
+import { DocumentViewerRef } from './DocumentViewer';
+import { toast } from '@/components/ui/use-toast';
 
 // Define props for the DocumentViewerContainer component
 interface DocumentViewerContainerProps {
@@ -18,13 +20,16 @@ interface DocumentViewerContainerProps {
   onCommentTriggered?: (selection: { text: string; pageNumber?: number; locationData: any }) => void;
 }
 
-const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
-  documentVersionUrl,
-  dealId,
-  documentId,
-  versionId,
-  onCommentTriggered,
-}) => {
+const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerContainerProps>((
+  {
+    documentVersionUrl,
+    dealId,
+    documentId,
+    versionId,
+    onCommentTriggered,
+  },
+  ref
+) => {
   // Use our custom hooks to manage state and functionality
   const {
     currentPage,
@@ -66,14 +71,75 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
     setButtonPosition,
   } = useDocumentSelection(currentPage);
 
-  // Reference to expose highlightLocation method
-  const viewerRef = useRef({
+  // Internal ref for highlighting functionality
+  const highlightRef = useRef({
+    // This function will be implemented with the actual highlighting logic
+    highlightElement: null as HTMLElement | null,
+    
     highlightLocation: (locationData: any) => {
-      console.log('Highlight location:', locationData);
-      // Implementation would depend on your document viewer capabilities
-      // This could involve scrolling to a specific position and highlighting text
+      // Remove any existing highlight
+      if (highlightRef.current.highlightElement) {
+        highlightRef.current.highlightElement.remove();
+      }
+      
+      try {
+        if (!locationData) {
+          console.warn('No location data provided for highlighting');
+          return;
+        }
+        
+        console.log('Highlighting location:', locationData);
+        
+        if (locationData.selectedText) {
+          // Create a highlight overlay
+          const highlightElement = document.createElement('div');
+          highlightElement.className = 'absolute bg-yellow-200 bg-opacity-50 pointer-events-none transition-opacity duration-300 z-10';
+          highlightElement.style.position = 'absolute';
+          highlightElement.style.top = `${locationData.rect?.top || 0}px`;
+          highlightElement.style.left = `${locationData.rect?.left || 0}px`;
+          highlightElement.style.width = `${locationData.rect?.width || 100}px`;
+          highlightElement.style.height = `${locationData.rect?.height || 30}px`;
+          
+          // Add to the document container
+          if (documentContainerRef.current) {
+            documentContainerRef.current.appendChild(highlightElement);
+            highlightRef.current.highlightElement = highlightElement;
+            
+            // Auto-fade the highlight after a few seconds
+            setTimeout(() => {
+              if (highlightElement.parentNode) {
+                highlightElement.classList.add('opacity-0');
+                setTimeout(() => highlightElement.remove(), 1000);
+                highlightRef.current.highlightElement = null;
+              }
+            }, 3000);
+          }
+        }
+        
+        // Scroll to the page if page number is available
+        if (locationData.pageNumber && documentContainerRef.current) {
+          const pageElements = documentContainerRef.current.querySelectorAll('.page');
+          if (pageElements.length >= locationData.pageNumber) {
+            pageElements[locationData.pageNumber - 1].scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      } catch (error) {
+        console.error('Error highlighting location:', error);
+        toast({
+          title: "Highlighting Error",
+          description: "Could not highlight the selected location",
+          variant: "destructive"
+        });
+      }
     }
   });
+  
+  // Expose the highlightLocation method via ref
+  useImperativeHandle(ref, () => ({
+    highlightLocation: (locationData: any) => {
+      highlightRef.current.highlightLocation(locationData);
+    }
+  }));
 
   // Handle triggering AI explanation
   const handleExplainClick = () => {
@@ -107,8 +173,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
   // Handle comment sidebar item click
   const handleSidebarCommentClick = (commentId: string, commentLocationData: any) => {
     setActiveCommentId(commentId);
-    console.log(`Clicked comment ${commentId} with location:`, commentLocationData);
-    // Future implementation: highlight the text in the document
+    highlightRef.current.highlightLocation(commentLocationData);
   };
 
   // Effect to clear selection when clicking outside the button
@@ -175,7 +240,7 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
             versionId={versionId}
             documentId={documentId}
             dealId={dealId}
-            documentViewerRef={viewerRef}
+            documentViewerRef={ref}
             onCommentClick={handleSidebarCommentClick}
             onSidebarToggle={handleToggleCommentSidebar}
           />
@@ -191,6 +256,8 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
       )}
     </div>
   );
-};
+});
+
+DocumentViewerContainer.displayName = 'DocumentViewerContainer';
 
 export default DocumentViewerContainer;
