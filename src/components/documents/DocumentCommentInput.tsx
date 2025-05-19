@@ -18,7 +18,7 @@ interface DocumentCommentInputProps {
   dealId?: string;
   documentId?: string;
   versionId?: string;
-  submitting?: boolean; // Add this prop for compatibility
+  submitting?: boolean; // For backward compatibility
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -27,7 +27,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   commentContent,
   setCommentContent,
   isPosting,
-  submitting, // Add this prop
+  submitting, // Support both isPosting and submitting for backward compatibility
   onSubmit,
   onClose,
   pageNumber,

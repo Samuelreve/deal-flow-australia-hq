@@ -31,7 +31,7 @@ interface DocumentViewerContentProps {
   onCommentSubmit?: () => void;
   onCommentClose?: () => void;
   commentContent?: string;
-  submitting?: boolean; // Add the missing submitting prop
+  submitting?: boolean;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
