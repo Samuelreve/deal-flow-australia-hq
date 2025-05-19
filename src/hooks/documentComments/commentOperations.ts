@@ -50,6 +50,7 @@ export const addDocumentComment = async (
   try {
     const commentData = {
       document_version_id: documentVersionId,
+      content: newCommentData.content || '', // Ensure content is never undefined
       ...newCommentData
     };
     

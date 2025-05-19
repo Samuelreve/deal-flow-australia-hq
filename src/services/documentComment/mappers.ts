@@ -1,60 +1,51 @@
 
-import { DocumentComment, DbDocumentComment } from "./types";
+import { DocumentComment as DbDocumentComment } from '@/types/documentComment';
+import { DocumentComment as ServiceDocumentComment } from './types';
 
 /**
- * Maps a database comment structure to our service model
+ * Maps a DB document comment to a service document comment
  */
-export function mapDbCommentToDocumentComment(dbComment: DbDocumentComment): DocumentComment {
+export const mapDbCommentToServiceComment = (dbComment: DbDocumentComment): ServiceDocumentComment => {
   return {
     id: dbComment.id,
     documentVersionId: dbComment.document_version_id,
     userId: dbComment.user_id,
     content: dbComment.content,
-    pageNumber: dbComment.page_number,
+    pageNumber: dbComment.page_number || undefined,
     locationData: dbComment.location_data,
     createdAt: new Date(dbComment.created_at),
     updatedAt: new Date(dbComment.updated_at),
     resolved: dbComment.resolved,
-    parentCommentId: dbComment.parent_comment_id,
-    user: dbComment.profiles ? {
-      id: dbComment.profiles.id,
-      name: dbComment.profiles.name,
-      avatarUrl: dbComment.profiles.avatar_url
+    parentCommentId: dbComment.parent_comment_id || undefined,
+    user: dbComment.user ? {
+      id: dbComment.user.id,
+      name: dbComment.user.name,
+      avatarUrl: dbComment.user.avatar_url
     } : undefined,
-    replies: []
+    replies: dbComment.replies ? dbComment.replies.map(mapDbCommentToServiceComment) : undefined
   };
-}
+};
 
 /**
- * Organizes comments into a threaded structure
+ * Maps a service document comment to a DB document comment
  */
-export function organizeCommentsIntoThreads(comments: DocumentComment[]): DocumentComment[] {
-  const threaded: DocumentComment[] = [];
-  const commentMap = new Map<string, DocumentComment>();
-  
-  // First pass: create a map of all comments
-  comments.forEach(comment => {
-    commentMap.set(comment.id, { ...comment, replies: [] });
-  });
-  
-  // Second pass: organize into threads
-  comments.forEach(comment => {
-    const commentWithReplies = commentMap.get(comment.id)!;
-    
-    if (comment.parentCommentId) {
-      // This is a reply, add it to the parent's replies
-      const parent = commentMap.get(comment.parentCommentId);
-      if (parent) {
-        parent.replies!.push(commentWithReplies);
-      } else {
-        // Parent not found (shouldn't happen with well-formed data)
-        threaded.push(commentWithReplies);
-      }
-    } else {
-      // This is a top-level comment
-      threaded.push(commentWithReplies);
-    }
-  });
-  
-  return threaded.filter(comment => !comment.parentCommentId);
-}
+export const mapServiceCommentToDbComment = (serviceComment: ServiceDocumentComment): DbDocumentComment => {
+  return {
+    id: serviceComment.id,
+    document_version_id: serviceComment.documentVersionId,
+    user_id: serviceComment.userId,
+    content: serviceComment.content,
+    page_number: serviceComment.pageNumber || null,
+    location_data: serviceComment.locationData,
+    created_at: serviceComment.createdAt.toISOString(),
+    updated_at: serviceComment.updatedAt.toISOString(),
+    resolved: serviceComment.resolved,
+    parent_comment_id: serviceComment.parentCommentId || null,
+    user: serviceComment.user ? {
+      id: serviceComment.user.id,
+      name: serviceComment.user.name,
+      avatar_url: serviceComment.user.avatarUrl
+    } : undefined,
+    replies: serviceComment.replies ? serviceComment.replies.map(mapServiceCommentToDbComment) : undefined
+  };
+};

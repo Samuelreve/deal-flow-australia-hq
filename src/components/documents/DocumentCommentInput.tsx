@@ -18,6 +18,7 @@ interface DocumentCommentInputProps {
   dealId?: string;
   documentId?: string;
   versionId?: string;
+  submitting?: boolean; // Add this prop for compatibility
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -26,6 +27,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   commentContent,
   setCommentContent,
   isPosting,
+  submitting, // Add this prop
   onSubmit,
   onClose,
   pageNumber,
@@ -36,6 +38,9 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
 }) => {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
+  
+  // Use either isPosting or submitting prop (for backwards compatibility)
+  const isSubmitting = isPosting || submitting;
 
   // Determine if this is displayed as an absolute positioned form or inline in sidebar
   const isAbsolutePositioned = !!buttonPosition;
@@ -76,15 +81,15 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
         <Button 
           variant="outline"
           onClick={onClose}
-          disabled={isPosting}
+          disabled={isSubmitting}
         >
           Cancel
         </Button>
         <Button 
           onClick={onSubmit}
-          disabled={isPosting || !commentContent.trim() || !user}
+          disabled={isSubmitting || !commentContent.trim() || !user}
         >
-          {isPosting ? (
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...

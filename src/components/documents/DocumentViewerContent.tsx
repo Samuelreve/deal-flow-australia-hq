@@ -4,6 +4,7 @@ import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
 import DocumentErrorState from './DocumentErrorState';
 import DocumentCommentForm from './DocumentCommentForm';
+import DocumentSelectionActions from './DocumentSelectionActions';
 
 interface DocumentViewerContentProps {
   documentVersionUrl: string;
@@ -22,6 +23,13 @@ interface DocumentViewerContentProps {
   onCommentCancel?: () => void;
   documentContainerRef: React.RefObject<HTMLDivElement>;
   handleMouseUp: () => void;
+  showCommentSidebar?: boolean; // Add this prop
+  aiLoading?: boolean;
+  onExplainClick?: () => void;
+  onCommentClick?: () => void;
+  onCommentChange?: (content: string) => void;
+  onCommentSubmit?: () => void;
+  onCommentClose?: () => void;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
@@ -41,6 +49,10 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   onCommentCancel,
   documentContainerRef,
   handleMouseUp,
+  showCommentSidebar,
+  aiLoading,
+  onExplainClick,
+  onCommentClick,
 }) => {
   // Handle document load/error
   const handleDocumentLoad = () => {
@@ -70,7 +82,7 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   return (
     <div 
       ref={documentContainerRef}
-      className="relative h-full w-full overflow-hidden"
+      className={`relative h-full overflow-hidden ${showCommentSidebar ? 'w-2/3' : 'w-full'}`}
       onMouseUp={handleMouseUp}
     >
       {documentLoading ? (
@@ -82,6 +94,15 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
           documentVersionUrl={documentVersionUrl}
           onLoad={handleDocumentLoad}
           onError={handleDocumentError}
+        />
+      )}
+
+      {/* Selection action buttons */}
+      {selectedText && buttonPosition && !showCommentInput && !aiLoading && (
+        <DocumentSelectionActions
+          buttonPosition={buttonPosition}
+          onExplain={onExplainClick}
+          onAddComment={onCommentClick}
         />
       )}
 

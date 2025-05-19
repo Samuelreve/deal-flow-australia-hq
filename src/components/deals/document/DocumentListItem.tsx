@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Document, DocumentVersion } from '@/types/deal';
 import { ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import DocumentVersionList from './DocumentVersionList';
 import { getCommentCount } from '@/hooks/utils/documentCommentUtils';
 import { useDocumentComments } from '@/hooks/documentComments';
+import { mapDbCommentToServiceComment } from '@/services/documentComment/mappers';
 
 interface DocumentListItemProps {
   document: Document;
@@ -49,7 +49,9 @@ const DocumentListItem = ({
   let commentCount = 0;
   versions.forEach(version => {
     const { comments } = useDocumentComments(version.id);
-    commentCount += getCommentCount(comments);
+    // Use service comment type for the count function
+    const serviceComments = comments.map(comment => mapDbCommentToServiceComment(comment));
+    commentCount += getCommentCount(serviceComments);
   });
   
   const handleToggleExpand = () => {
