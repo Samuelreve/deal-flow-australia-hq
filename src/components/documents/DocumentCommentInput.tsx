@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DocumentCommentInputProps {
   selectedText: string | null;
@@ -13,6 +14,7 @@ interface DocumentCommentInputProps {
   onSubmit: () => void;
   onClose: () => void;
   pageNumber?: number;
+  locationData?: any;
 }
 
 const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
@@ -24,8 +26,10 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   onSubmit,
   onClose,
   pageNumber,
+  locationData,
 }) => {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuth();
 
   return (
     <div 
@@ -69,7 +73,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
         </Button>
         <Button 
           onClick={onSubmit}
-          disabled={submitting || !commentContent.trim()}
+          disabled={submitting || !commentContent.trim() || !user}
         >
           {submitting ? (
             <>

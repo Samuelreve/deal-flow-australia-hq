@@ -20,6 +20,8 @@ interface DocumentViewerContentProps {
   onCommentChange: (content: string) => void;
   onCommentSubmit: () => void;
   onCommentClose: () => void;
+  locationData?: any;
+  pageNumber?: number;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
@@ -38,6 +40,8 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
   onCommentChange,
   onCommentSubmit,
   onCommentClose,
+  locationData,
+  pageNumber,
 }) => {
   const [documentLoading, setDocumentLoading] = useState(true);
   const [documentError, setDocumentError] = useState<string | null>(null);
@@ -115,6 +119,8 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
           onCommentChange={onCommentChange}
           onSubmit={onCommentSubmit}
           onClose={onCommentClose}
+          pageNumber={pageNumber}
+          locationData={locationData}
         />
       )}
     </div>

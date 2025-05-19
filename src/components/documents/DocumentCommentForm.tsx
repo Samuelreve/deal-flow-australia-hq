@@ -1,6 +1,7 @@
 
 import React from 'react';
 import DocumentCommentInput from './DocumentCommentInput';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DocumentCommentFormProps {
   selectedText: string | null;
@@ -10,6 +11,8 @@ interface DocumentCommentFormProps {
   onCommentChange: (content: string) => void;
   onSubmit: () => void;
   onClose: () => void;
+  pageNumber?: number;
+  locationData?: any;
 }
 
 const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
@@ -20,6 +23,8 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
   onCommentChange,
   onSubmit,
   onClose,
+  pageNumber,
+  locationData,
 }) => {
   return (
     <DocumentCommentInput
@@ -30,6 +35,8 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
       submitting={submitting}
       onSubmit={onSubmit}
       onClose={onClose}
+      pageNumber={pageNumber}
+      locationData={locationData}
     />
   );
 };
