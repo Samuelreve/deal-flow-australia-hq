@@ -1,81 +1,83 @@
 
-import React from 'react';
-import DocumentSelectionControls from './DocumentSelectionControls';
-import DocumentCommentForm from './DocumentCommentForm';
+import React, { useEffect } from 'react';
+import DocumentIframe from './DocumentIframe';
 import DocumentLoadingState from './DocumentLoadingState';
 import DocumentErrorState from './DocumentErrorState';
-import DocumentIframe from './DocumentIframe';
-import { useDocumentLoader } from '@/hooks/useDocumentLoader';
+import DocumentCommentForm from './DocumentCommentForm';
 
 interface DocumentViewerContentProps {
-  documentContainerRef: React.RefObject<HTMLDivElement>;
-  handleMouseUp: () => void;
   documentVersionUrl: string;
-  showCommentSidebar: boolean;
+  documentLoading: boolean;
+  documentError: string | null;
+  setDocumentLoading: (loading: boolean) => void;
+  setDocumentError: (error: string | null) => void;
   selectedText: string | null;
   buttonPosition: { top: number; left: number } | null;
-  aiLoading: boolean;
-  showCommentInput: boolean;
-  commentContent: string;
-  submitting: boolean;
-  onExplainClick: () => void;
-  onCommentClick: () => void;
-  onCommentChange: (content: string) => void;
-  onCommentSubmit: () => void;
-  onCommentClose: () => void;
-  locationData?: any;
-  pageNumber?: number;
   dealId?: string;
   documentId?: string;
   versionId?: string;
+  showCommentInput: boolean;
+  setShowCommentInput: (show: boolean) => void;
+  onCommentPosted?: () => void;
+  onCommentCancel?: () => void;
+  documentContainerRef: React.RefObject<HTMLDivElement>;
+  handleMouseUp: () => void;
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
-  documentContainerRef,
-  handleMouseUp,
   documentVersionUrl,
-  showCommentSidebar,
+  documentLoading,
+  documentError,
+  setDocumentLoading,
+  setDocumentError,
   selectedText,
   buttonPosition,
-  aiLoading,
-  showCommentInput,
-  commentContent,
-  submitting,
-  onExplainClick,
-  onCommentClick,
-  onCommentChange,
-  onCommentSubmit,
-  onCommentClose,
-  locationData,
-  pageNumber,
   dealId,
   documentId,
   versionId,
+  showCommentInput,
+  setShowCommentInput,
+  onCommentPosted,
+  onCommentCancel,
+  documentContainerRef,
+  handleMouseUp,
 }) => {
-  const {
-    documentLoading,
-    documentError,
-    handleDocumentLoad,
-    handleDocumentError
-  } = useDocumentLoader(documentVersionUrl);
+  // Handle document load/error
+  const handleDocumentLoad = () => {
+    setDocumentLoading(false);
+    setDocumentError(null);
+  };
 
-  const containerWidthClass = showCommentSidebar ? 'w-2/3' : 'w-full';
+  const handleDocumentError = () => {
+    setDocumentError('Failed to load document');
+    setDocumentLoading(false);
+  };
+
+  // Reset state when document URL changes
+  useEffect(() => {
+    setDocumentLoading(true);
+    setDocumentError(null);
+  }, [documentVersionUrl, setDocumentLoading, setDocumentError]);
+
+  // Comment handling
+  const handleCommentCancel = () => {
+    setShowCommentInput(false);
+    if (onCommentCancel) {
+      onCommentCancel();
+    }
+  };
 
   return (
-    <div
+    <div 
       ref={documentContainerRef}
+      className="relative h-full w-full overflow-hidden"
       onMouseUp={handleMouseUp}
-      className={`flex-1 overflow-y-auto border rounded-lg p-4 bg-white shadow-sm relative ${containerWidthClass}`}
-      style={{ minHeight: '400px' }}
     >
-      {/* Loading state */}
-      {documentLoading && <DocumentLoadingState />}
-
-      {/* Error state */}
-      {documentError && <DocumentErrorState error={documentError} />}
-
-      {/* Document content */}
-      {!documentLoading && !documentError && (
+      {documentLoading ? (
+        <DocumentLoadingState />
+      ) : documentError ? (
+        <DocumentErrorState error={documentError} />
+      ) : (
         <DocumentIframe 
           documentVersionUrl={documentVersionUrl}
           onLoad={handleDocumentLoad}
@@ -83,30 +85,16 @@ const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({
         />
       )}
 
-      {/* Selection controls */}
-      <DocumentSelectionControls 
-        selectedText={selectedText}
-        buttonPosition={buttonPosition}
-        aiLoading={aiLoading}
-        onExplain={onExplainClick}
-        onAddComment={onCommentClick}
-      />
-
       {/* Comment form */}
-      {showCommentInput && (
-        <DocumentCommentForm 
+      {showCommentInput && selectedText && buttonPosition && versionId && (
+        <DocumentCommentForm
           selectedText={selectedText}
           buttonPosition={buttonPosition}
-          commentContent={commentContent}
-          submitting={submitting}
-          onCommentChange={onCommentChange}
-          onSubmit={onCommentSubmit}
-          onClose={onCommentClose}
-          pageNumber={pageNumber}
-          locationData={locationData}
           dealId={dealId}
           documentId={documentId}
           versionId={versionId}
+          onCommentPosted={onCommentPosted}
+          onCancel={handleCommentCancel}
         />
       )}
     </div>

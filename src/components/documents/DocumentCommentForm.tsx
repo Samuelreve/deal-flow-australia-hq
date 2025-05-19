@@ -54,7 +54,7 @@ const DocumentCommentForm: React.FC<DocumentCommentFormProps> = ({
       commentContent={commentContent}
       setCommentContent={setCommentContent}
       onSubmit={handleSubmit}
-      onCancel={onCancel}
+      onClose={onCancel || (() => {})}
     />
   );
 };

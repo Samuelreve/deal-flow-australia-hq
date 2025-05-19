@@ -1,9 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
-import { Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
+import DocumentCommentsList from './DocumentCommentsList';
 import { toast } from '@/components/ui/use-toast';
 
 interface DocumentCommentsSidebarProps {
@@ -23,7 +23,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   onCommentClick,
   onSidebarToggle
 }) => {
-  const { comments, loading, addComment, fetchComments, toggleResolved } = useDocumentComments(versionId);
+  const { comments, loading, fetchComments, toggleResolved } = useDocumentComments(versionId);
   const { user } = useAuth();
   
   // State for managing the comment form
@@ -33,8 +33,6 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     pageNumber?: number;
     locationData: any;
   } | null>(null);
-  const [commentContent, setCommentContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   // Fetch comments when versionId changes
   useEffect(() => {
@@ -55,62 +53,19 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       locationData: details.locationData
     });
     setShowInputForm(true);
-    setCommentContent('');
-  };
-
-  // Handle comment submission
-  const handleCommentSubmit = async () => {
-    if (!versionId || !user || !commentContent.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a comment and ensure you are logged in.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await addComment({
-        content: commentContent,
-        pageNumber: selectionDetails?.pageNumber,
-        locationData: selectionDetails?.locationData
-      });
-      
-      setCommentContent('');
-      setShowInputForm(false);
-      setSelectionDetails(null);
-      
-      toast({
-        title: "Success",
-        description: "Comment added successfully.",
-      });
-      
-      // Refresh comments list
-      fetchComments();
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // Handle comment cancellation
   const handleCancelInput = () => {
     setShowInputForm(false);
     setSelectionDetails(null);
-    setCommentContent('');
   };
 
-  // Handle comment resolution toggle
-  const handleToggleResolved = async (commentId: string) => {
-    await toggleResolved(commentId);
-    // Refresh comments after toggling resolved status
+  // Handle comment posted successfully
+  const handleCommentPosted = () => {
+    setShowInputForm(false);
+    setSelectionDetails(null);
+    // Refresh comments list
     fetchComments();
   };
 
@@ -131,95 +86,26 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     <div className="h-full border rounded-lg overflow-y-auto bg-background p-4 w-1/3">
       <h3 className="font-medium mb-4">Document Comments</h3>
       
-      {loading ? (
-        <div className="flex justify-center items-center h-20">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-muted-foreground">Loading comments...</span>
-        </div>
-      ) : comments.length > 0 ? (
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div 
-              key={comment.id} 
-              className={`border rounded-md p-3 ${comment.resolved ? 'bg-muted' : 'bg-card'} hover:bg-accent/80 cursor-pointer transition-colors`}
-              onClick={() => handleCommentClick(comment.id, comment.locationData)}
-            >
-              <div className="flex justify-between items-start">
-                <div className="font-medium">{comment.user?.name || 'User'}</div>
-                <div className="flex items-center">
-                  {user && (
-                    <button
-                      className="p-1 text-muted-foreground hover:text-primary transition-colors mr-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleResolved(comment.id);
-                      }}
-                      title={comment.resolved ? "Mark as unresolved" : "Mark as resolved"}
-                    >
-                      <CheckCircle className={`h-4 w-4 ${comment.resolved ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    </button>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-              
-              {comment.locationData?.selectedText && (
-                <div className="mt-1 text-xs italic bg-muted p-2 rounded">
-                  "{comment.locationData.selectedText}"
-                </div>
-              )}
-              
-              <div className={`mt-2 ${comment.resolved ? 'text-muted-foreground' : ''}`}>
-                {comment.content}
-              </div>
-              
-              {comment.pageNumber && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Page {comment.pageNumber}
-                </div>
-              )}
-              
-              {comment.replies && comment.replies.length > 0 && (
-                <div className="mt-3 pl-3 border-l-2">
-                  <p className="text-xs text-muted-foreground mb-2">{comment.replies.length} replies</p>
-                  {/* We could expand this to show replies or add a "Show Replies" button */}
-                  {comment.replies.map((reply) => (
-                    <div key={reply.id} className="mt-2 p-2 bg-muted/50 rounded-sm">
-                      <div className="flex justify-between items-start">
-                        <div className="text-xs font-medium">{reply.user?.name || 'User'}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(reply.createdAt).toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="mt-1 text-sm">{reply.content}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          No comments yet for this document.
-        </div>
-      )}
+      <DocumentCommentsList 
+        comments={comments}
+        loading={loading}
+        onCommentClick={handleCommentClick}
+        onToggleResolved={toggleResolved}
+      />
       
       {/* Comment Input Form */}
-      {showInputForm && (
+      {showInputForm && selectionDetails && (
         <div className="mt-4 border-t pt-4">
           <DocumentCommentForm
-            selectedText={selectionDetails?.selectedText}
+            selectedText={selectionDetails.selectedText}
             buttonPosition={null} // Not applicable in sidebar context
-            commentContent={commentContent}
-            onCommentChange={setCommentContent}
-            submitting={submitting}
-            onSubmit={handleCommentSubmit}
-            onClose={handleCancelInput}
-            pageNumber={selectionDetails?.pageNumber}
-            locationData={selectionDetails?.locationData}
+            pageNumber={selectionDetails.pageNumber}
+            locationData={selectionDetails.locationData}
+            dealId={dealId}
+            documentId={documentId}
+            versionId={versionId}
+            onCommentPosted={handleCommentPosted}
+            onCancel={handleCancelInput}
           />
         </div>
       )}

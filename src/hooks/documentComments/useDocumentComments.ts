@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { DocumentComment, CreateDocumentCommentDto } from "@/services/documentComment";
+import { DocumentComment } from "@/services/documentComment";
 import { 
   fetchVersionComments, 
   addDocumentComment, 
@@ -54,7 +54,7 @@ export function useDocumentComments(documentVersionId?: string) {
   /**
    * Add a new comment
    */
-  const addComment = async (newCommentData: Omit<CreateDocumentCommentDto, 'documentVersionId'>) => {
+  const addComment = async (newCommentData: Omit<any, 'documentVersionId'>) => {
     if (!documentVersionId || !user) return null;
 
     setSubmitting(true);

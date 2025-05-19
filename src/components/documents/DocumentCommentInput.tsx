@@ -10,7 +10,7 @@ interface DocumentCommentInputProps {
   buttonPosition: { top: number; left: number } | null;
   commentContent: string;
   setCommentContent: (content: string) => void;
-  submitting: boolean;
+  isPosting: boolean;
   onSubmit: () => void;
   onClose: () => void;
   pageNumber?: number;
@@ -25,7 +25,7 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
   buttonPosition,
   commentContent,
   setCommentContent,
-  submitting,
+  isPosting,
   onSubmit,
   onClose,
   pageNumber,
@@ -76,15 +76,15 @@ const DocumentCommentInput: React.FC<DocumentCommentInputProps> = ({
         <Button 
           variant="outline"
           onClick={onClose}
-          disabled={submitting}
+          disabled={isPosting}
         >
           Cancel
         </Button>
         <Button 
           onClick={onSubmit}
-          disabled={submitting || !commentContent.trim() || !user}
+          disabled={isPosting || !commentContent.trim() || !user}
         >
-          {submitting ? (
+          {isPosting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
