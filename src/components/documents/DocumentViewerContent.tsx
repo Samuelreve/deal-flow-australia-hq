@@ -18,18 +18,19 @@ interface DocumentViewerContentProps {
   documentId?: string;
   versionId?: string;
   showCommentInput: boolean;
+  showCommentSidebar?: boolean; // Add this prop
   setShowCommentInput: (show: boolean) => void;
   onCommentPosted?: () => void;
   onCommentCancel?: () => void;
   documentContainerRef: React.RefObject<HTMLDivElement>;
   handleMouseUp: () => void;
-  showCommentSidebar?: boolean; // Add this prop
   aiLoading?: boolean;
   onExplainClick?: () => void;
   onCommentClick?: () => void;
   onCommentChange?: (content: string) => void;
   onCommentSubmit?: () => void;
   onCommentClose?: () => void;
+  commentContent?: string; // Add this prop
 }
 
 const DocumentViewerContent: React.FC<DocumentViewerContentProps> = ({

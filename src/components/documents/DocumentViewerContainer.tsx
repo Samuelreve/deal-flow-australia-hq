@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import DocumentAIExplanation from './DocumentAIExplanation';
@@ -138,6 +137,11 @@ const DocumentViewerContainer: React.FC<DocumentViewerContainerProps> = ({
           aiLoading={aiLoading}
           showCommentInput={showCommentInput}
           commentContent={commentContent}
+          setShowCommentInput={() => {}}
+          documentLoading={false}
+          documentError={null}
+          setDocumentLoading={() => {}}
+          setDocumentError={() => {}}
           submitting={submitting}
           onExplainClick={handleExplainClick}
           onCommentClick={handleCommentClick}

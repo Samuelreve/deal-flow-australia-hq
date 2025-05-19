@@ -89,7 +89,8 @@ const DocumentContent: React.FC<DocumentContentProps> = ({
           buttonPosition={buttonPosition}
           commentContent={commentContent}
           setCommentContent={setCommentContent}
-          submitting={submitting}
+          isPosting={submitting}  // Pass submitting as isPosting
+          submitting={submitting} // Keep submitting for backward compatibility
           onSubmit={handleSubmitComment}
           onClose={handleCloseCommentInput}
         />

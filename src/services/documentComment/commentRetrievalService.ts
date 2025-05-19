@@ -1,7 +1,39 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentComment, DbDocumentComment } from "./types";
-import { mapDbCommentToDocumentComment, organizeCommentsIntoThreads } from "./mappers";
+import { mapDbCommentToServiceComment } from "./mappers";
+
+/**
+ * Organize comments into a threaded structure with parents and replies
+ */
+export const organizeCommentsIntoThreads = (comments: DocumentComment[]): DocumentComment[] => {
+  // First, separate top-level comments and replies
+  const parentComments: DocumentComment[] = [];
+  const replies: Record<string, DocumentComment[]> = {};
+
+  // Group comments by parent ID
+  comments.forEach(comment => {
+    if (!comment.parentCommentId) {
+      // This is a top-level comment
+      parentComments.push({...comment, replies: []});
+    } else {
+      // This is a reply
+      if (!replies[comment.parentCommentId]) {
+        replies[comment.parentCommentId] = [];
+      }
+      replies[comment.parentCommentId].push(comment);
+    }
+  });
+
+  // Attach replies to their parent comments
+  parentComments.forEach(parentComment => {
+    if (replies[parentComment.id]) {
+      parentComment.replies = replies[parentComment.id];
+    }
+  });
+
+  return parentComments;
+};
 
 /**
  * Service responsible for retrieving document comments
@@ -35,7 +67,7 @@ export const commentRetrievalService = {
 
       // Transform database format to our service format
       const comments: DocumentComment[] = (commentsData || [])
-        .map((comment: DbDocumentComment) => mapDbCommentToDocumentComment(comment));
+        .map((comment: DbDocumentComment) => mapDbCommentToServiceComment(comment));
       
       // Organize into threaded structure
       return organizeCommentsIntoThreads(comments);

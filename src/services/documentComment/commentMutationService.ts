@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentComment, CreateDocumentCommentDto, DbDocumentComment } from "./types";
-import { mapDbCommentToDocumentComment } from "./mappers";
+import { mapDbCommentToServiceComment } from "./mappers";
 
 /**
  * Service responsible for modifying document comments
@@ -46,7 +46,7 @@ export const commentMutationService = {
 
       // Map database response to our service format
       return {
-        ...mapDbCommentToDocumentComment(data as DbDocumentComment),
+        ...mapDbCommentToServiceComment(data as DbDocumentComment),
         replies: []
       };
     } catch (error) {
