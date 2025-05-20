@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
-import { ChatMessage } from "@/hooks/document-ai/types";
+import { ChatMessage, DealChatResponse } from "@/hooks/document-ai/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -61,9 +62,11 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       const result = await dealChatQuery(dealId, userQuestion.trim(), recentHistory);
 
       if (result && 'answer' in result) {
+        const answer = (result as DealChatResponse).answer;
+        
         const newAiMessage: ChatMessage = { 
           sender: 'ai', 
-          content: result.answer,
+          content: answer,
           timestamp: new Date()
         };
         setChatMessages(prev => [...prev, newAiMessage]);
