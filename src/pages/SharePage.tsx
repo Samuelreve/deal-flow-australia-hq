@@ -39,7 +39,7 @@ const SharePage: React.FC = () => {
         setError(null);
         
         const { data: response, error: functionError } = await supabase.functions.invoke('get-shared-document', {
-          query: { token }
+          body: { token }
         });
         
         if (functionError || !response?.success) {
@@ -125,7 +125,12 @@ const SharePage: React.FC = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="h-[70vh]">
-              <DocumentViewer documentVersionUrl={documentData.signedUrl} />
+              <DocumentViewer 
+                documentVersionUrl={documentData.signedUrl} 
+                dealId=""  // Using an empty string as this is an external sharing context
+                documentId=""
+                versionId=""
+              />
             </div>
           </CardContent>
           <CardFooter className="bg-muted/20 text-xs text-muted-foreground flex justify-between items-center">

@@ -5,53 +5,9 @@ import { Document, DocumentVersion } from "@/types/deal";
 import DocumentList from "./document/DocumentList";
 import DocumentUpload from "./document/DocumentUpload";
 import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
+import DeleteVersionDialog from "./document/DeleteVersionDialog";
+import DocumentViewerSection from "./document/DocumentViewerSection";
 import { useDocuments } from "@/hooks/useDocuments";
-import DocumentViewer from "@/components/documents/DocumentViewer";
-
-interface DeleteVersionDialogProps {
-  version: DocumentVersion | null;
-  isOpen: boolean;
-  isDeleting: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}
-
-const DeleteVersionDialog = ({
-  version,
-  isOpen,
-  isDeleting,
-  onClose,
-  onConfirm
-}: DeleteVersionDialogProps) => {
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h3 className="text-lg font-semibold mb-4">Delete Version</h3>
-        <p>Are you sure you want to delete version {version?.versionNumber}?</p>
-        <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
-        
-        <div className="flex justify-end mt-6 gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded-md hover:bg-gray-100"
-            disabled={isDeleting}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete Version'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Define props for the DocumentManagement component
 interface DocumentManagementProps {
@@ -170,39 +126,28 @@ const DocumentManagement = ({
             selectedVersionId={selectedVersionId}
           />
 
-          {/* Document Upload Section - Only shown if user has appropriate permissions */}
+          {/* Document Upload Section */}
           <DocumentUpload 
             onUpload={handleUpload}
             uploading={uploading}
             userRole={userRole}
             isParticipant={isParticipant}
             documents={documents}
-            dealId={dealId} // Pass dealId to DocumentUpload
+            dealId={dealId}
           />
         </div>
         
-        <div className="lg:col-span-2 h-[600px]">
-          {/* Document Viewer */}
-          {selectedVersionUrl && documentVersions.length > 0 ? (
-            <DocumentViewer 
-              documentVersionUrl={selectedVersionUrl}
-              dealId={dealId}
-              documentId={selectedDocument?.id}
-              versionId={selectedVersionId}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-muted/50 rounded-lg border">
-              <p className="text-muted-foreground">
-                {documentVersions.length > 0 
-                  ? "Select a document version to view" 
-                  : "No documents available for viewing"}
-              </p>
-            </div>
-          )}
-        </div>
+        {/* Document Viewer Section */}
+        <DocumentViewerSection 
+          selectedVersionUrl={selectedVersionUrl}
+          documentVersions={documentVersions}
+          dealId={dealId}
+          selectedDocument={selectedDocument}
+          selectedVersionId={selectedVersionId}
+        />
       </div>
       
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog Components */}
       <DeleteDocumentDialog
         document={documentToDelete}
         isOpen={showDeleteDialog}
@@ -211,7 +156,6 @@ const DocumentManagement = ({
         onConfirm={confirmDelete}
       />
 
-      {/* Delete Version Dialog */}
       <DeleteVersionDialog
         version={versionToDelete}
         isOpen={showVersionDeleteDialog}
