@@ -1,4 +1,3 @@
-
 // Shared email utility functions for Edge Functions
 
 interface EmailConfig {
@@ -88,6 +87,72 @@ export function generateParticipantAddedEmail(params: {
         </a>
       </div>
       <p>Regards,<br/>The Deal Pilot Team</p>
+    </div>
+  `;
+}
+
+// Generate share link email HTML
+export function generateShareLinkEmail(params: {
+  sharerName: string;
+  dealTitle: string;
+  documentName: string;
+  shareUrl: string;
+  customMessage?: string;
+  expiresAt?: string | null;
+  canDownload: boolean;
+}): string {
+  const { 
+    sharerName, 
+    dealTitle, 
+    documentName, 
+    shareUrl, 
+    customMessage, 
+    expiresAt,
+    canDownload 
+  } = params;
+  
+  const expiryInfo = expiresAt 
+    ? `<p>This link will expire on ${new Date(expiresAt).toLocaleDateString()} at ${new Date(expiresAt).toLocaleTimeString()}.</p>` 
+    : '<p>This link does not expire.</p>';
+  
+  const downloadInfo = canDownload
+    ? '<p>You are allowed to download this document.</p>'
+    : '<p>Downloading this document has been disabled by the sender.</p>';
+    
+  const customMessageSection = customMessage 
+    ? `
+      <div style="margin: 20px 0; padding: 15px; border-left: 4px solid #4F46E5; background-color: #f9f9f9;">
+        <p style="margin: 0; font-style: italic;">${customMessage}</p>
+      </div>
+    ` 
+    : '';
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Secure Document Shared</h2>
+      <p>Hello,</p>
+      <p>${sharerName} has shared a document with you for the deal "${dealTitle}".</p>
+      <p><strong>Document:</strong> ${documentName}</p>
+      ${customMessageSection}
+      <p>To view this document, please click the button below:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${shareUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          View Document
+        </a>
+      </div>
+      <p>Or copy and paste this link into your browser:</p>
+      <p><a href="${shareUrl}">${shareUrl}</a></p>
+      ${expiryInfo}
+      ${downloadInfo}
+      <p style="margin-top: 30px; font-size: 12px; color: #666;">
+        This is a secure link. Please do not forward this email to unauthorized individuals.
+      </p>
+      <p style="font-size: 12px; color: #666;">
+        If you weren't expecting this document, please disregard this email.
+      </p>
+      <p style="margin-top: 30px; font-size: 12px; color: #666;">
+        Regards,<br/>The Deal Pilot Team
+      </p>
     </div>
   `;
 }

@@ -1,6 +1,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 import { verifyAuth } from '../_shared/auth.ts';
+import { sendEmail, generateShareLinkEmail } from '../_shared/email.ts';
 
 // Define CORS headers
 const corsHeaders = {
@@ -46,7 +47,7 @@ const canUserShareDocument = async (
     // Get the document and associated deal
     const { data: document, error: docError } = await supabase
       .from('documents')
-      .select('deal_id')
+      .select('deal_id, name')
       .eq('id', version.document_id)
       .single();
     
@@ -73,6 +74,12 @@ const canUserShareDocument = async (
     console.error('Error in canUserShareDocument:', error);
     return false;
   }
+};
+
+// Function to validate email addresses
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
 Deno.serve(async (req) => {
@@ -107,7 +114,13 @@ Deno.serve(async (req) => {
     const user = await verifyAuth(token);
     
     // Parse request body
-    const { document_version_id, expires_at, can_download } = await req.json();
+    const { 
+      document_version_id, 
+      expires_at, 
+      can_download,
+      recipients = [],
+      custom_message = "" 
+    } = await req.json();
     
     if (!document_version_id) {
       return new Response(
@@ -116,7 +129,35 @@ Deno.serve(async (req) => {
       );
     }
     
+    // Validate email addresses if provided
+    if (recipients && recipients.length > 0) {
+      const invalidEmails = recipients.filter((email: string) => !isValidEmail(email));
+      if (invalidEmails.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid email addresses', 
+            invalidEmails 
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
     const supabase = getServiceClient();
+    
+    // Get user's profile information for email
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single();
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      // Continue without user profile (we'll use a generic name)
+    }
+    
+    const sharerName = userProfile?.name || 'A Deal Pilot user';
     
     // Check if the user has permission to share this document
     const canShare = await canUserShareDocument(supabase, user.id, document_version_id);
@@ -126,6 +167,49 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // Get document and deal information for email
+    const { data: version, error: versionError } = await supabase
+      .from('document_versions')
+      .select('document_id')
+      .eq('id', document_version_id)
+      .single();
+      
+    if (versionError) {
+      console.error('Error fetching document version:', versionError);
+      return new Response(
+        JSON.stringify({ error: 'Document version not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('name, deal_id')
+      .eq('id', version.document_id)
+      .single();
+      
+    if (docError) {
+      console.error('Error fetching document:', docError);
+      return new Response(
+        JSON.stringify({ error: 'Document not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { data: deal, error: dealError } = await supabase
+      .from('deals')
+      .select('title')
+      .eq('id', document.deal_id)
+      .single();
+      
+    if (dealError) {
+      console.error('Error fetching deal:', dealError);
+      // Continue without deal info
+    }
+    
+    const dealTitle = deal?.title || 'Untitled Deal';
+    const documentName = document.name;
     
     // Generate a secure token
     const shareToken = generateToken();
@@ -151,16 +235,64 @@ Deno.serve(async (req) => {
       );
     }
     
-    // Return the share link
+    // Build the share URL
     const baseUrl = req.headers.get('origin') || 'http://localhost:5173';
     const shareUrl = `${baseUrl}/share/${shareToken}`;
     
+    // Send emails if recipients are provided
+    const emailResults = [];
+    let allEmailsSuccessful = true;
+    
+    if (recipients && recipients.length > 0) {
+      for (const recipientEmail of recipients) {
+        try {
+          // Generate email content
+          const emailHtml = generateShareLinkEmail({
+            sharerName,
+            dealTitle,
+            documentName,
+            shareUrl,
+            customMessage: custom_message,
+            expiresAt: expires_at,
+            canDownload: !!can_download
+          });
+          
+          // Send the email
+          const emailResult = await sendEmail({
+            to: recipientEmail,
+            subject: `Secure Document Shared: ${documentName}`,
+            html: emailHtml,
+            from: "Deal Pilot <notifications@dealpilot.app>"
+          });
+          
+          emailResults.push({
+            recipient: recipientEmail,
+            success: true
+          });
+          
+        } catch (emailError) {
+          console.error(`Error sending email to ${recipientEmail}:`, emailError);
+          emailResults.push({
+            recipient: recipientEmail,
+            success: false,
+            error: emailError.message || 'Failed to send email'
+          });
+          allEmailsSuccessful = false;
+        }
+      }
+    }
+    
+    // Return the share link with email sending results
     return new Response(
       JSON.stringify({ 
         success: true,
         data: {
           ...data,
           share_url: shareUrl
+        },
+        email_results: {
+          all_successful: allEmailsSuccessful,
+          details: emailResults.length > 0 ? emailResults : null
         }
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

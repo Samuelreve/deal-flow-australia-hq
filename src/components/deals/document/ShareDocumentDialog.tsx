@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { DocumentVersion } from '@/types/deal';
 import { useAuth } from '@/contexts/AuthContext';
-import { Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ShareDocumentForm from './share/ShareDocumentForm';
@@ -35,6 +34,8 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
   // Form state
   const [allowDownload, setAllowDownload] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [customMessage, setCustomMessage] = useState('');
   
   const { 
     shareLinks, 
@@ -75,7 +76,9 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
         body: {
           document_version_id: documentVersion.id,
           expires_at: expiryDate ? expiryDate.toISOString() : null,
-          can_download: allowDownload
+          can_download: allowDownload,
+          recipients: recipients,
+          custom_message: customMessage
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -114,6 +117,8 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     setError(null);
     setAllowDownload(false);
     setExpiryDate(null);
+    setRecipients([]);
+    setCustomMessage('');
     setActiveTab('create');
     onClose();
   };
@@ -156,6 +161,10 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
                   setAllowDownload={setAllowDownload}
                   expiryDate={expiryDate}
                   setExpiryDate={setExpiryDate}
+                  recipients={recipients}
+                  setRecipients={setRecipients}
+                  customMessage={customMessage}
+                  setCustomMessage={setCustomMessage}
                 />
               ) : (
                 <ShareDocumentLink
