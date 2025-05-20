@@ -9,12 +9,14 @@ import { AlertCircle } from "lucide-react";
 
 interface StandardLoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
+  onForgotPassword: () => void;
   error?: string;
   isLoading: boolean;
 }
 
 const StandardLoginForm = ({
   onSubmit,
+  onForgotPassword,
   error,
   isLoading
 }: StandardLoginFormProps) => {
@@ -24,16 +26,6 @@ const StandardLoginForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(email, password);
-  };
-
-  const handleResetPassword = () => {
-    // This will be implemented by the main LoginForm component
-    if (!email) {
-      alert("Please enter your email address to reset your password");
-      return;
-    }
-    
-    // The actual reset password functionality will be handled by the parent
   };
 
   return (
@@ -67,7 +59,7 @@ const StandardLoginForm = ({
             size="sm" 
             className="px-0 h-auto text-primary" 
             type="button"
-            onClick={handleResetPassword}
+            onClick={onForgotPassword}
             disabled={isLoading}
           >
             Forgot password?

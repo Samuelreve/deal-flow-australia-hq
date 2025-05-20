@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import StandardLoginForm from "./StandardLoginForm";
 import TwoFactorVerification from "./TwoFactorVerification";
+import ResetPasswordForm from "./ResetPasswordForm";
 
 interface LoginFormProps {
   onSignUp: () => void;
@@ -21,6 +22,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
   
   // Add 2FA related state
@@ -132,9 +134,13 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
     setEnrolledFactorId(null);
   };
 
-  const handleResetPassword = async () => {
-    // This will be implemented in an upcoming feature
-    toast.info("Password reset functionality coming soon");
+  const handleForgotPassword = () => {
+    setShowResetPassword(true);
+    setError(""); // Clear any login errors
+  };
+
+  const handleCancelResetPassword = () => {
+    setShowResetPassword(false);
   };
 
   return (
@@ -156,7 +162,9 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
           </Alert>
         )}
         
-        {needs2fa ? (
+        {showResetPassword ? (
+          <ResetPasswordForm onCancel={handleCancelResetPassword} />
+        ) : needs2fa ? (
           <TwoFactorVerification 
             challengeId={challengeId || ""}
             onVerify={handleVerify2faCode}
@@ -167,6 +175,7 @@ export const LoginForm = ({ onSignUp, inviteToken }: LoginFormProps) => {
           <>
             <StandardLoginForm 
               onSubmit={handleLoginSubmit}
+              onForgotPassword={handleForgotPassword}
               error={error}
               isLoading={isLoading}
             />
