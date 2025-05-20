@@ -16,12 +16,16 @@ export interface DealHealthPredictionResponse {
 }
 
 export async function handlePredictDealHealth(
-  supabaseAdmin: ReturnType<typeof createClient>, 
-  openai: OpenAI,
-  userId: string,
   dealId: string,
+  userId: string,
+  openai: OpenAI,
 ): Promise<DealHealthPredictionResponse> {
   try {
+    // Initialize Supabase client with admin privileges
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    
     // Verify user is a participant in the deal
     const { data: participant, error: participantError } = await supabaseAdmin
       .from("deal_participants")
