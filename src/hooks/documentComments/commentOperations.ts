@@ -10,13 +10,13 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
     // First try using edge function (better authorization checking)
     const { data: functionData, error: functionError } = await supabase.functions
       .invoke('document-comments', {
-        body: {},
+        body: {
+          versionId
+        },
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        },
-        // Use body for parameters instead of query
-        body: { versionId }
+        }
       });
 
     if (functionError) {
