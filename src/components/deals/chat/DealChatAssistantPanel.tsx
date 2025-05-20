@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
-import { ChatMessage } from "@/hooks/document-ai/useDealChatOperations";
+import { ChatMessage } from "@/hooks/document-ai/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -22,7 +22,8 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
     sender: "ai",
-    content: "Hello! I'm your Deal Assistant. Ask me any questions about this deal, and I'll help you find information based on the deal data."
+    content: "Hello! I'm your Deal Assistant. Ask me any questions about this deal, and I'll help you find information based on the deal data.",
+    timestamp: new Date()
   }]);
   
   const { dealChatQuery, loading } = useDocumentAI({ dealId });

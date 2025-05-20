@@ -8,6 +8,7 @@ interface UseDealChatOperationsProps {
 export interface ChatMessage {
   sender: 'user' | 'ai';
   content: string;
+  timestamp?: Date;
 }
 
 /**
