@@ -78,14 +78,16 @@ export function useDocumentUploadService() {
         throw new Error("Authentication required");
       }
 
-      // Call the edge function using invoke method with queryParams
-      const { data: result, error } = await supabase.functions.invoke('document-upload', {
+      // Call the edge function using invoke method
+      // Since 'query' is not in the type definition, we'll include dealId in a different way
+      const functionPath = `document-upload?dealId=${encodeURIComponent(dealId)}`;
+      
+      const { data: result, error } = await supabase.functions.invoke(functionPath, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: formData,
-        query: { dealId }
+        body: formData
       });
 
       if (error) {
