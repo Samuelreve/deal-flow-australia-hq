@@ -1,139 +1,11 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
+import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
-import { sendEmail, generateShareLinkEmail } from '../_shared/email.ts';
-
-// Define CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-// Generate a random token
-const generateToken = () => {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-};
-
-// Create a Supabase client
-const getServiceClient = () => {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-  
-  return createClient(supabaseUrl, supabaseKey);
-};
-
-const canUserShareDocument = async (
-  supabase: any,
-  userId: string, 
-  versionId: string
-) => {
-  try {
-    // Get the document version and associated document
-    const { data: version, error: versionError } = await supabase
-      .from('document_versions')
-      .select('document_id')
-      .eq('id', versionId)
-      .single();
-    
-    if (versionError) {
-      console.error('Error fetching document version:', versionError);
-      throw new Error('Document version not found');
-    }
-    
-    if (!version) {
-      throw new Error('Document version does not exist');
-    }
-    
-    // Get the document and associated deal
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('deal_id, name')
-      .eq('id', version.document_id)
-      .single();
-    
-    if (docError) {
-      console.error('Error fetching document:', docError);
-      throw new Error('Document not found');
-    }
-    
-    if (!document) {
-      throw new Error('Document does not exist');
-    }
-    
-    // Check if the user is a participant in the deal
-    const { count, error: participantError } = await supabase
-      .from('deal_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('deal_id', document.deal_id)
-      .eq('user_id', userId);
-    
-    if (participantError) {
-      console.error('Error checking participation:', participantError);
-      throw new Error('Failed to verify deal participation');
-    }
-    
-    if (count === 0) {
-      throw new Error('Authorization denied: You are not a participant in this deal');
-    }
-    
-    // User is a participant in the deal
-    return {
-      authorized: true,
-      document: document
-    };
-  } catch (error) {
-    console.error('Error in canUserShareDocument:', error);
-    throw error;
-  }
-};
-
-// Function to validate email addresses
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// Validate the request input
-const validateInput = (requestData: any) => {
-  if (!requestData.document_version_id) {
-    throw new Error('Missing required field: document_version_id');
-  }
-  
-  // Validate recipients if provided
-  if (requestData.recipients && requestData.recipients.length > 0) {
-    const invalidEmails = requestData.recipients.filter((email: string) => !isValidEmail(email));
-    if (invalidEmails.length > 0) {
-      throw new Error(`Invalid email addresses: ${invalidEmails.join(', ')}`);
-    }
-  }
-  
-  // Validate expires_at if provided
-  if (requestData.expires_at) {
-    try {
-      const date = new Date(requestData.expires_at);
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid date format for expires_at');
-      }
-      
-      if (date < new Date()) {
-        throw new Error('Expiry date must be in the future');
-      }
-    } catch (error) {
-      throw new Error('Invalid date format for expires_at');
-    }
-  }
-  
-  return true;
-};
+import { getServiceClient, validateUserAccessToVersion } from '../_shared/document-sharing/auth.ts';
+import { generateToken } from '../_shared/document-sharing/token.ts';
+import { validateShareLinkOptions, isValidEmail } from '../_shared/document-sharing/validation.ts';
+import { sendShareLinkEmails } from '../_shared/document-sharing/email.ts';
+import { ShareLinkOptions } from '../_shared/document-sharing/types.ts';
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -153,7 +25,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get and verify the user's JWT from the authorization header
+    // Get and verify the user's JWT
     const authorization = req.headers.get('Authorization');
     if (!authorization) {
       return new Response(
@@ -162,9 +34,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Extract and verify token
     let user;
     try {
-      // Extract the token
       const token = authorization.replace('Bearer ', '');
       user = await verifyAuth(token);
     } catch (authError) {
@@ -194,15 +66,31 @@ Deno.serve(async (req) => {
       custom_message = "" 
     } = requestData;
     
-    try {
-      validateInput(requestData);
-    } catch (validationError) {
+    // Validate input
+    if (!document_version_id) {
       return new Response(
-        JSON.stringify({ error: validationError.message }),
+        JSON.stringify({ error: 'Missing required field: document_version_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
+    // Validate other inputs
+    const shareOptions: ShareLinkOptions = {
+      expires_at: expires_at || null,
+      can_download: !!can_download,
+      recipients,
+      custom_message
+    };
+    
+    const validation = validateShareLinkOptions(shareOptions);
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Initialize Supabase client
     let supabase;
     try {
       supabase = getServiceClient();
@@ -210,6 +98,18 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Check authorization to share document
+    let accessResult;
+    try {
+      accessResult = await validateUserAccessToVersion(supabase, user.id, document_version_id);
+    } catch (authError) {
+      console.error('Permission error:', authError);
+      return new Response(
+        JSON.stringify({ error: authError.message || 'You do not have permission to share this document' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -230,41 +130,11 @@ Deno.serve(async (req) => {
       // Continue with default name
     }
     
-    const sharerName = userProfile?.name || 'A Deal Pilot user';
+    // Get document name
+    const documentName = accessResult.documentInfo?.name || 'Document';
+    const dealTitle = accessResult.dealInfo?.title || 'Untitled Deal';
     
-    // Check if the user has permission to share this document
-    let documentInfo;
-    try {
-      const result = await canUserShareDocument(supabase, user.id, document_version_id);
-      documentInfo = result.document;
-    } catch (authError) {
-      console.error('Permission error:', authError);
-      return new Response(
-        JSON.stringify({ error: authError.message || 'You do not have permission to share this document' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Get deal information for email
-    let dealTitle = 'Untitled Deal';
-    let documentName = documentInfo?.name || 'Document';
-    
-    try {
-      const { data: deal, error: dealError } = await supabase
-        .from('deals')
-        .select('title')
-        .eq('id', documentInfo.deal_id)
-        .single();
-        
-      if (!dealError && deal) {
-        dealTitle = deal.title;
-      }
-    } catch (dealError) {
-      console.error('Error fetching deal:', dealError);
-      // Continue with default title
-    }
-    
-    // Generate a secure token
+    // Generate token for the share link
     const shareToken = generateToken();
     
     // Create the share record
@@ -299,46 +169,32 @@ Deno.serve(async (req) => {
     const baseUrl = req.headers.get('origin') || 'http://localhost:5173';
     const shareUrl = `${baseUrl}/share/${shareToken}`;
     
+    // Add the share URL to the response data
+    shareData.share_url = shareUrl;
+    
     // Send emails if recipients are provided
-    const emailResults = [];
-    let allEmailsSuccessful = true;
+    let emailResults = { all_successful: true, details: [] };
     
     if (recipients && recipients.length > 0) {
-      for (const recipientEmail of recipients) {
-        try {
-          // Generate email content
-          const emailHtml = generateShareLinkEmail({
-            sharerName,
-            dealTitle,
-            documentName,
-            shareUrl,
-            customMessage: custom_message,
-            expiresAt: expires_at,
-            canDownload: !!can_download
-          });
-          
-          // Send the email
-          await sendEmail({
-            to: recipientEmail,
-            subject: `Secure Document Shared: ${documentName}`,
-            html: emailHtml,
-            from: "Deal Pilot <notifications@dealpilot.app>"
-          });
-          
-          emailResults.push({
-            recipient: recipientEmail,
-            success: true
-          });
-          
-        } catch (emailError) {
-          console.error(`Error sending email to ${recipientEmail}:`, emailError);
-          emailResults.push({
-            recipient: recipientEmail,
+      try {
+        emailResults = await sendShareLinkEmails(
+          { ...shareData, share_url: shareUrl },
+          accessResult.documentInfo,
+          accessResult.dealInfo,
+          userProfile,
+          recipients,
+          custom_message
+        );
+      } catch (emailError) {
+        console.error('Error sending emails:', emailError);
+        emailResults = {
+          all_successful: false,
+          details: recipients.map(recipient => ({
+            recipient,
             success: false,
-            error: emailError.message || 'Failed to send email'
-          });
-          allEmailsSuccessful = false;
-        }
+            error: 'Email sending service unavailable'
+          }))
+        };
       }
     }
     
@@ -350,10 +206,7 @@ Deno.serve(async (req) => {
           ...shareData,
           share_url: shareUrl
         },
-        email_results: {
-          all_successful: allEmailsSuccessful,
-          details: emailResults.length > 0 ? emailResults : null
-        }
+        email_results: emailResults
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

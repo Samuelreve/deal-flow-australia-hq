@@ -1,5 +1,5 @@
 
 export * from './types';
-export * from './useDocumentVersionPermissions';
-export * from './useDocumentSharing';
-export * from './useShareLinksManagement';
+export * from './useShareLink';
+export * from './useManageShareLinks';
+export * from './useShareDialogState';
