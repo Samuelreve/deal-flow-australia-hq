@@ -1,4 +1,3 @@
-
 export type OperationType = 
   "explain_clause" | 
   "generate_template" | 
@@ -39,8 +38,27 @@ export interface DocumentAnalysisResponse {
   disclaimer: string;
 }
 
-// Deal summary response type
+// Deal Summary Response Type
 export interface DealSummaryResponse {
   summary: string;
+  disclaimer: string;
+}
+
+// Deal Insights Response Type
+export interface DealInsightsResponse {
+  insightsText: string;
+  portfolioHealth?: string;
+  dealsNeedingAttention?: Array<{
+    id: string;
+    name: string;
+    reason: string;
+  }>;
+  dealsProgressingWell?: Array<{
+    id: string;
+    name: string;
+    reason: string;
+  }>;
+  keyTrends?: string[];
+  recommendations?: string[];
   disclaimer: string;
 }

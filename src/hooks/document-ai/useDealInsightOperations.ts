@@ -1,13 +1,13 @@
 
 import { AIRequestOptions } from './useDocumentAIBase';
-import { DealSummaryResponse } from './types';
+import { DealSummaryResponse, DealInsightsResponse } from './types';
 
 interface DealInsightOperationsProps {
   processAIRequest: (operation: string, options: AIRequestOptions) => Promise<any>;
 }
 
 /**
- * Hook for deal insight operations (next actions, summaries)
+ * Hook for deal insight operations (next actions, summaries, insights)
  */
 export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperationsProps) => {
   /**
@@ -30,8 +30,19 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
     });
   };
   
+  /**
+   * Generate comprehensive insights across all deals the user has access to
+   */
+  const getDealInsights = async (): Promise<DealInsightsResponse | null> => {
+    return processAIRequest('get_deal_insights', {
+      content: '',
+      context: { }
+    });
+  };
+  
   return {
     suggestNextAction,
-    summarizeDeal
+    summarizeDeal,
+    getDealInsights
   };
 };

@@ -7,6 +7,7 @@ import DealFilters from "@/components/dashboard/DealFilters";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DealsByStatusChart from "@/components/dashboard/DealsByStatusChart";
 import HealthScoreChart from "@/components/dashboard/HealthScoreChart";
+import DealInsightsPanel from "@/components/dashboard/DealInsightsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDeals } from "@/hooks/useDeals";
 import { useMemo } from "react";
@@ -80,6 +81,9 @@ const Dashboard = () => {
     return distribution;
   }, [activeDeals, loading]);
   
+  // Determine if user has enough deals for insights
+  const shouldShowInsights = filteredDeals.length > 0;
+  
   return (
     <AppLayout>
       <DashboardHeader 
@@ -96,6 +100,9 @@ const Dashboard = () => {
         loading={loading}
         averageHealth={averageHealthScore}
       />
+      
+      {/* AI Deal Insights Panel */}
+      {shouldShowInsights && <DealInsightsPanel />}
       
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

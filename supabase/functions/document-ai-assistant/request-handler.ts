@@ -10,7 +10,8 @@ import {
   handleSuggestNextAction,
   handleGenerateMilestones,
   handleAnalyzeDocument,
-  handleSummarizeDeal
+  handleSummarizeDeal,
+  handleGetDealInsights
 } from "./operations/index.ts";
 
 export async function handleRequest(req: Request, openai: any): Promise<Response> {
@@ -18,7 +19,7 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
     const { operation, content, context, dealId, userId, documentId, documentVersionId, milestoneId } = 
       await req.json() as RequestPayload & { milestoneId?: string };
     
-    if (!operation || !dealId || !userId) {
+    if (!operation || !userId) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -26,17 +27,27 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
     }
 
     // Log the request details (excluding content for privacy/security)
-    console.log(`Processing ${operation} request for deal ${dealId} from user ${userId}`);
+    console.log(`Processing ${operation} request for user ${userId}`);
 
-    // Verify the user is a participant in the deal
-    try {
-      await verifyDealParticipant(userId, dealId);
-    } catch (error) {
-      console.error("Authorization error:", error);
-      return new Response(
-        JSON.stringify({ error: "Authorization error", details: error.message }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // For operation that doesn't need a specific deal, skip verification
+    if (operation !== 'get_deal_insights') {
+      if (!dealId) {
+        return new Response(
+          JSON.stringify({ error: "Missing required dealId" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Verify the user is a participant in the deal
+      try {
+        await verifyDealParticipant(userId, dealId);
+      } catch (error) {
+        console.error("Authorization error:", error);
+        return new Response(
+          JSON.stringify({ error: "Authorization error", details: error.message }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     let result;
@@ -65,6 +76,9 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
         break;
       case "summarize_deal":
         result = await handleSummarizeDeal(dealId, openai);
+        break;
+      case "get_deal_insights":
+        result = await handleGetDealInsights(userId, openai);
         break;
       default:
         return new Response(
