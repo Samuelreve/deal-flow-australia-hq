@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useDocumentAI } from "@/hooks/useDocumentAI";
-import { useDocumentOperations } from "@/hooks/useDocumentOperations";
+import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
+import { useDocumentOperations } from "@/hooks/document-operations/useDocumentOperations";
 import TemplateSelectionModal from "./TemplateSelectionModal";
 import GeneratedDocumentReview from "./GeneratedDocumentReview";
 
