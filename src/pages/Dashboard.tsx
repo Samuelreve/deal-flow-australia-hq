@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDeals } from "@/hooks/useDeals";
 import { useMemo } from "react";
 import { DealSummary } from "@/types/deal";
+import { formatDate } from "@/utils/formatDate";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -84,11 +85,22 @@ const Dashboard = () => {
   // Determine if user has enough deals for insights
   const shouldShowInsights = filteredDeals.length > 0;
   
+  // Current date for welcome message
+  const currentDate = new Date();
+  const formattedDate = formatDate(currentDate);
+  
   return (
     <AppLayout>
+      {/* Welcome section with date */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-primary">Welcome back</h1>
+        <p className="text-muted-foreground">{formattedDate}</p>
+      </div>
+      
+      {/* Dashboard Header with action buttons */}
       <DashboardHeader 
-        title="Dashboard" 
-        subtitle="Welcome to your deal management dashboard" 
+        title="Business Overview" 
+        subtitle="Monitor your deal activity and performance" 
       />
       
       {/* Metrics Cards */}
@@ -106,7 +118,7 @@ const Dashboard = () => {
       
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">Deal Status Distribution</CardTitle>
           </CardHeader>
@@ -115,7 +127,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">Health Score Distribution</CardTitle>
           </CardHeader>
