@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
 import { ChatMessage } from "@/hooks/document-ai/types";
@@ -64,7 +63,7 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       if (result && 'answer' in result) {
         const newAiMessage: ChatMessage = { 
           sender: 'ai', 
-          content: result.answer as string,
+          content: result.answer,
           timestamp: new Date()
         };
         setChatMessages(prev => [...prev, newAiMessage]);
