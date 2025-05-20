@@ -8,6 +8,7 @@ import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
 import DeleteVersionDialog from "./document/DeleteVersionDialog";
 import DocumentViewerSection from "./document/DocumentViewerSection";
 import { useDocuments } from "@/hooks/useDocuments";
+import ShareDocumentDialog from "./document/ShareDocumentDialog";
 
 // Define props for the DocumentManagement component
 interface DocumentManagementProps {
@@ -32,6 +33,10 @@ const DocumentManagement = ({
   const [isDeletingVersion, setIsDeletingVersion] = useState(false);
   const [selectedVersionUrl, setSelectedVersionUrl] = useState<string>('');
   const [selectedVersionId, setSelectedVersionId] = useState<string>('');
+  
+  // Share dialog state
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [versionToShare, setVersionToShare] = useState<DocumentVersion | null>(null);
 
   const { 
     documents, 
@@ -104,6 +109,17 @@ const DocumentManagement = ({
       setSelectedVersionId(version.id);
     }
   };
+  
+  // Handle sharing a document version
+  const handleShareVersion = (version: DocumentVersion) => {
+    setVersionToShare(version);
+    setShowShareDialog(true);
+  };
+  
+  const closeShareDialog = () => {
+    setShowShareDialog(false);
+    setVersionToShare(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -124,6 +140,7 @@ const DocumentManagement = ({
             onDeleteVersion={openVersionDeleteDialog}
             onSelectVersion={handleSelectVersion}
             selectedVersionId={selectedVersionId}
+            onShareVersion={handleShareVersion}
           />
 
           {/* Document Upload Section */}
@@ -147,7 +164,7 @@ const DocumentManagement = ({
         />
       </div>
       
-      {/* Delete Dialog Components */}
+      {/* Dialog Components */}
       <DeleteDocumentDialog
         document={documentToDelete}
         isOpen={showDeleteDialog}
@@ -162,6 +179,13 @@ const DocumentManagement = ({
         isDeleting={isDeletingVersion}
         onClose={closeVersionDeleteDialog}
         onConfirm={confirmVersionDelete}
+      />
+      
+      <ShareDocumentDialog
+        isOpen={showShareDialog}
+        onClose={closeShareDialog}
+        documentVersion={versionToShare || undefined}
+        documentName={selectedDocument?.name}
       />
     </div>
   );

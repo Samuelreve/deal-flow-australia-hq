@@ -5,10 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Create a Supabase client
+// Create a Supabase admin client with service role
 const getServiceClient = () => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -25,78 +25,64 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the request is GET
-    if (req.method !== 'GET') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get the token from the URL or query params
-    const url = new URL(req.url);
-    const token = url.searchParams.get('token');
+    // Parse request body to get the token
+    const { token } = await req.json();
     
     if (!token) {
       return new Response(
-        JSON.stringify({ error: 'Missing share token' }),
+        JSON.stringify({ success: false, error: 'Missing token' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     const supabase = getServiceClient();
     
-    // Verify the token and get the share link
+    // Get the share link details
     const { data: shareLink, error: shareLinkError } = await supabase
       .from('secure_share_links')
       .select('*')
       .eq('token', token)
+      .eq('is_active', true)
       .single();
     
     if (shareLinkError || !shareLink) {
-      console.error('Error fetching share link:', shareLinkError);
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired share link' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid or expired link' 
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Check if the link is active and not expired
-    const now = new Date();
-    if (!shareLink.is_active) {
+    // Check if the link has expired
+    if (shareLink.expires_at && new Date(shareLink.expires_at) < new Date()) {
       return new Response(
-        JSON.stringify({ error: 'This share link has been deactivated' }),
+        JSON.stringify({
+          success: false,
+          error: 'This link has expired'
+        }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    if (shareLink.expires_at && new Date(shareLink.expires_at) < now) {
-      return new Response(
-        JSON.stringify({ error: 'This share link has expired' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Check if viewing is permitted by this link
-    if (!shareLink.can_view) {
-      return new Response(
-        JSON.stringify({ error: 'This link does not permit viewing the document' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Get the document version
+    // Get the document version details
     const { data: version, error: versionError } = await supabase
       .from('document_versions')
       .select(`
-        id, 
-        version_number,
+        id,
         document_id,
-        storage_path,
+        version_number,
         type,
-        uploaded_by,
+        storage_path,
+        size,
         uploaded_at,
-        description
+        description,
+        documents:document_id (
+          name,
+          category,
+          description
+        )
       `)
       .eq('id', shareLink.document_version_id)
       .single();
@@ -104,67 +90,60 @@ Deno.serve(async (req) => {
     if (versionError || !version) {
       console.error('Error fetching document version:', versionError);
       return new Response(
-        JSON.stringify({ error: 'Document version not found' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Document version not found' 
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Get document info
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .select('name, deal_id')
-      .eq('id', version.document_id)
-      .single();
+    // Get document details from the joined data
+    const document = version.documents;
+    delete version.documents;
     
-    if (documentError || !document) {
-      console.error('Error fetching document:', documentError);
-      return new Response(
-        JSON.stringify({ error: 'Document not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Create a temporary signed URL for the file in storage
-    const dealId = document.deal_id;
-    const storagePath = version.storage_path;
-    const signedUrlExpiry = 60 * 60; // 1 hour in seconds
-    
-    const { data: urlData, error: urlError } = await supabase
-      .storage
+    // Create a signed URL for the document
+    // The URL will expire after 60 minutes (3600 seconds)
+    const expiresIn = 3600;
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('deal-documents')
-      .createSignedUrl(`${dealId}/${storagePath}`, signedUrlExpiry);
-    
-    if (urlError || !urlData?.signedUrl) {
-      console.error('Error creating signed URL:', urlError);
+      .createSignedUrl(version.storage_path, expiresIn);
+      
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
       return new Response(
-        JSON.stringify({ error: 'Error generating document access URL' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Could not generate access to the document' 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Return the document data with signed URL
-    const response = {
-      success: true,
-      data: {
-        document_name: document.name,
-        version_number: version.version_number,
-        description: version.description,
-        type: version.type,
-        uploaded_at: version.uploaded_at,
-        can_download: shareLink.can_download,
-        signedUrl: urlData.signedUrl,
-        expires_in_seconds: signedUrlExpiry
-      }
-    };
-    
+    // Return the document data and signed URL
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify({
+        success: true,
+        data: {
+          document_name: document.name,
+          version_number: version.version_number,
+          description: version.description || document.description,
+          type: version.type,
+          uploaded_at: version.uploaded_at,
+          can_download: shareLink.can_download,
+          signedUrl: signedUrlData.signedUrl,
+          expires_in_seconds: expiresIn
+        }
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in get-shared-document function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Internal server error' 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
