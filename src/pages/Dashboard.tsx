@@ -14,7 +14,7 @@ import DealHealthPredictionPanel from "@/components/deals/health/DealHealthPredi
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { deals, loading, error, metrics, filteredDeals, setFilteredDeals, setFilters } = useDeals();
+  const { deals, loading, filteredDeals, statusFilter, setStatusFilter, searchTerm, setSearchTerm, sortBy, setSortBy, sortOrder, setSortOrder, metrics, averageHealthScore } = useDeals();
   const [welcomeMessage, setWelcomeMessage] = useState("");
 
   useEffect(() => {
@@ -26,16 +26,16 @@ const Dashboard = () => {
     else if (hour < 18) greeting = "Good afternoon";
     else greeting = "Good evening";
     
-    const name = user?.name || "there";
+    const name = user?.profile?.name || "there";
     setWelcomeMessage(`${greeting}, ${name}!`);
     
     // Show error message if deals failed to load
-    if (error) {
+    if (loading === false && deals.length === 0) {
       toast.error("Failed to load deals", {
         description: "Please try refreshing the page."
       });
     }
-  }, [user, error]);
+  }, [user, deals, loading]);
 
   // Get active deals sorted by health
   const activeDealsSortedByHealth = [...filteredDeals]
@@ -58,7 +58,16 @@ const Dashboard = () => {
         
         {/* Metrics section */}
         <div className="mb-8">
-          <DealMetrics metrics={metrics} isLoading={loading} />
+          <DealMetrics 
+            total={metrics.total}
+            active={metrics.active}
+            completed={metrics.completed}
+            pending={metrics.pending}
+            draft={metrics.draft}
+            cancelled={metrics.cancelled}
+            loading={loading}
+            averageHealth={metrics.averageHealthScore}
+          />
         </div>
         
         {/* Main dashboard content */}
@@ -70,8 +79,17 @@ const Dashboard = () => {
               subtitle="View and manage all your business deals"
             />
             
-            <DealFilters onFilterChange={setFilters} />
-            <DealsDashboard deals={filteredDeals} loading={loading} />
+            <DealFilters 
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              sortOrder={sortOrder}
+              setSortOrder={setSortOrder}
+            />
+            <DealsDashboard deals={filteredDeals} />
           </div>
           
           {/* Sidebar area - takes 1/3 of the space on large screens */}
