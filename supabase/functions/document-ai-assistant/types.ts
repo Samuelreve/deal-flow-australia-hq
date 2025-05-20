@@ -1,4 +1,3 @@
-
 export type OperationType = 
   "explain_clause" | 
   "generate_template" | 
@@ -10,7 +9,9 @@ export type OperationType =
   "summarize_deal" |
   "get_deal_insights" |
   "deal_chat_query" |
-  "predict_deal_health";
+  "predict_deal_health" |
+  "summarize_contract" |
+  "explain_contract_clause";
 
 export interface RequestPayload {
   operation: OperationType;
@@ -22,6 +23,7 @@ export interface RequestPayload {
   userId: string;
   context?: Record<string, any>;
   chatHistory?: Array<{sender: string, content: string}>;
+  selectedText?: string; // Added for explain_contract_clause
 }
 
 // Add this type to the existing file
@@ -94,4 +96,27 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   content: string;
   timestamp?: Date;
+}
+
+// Smart Contract Assistant Response Types
+export interface ContractSummaryResponse {
+  summaryText: string;
+  parties: string[];
+  contractType: string;
+  keyObligations: string[];
+  timelines: string[];
+  terminationRules: string[];
+  liabilities: string[];
+  disclaimer: string;
+  success?: boolean;
+  error?: string;
+}
+
+export interface ContractClauseExplanationResponse {
+  explanation: string;
+  isAmbiguous: boolean;
+  ambiguityExplanation?: string;
+  disclaimer: string;
+  success?: boolean;
+  error?: string;
 }

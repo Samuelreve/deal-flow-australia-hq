@@ -11,7 +11,9 @@ import {
   handleSummarizeDeal,
   handleGetDealInsights,
   handleDealChatQuery,
-  handlePredictDealHealth
+  handlePredictDealHealth,
+  handleSummarizeContract,
+  handleExplainContractClause
 } from "../operations/index.ts";
 
 /**
@@ -27,7 +29,8 @@ export async function routeOperation(payload: RequestPayload, openai: any): Prom
     documentId, 
     documentVersionId, 
     milestoneId,
-    chatHistory = []
+    chatHistory = [],
+    selectedText = ""
   } = payload;
 
   switch (operation) {
@@ -54,6 +57,10 @@ export async function routeOperation(payload: RequestPayload, openai: any): Prom
       return await handleDealChatQuery(dealId, userId, content, chatHistory, openai);
     case "predict_deal_health":
       return await handlePredictDealHealth(dealId, userId, openai);
+    case "summarize_contract":
+      return await handleSummarizeContract(dealId, documentId, documentVersionId, userId, openai);
+    case "explain_contract_clause":
+      return await handleExplainContractClause(dealId, userId, selectedText || content, openai);
     default:
       throw new Error("Invalid operation type");
   }
