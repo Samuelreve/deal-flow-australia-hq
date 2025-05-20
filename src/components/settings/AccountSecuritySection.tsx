@@ -1,22 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from "@/components/ui/card";
+import React from 'react';
+import { Shield } from "lucide-react";
 import TwoFactorAuthentication from './security/TwoFactorAuthentication';
 
 const AccountSecuritySection: React.FC = () => {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Two-Factor Authentication (2FA)</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Add an extra layer of security to your account by enabling two-factor authentication
+      <div className="flex items-center space-x-2">
+        <Shield className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-medium">Account Security</h3>
+      </div>
+      
+      <p className="text-sm text-muted-foreground">
+        Add an extra layer of security to your account by enabling two-factor authentication (2FA)
       </p>
 
-      <Card>
-        <CardContent className="pt-6">
-          <TwoFactorAuthentication />
-        </CardContent>
-      </Card>
+      <TwoFactorAuthentication />
     </div>
   );
 };

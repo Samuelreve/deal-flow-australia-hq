@@ -3,9 +3,12 @@ import React, { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Shield } from "lucide-react";
 import TwoFactorQRCode from './TwoFactorQRCode';
 import VerificationCodeInput from './VerificationCodeInput';
 import TwoFactorActionButtons from './TwoFactorActionButtons';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface TwoFactorSetupProps {
   totpSecret: string;
@@ -94,28 +97,46 @@ const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <p className="mb-4">
-        Scan the QR code with your authenticator app (like Google Authenticator or Authy), 
-        or manually enter the secret key.
-      </p>
-      
-      <TwoFactorQRCode otpAuthUrl={otpAuthUrl} totpSecret={totpSecret} />
+    <Card className="border-border">
+      <CardContent className="p-6 space-y-6">
+        <div className="flex items-center space-x-2 text-primary mb-2">
+          <Shield className="h-5 w-5" />
+          <h3 className="text-lg font-medium">Set Up Two-Factor Authentication</h3>
+        </div>
+        
+        <div className="text-sm text-muted-foreground">
+          <p>Scan the QR code with your authenticator app (like Google Authenticator or Authy), 
+          or manually enter the secret key to add this account.</p>
+        </div>
+        
+        <TwoFactorQRCode otpAuthUrl={otpAuthUrl} totpSecret={totpSecret} />
 
-      <VerificationCodeInput
-        verificationCode={verificationCode}
-        setVerificationCode={setVerificationCode}
-        isVerifying={isVerifying2fa}
-        error={enableError}
-      />
+        {enableError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{enableError}</AlertDescription>
+          </Alert>
+        )}
 
-      <TwoFactorActionButtons
-        onVerify={handleVerify2faSetup}
-        onCancel={handleCancel}
-        isVerifying={isVerifying2fa}
-        isDisabled={verificationCode.length !== 6}
-      />
-    </div>
+        <div className="pt-2">
+          <VerificationCodeInput
+            verificationCode={verificationCode}
+            setVerificationCode={setVerificationCode}
+            isVerifying={isVerifying2fa}
+            error={null}
+          />
+        </div>
+
+        <div className="pt-2">
+          <TwoFactorActionButtons
+            onVerify={handleVerify2faSetup}
+            onCancel={handleCancel}
+            isVerifying={isVerifying2fa}
+            isDisabled={verificationCode.length !== 6}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

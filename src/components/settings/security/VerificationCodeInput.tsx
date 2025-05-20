@@ -1,5 +1,8 @@
 
 import React from 'react';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface VerificationCodeInputProps {
   verificationCode: string;
@@ -15,23 +18,34 @@ const VerificationCodeInput: React.FC<VerificationCodeInputProps> = ({
   error,
 }) => {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium" htmlFor="verification-code">
-        Enter Code from App
-      </label>
-      <input
-        type="text"
-        id="verification-code"
-        value={verificationCode}
-        onChange={(e) => setVerificationCode(e.target.value)}
-        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm text-center"
-        placeholder="000000"
-        maxLength={6}
-        disabled={isVerifying}
-      />
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label className="text-sm font-medium block" htmlFor="verification-code">
+          Enter the 6-digit code from your authenticator app
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Open your authenticator app to view your verification code
+        </p>
+      </div>
+      
+      <div className="flex justify-center py-2">
+        <InputOTP
+          maxLength={6}
+          value={verificationCode}
+          onChange={setVerificationCode}
+          disabled={isVerifying}
+          render={({ slots }) => (
+            <InputOTPGroup>
+              {slots.map((slot, index) => (
+                <InputOTPSlot key={index} {...slot} index={index} />
+              ))}
+            </InputOTPGroup>
+          )}
+        />
+      </div>
       
       {error && (
-        <p className="text-destructive text-sm">{error}</p>
+        <p className="text-destructive text-sm mt-2">{error}</p>
       )}
     </div>
   );

@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import TwoFactorSetup from './TwoFactorSetup';
 import TwoFactorEnabled from './TwoFactorEnabled';
 import TwoFactorLoading from './TwoFactorLoading';
@@ -105,20 +106,43 @@ const TwoFactorAuthentication: React.FC = () => {
 
   // Default: 2FA not enabled, showing the initial state
   return (
-    <div className="space-y-4">
-      <p>Enhance your account security by enabling Two-Factor Authentication.</p>
-      <Button
-        onClick={handleEnable2faClick}
-        disabled={isEnabling2fa}
-      >
-        {isEnabling2fa ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Enabling...
-          </>
-        ) : "Enable 2FA"}
-      </Button>
-    </div>
+    <Card className="border-border">
+      <CardContent className="p-6">
+        <div className="flex items-start">
+          <div className="flex-shrink-0 mr-4 mt-1">
+            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-medium mb-2">Enhance Your Account Security</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Two-Factor Authentication adds an extra layer of security to your account. 
+              When enabled, you'll need to provide a verification code from your authenticator app 
+              in addition to your password when signing in.
+            </p>
+            
+            <Button
+              onClick={handleEnable2faClick}
+              disabled={isEnabling2fa}
+              className="flex items-center"
+            >
+              {isEnabling2fa ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Enable 2FA
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
