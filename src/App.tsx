@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
+import ProfessionalProfilePage from "./pages/ProfessionalProfilePage";
 import OnboardingIntentPage from "./pages/OnboardingIntentPage";
 import IntentCapturePage from "./pages/IntentCapturePage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/professionals" element={<ProfessionalsDirectoryPage />} />
+            <Route path="/professionals/:professionalId" element={<ProfessionalProfilePage />} />
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
             {/* Onboarding routes */}

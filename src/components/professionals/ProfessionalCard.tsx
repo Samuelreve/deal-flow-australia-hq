@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,8 @@ interface ProfessionalCardProps {
 }
 
 const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional, onContactClick }) => {
+  const navigate = useNavigate();
+  
   const getNameInitials = (name: string) => {
     if (!name) return '?';
     return name.split(' ')
@@ -21,9 +24,13 @@ const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional, onCon
   };
 
   const specializations = professional.professional_specializations || [];
+  
+  const handleCardClick = () => {
+    navigate(`/professionals/${professional.id}`);
+  };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={handleCardClick}>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12">
@@ -73,7 +80,10 @@ const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional, onCon
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => onContactClick && onContactClick(professional)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click navigation
+            onContactClick && onContactClick(professional);
+          }}
         >
           Contact
         </Button>
