@@ -1,17 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import { Check, Copy, Mail } from 'lucide-react';
+import { useState } from 'react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
 
 interface ShareDocumentLinkProps {
   shareUrl: string;
   allowDownload: boolean;
   expiryDate: Date | null;
   onOpenLink: () => void;
+  emailsSent?: boolean;
+  recipientCount?: number;
 }
 
 const ShareDocumentLink: React.FC<ShareDocumentLinkProps> = ({
@@ -19,66 +20,74 @@ const ShareDocumentLink: React.FC<ShareDocumentLinkProps> = ({
   allowDownload,
   expiryDate,
   onOpenLink,
+  emailsSent,
+  recipientCount = 0
 }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopyToClipboard = () => {
-    if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('Link copied to clipboard');
-      
-      // Reset the copied state after a few seconds
-      setTimeout(() => {
-        setCopied(false);
-      }, 3000);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
     }
   };
 
   return (
-    <>
-      <div className="space-y-1">
-        <Label htmlFor="shareLink">Share link</Label>
-        <div className="flex space-x-2">
+    <div className="space-y-4">
+      <div>
+        <p className="text-center mb-4 font-medium text-green-600">
+          Share link generated successfully!
+        </p>
+        
+        {emailsSent && recipientCount > 0 && (
+          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md flex items-center">
+            <Mail className="mr-2 h-4 w-4" />
+            <p className="text-sm">
+              Link sent to {recipientCount} {recipientCount === 1 ? 'recipient' : 'recipients'}
+            </p>
+          </div>
+        )}
+        
+        <div className="flex mb-2">
           <Input
-            id="shareLink"
             value={shareUrl}
             readOnly
             className="flex-1"
           />
-          <Button 
-            size="icon" 
-            variant="outline" 
-            onClick={handleCopyToClipboard}
+          <Button
+            variant="outline"
+            size="icon"
+            className="ml-2"
+            onClick={handleCopy}
             title="Copy to clipboard"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-
-        <div className="text-sm text-muted-foreground mt-2">
+      </div>
+      
+      <div className="text-sm space-y-2 text-muted-foreground">
+        <p>
+          <span className="font-medium">Download permissions:</span> {allowDownload ? 'Allowed' : 'Not allowed'}
+        </p>
+        {expiryDate && (
           <p>
-            {allowDownload ? 
-              'Recipients can view and download this document.' : 
-              'Recipients can only view this document.'}
+            <span className="font-medium">Expires:</span> {format(expiryDate, 'PPP')}
           </p>
-          {expiryDate && (
-            <p>This link will expire on {format(expiryDate, "PPP")}.</p>
-          )}
-        </div>
+        )}
       </div>
-
-      <div className="flex space-x-2 mt-4">
-        <Button onClick={handleCopyToClipboard} className="flex-1">
-          {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-          Copy Link
-        </Button>
-        <Button onClick={onOpenLink} variant="secondary" className="flex-1">
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Test Link
-        </Button>
-      </div>
-    </>
+      
+      <Button 
+        variant="default"
+        onClick={onOpenLink}
+        className="w-full"
+      >
+        Open Link
+      </Button>
+    </div>
   );
 };
 

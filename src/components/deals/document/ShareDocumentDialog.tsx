@@ -40,7 +40,9 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     handleOpenLink,
     handleClose,
     handleRevokeLink,
-    revokingLink
+    revokingLink,
+    emailsSent,
+    recipientCount
   } = useShareDialogState(isOpen, onClose, documentVersion);
 
   return (
@@ -72,6 +74,8 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
             loadingShareLinks={loadingShareLinks}
             handleRevokeLink={handleRevokeLink}
             revokingLink={revokingLink}
+            emailsSent={emailsSent}
+            recipientCount={recipientCount}
           />
         </div>
 
@@ -79,6 +83,7 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
           activeTab={activeTab}
           shareUrl={shareUrl}
           onClose={handleClose}
+          linkSent={emailsSent}
         />
       </DialogContent>
     </Dialog>

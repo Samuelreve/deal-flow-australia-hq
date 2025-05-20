@@ -26,6 +26,8 @@ interface ShareDialogTabsProps {
   loadingShareLinks: boolean;
   handleRevokeLink: (linkId: string) => Promise<void>;
   revokingLink: string | null;
+  emailsSent?: boolean;
+  recipientCount?: number;
 }
 
 const ShareDialogTabs: React.FC<ShareDialogTabsProps> = ({
@@ -47,7 +49,9 @@ const ShareDialogTabs: React.FC<ShareDialogTabsProps> = ({
   shareLinks,
   loadingShareLinks,
   handleRevokeLink,
-  revokingLink
+  revokingLink,
+  emailsSent,
+  recipientCount
 }) => {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -77,6 +81,8 @@ const ShareDialogTabs: React.FC<ShareDialogTabsProps> = ({
             allowDownload={allowDownload}
             expiryDate={expiryDate}
             onOpenLink={handleOpenLink}
+            emailsSent={emailsSent}
+            recipientCount={recipientCount}
           />
         )}
       </TabsContent>

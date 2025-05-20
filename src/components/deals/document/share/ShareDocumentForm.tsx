@@ -41,18 +41,21 @@ const ShareDocumentForm: React.FC<ShareDocumentFormProps> = ({
           id="allowDownload"
           checked={allowDownload}
           onCheckedChange={setAllowDownload}
+          disabled={loading}
         />
         <Label htmlFor="allowDownload">Allow recipients to download the document</Label>
       </div>
 
       <ExpiryDateSelector 
         expiryDate={expiryDate} 
-        setExpiryDate={setExpiryDate} 
+        setExpiryDate={setExpiryDate}
+        disabled={loading}
       />
 
       <RecipientInput 
         recipients={recipients} 
-        setRecipients={setRecipients} 
+        setRecipients={setRecipients}
+        disabled={loading}
       />
 
       <div className="space-y-1">
@@ -64,6 +67,7 @@ const ShareDocumentForm: React.FC<ShareDocumentFormProps> = ({
           placeholder="Add a note for the recipients"
           className="resize-none"
           rows={3}
+          disabled={loading}
         />
       </div>
 

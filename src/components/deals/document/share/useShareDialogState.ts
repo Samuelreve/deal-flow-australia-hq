@@ -22,6 +22,8 @@ export const useShareDialogState = (
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
   const [recipients, setRecipients] = useState<string[]>([]);
   const [customMessage, setCustomMessage] = useState('');
+  const [emailsSent, setEmailsSent] = useState(false);
+  const [recipientCount, setRecipientCount] = useState(0);
   
   const { 
     shareLinks, 
@@ -50,6 +52,7 @@ export const useShareDialogState = (
 
     setLoading(true);
     setError(null);
+    setEmailsSent(false);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -81,6 +84,12 @@ export const useShareDialogState = (
       
       setShareUrl(response.data.share_url);
       
+      // Track if emails were sent
+      if (recipients.length > 0 && response.email_results) {
+        setEmailsSent(response.email_results.all_successful);
+        setRecipientCount(recipients.length);
+      }
+      
       // Refresh the list of share links
       fetchShareLinks(documentVersion.id);
     } catch (err: any) {
@@ -106,6 +115,8 @@ export const useShareDialogState = (
     setRecipients([]);
     setCustomMessage('');
     setActiveTab('create');
+    setEmailsSent(false);
+    setRecipientCount(0);
     onClose();
   };
   
@@ -133,6 +144,8 @@ export const useShareDialogState = (
     handleOpenLink,
     handleClose,
     handleRevokeLink,
-    revokingLink
+    revokingLink,
+    emailsSent,
+    recipientCount
   };
 };

@@ -11,11 +11,13 @@ import { cn } from '@/lib/utils';
 interface ExpiryDateSelectorProps {
   expiryDate: Date | null;
   setExpiryDate: (date: Date | null) => void;
+  disabled?: boolean;
 }
 
 const ExpiryDateSelector: React.FC<ExpiryDateSelectorProps> = ({ 
   expiryDate, 
-  setExpiryDate 
+  setExpiryDate,
+  disabled = false
 }) => {
   return (
     <div className="space-y-1">
@@ -28,6 +30,7 @@ const ExpiryDateSelector: React.FC<ExpiryDateSelectorProps> = ({
               "w-full justify-start text-left font-normal",
               !expiryDate && "text-muted-foreground"
             )}
+            disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {expiryDate ? format(expiryDate, "PPP") : "No expiration"}

@@ -7,32 +7,31 @@ interface ShareDialogFooterProps {
   activeTab: string;
   shareUrl: string | null;
   onClose: () => void;
+  linkSent?: boolean;
 }
 
 const ShareDialogFooter: React.FC<ShareDialogFooterProps> = ({
   activeTab,
   shareUrl,
-  onClose
+  onClose,
+  linkSent
 }) => {
+  const buttonLabel = () => {
+    if (activeTab === 'create' && shareUrl) {
+      return linkSent ? 'Done' : 'Close';
+    }
+    return 'Cancel';
+  };
+
   return (
     <DialogFooter className="sm:justify-start">
-      {activeTab === 'create' && shareUrl ? (
-        <Button
-          variant="outline"
-          onClick={onClose}
-          className="mt-2 sm:mt-0"
-        >
-          Close
-        </Button>
-      ) : (
-        <Button
-          variant="outline"
-          onClick={onClose}
-          className="mt-2 sm:mt-0"
-        >
-          Cancel
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        onClick={onClose}
+        className="mt-2 sm:mt-0"
+      >
+        {buttonLabel()}
+      </Button>
     </DialogFooter>
   );
 };

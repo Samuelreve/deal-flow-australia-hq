@@ -9,11 +9,13 @@ import { Plus, X } from 'lucide-react';
 interface RecipientInputProps {
   recipients: string[];
   setRecipients: (recipients: string[]) => void;
+  disabled?: boolean;
 }
 
 const RecipientInput: React.FC<RecipientInputProps> = ({ 
   recipients, 
-  setRecipients 
+  setRecipients,
+  disabled = false
 }) => {
   const [newRecipient, setNewRecipient] = useState('');
   const [recipientError, setRecipientError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ const RecipientInput: React.FC<RecipientInputProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Enter email address"
           className="flex-1"
+          disabled={disabled}
         />
         <Button
           type="button"
@@ -76,6 +79,7 @@ const RecipientInput: React.FC<RecipientInputProps> = ({
           size="icon"
           onClick={addRecipient}
           className="ml-2"
+          disabled={disabled}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -91,6 +95,7 @@ const RecipientInput: React.FC<RecipientInputProps> = ({
                 type="button" 
                 onClick={() => removeRecipient(email)} 
                 className="text-muted-foreground hover:text-foreground"
+                disabled={disabled}
               >
                 <X className="h-3 w-3" />
               </button>
