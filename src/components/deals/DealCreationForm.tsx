@@ -9,6 +9,7 @@ import DealInformationSection from './deal-form/DealInformationSection';
 import SellerInformationSection from './deal-form/SellerInformationSection';
 import FormActions from './deal-form/FormActions';
 import { useDealFormSubmit } from './deal-form/useDealFormSubmit';
+import { Card, CardContent } from '@/components/ui/card';
 
 const DealCreationForm: React.FC = () => {
   const { user } = useAuth();
@@ -50,6 +51,15 @@ const DealCreationForm: React.FC = () => {
 
   return (
     <div className="w-full">
+      <Card className="mb-8 bg-gradient-to-b from-white to-muted/30 border-none shadow-sm">
+        <CardContent className="pt-6">
+          <h2 className="text-xl font-medium mb-2">Create New Deal</h2>
+          <p className="text-muted-foreground">
+            Fill out the information below to start a new business deal. All fields marked with * are required.
+          </p>
+        </CardContent>
+      </Card>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Business Details Section */}

@@ -6,9 +6,18 @@ import { Plus, BarChart2 } from "lucide-react";
 interface DashboardHeaderProps {
   title: string;
   subtitle?: string;
+  buttonLabel?: string;
+  buttonRoute?: string;
+  showButton?: boolean;
 }
 
-const DashboardHeader = ({ title, subtitle }: DashboardHeaderProps) => {
+const DashboardHeader = ({ 
+  title, 
+  subtitle, 
+  buttonLabel = "New Deal",
+  buttonRoute = "/create-deal",
+  showButton = true 
+}: DashboardHeaderProps) => {
   const navigate = useNavigate();
   
   return (
@@ -23,13 +32,15 @@ const DashboardHeader = ({ title, subtitle }: DashboardHeaderProps) => {
         </div>
       </div>
       
-      <Button 
-        onClick={() => navigate("/create-deal")}
-        className="shadow-sm hover:shadow-md transition-all duration-200"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        New Deal
-      </Button>
+      {showButton && (
+        <Button 
+          onClick={() => navigate(buttonRoute)}
+          className="shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-primary to-primary/90"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          {buttonLabel}
+        </Button>
+      )}
     </div>
   );
 };

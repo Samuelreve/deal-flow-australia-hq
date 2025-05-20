@@ -70,3 +70,22 @@ export function formatRelativeTime(dateString: string | Date | null | undefined)
     return 'Just now';
   }
 }
+
+/**
+ * Format day of the week, month and day (e.g. "Monday, January 1")
+ */
+export function formatDayAndMonth(dateString: string | Date | null | undefined): string {
+  if (!dateString) return 'Today';
+  
+  const date = new Date(dateString);
+  
+  if (isNaN(date.getTime())) {
+    return 'Today';
+  }
+  
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  });
+}
