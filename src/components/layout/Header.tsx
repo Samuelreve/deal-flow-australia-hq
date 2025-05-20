@@ -1,6 +1,7 @@
 
-import { Settings, User, Search } from "lucide-react";
+import { Settings, User, Search, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 import { Input } from "@/components/ui/input";
+import AIToolsModal from "@/components/ai/AIToolsModal";
 
 interface HeaderProps {
   showSidebar?: boolean;
@@ -23,6 +25,10 @@ interface HeaderProps {
 const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showAITools, setShowAITools] = useState(false);
+  
+  // Check if user has access to AI tools based on role
+  const canAccessAITools = user?.profile?.role && ['admin', 'seller', 'buyer', 'lawyer'].includes(user.profile.role.toLowerCase());
   
   const handleNavigateToProfile = () => {
     navigate('/profile');
@@ -52,6 +58,18 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
       </div>
       
       <div className="flex items-center ml-auto space-x-3">
+        {canAccessAITools && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowAITools(true)}
+            className="bg-primary/5 border-primary/20"
+          >
+            <Brain className="mr-2 h-4 w-4 text-primary" />
+            AI Assistant
+          </Button>
+        )}
+        
         <NotificationsDropdown />
         
         <DropdownMenu>
@@ -88,6 +106,12 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      {/* AI Tools Modal */}
+      <AIToolsModal 
+        isOpen={showAITools} 
+        onClose={() => setShowAITools(false)} 
+      />
     </header>
   );
 };
