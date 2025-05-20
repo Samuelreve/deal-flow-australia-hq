@@ -67,14 +67,14 @@ const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
   const handleLocationChange = (value: string) => {
     setFormInputs({
       ...formInputs,
-      location: value
+      location: value || undefined
     });
   };
   
   const handleSpecializationChange = (value: string) => {
     setFormInputs({
       ...formInputs,
-      specialization: value
+      specialization: value || undefined
     });
   };
   
@@ -112,14 +112,14 @@ const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Select 
-                value={formInputs.location} 
+                value={formInputs.location || ""} 
                 onValueChange={handleLocationChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Any location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any location</SelectItem>
+                  <SelectItem value="any">Any location</SelectItem>
                   {locations.map(location => (
                     <SelectItem key={location} value={location}>{location}</SelectItem>
                   ))}
@@ -130,14 +130,14 @@ const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
             <div className="space-y-2">
               <Label htmlFor="specialization">Specialization</Label>
               <Select 
-                value={formInputs.specialization} 
+                value={formInputs.specialization || ""} 
                 onValueChange={handleSpecializationChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Any specialization" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any specialization</SelectItem>
+                  <SelectItem value="any">Any specialization</SelectItem>
                   {specializations.map(spec => (
                     <SelectItem key={spec} value={spec}>{spec}</SelectItem>
                   ))}
