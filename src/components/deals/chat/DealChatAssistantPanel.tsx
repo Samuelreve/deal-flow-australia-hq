@@ -47,8 +47,8 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       return;
     }
 
-    const newUserMessage = { 
-      sender: 'user' as const, 
+    const newUserMessage: ChatMessage = { 
+      sender: 'user', 
       content: userQuestion.trim(),
       timestamp: new Date()
     };
@@ -62,11 +62,12 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       const result = await dealChatQuery(dealId, userQuestion.trim(), recentHistory);
 
       if (result && 'answer' in result) {
-        setChatMessages(prev => [...prev, { 
+        const newAiMessage: ChatMessage = { 
           sender: 'ai', 
-          content: result.answer,
+          content: result.answer as string,
           timestamp: new Date()
-        }]);
+        };
+        setChatMessages(prev => [...prev, newAiMessage]);
       } else {
         setChatMessages(prev => [...prev, { 
           sender: 'ai', 

@@ -22,3 +22,4 @@ export interface RequestPayload {
   context?: Record<string, any>;
   chatHistory?: Array<{sender: string, content: string}>;
 }
+

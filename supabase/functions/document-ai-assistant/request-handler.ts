@@ -1,133 +1,54 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
-import { verifyDealParticipant } from "../_shared/rbac.ts";
 import { RequestPayload } from "./types.ts";
-import { 
-  handleExplainClause, 
-  handleGenerateTemplate, 
-  handleSummarizeDocument,
-  handleExplainMilestone,
-  handleSuggestNextAction,
-  handleGenerateMilestones,
-  handleAnalyzeDocument,
-  handleSummarizeDeal,
-  handleGetDealInsights,
-  handleDealChatQuery
-} from "./operations/index.ts";
+import { validateRequestPayload } from "./utils/request-validation.ts";
+import { verifyUserDealParticipation, createErrorResponse, createSuccessResponse } from "./utils/authorization.ts";
+import { routeOperation } from "./utils/operation-router.ts";
 
+/**
+ * Main request handler for the document AI assistant
+ */
 export async function handleRequest(req: Request, openai: any): Promise<Response> {
   try {
-    const { operation, content, context, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory } = 
-      await req.json() as RequestPayload & { milestoneId?: string; chatHistory?: Array<{sender: string, content: string}> };
+    // Parse request payload
+    const payload = await req.json() as RequestPayload;
     
-    if (!operation || !userId) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Validate request payload
+    const validationError = validateRequestPayload(payload);
+    if (validationError) {
+      return createErrorResponse(validationError);
     }
 
     // Log the request details (excluding content for privacy/security)
-    console.log(`Processing ${operation} request for user ${userId}`);
+    console.log(`Processing ${payload.operation} request for user ${payload.userId}`);
 
     // For operations that don't need a specific deal, skip verification
-    if (!['get_deal_insights', 'deal_chat_query'].includes(operation)) {
-      if (!dealId) {
-        return new Response(
-          JSON.stringify({ error: "Missing required dealId" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      // Verify the user is a participant in the deal
+    if (!['get_deal_insights', 'deal_chat_query'].includes(payload.operation)) {
       try {
-        await verifyDealParticipant(userId, dealId);
+        await verifyUserDealParticipation(payload.userId, payload.dealId);
       } catch (error) {
         console.error("Authorization error:", error);
-        return new Response(
-          JSON.stringify({ error: "Authorization error", details: error.message }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createErrorResponse(`Authorization error: ${error.message}`, 403);
+      }
+    }
+    
+    // For deal_chat_query, verify the user is a participant in this deal
+    if (payload.operation === 'deal_chat_query') {
+      try {
+        await verifyUserDealParticipation(payload.userId, payload.dealId);
+      } catch (error) {
+        console.error("Authorization error:", error);
+        return createErrorResponse(`Authorization error: ${error.message}`, 403);
       }
     }
 
-    let result;
-    switch (operation) {
-      case "explain_clause":
-        result = await handleExplainClause(content, context, openai);
-        break;
-      case "generate_template":
-        const templateType = context?.templateType || "Agreement";
-        result = await handleGenerateTemplate(content, dealId, userId, templateType, context, openai);
-        break;
-      case "summarize_document":
-        result = await handleSummarizeDocument(content, dealId, documentId, documentVersionId, openai);
-        break;
-      case "explain_milestone":
-        result = await handleExplainMilestone(dealId, milestoneId as string, openai);
-        break;
-      case "suggest_next_action":
-        result = await handleSuggestNextAction(dealId, openai);
-        break;
-      case "generate_milestones":
-        result = await handleGenerateMilestones(dealId, userId, context, openai);
-        break;
-      case "analyze_document":
-        result = await handleAnalyzeDocument(dealId, documentId, documentVersionId, context?.analysisType || "general", openai);
-        break;
-      case "summarize_deal":
-        result = await handleSummarizeDeal(dealId, openai);
-        break;
-      case "get_deal_insights":
-        result = await handleGetDealInsights(userId, openai);
-        break;
-      case "deal_chat_query":
-        if (!dealId) {
-          return new Response(
-            JSON.stringify({ error: "Missing required dealId for chat query" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        // Verify user is a participant in this deal
-        try {
-          await verifyDealParticipant(userId, dealId);
-        } catch (error) {
-          console.error("Authorization error:", error);
-          return new Response(
-            JSON.stringify({ error: "Authorization error", details: error.message }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        result = await handleDealChatQuery(dealId, userId, content, chatHistory || [], openai);
-        break;
-      default:
-        return new Response(
-          JSON.stringify({ error: "Invalid operation type" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-    }
+    // Route the request to the appropriate handler
+    const result = await routeOperation(payload, openai);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        ...result,
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    // Return success response
+    return createSuccessResponse(result);
   } catch (error) {
     console.error("Error processing document AI request:", error);
-    return new Response(
-      JSON.stringify({ 
-        error: "Failed to process request", 
-        details: error.message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    return createErrorResponse(`Failed to process request: ${error.message}`, 500);
   }
 }
