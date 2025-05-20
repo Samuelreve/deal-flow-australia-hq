@@ -1,6 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { getUserDealRole } from "../_shared/rbac.ts";
+import { getUserDealRole } from "../../_shared/rbac.ts";
 
 function getSupabaseAdmin() {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
