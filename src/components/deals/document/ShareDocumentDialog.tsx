@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DocumentVersion } from '@/types/deal';
@@ -9,6 +9,9 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ShareDocumentForm from './share/ShareDocumentForm';
 import ShareDocumentLink from './share/ShareDocumentLink';
+import ShareLinksList from './share/ShareLinksList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useDocumentVersionActions } from '@/hooks/useDocumentVersionActions';
 
 interface ShareDocumentDialogProps {
   isOpen: boolean;
@@ -23,17 +26,37 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
   documentVersion,
   documentName
 }) => {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('create');
   
   // Form state
   const [allowDownload, setAllowDownload] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
+  
+  const { 
+    shareLinks, 
+    loadingShareLinks, 
+    fetchShareLinks, 
+    revokeShareLink, 
+    revokingLink 
+  } = useDocumentVersionActions({
+    userRole: user?.role || "user",
+    userId: user?.id,
+    documentOwnerId: documentVersion?.uploadedBy || ""
+  });
+
+  // Fetch share links when dialog opens
+  useEffect(() => {
+    if (isOpen && documentVersion?.id) {
+      fetchShareLinks(documentVersion.id);
+    }
+  }, [isOpen, documentVersion?.id]);
 
   const handleGenerateLink = async () => {
-    if (!documentVersion || !session?.access_token) {
+    if (!documentVersion || !user?.id) {
       setError('Missing document version or authentication');
       return;
     }
@@ -42,6 +65,12 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     setError(null);
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+      
       const { data: response, error: functionError } = await supabase.functions.invoke('create-share-link', {
         body: {
           document_version_id: documentVersion.id,
@@ -62,6 +91,9 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
       }
       
       setShareUrl(response.data.share_url);
+      
+      // Refresh the list of share links
+      fetchShareLinks(documentVersion.id);
     } catch (err: any) {
       console.error('Error generating share link:', err);
       setError(err.message || 'Failed to generate share link');
@@ -82,7 +114,12 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     setError(null);
     setAllowDownload(false);
     setExpiryDate(null);
+    setActiveTab('create');
     onClose();
+  };
+  
+  const handleRevokeLink = async (linkId: string) => {
+    await revokeShareLink(linkId);
   };
 
   return (
@@ -95,7 +132,7 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 pb-4">
+        <div className="space-y-4">
           {documentVersion && (
             <div>
               <p className="font-medium text-sm">Document</p>
@@ -103,28 +140,46 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
             </div>
           )}
 
-          {!shareUrl ? (
-            <ShareDocumentForm
-              onGenerateLink={handleGenerateLink}
-              loading={loading}
-              error={error}
-              allowDownload={allowDownload}
-              setAllowDownload={setAllowDownload}
-              expiryDate={expiryDate}
-              setExpiryDate={setExpiryDate}
-            />
-          ) : (
-            <ShareDocumentLink
-              shareUrl={shareUrl}
-              allowDownload={allowDownload}
-              expiryDate={expiryDate}
-              onOpenLink={handleOpenLink}
-            />
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="create">Create New Link</TabsTrigger>
+              <TabsTrigger value="manage">Manage Links</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="create" className="pt-4">
+              {!shareUrl ? (
+                <ShareDocumentForm
+                  onGenerateLink={handleGenerateLink}
+                  loading={loading}
+                  error={error}
+                  allowDownload={allowDownload}
+                  setAllowDownload={setAllowDownload}
+                  expiryDate={expiryDate}
+                  setExpiryDate={setExpiryDate}
+                />
+              ) : (
+                <ShareDocumentLink
+                  shareUrl={shareUrl}
+                  allowDownload={allowDownload}
+                  expiryDate={expiryDate}
+                  onOpenLink={handleOpenLink}
+                />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="manage" className="pt-4">
+              <ShareLinksList 
+                links={shareLinks}
+                loading={loadingShareLinks}
+                onRevoke={handleRevokeLink}
+                revokingLink={revokingLink}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
 
         <DialogFooter className="sm:justify-start">
-          {shareUrl ? (
+          {activeTab === 'create' && shareUrl ? (
             <Button
               variant="outline"
               onClick={handleClose}

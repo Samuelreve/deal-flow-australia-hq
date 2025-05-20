@@ -42,14 +42,14 @@ Deno.serve(async (req) => {
       .from('secure_share_links')
       .select('*')
       .eq('token', token)
-      .eq('is_active', true)
+      .eq('is_active', true)  // Added check for is_active status
       .single();
     
     if (shareLinkError || !shareLink) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid or expired link' 
+          error: 'Invalid, revoked, or expired link' 
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
