@@ -4,60 +4,111 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import ProfessionalCard from '@/components/professionals/ProfessionalCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog';
+import ProfessionalSearchFilters, { ProfessionalFilters } from '@/components/professionals/ProfessionalSearchFilters';
+import ProfessionalDirectoryPagination from '@/components/professionals/ProfessionalDirectoryPagination';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserProfile } from '@/types/auth';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
-const fetchProfessionals = async () => {
-  const { data, error } = await supabase
+interface FetchProfessionalsParams {
+  searchTerm?: string;
+  location?: string;
+  specialization?: string;
+  page: number;
+  limit: number;
+}
+
+const fetchProfessionals = async ({ searchTerm, location, specialization, page, limit }: FetchProfessionalsParams) => {
+  // Start building the query
+  let query = supabase
     .from('profiles')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('is_professional', true);
+
+  // Apply filters
+  if (searchTerm) {
+    const searchLower = `%${searchTerm.toLowerCase()}%`;
+    query = query.or(
+      `name.ilike.${searchLower},professional_headline.ilike.${searchLower},professional_firm_name.ilike.${searchLower}`
+    );
+  }
+
+  if (location) {
+    query = query.ilike('professional_location', `%${location}%`);
+  }
+
+  if (specialization) {
+    // If professional_specializations is a JSONB array, we can use contains
+    query = query.contains('professional_specializations', [specialization]);
+  }
+
+  // Apply pagination
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  
+  const { data, error, count } = await query
+    .range(from, to)
+    .order('name', { ascending: true });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data as UserProfile[];
+  return { 
+    professionals: data as UserProfile[], 
+    totalCount: count || 0 
+  };
 };
 
 const ProfessionalsDirectoryPage = () => {
-  const { data: professionals = [], isLoading, error } = useQuery({
-    queryKey: ['professionals'],
-    queryFn: fetchProfessionals,
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(9);
+  
+  // Filter state
+  const [filters, setFilters] = useState<ProfessionalFilters>({
+    searchTerm: '',
+    location: undefined,
+    specialization: undefined
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState<UserProfile | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [messageForm, setMessageForm] = useState({ subject: '', message: '' });
   const { toast } = useToast();
   
-  const filteredProfessionals = professionals.filter(professional => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      professional.name?.toLowerCase().includes(searchLower) ||
-      professional.professional_headline?.toLowerCase().includes(searchLower) ||
-      professional.professional_firm_name?.toLowerCase().includes(searchLower) ||
-      professional.professional_location?.toLowerCase().includes(searchLower) ||
-      (Array.isArray(professional.professional_specializations) && 
-        professional.professional_specializations.some(spec => 
-          spec.toLowerCase().includes(searchLower)
-        ))
-    );
+  // Query professionals with filters and pagination
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['professionals', filters, currentPage, itemsPerPage],
+    queryFn: () => fetchProfessionals({
+      searchTerm: filters.searchTerm,
+      location: filters.location,
+      specialization: filters.specialization,
+      page: currentPage,
+      limit: itemsPerPage
+    }),
   });
+
+  const professionals = data?.professionals || [];
+  const totalProfessionals = data?.totalCount || 0;
+  const totalPages = Math.ceil(totalProfessionals / itemsPerPage);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  const handleFiltersChange = (newFilters: ProfessionalFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleContactClick = (professional: UserProfile) => {
     setSelectedProfessional(professional);
@@ -86,51 +137,54 @@ const ProfessionalsDirectoryPage = () => {
           </p>
         </div>
 
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle>Find Professionals</CardTitle>
-            <CardDescription>
-              Search by name, specialization, location, or firm
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Input
-                placeholder="Search professionals..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={() => setSearchTerm('')} variant="outline">
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ProfessionalSearchFilters 
+          filters={filters} 
+          onFiltersChange={handleFiltersChange} 
+          isLoading={isLoading} 
+        />
 
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <p className="animate-pulse">Loading professionals...</p>
-          </div>
-        ) : error ? (
-          <div className="p-8 text-center text-destructive">
-            <p>Error loading professionals directory. Please try again later.</p>
-          </div>
-        ) : filteredProfessionals.length === 0 ? (
-          <div className="p-8 text-center">
-            <p>No professionals found matching your search criteria.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProfessionals.map((professional) => (
-              <ProfessionalCard
-                key={professional.id}
-                professional={professional}
-                onContactClick={handleContactClick}
-              />
-            ))}
-          </div>
-        )}
+        <div className="mt-6">
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <p className="animate-pulse">Loading professionals...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-destructive">
+              <p>Error loading professionals directory. Please try again later.</p>
+            </div>
+          ) : professionals.length === 0 ? (
+            <div className="p-8 text-center">
+              <p>No professionals found matching your search criteria.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {professionals.map((professional) => (
+                  <ProfessionalCard
+                    key={professional.id}
+                    professional={professional}
+                    onContactClick={handleContactClick}
+                  />
+                ))}
+              </div>
+              
+              <div className="mt-6 flex justify-center">
+                <ProfessionalDirectoryPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  isLoading={isLoading}
+                />
+              </div>
+              
+              {totalProfessionals > 0 && (
+                <p className="text-center text-sm text-muted-foreground mt-2">
+                  Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalProfessionals)} - {Math.min(currentPage * itemsPerPage, totalProfessionals)} of {totalProfessionals} professionals
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
       
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
