@@ -5,7 +5,11 @@ export type OperationType =
   "summarize_document" | 
   "explain_milestone" |
   "suggest_next_action" |
-  "generate_milestones";
+  "generate_milestones" |
+  "analyze_document" |
+  "summarize_deal" |
+  "get_deal_insights" |
+  "deal_chat_query";
 
 export interface RequestPayload {
   operation: OperationType;
@@ -16,4 +20,5 @@ export interface RequestPayload {
   content: string;
   userId: string;
   context?: Record<string, any>;
+  chatHistory?: Array<{sender: string, content: string}>;
 }

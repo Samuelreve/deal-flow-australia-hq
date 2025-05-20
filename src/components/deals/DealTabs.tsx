@@ -9,6 +9,7 @@ import DocumentManagement from "@/components/deals/DocumentManagement";
 import MilestoneTracker from "@/components/deals/MilestoneTracker";
 import DealComments from "@/components/deals/DealComments";
 import DealMessaging from "@/components/deals/messages/DealMessaging";
+import DealChatTab from "@/components/deals/chat/DealChatTab";
 import { Deal } from "@/types/deal";
 
 interface DealTabsProps {
@@ -35,6 +36,7 @@ const DealTabs: React.FC<DealTabsProps> = ({
         <TabsTrigger value="timeline">Timeline</TabsTrigger>
         <TabsTrigger value="comments">Comments</TabsTrigger>
         <TabsTrigger value="messages">Messages</TabsTrigger>
+        <TabsTrigger value="chat-assistant">AI Assistant</TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview">
@@ -111,6 +113,10 @@ const DealTabs: React.FC<DealTabsProps> = ({
             <DealMessaging dealId={deal.id} isParticipant={isParticipant} />
           </CardContent>
         </Card>
+      </TabsContent>
+      
+      <TabsContent value="chat-assistant">
+        <DealChatTab dealId={deal.id} isParticipant={isParticipant} />
       </TabsContent>
     </Tabs>
   );

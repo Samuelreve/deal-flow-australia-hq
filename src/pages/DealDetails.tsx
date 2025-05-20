@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -114,16 +113,6 @@ const DealDetails = () => {
             effectiveUserRole={effectiveUserRole}
             isParticipant={isParticipant}
           />
-          
-          {/* Show messaging component when "messages" tab is active */}
-          {activeTab === "messages" && (
-            <div className="mt-6">
-              <DealMessaging 
-                dealId={id || ''}
-                isParticipant={isParticipant}
-              />
-            </div>
-          )}
         </div>
         
         <div>

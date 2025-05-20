@@ -8,3 +8,4 @@ export { handleGenerateMilestones } from "./generate-milestones.ts";
 export { handleAnalyzeDocument } from "./analyze-document.ts";
 export { handleSummarizeDeal } from "./summarize-deal.ts";
 export { handleGetDealInsights } from "./get-deal-insights.ts";
+export { handleDealChatQuery } from "./deal-chat-query.ts";

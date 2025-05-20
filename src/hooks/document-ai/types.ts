@@ -1,3 +1,4 @@
+
 export type OperationType = 
   "explain_clause" | 
   "generate_template" | 
@@ -6,7 +7,9 @@ export type OperationType =
   "suggest_next_action" |
   "generate_milestones" |
   "analyze_document" |
-  "summarize_deal";
+  "summarize_deal" |
+  "get_deal_insights" |
+  "deal_chat_query";
 
 export interface RequestPayload {
   operation: OperationType;
@@ -17,6 +20,7 @@ export interface RequestPayload {
   content: string;
   userId: string;
   context?: Record<string, any>;
+  chatHistory?: Array<{sender: string, content: string}>;
 }
 
 // Add this type to the existing file
@@ -61,4 +65,17 @@ export interface DealInsightsResponse {
   keyTrends?: string[];
   recommendations?: string[];
   disclaimer: string;
+}
+
+// Deal Chat Response Type
+export interface DealChatResponse {
+  answer: string;
+  disclaimer: string;
+}
+
+// Chat Message Type
+export interface ChatMessage {
+  sender: 'user' | 'ai';
+  content: string;
+  timestamp?: Date;
 }

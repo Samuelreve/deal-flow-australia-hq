@@ -11,13 +11,14 @@ import {
   handleGenerateMilestones,
   handleAnalyzeDocument,
   handleSummarizeDeal,
-  handleGetDealInsights
+  handleGetDealInsights,
+  handleDealChatQuery
 } from "./operations/index.ts";
 
 export async function handleRequest(req: Request, openai: any): Promise<Response> {
   try {
-    const { operation, content, context, dealId, userId, documentId, documentVersionId, milestoneId } = 
-      await req.json() as RequestPayload & { milestoneId?: string };
+    const { operation, content, context, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory } = 
+      await req.json() as RequestPayload & { milestoneId?: string; chatHistory?: Array<{sender: string, content: string}> };
     
     if (!operation || !userId) {
       return new Response(
@@ -29,8 +30,8 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
     // Log the request details (excluding content for privacy/security)
     console.log(`Processing ${operation} request for user ${userId}`);
 
-    // For operation that doesn't need a specific deal, skip verification
-    if (operation !== 'get_deal_insights') {
+    // For operations that don't need a specific deal, skip verification
+    if (!['get_deal_insights', 'deal_chat_query'].includes(operation)) {
       if (!dealId) {
         return new Response(
           JSON.stringify({ error: "Missing required dealId" }),
@@ -79,6 +80,25 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
         break;
       case "get_deal_insights":
         result = await handleGetDealInsights(userId, openai);
+        break;
+      case "deal_chat_query":
+        if (!dealId) {
+          return new Response(
+            JSON.stringify({ error: "Missing required dealId for chat query" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Verify user is a participant in this deal
+        try {
+          await verifyDealParticipant(userId, dealId);
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return new Response(
+            JSON.stringify({ error: "Authorization error", details: error.message }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        result = await handleDealChatQuery(dealId, userId, content, chatHistory || [], openai);
         break;
       default:
         return new Response(

@@ -5,6 +5,7 @@ import { useDocumentGenerationOperations } from './useDocumentGenerationOperatio
 import { useDealInsightOperations } from './useDealInsightOperations';
 import { useMilestoneGenerationOperations } from './useMilestoneGenerationOperations';
 import { useDocumentAnalysisOperations } from './useDocumentAnalysisOperations';
+import { useDealChatOperations } from './useDealChatOperations';
 
 /**
  * Main hook for document AI operations, combining all specialized operations
@@ -47,6 +48,11 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     analyzeDocument
   } = useDocumentAnalysisOperations({ processAIRequest });
   
+  // Get deal chat operations
+  const {
+    dealChatQuery
+  } = useDealChatOperations({ processAIRequest });
+  
   return {
     // Base properties
     loading,
@@ -72,5 +78,8 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     
     // Document analysis operations
     analyzeDocument,
+    
+    // Deal chat operations
+    dealChatQuery,
   };
 };
