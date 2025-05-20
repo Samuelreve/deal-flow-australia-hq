@@ -1,0 +1,63 @@
+
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import StandardLoginForm from "../StandardLoginForm";
+
+interface StandardLoginViewProps {
+  onSignUp: () => void;
+  handleLoginSubmit: (email: string, password: string) => Promise<void>;
+  handleForgotPassword: () => void;
+  error?: string;
+  isLoading: boolean;
+  showSuccess: boolean;
+}
+
+const StandardLoginView = ({
+  onSignUp,
+  handleLoginSubmit,
+  handleForgotPassword,
+  error,
+  isLoading,
+  showSuccess
+}: StandardLoginViewProps) => {
+  return (
+    <>
+      {showSuccess && (
+        <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+          <AlertDescription>
+            Account created successfully! Please check your email to verify your account before logging in.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <StandardLoginForm 
+        onSubmit={handleLoginSubmit}
+        onForgotPassword={handleForgotPassword}
+        error={error}
+        isLoading={isLoading}
+      />
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">Or</span>
+        </div>
+      </div>
+      
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full" 
+        onClick={onSignUp}
+        disabled={isLoading}
+      >
+        Create an account
+      </Button>
+    </>
+  );
+};
+
+export default StandardLoginView;
