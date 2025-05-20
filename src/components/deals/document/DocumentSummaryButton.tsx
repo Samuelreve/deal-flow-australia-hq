@@ -12,13 +12,15 @@ interface DocumentSummaryButtonProps {
   documentId: string;
   documentVersionId: string;
   userRole?: string;
+  className?: string;
 }
 
 const DocumentSummaryButton: React.FC<DocumentSummaryButtonProps> = ({ 
   dealId, 
   documentId,
   documentVersionId,
-  userRole = 'user'
+  userRole = 'user',
+  className = ''
 }) => {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -62,7 +64,7 @@ const DocumentSummaryButton: React.FC<DocumentSummaryButtonProps> = ({
       <Button 
         variant="outline" 
         onClick={handleGenerateSummary}
-        className="gap-2"
+        className={`gap-2 ${className}`}
         disabled={loading}
       >
         {loading ? <Spinner size="sm" /> : <FileText className="h-4 w-4" />}

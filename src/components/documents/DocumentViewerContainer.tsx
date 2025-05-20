@@ -127,8 +127,13 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
   return (
     <div className="flex flex-col h-full space-y-4">
       <DocumentViewerHeader 
-        commentsCount={comments.length} 
+        documentName="Document Viewer"
+        showCommentSidebar={showCommentSidebar}
         onToggleCommentSidebar={handleToggleCommentSidebar} 
+        dealId={dealId}
+        documentId={documentId}
+        versionId={versionId}
+        commentsCount={comments.length} // Pass comments count 
       />
 
       <DocumentViewerContentContainer 
@@ -139,7 +144,7 @@ const DocumentViewerContainer = forwardRef<DocumentViewerRef, DocumentViewerCont
         versionId={versionId}
         currentPage={currentPage}
         onMouseUp={handleMouseUp}
-        ref={ref}
+        ref={internalDocumentViewerRef}
         onCommentClick={handleSidebarCommentClick}
         onToggleSidebar={handleToggleCommentSidebar}
       />

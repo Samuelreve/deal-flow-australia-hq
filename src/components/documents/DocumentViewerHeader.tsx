@@ -16,6 +16,7 @@ interface DocumentViewerHeaderProps {
   versionId?: string;
   onShareClick?: () => void;
   documentVersionUrl?: string;
+  commentsCount?: number; // Added this prop
 }
 
 const DocumentViewerHeader: React.FC<DocumentViewerHeaderProps> = ({
@@ -27,7 +28,8 @@ const DocumentViewerHeader: React.FC<DocumentViewerHeaderProps> = ({
   documentId,
   versionId,
   onShareClick,
-  documentVersionUrl
+  documentVersionUrl,
+  commentsCount = 0 // Set default value
 }) => {
   const { user } = useAuth();
   
@@ -53,7 +55,8 @@ const DocumentViewerHeader: React.FC<DocumentViewerHeaderProps> = ({
           <DocumentSummaryButton 
             dealId={dealId}
             documentId={documentId}
-            versionId={versionId}
+            documentVersionId={versionId} // Changed from versionId to documentVersionId
+            userRole={userRole}
             className="hidden sm:flex"
           />
         )}
@@ -77,6 +80,11 @@ const DocumentViewerHeader: React.FC<DocumentViewerHeaderProps> = ({
           className={showCommentSidebar ? "bg-muted" : ""}
         >
           <MessageSquare className="h-4 w-4" />
+          {commentsCount > 0 && (
+            <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+              {commentsCount}
+            </span>
+          )}
         </Button>
         
         {onShareClick && (

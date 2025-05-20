@@ -99,7 +99,7 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
         <DocumentSummaryButton 
           dealId={dealId} 
           documentId={document.id} 
-          documentVersionId={version.id}
+          documentVersionId={version.id} // Make sure we're using documentVersionId
           userRole={userRole}
         />
         
