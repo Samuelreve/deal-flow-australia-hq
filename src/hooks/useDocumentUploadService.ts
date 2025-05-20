@@ -78,24 +78,19 @@ export function useDocumentUploadService() {
         throw new Error("Authentication required");
       }
 
-      // Call the edge function
-      const response = await fetch(
-        `${supabase.functions.url}/document-upload?dealId=${dealId}`, 
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: formData
-        }
-      );
+      // Call the edge function using invoke method with queryParams
+      const { data: result, error } = await supabase.functions.invoke('document-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData,
+        query: { dealId }
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
+      if (error) {
+        throw new Error(error.message || "Upload failed");
       }
-
-      const result = await response.json();
       
       toast({
         title: documentId ? "Version added" : "Document uploaded",
