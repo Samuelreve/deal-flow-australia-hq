@@ -1,14 +1,9 @@
 
 import { AIResponse } from './useDocumentAIBase';
+import { ChatMessage } from './types';
 
 interface UseDealChatOperationsProps {
   processAIRequest: (operation: string, options: any) => Promise<AIResponse | null>;
-}
-
-export interface ChatMessage {
-  sender: 'user' | 'ai';
-  content: string;
-  timestamp?: Date;
 }
 
 /**

@@ -1,6 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { getUserDealRole } from "../../_shared/rbac.ts";
+import { formatDate } from "./utils.ts";
 
 function getSupabaseAdmin() {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -126,11 +127,9 @@ function formatDealPortfolioForPrompt(deals) {
       : 'Unknown';
     
     // Format dates
-    const createdDate = new Date(deal.created_at).toLocaleDateString();
-    const targetDate = deal.target_completion_date 
-      ? new Date(deal.target_completion_date).toLocaleDateString() 
-      : 'Not set';
-    const lastUpdated = new Date(deal.updated_at).toLocaleDateString();
+    const createdDate = formatDate(deal.created_at);
+    const targetDate = formatDate(deal.target_completion_date);
+    const lastUpdated = formatDate(deal.updated_at);
     
     // Calculate deal age in days
     const ageInDays = Math.round((now.getTime() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));

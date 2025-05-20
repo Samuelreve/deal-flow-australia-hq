@@ -61,7 +61,7 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       const recentHistory = chatMessages.slice(-4);
       const result = await dealChatQuery(dealId, userQuestion.trim(), recentHistory);
 
-      if (result && result.answer) {
+      if (result && 'answer' in result) {
         setChatMessages(prev => [...prev, { 
           sender: 'ai', 
           content: result.answer,

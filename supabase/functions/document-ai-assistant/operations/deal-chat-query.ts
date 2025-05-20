@@ -1,6 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { getUserDealRole } from "../../_shared/rbac.ts";
+import { formatDate } from "./utils.ts";
 
 function getSupabaseAdmin() {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -129,10 +130,8 @@ function formatDealContextForPrompt(dealContext: any) {
     formattedContext += `Reason for Selling: ${deal.reason_for_selling}\n`;
   }
   
-  const createdDate = new Date(deal.created_at).toLocaleDateString();
-  const targetDate = deal.target_completion_date 
-    ? new Date(deal.target_completion_date).toLocaleDateString() 
-    : 'Not set';
+  const createdDate = formatDate(deal.created_at);
+  const targetDate = formatDate(deal.target_completion_date);
   
   formattedContext += `Timeline: Created on ${createdDate} | Target Completion: ${targetDate}\n\n`;
   
@@ -140,8 +139,8 @@ function formatDealContextForPrompt(dealContext: any) {
   formattedContext += `Milestones (${milestones.length}):\n`;
   if (milestones.length > 0) {
     milestones.forEach(m => {
-      const dueDate = m.due_date ? new Date(m.due_date).toLocaleDateString() : 'Not set';
-      const completedDate = m.completed_at ? new Date(m.completed_at).toLocaleDateString() : '';
+      const dueDate = formatDate(m.due_date);
+      const completedDate = m.completed_at ? formatDate(m.completed_at) : '';
       
       formattedContext += `- ${m.title}: ${m.status} (Due: ${dueDate}${completedDate ? `, Completed: ${completedDate}` : ''})\n`;
       if (m.description) {
@@ -168,7 +167,7 @@ function formatDealContextForPrompt(dealContext: any) {
   if (documents.length > 0) {
     formattedContext += `Recent Documents (${documents.length}):\n`;
     documents.forEach(doc => {
-      const uploadDate = new Date(doc.created_at).toLocaleDateString();
+      const uploadDate = formatDate(doc.created_at);
       formattedContext += `- ${doc.name} (${doc.type || 'Unknown'}, Status: ${doc.status}) uploaded by ${doc.profiles?.name || 'Unknown'} on ${uploadDate}\n`;
     });
     formattedContext += '\n';
