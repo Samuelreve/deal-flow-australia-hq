@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { DocumentViewerRef } from './DocumentViewer';
 import { useCommentsEffect } from '@/hooks/documentComments/useCommentsEffect';
+import { useDocumentCommentSidebar } from '@/hooks/useDocumentCommentSidebar';
 
 interface DocumentCommentsSidebarProps {
   versionId?: string;
@@ -38,15 +39,20 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   // Error state for fetching
   const [fetchError, setFetchError] = useState<string | null>(null);
   
-  // State for managing the comment form and selections
-  const [showInputForm, setShowInputForm] = useState(false);
-  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
-  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
-  const [selectionDetails, setSelectionDetails] = useState<{
-    selectedText: string | null;
-    pageNumber?: number;
-    locationData: any;
-  } | null>(null);
+  // Use our comment sidebar hook for managing sidebar state
+  const {
+    activeCommentId,
+    setActiveCommentId,
+    replyToCommentId,
+    setReplyToCommentId,
+    showCommentForm,
+    setShowCommentForm,
+    selectionDetails,
+    setSelectionDetails,
+    handleCommentClick: handleSidebarCommentClick,
+    handleReplyClick,
+    handleCancelInput
+  } = useDocumentCommentSidebar(documentViewerRef);
 
   // Use our comments effect hook with updated handling for the ForwardedRef
   const handleRefForEffect = () => {
@@ -69,31 +75,9 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     }
   }, [versionId, fetchComments]);
 
-  // Handle comment triggered from viewer
-  const handleCommentTriggeredFromViewer = (details: {
-    text: string;
-    pageNumber?: number;
-    locationData: any;
-  }) => {
-    setSelectionDetails({
-      selectedText: details.text,
-      pageNumber: details.pageNumber,
-      locationData: details.locationData
-    });
-    setReplyToCommentId(null);
-    setShowInputForm(true);
-  };
-
-  // Handle comment cancellation
-  const handleCancelInput = () => {
-    setShowInputForm(false);
-    setSelectionDetails(null);
-    setReplyToCommentId(null);
-  };
-
   // Handle comment posted successfully
   const handleCommentPosted = () => {
-    setShowInputForm(false);
+    setShowCommentForm(false);
     setSelectionDetails(null);
     setReplyToCommentId(null);
     fetchComments();
@@ -104,31 +88,14 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   };
 
   // Handle clicking on a comment to highlight in the viewer
-  const handleCommentClick = (commentId: string, locationData: any) => {
-    // Set active comment
-    setActiveCommentId(commentId === activeCommentId ? null : commentId);
-    
-    // Check if documentViewerRef is a function ref or an object ref
-    if (typeof documentViewerRef === 'function') {
-      console.warn('Function ref cannot be used directly for highlighting');
-    } else if (documentViewerRef?.current?.highlightLocation && locationData) {
-      documentViewerRef.current.highlightLocation(locationData);
-      console.log(`Highlighting comment ${commentId} with location data:`, locationData);
-    } else {
-      console.warn('Cannot highlight location: Viewer ref not available or location data missing');
-    }
+  const handleCommentClickWrapper = (commentId: string, locationData: any) => {
+    // Use our sidebar hook's handler
+    handleSidebarCommentClick(commentId, locationData);
     
     // Call the passed onCommentClick if available
     if (onCommentClick) {
       onCommentClick(commentId, locationData);
     }
-  };
-
-  // Handle replying to a comment
-  const handleReplyClick = (commentId: string) => {
-    setReplyToCommentId(commentId);
-    setSelectionDetails(null);
-    setShowInputForm(true);
   };
 
   return (
@@ -184,7 +151,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
         <DocumentCommentsList 
           comments={comments}
           loading={loadingComments}
-          onCommentClick={handleCommentClick}
+          onCommentClick={handleCommentClickWrapper}
           onToggleResolved={toggleResolved}
           onReplyClick={handleReplyClick}
           activeCommentId={activeCommentId}
@@ -192,7 +159,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       )}
       
       {/* Comment Input Form */}
-      {showInputForm && (
+      {showCommentForm && (
         <div className="mt-4 border-t pt-4">
           <h4 className="text-sm font-medium mb-2">
             {replyToCommentId ? 'Reply to Comment' : 'Add Comment'}

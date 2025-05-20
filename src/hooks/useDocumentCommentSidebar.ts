@@ -9,6 +9,11 @@ export function useDocumentCommentSidebar(
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const [selectionDetails, setSelectionDetails] = useState<{
+    selectedText: string | null;
+    pageNumber?: number;
+    locationData: any;
+  } | null>(null);
 
   // Handle comment sidebar item click
   const handleCommentClick = (commentId: string, commentLocationData: any) => {
@@ -32,6 +37,22 @@ export function useDocumentCommentSidebar(
   const handleCancelInput = () => {
     setShowCommentForm(false);
     setReplyToCommentId(null);
+    setSelectionDetails(null);
+  };
+
+  // Handle comment triggered from viewer
+  const handleCommentTriggeredFromViewer = (details: {
+    text: string;
+    pageNumber?: number;
+    locationData: any;
+  }) => {
+    setSelectionDetails({
+      selectedText: details.text,
+      pageNumber: details.pageNumber,
+      locationData: details.locationData
+    });
+    setReplyToCommentId(null);
+    setShowCommentForm(true);
   };
 
   return {
@@ -41,8 +62,11 @@ export function useDocumentCommentSidebar(
     setReplyToCommentId,
     showCommentForm,
     setShowCommentForm,
+    selectionDetails,
+    setSelectionDetails,
     handleCommentClick,
     handleReplyClick,
-    handleCancelInput
+    handleCancelInput,
+    handleCommentTriggeredFromViewer
   };
 }
