@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NextActionSuggestion from './NextActionSuggestion';
+import GenerateMilestonesButton from './GenerateMilestonesButton';
 
 interface MilestoneTrackerProps {
   dealId: string;
@@ -30,8 +31,14 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
     loadingMilestones,
     fetchError,
     updatingMilestoneId,
-    handleUpdateMilestoneStatus
+    handleUpdateMilestoneStatus,
+    fetchMilestones
   } = useMilestoneTracker(dealId, initialMilestones);
+
+  // Handle milestone refresh after new ones are added
+  const handleMilestonesAdded = () => {
+    fetchMilestones();
+  };
 
   if (!isAuthenticated && initialMilestones.length === 0) {
     return (
@@ -51,7 +58,18 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
   return (
     <>
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-800">Deal Milestones</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-gray-800">Deal Milestones</h3>
+          
+          {/* AI-Powered Milestone Generation Button */}
+          {isParticipant && (
+            <GenerateMilestonesButton 
+              dealId={dealId} 
+              onMilestonesAdded={handleMilestonesAdded}
+              userRole={userRole}
+            />
+          )}
+        </div>
 
         {/* Loading and Error Indicators for Fetching */}
         {loadingMilestones && <p className="text-center text-blue-600">Loading milestones...</p>}

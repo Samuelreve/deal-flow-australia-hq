@@ -7,7 +7,8 @@ import {
   handleGenerateTemplate, 
   handleSummarizeDocument,
   handleExplainMilestone,
-  handleSuggestNextAction
+  handleSuggestNextAction,
+  handleGenerateMilestones
 } from "./operations/index.ts";
 
 export async function handleRequest(req: Request, openai: any): Promise<Response> {
@@ -53,6 +54,9 @@ export async function handleRequest(req: Request, openai: any): Promise<Response
         break;
       case "suggest_next_action":
         result = await handleSuggestNextAction(dealId, openai);
+        break;
+      case "generate_milestones":
+        result = await handleGenerateMilestones(dealId, userId, context, openai);
         break;
       default:
         return new Response(

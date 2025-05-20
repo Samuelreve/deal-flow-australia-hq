@@ -3,7 +3,7 @@
  * Document AI API operation types
  */
 export interface DocumentAIOperation {
-  operation: 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action';
+  operation: 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones';
   dealId: string;
   documentId?: string;
   documentVersionId?: string;
@@ -50,6 +50,16 @@ export interface NextActionResponse {
   success: boolean;
 }
 
+export interface MilestoneGenerationResponse {
+  milestones: {
+    name: string;
+    description: string;
+    order: number;
+  }[];
+  disclaimer: string;
+  success: boolean;
+}
+
 /**
  * Combined type for any AI operation response
  */
@@ -58,4 +68,5 @@ export type AIOperationResponse =
   | GenerationResponse 
   | SummaryResponse 
   | MilestoneExplanationResponse
-  | NextActionResponse;
+  | NextActionResponse
+  | MilestoneGenerationResponse;

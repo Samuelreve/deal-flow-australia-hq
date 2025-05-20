@@ -4,7 +4,8 @@ export type OperationType =
   "generate_template" | 
   "summarize_document" | 
   "explain_milestone" |
-  "suggest_next_action";
+  "suggest_next_action" |
+  "generate_milestones";
 
 export interface RequestPayload {
   operation: OperationType;
