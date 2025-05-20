@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeftCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Deal } from "@/types/deal";
-import StatusBadge from "@/components/deals/status/StatusBadge";
-import StatusChangeControl from "@/components/deals/status/StatusChangeControl";
+import { StatusBadge } from "@/components/deals/status/StatusBadge";
+import { StatusChangeControl } from "@/components/deals/status/StatusChangeControl";
 import DealHealth from "@/components/deals/DealHealth";
 import DealSummaryButton from "@/components/deals/DealSummaryButton";
 

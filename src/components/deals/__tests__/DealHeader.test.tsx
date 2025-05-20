@@ -59,21 +59,21 @@ describe('DealHeader Component', () => {
   });
 
   test('renders deal title and description', () => {
-    renderWithRouter(<DealHeader deal={mockDeal} />);
+    renderWithRouter(<DealHeader deal={mockDeal} isParticipant={false} />);
     
     expect(screen.getByText('Test Deal')).toBeInTheDocument();
     expect(screen.getByText('This is a test deal')).toBeInTheDocument();
   });
 
   test('displays the correct status badge', () => {
-    renderWithRouter(<DealHeader deal={mockDeal} />);
+    renderWithRouter(<DealHeader deal={mockDeal} isParticipant={false} />);
     
     // The status should be capitalized in the badge
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
   test('renders back button', () => {
-    renderWithRouter(<DealHeader deal={mockDeal} />);
+    renderWithRouter(<DealHeader deal={mockDeal} isParticipant={false} />);
     
     const backButton = screen.getByText('Back');
     expect(backButton).toBeInTheDocument();

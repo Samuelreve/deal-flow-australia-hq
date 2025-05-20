@@ -15,8 +15,8 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
    */
   const suggestNextAction = async (dealId: string) => {
     return processAIRequest('suggest_next_action', {
-      content: '', 
-      dealId
+      content: '',
+      context: { dealId }
     });
   };
   
@@ -26,7 +26,7 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
   const summarizeDeal = async (dealId: string): Promise<DealSummaryResponse | null> => {
     return processAIRequest('summarize_deal', {
       content: '',
-      dealId
+      context: { dealId }
     });
   };
   

@@ -4,21 +4,21 @@ import { Button } from "@/components/ui/button";
 import { DealStatus } from "@/types/deal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAllowedDealStatuses } from "@/hooks/useAllowedDealStatuses";
 
 interface StatusChangeControlProps {
   dealId: string;
   currentStatus: DealStatus;
-  allowedStatuses: DealStatus[];
   onStatusUpdated?: () => void;
 }
 
 export const StatusChangeControl = ({ 
   dealId, 
-  currentStatus, 
-  allowedStatuses, 
+  currentStatus,
   onStatusUpdated 
 }: StatusChangeControlProps) => {
   const { toast } = useToast();
+  const { allowedStatuses, isLoading } = useAllowedDealStatuses(dealId, currentStatus);
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<DealStatus>(currentStatus);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
