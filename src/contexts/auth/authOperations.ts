@@ -6,7 +6,7 @@ import { authService } from "@/services/authService";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { handleAuthError, showAuthSuccess } from "./authUtils";
 import { AUTH_ROUTES } from "./constants";
-import { User } from "@/types/auth";
+import { User, UserProfile } from "@/types/auth";
 
 export const useAuthOperations = () => {
   const {
@@ -22,6 +22,39 @@ export const useAuthOperations = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Add a new function to update the user profile
+  const updateUserProfile = useCallback(async (profile: UserProfile): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      setLoading(true);
+      
+      const updatedProfile = await authService.updateProfile(profile);
+      
+      if (updatedProfile) {
+        // Update the user object with the new profile
+        setUser({
+          ...user,
+          profile: updatedProfile
+        });
+        
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      handleAuthError(error, toast);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, setLoading, toast, setUser]);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
@@ -119,6 +152,7 @@ export const useAuthOperations = () => {
     signup,
     logout,
     loading,
-    setUser
+    setUser,
+    updateUserProfile
   };
 };

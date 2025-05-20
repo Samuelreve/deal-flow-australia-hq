@@ -1,11 +1,10 @@
 
 import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { ProfessionalProfileFormValues, parseSpecializations } from "../validation/professionalProfileSchema";
+import { useToast } from "@/components/ui/use-toast";
 import { UserProfile } from "@/types/auth";
+import { ProfessionalProfileFormValues } from "../validation/professionalProfileSchema";
 
 interface UseProfessionalProfileFormProps {
   profile: UserProfile;
@@ -18,61 +17,56 @@ export const useProfessionalProfileForm = ({
   profile,
   form,
   onUpdate,
-  onSaveSuccess
+  onSaveSuccess,
 }: UseProfessionalProfileFormProps) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
   const [savingProfile, setSavingProfile] = useState(false);
+  const { updateUserProfile } = useAuth();
+  const { toast } = useToast();
 
-  const onSubmit = async (values: ProfessionalProfileFormValues) => {
-    if (!user) return;
-    
+  const onSubmit = async (data: ProfessionalProfileFormValues) => {
     setSavingProfile(true);
-
+    
     try {
       // Convert comma-separated specializations to array
-      const specializationsArray = parseSpecializations(values.specializations);
-      
-      const updates = {
-        is_professional: values.is_professional,
-        professional_headline: values.professional_headline || null,
-        professional_bio: values.professional_bio || null,
-        professional_firm_name: values.professional_firm_name || null,
-        professional_contact_email: values.professional_contact_email || null,
-        professional_phone: values.professional_phone || null,
-        professional_website: values.professional_website || null,
-        professional_location: values.professional_location || null,
-        professional_specializations: specializationsArray.length > 0 ? specializationsArray : null,
-        updated_at: new Date().toISOString(),
+      const specializations = data.specializations
+        ? data.specializations.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+
+      // Prepare updated profile data
+      const updatedProfile: UserProfile = {
+        ...profile,
+        is_professional: data.is_professional,
+        professional_headline: data.professional_headline,
+        professional_bio: data.professional_bio,
+        professional_firm_name: data.professional_firm_name,
+        professional_contact_email: data.professional_contact_email,
+        professional_phone: data.professional_phone,
+        professional_website: data.professional_website,
+        professional_location: data.professional_location,
+        professional_specializations: specializations
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
-      if (error) throw error;
+      // Use the new updateUserProfile function
+      const success = await updateUserProfile(updatedProfile);
       
-      toast({
-        title: "Profile updated",
-        description: "Your professional profile has been updated successfully.",
-      });
-      
-      // Update the profile in the parent component
-      onUpdate({
-        ...profile,
-        ...updates,
-      });
-      
-      // Call optional success callback
-      if (onSaveSuccess) {
-        onSaveSuccess();
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your professional profile has been updated successfully",
+        });
+        
+        // Pass the updated profile back to the parent
+        onUpdate(updatedProfile);
+        
+        // Call optional success callback
+        onSaveSuccess?.();
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error saving professional profile:", error);
       toast({
-        title: "Error updating profile",
-        description: error.message || "There was a problem updating your profile.",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to update your professional profile. Please try again."
       });
     } finally {
       setSavingProfile(false);
@@ -81,6 +75,6 @@ export const useProfessionalProfileForm = ({
 
   return {
     savingProfile,
-    onSubmit,
+    onSubmit
   };
 };

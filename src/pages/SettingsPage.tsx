@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +15,12 @@ const SettingsPage: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("account");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (user && user.profile) {
+      setUserProfile(user.profile);
+    }
+  }, [user]);
 
   // Handle profile updates from the professional profile form
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
@@ -42,7 +48,7 @@ const SettingsPage: React.FC = () => {
   }
 
   // Determine which tabs should be visible based on user role
-  const isProfessional = user?.profile?.is_professional;
+  const isProfessional = userProfile?.is_professional;
 
   return (
     <AppLayout>
@@ -79,15 +85,13 @@ const SettingsPage: React.FC = () => {
                         <Bell className="h-4 w-4 mr-2" />
                         Notifications
                       </TabsTrigger>
-                      {isProfessional && (
-                        <TabsTrigger 
-                          value="professional" 
-                          className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
-                        >
-                          <User className="h-4 w-4 mr-2" />
-                          Professional Profile
-                        </TabsTrigger>
-                      )}
+                      <TabsTrigger 
+                        value="professional" 
+                        className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Professional Profile
+                      </TabsTrigger>
                       <TabsTrigger 
                         value="integrations" 
                         className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
@@ -121,22 +125,20 @@ const SettingsPage: React.FC = () => {
                     <NotificationSettings />
                   </TabsContent>
 
-                  {isProfessional && (
-                    <TabsContent value="professional" className="mt-0">
-                      <CardHeader className="px-0 pt-0">
-                        <CardTitle>Professional Profile</CardTitle>
-                        <CardDescription>
-                          Manage your professional profile settings
-                        </CardDescription>
-                      </CardHeader>
-                      {user.profile && (
-                        <ProfessionalProfileForm 
-                          profile={user.profile} 
-                          onUpdate={handleProfileUpdate} 
-                        />
-                      )}
-                    </TabsContent>
-                  )}
+                  <TabsContent value="professional" className="mt-0">
+                    <CardHeader className="px-0 pt-0">
+                      <CardTitle>Professional Profile</CardTitle>
+                      <CardDescription>
+                        Manage your professional profile settings
+                      </CardDescription>
+                    </CardHeader>
+                    {userProfile && (
+                      <ProfessionalProfileForm 
+                        profile={userProfile} 
+                        onUpdate={handleProfileUpdate} 
+                      />
+                    )}
+                  </TabsContent>
 
                   <TabsContent value="integrations" className="mt-0">
                     <CardHeader className="px-0 pt-0">

@@ -83,6 +83,49 @@ export const authService = {
   },
   
   /**
+   * Update user profile
+   */
+  updateProfile: async (profile: UserProfile): Promise<UserProfile | null> => {
+    try {
+      // Ensure we're only updating allowed fields to prevent security issues
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: profile.name,
+          company: profile.company,
+          phone: profile.phone,
+          avatar_url: profile.avatar_url,
+          professional_headline: profile.professional_headline,
+          professional_bio: profile.professional_bio,
+          professional_firm_name: profile.professional_firm_name,
+          professional_contact_email: profile.professional_contact_email,
+          professional_phone: profile.professional_phone,
+          professional_website: profile.professional_website,
+          professional_location: profile.professional_location,
+          professional_specializations: profile.professional_specializations,
+          is_professional: profile.is_professional
+        })
+        .eq('id', profile.id);
+        
+      if (error) throw error;
+      
+      // Fetch the updated profile
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profile.id)
+        .single();
+        
+      if (fetchError || !data) throw fetchError;
+      
+      return data as UserProfile;
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      throw error;
+    }
+  },
+  
+  /**
    * Check if the current user has a specific role
    */
   hasRole: async (requiredRole: string): Promise<boolean> => {

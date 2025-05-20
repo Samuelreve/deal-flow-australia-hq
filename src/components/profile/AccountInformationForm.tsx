@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { UserProfile } from "@/types/auth";
+import { Loader2 } from "lucide-react";
 
 interface AccountInformationFormProps {
   profile: UserProfile;
@@ -14,7 +14,8 @@ interface AccountInformationFormProps {
 }
 
 const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile, onProfileUpdate }) => {
-  const { toast } = useToast();
+  const { updateUserProfile } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: profile.name || '',
     email: profile.email || '',
@@ -31,39 +32,27 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: formData.name,
-          company: formData.company,
-          phone: formData.phone,
-        })
-        .eq('id', profile.id);
-
-      if (error) throw error;
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
-      
-      // Update the profile in the parent component
-      onProfileUpdate({
+      // Use the new updateUserProfile function
+      const updatedProfile = {
         ...profile,
         name: formData.name,
         company: formData.company,
         phone: formData.phone,
-      });
+      };
       
-    } catch (error: any) {
+      const success = await updateUserProfile(updatedProfile);
+      
+      if (success) {
+        // Update the profile in the parent component
+        onProfileUpdate(updatedProfile);
+      }
+    } catch (error) {
       console.error("Error updating profile:", error);
-      toast({
-        title: "Error updating profile",
-        description: error.message,
-        variant: "destructive",
-      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,7 +111,16 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
             </div>
           </div>
           
-          <Button type="submit" className="w-full">Save Changes</Button>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
         </form>
       </CardContent>
     </Card>

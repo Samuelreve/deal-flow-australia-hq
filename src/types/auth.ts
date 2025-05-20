@@ -40,4 +40,5 @@ export interface AuthContextType {
   logout: () => void;
   loading: boolean;
   setUser: (user: User | null) => void;
+  updateUserProfile: (profile: UserProfile) => Promise<boolean>;
 }
