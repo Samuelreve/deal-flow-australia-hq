@@ -18,7 +18,7 @@ export const StatusChangeControl = ({
   onStatusUpdated 
 }: StatusChangeControlProps) => {
   const { toast } = useToast();
-  const { allowedStatuses, isLoading } = useAllowedDealStatuses(dealId, currentStatus);
+  const { allowedStatuses, isLoading } = useAllowedDealStatuses(dealId);
   const [isEditingStatus, setIsEditingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<DealStatus>(currentStatus);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);

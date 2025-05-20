@@ -19,6 +19,15 @@ vi.mock('@/hooks/use-toast', () => ({
   })
 }));
 
+// Mock the useAllowedDealStatuses hook
+vi.mock('@/hooks/useAllowedDealStatuses', () => ({
+  useAllowedDealStatuses: () => ({
+    allowedStatuses: ['pending', 'completed', 'cancelled'],
+    isLoading: false,
+    error: null
+  })
+}));
+
 describe('StatusChangeControl Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,7 +43,6 @@ describe('StatusChangeControl Component', () => {
       <StatusChangeControl
         dealId="123"
         currentStatus="active"
-        allowedStatuses={['pending', 'completed', 'cancelled']}
       />
     );
     
@@ -46,7 +54,6 @@ describe('StatusChangeControl Component', () => {
       <StatusChangeControl
         dealId="123"
         currentStatus="active"
-        allowedStatuses={['pending', 'completed', 'cancelled']}
       />
     );
     
@@ -75,7 +82,6 @@ describe('StatusChangeControl Component', () => {
       <StatusChangeControl
         dealId="123"
         currentStatus="active"
-        allowedStatuses={['pending', 'completed', 'cancelled']}
         onStatusUpdated={onStatusUpdatedMock}
       />
     );
@@ -117,7 +123,6 @@ describe('StatusChangeControl Component', () => {
       <StatusChangeControl
         dealId="123"
         currentStatus="active"
-        allowedStatuses={['pending', 'completed', 'cancelled']}
       />
     );
     
@@ -137,7 +142,6 @@ describe('StatusChangeControl Component', () => {
       <StatusChangeControl
         dealId="123"
         currentStatus="active"
-        allowedStatuses={['active', 'pending', 'cancelled']}
       />
     );
     
