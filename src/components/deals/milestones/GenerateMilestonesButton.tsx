@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -11,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneGenerationResponse } from "@/hooks/document-ai/types";
+import { MilestoneStatus } from "@/types/deal";
 
 interface MilestoneItem {
   name: string;
@@ -127,12 +127,12 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
         ? existingMilestones[0].order_index + 10
         : 10;
       
-      // Prepare milestone data for insertion
+      // Prepare milestone data for insertion with explicit typing for the status
       const milestonesToInsert = selectedMilestones.map((milestone, index) => ({
         deal_id: dealId,
         title: milestone.name,
         description: milestone.description,
-        status: 'not_started',
+        status: 'not_started' as MilestoneStatus, // Using the explicit enum type from types/deal.ts
         order_index: startOrderIndex + (index * 10)
       }));
       
