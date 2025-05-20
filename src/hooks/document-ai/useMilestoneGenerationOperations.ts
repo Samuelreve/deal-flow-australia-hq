@@ -1,42 +1,38 @@
 
-import { AIRequestOptions } from './useDocumentAIBase';
+import { AIRequestOptions, AIResponse } from './useDocumentAIBase';
 import { MilestoneGenerationResponse } from './types';
 
 interface UseMilestoneGenerationOperationsProps {
-  processAIRequest: (operation: 'generate_milestones', options: AIRequestOptions) => Promise<MilestoneGenerationResponse | null>;
+  processAIRequest: (
+    operation: 'generate_milestones',
+    options: AIRequestOptions
+  ) => Promise<AIResponse | null>;
 }
 
 /**
- * Hook for AI milestone generation operations
+ * Hook for milestone generation operations
  */
 export const useMilestoneGenerationOperations = ({ processAIRequest }: UseMilestoneGenerationOperationsProps) => {
   
   /**
-   * Generate milestones based on deal information
+   * Generate milestones for a deal based on deal type
    */
-  const generateMilestones = async (dealType?: string, dealContext?: Record<string, any>) => {
-    try {
-      // Content can be empty as we'll fetch deal data server-side
-      const content = '';
-      
-      const context = {
-        dealType,
-        ...dealContext
+  const generateMilestones = async (dealType: string): Promise<MilestoneGenerationResponse | null> => {
+    const response = await processAIRequest('generate_milestones', {
+      content: dealType,
+    });
+    
+    if (response && response.milestones) {
+      return {
+        milestones: response.milestones,
+        disclaimer: response.disclaimer || ''
       };
-      
-      const result = await processAIRequest('generate_milestones', {
-        content,
-        context
-      });
-      
-      return result;
-    } catch (error) {
-      console.error('Error generating milestones:', error);
-      return null;
     }
+    
+    return null;
   };
   
   return {
-    generateMilestones
+    generateMilestones,
   };
 };
