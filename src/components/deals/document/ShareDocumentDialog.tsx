@@ -4,16 +4,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { DocumentVersion } from '@/types/deal';
 import { useAuth } from '@/contexts/AuthContext';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { CalendarIcon, Share2, Copy, Check, ExternalLink } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import ShareDocumentForm from './share/ShareDocumentForm';
+import ShareDocumentLink from './share/ShareDocumentLink';
 
 interface ShareDocumentDialogProps {
   isOpen: boolean;
@@ -32,7 +27,6 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   
   // Form state
   const [allowDownload, setAllowDownload] = useState(false);
@@ -77,19 +71,6 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     }
   };
 
-  const handleCopyToClipboard = () => {
-    if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success('Link copied to clipboard');
-      
-      // Reset the copied state after a few seconds
-      setTimeout(() => {
-        setCopied(false);
-      }, 3000);
-    }
-  };
-
   const handleOpenLink = () => {
     if (shareUrl) {
       window.open(shareUrl, '_blank');
@@ -101,7 +82,6 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
     setError(null);
     setAllowDownload(false);
     setExpiryDate(null);
-    setCopied(false);
     onClose();
   };
 
@@ -124,97 +104,22 @@ const ShareDocumentDialog: React.FC<ShareDocumentDialogProps> = ({
           )}
 
           {!shareUrl ? (
-            <>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="allowDownload"
-                  checked={allowDownload}
-                  onCheckedChange={setAllowDownload}
-                />
-                <Label htmlFor="allowDownload">Allow recipients to download the document</Label>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="expiryDate">Link expiration (optional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !expiryDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {expiryDate ? format(expiryDate, "PPP") : "No expiration"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={expiryDate || undefined}
-                      onSelect={setExpiryDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {error && <p className="text-sm text-red-500">{error}</p>}
-
-              <Button 
-                onClick={handleGenerateLink} 
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Generating...' : 'Generate Share Link'}
-              </Button>
-            </>
+            <ShareDocumentForm
+              onGenerateLink={handleGenerateLink}
+              loading={loading}
+              error={error}
+              allowDownload={allowDownload}
+              setAllowDownload={setAllowDownload}
+              expiryDate={expiryDate}
+              setExpiryDate={setExpiryDate}
+            />
           ) : (
-            <>
-              <div className="space-y-1">
-                <Label htmlFor="shareLink">Share link</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="shareLink"
-                    value={shareUrl}
-                    readOnly
-                    className="flex-1"
-                  />
-                  <Button 
-                    size="icon" 
-                    variant="outline" 
-                    onClick={handleCopyToClipboard}
-                    title="Copy to clipboard"
-                  >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-
-                <div className="text-sm text-muted-foreground mt-2">
-                  <p>
-                    {allowDownload ? 
-                      'Recipients can view and download this document.' : 
-                      'Recipients can only view this document.'}
-                  </p>
-                  {expiryDate && (
-                    <p>This link will expire on {format(expiryDate, "PPP")}.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex space-x-2 mt-4">
-                <Button onClick={handleCopyToClipboard} className="flex-1">
-                  {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                  Copy Link
-                </Button>
-                <Button onClick={handleOpenLink} variant="secondary" className="flex-1">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Test Link
-                </Button>
-              </div>
-            </>
+            <ShareDocumentLink
+              shareUrl={shareUrl}
+              allowDownload={allowDownload}
+              expiryDate={expiryDate}
+              onOpenLink={handleOpenLink}
+            />
           )}
         </div>
 

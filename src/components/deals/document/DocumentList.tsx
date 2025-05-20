@@ -1,34 +1,33 @@
 
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Document, DocumentVersion } from "@/types/deal";
-import DocumentVersionList from "./DocumentVersionList";
-import DocumentVersionWithComments from "./DocumentVersionWithComments";
 import DocumentListItem from "./DocumentListItem";
+import DocumentVersionList from "./DocumentVersionList";
 import DocumentEmptyState from "./DocumentEmptyState";
 import DocumentLoadingState from "./DocumentLoadingState";
-import DocumentVersionHeader from "./DocumentVersionHeader";
 
-interface DocumentListProps {
+export interface DocumentListProps {
   documents: Document[];
   isLoading: boolean;
-  onDeleteDocument?: (document: Document) => void;
-  userRole?: string;
+  onDeleteDocument: (document: Document) => void;
+  userRole: string;
   userId?: string;
   isParticipant?: boolean;
-  onSelectDocument?: (document: Document) => void;
-  selectedDocument?: Document | null;
+  onSelectDocument: (document: Document) => Promise<void>;
+  selectedDocument: Document | null;
   documentVersions: DocumentVersion[];
   loadingVersions: boolean;
-  onDeleteVersion?: (version: DocumentVersion) => void;
-  onSelectVersion?: (version: DocumentVersion) => void;
-  selectedVersionId?: string;
+  onDeleteVersion: (version: DocumentVersion) => void;
+  onSelectVersion: (version: DocumentVersion) => void;
+  selectedVersionId: string;
+  onShareVersion: (version: DocumentVersion) => void;
 }
 
 const DocumentList = ({
   documents,
   isLoading,
   onDeleteDocument,
-  userRole = 'user',
+  userRole,
   userId,
   isParticipant = false,
   onSelectDocument,
@@ -37,73 +36,72 @@ const DocumentList = ({
   loadingVersions,
   onDeleteVersion,
   onSelectVersion,
-  selectedVersionId
+  selectedVersionId,
+  onShareVersion,
 }: DocumentListProps) => {
-  // Handle version selection
-  const handleSelectVersion = (version: DocumentVersion) => {
-    onSelectVersion?.(version);
-  };
+  // Group documents by category for display
+  const documentsByCategory = useMemo(() => {
+    const groupedDocs = documents.reduce((acc, doc) => {
+      const category = doc.category || "Uncategorized";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(doc);
+      return acc;
+    }, {} as Record<string, Document[]>);
 
-  // Handle document selection
-  const handleSelectDocument = (document: Document) => {
-    onSelectDocument?.(document);
-  };
-  
+    // Return an array of [category, documents] pairs, sorted by category
+    return Object.entries(groupedDocs).sort(([a], [b]) => a.localeCompare(b));
+  }, [documents]);
+
   if (isLoading) {
     return <DocumentLoadingState />;
   }
 
   if (documents.length === 0) {
-    return <DocumentEmptyState />;
+    return <DocumentEmptyState isParticipant={isParticipant} />;
   }
 
-  // If a document is selected, show its versions
-  if (selectedDocument) {
-    return (
-      <div className="border rounded-lg overflow-hidden">
-        <DocumentVersionHeader 
-          document={selectedDocument} 
-          onBack={() => onSelectDocument?.(undefined as any)}
-          dealId={selectedDocument.id}
-          userRole={userRole}
-        />
-
-        <DocumentVersionList
-          documentId={selectedDocument.id}
-          versions={documentVersions}
-          isLoading={loadingVersions}
-          userRole={userRole}
-          userId={userId}
-          onDeleteVersion={onDeleteVersion}
-          isParticipant={isParticipant}
-          onSelectVersion={handleSelectVersion}
-          selectedVersionId={selectedVersionId}
-        />
-      </div>
-    );
-  }
-
-  // Otherwise, show the list of documents
   return (
     <div className="space-y-4">
-      {documents.map((document) => (
-        <DocumentListItem
-          key={document.id}
-          document={document}
-          isSelected={selectedDocument?.id === document.id}
-          onSelect={() => handleSelectDocument(document)}
-          onDelete={onDeleteDocument ? () => onDeleteDocument(document) : undefined}
-          versions={documentVersions.filter(v => v.documentId === document.id)}
-          loadingVersions={loadingVersions}
-          userRole={userRole}
-          userId={userId}
+      <h3 className="text-lg font-medium">Documents</h3>
+      
+      {documentsByCategory.map(([category, docs]) => (
+        <div key={category} className="space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground">{category}</h4>
+          <div className="space-y-1">
+            {docs.map((doc) => (
+              <DocumentListItem
+                key={doc.id}
+                document={doc}
+                onDelete={onDeleteDocument}
+                userRole={userRole}
+                userId={userId}
+                isParticipant={isParticipant}
+                onSelect={onSelectDocument}
+                isSelected={selectedDocument?.id === doc.id}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+      
+      {selectedDocument && (
+        <DocumentVersionList
+          versions={documentVersions}
+          loading={loadingVersions}
           onDeleteVersion={onDeleteVersion}
           onSelectVersion={onSelectVersion}
-          isParticipant={isParticipant}
+          selectedVersionId={selectedVersionId}
+          onShareVersion={onShareVersion}
+          userRole={userRole}
+          userId={userId}
+          documentOwnerId={selectedDocument?.uploadedBy || ""}
         />
-      ))}
+      )}
     </div>
   );
 };
 
 export default DocumentList;
+
