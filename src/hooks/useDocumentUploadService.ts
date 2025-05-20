@@ -91,6 +91,10 @@ export function useDocumentUploadService() {
       });
 
       if (error) {
+        // Handle specific error for deal not found
+        if (error.message?.includes('not found') || error.status === 404) {
+          throw new Error(`Deal with ID ${dealId} not found or you don't have access to it`);
+        }
         throw new Error(error.message || "Upload failed");
       }
       
