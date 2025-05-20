@@ -1,108 +1,88 @@
 
+import { useState } from "react";
 import { Document } from "@/types/deal";
 import { documentService } from "@/services/documentService";
-import { useDocumentOperationsBase } from "./useDocumentOperationsBase";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
-/**
- * Hook for document upload operations
- */
 export const useDocumentUpload = (
   dealId: string,
   onDocumentsChange?: (documents: Document[]) => void
 ) => {
-  const { 
-    user, 
-    setUploading, 
-    onDocumentsChange: notifyDocumentsChange,
-    showSuccessToast,
-    showErrorToast 
-  } = useDocumentOperationsBase(dealId, onDocumentsChange);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
 
   /**
-   * Upload a document (new document or new version)
+   * Upload a document to the deal
    */
-  const uploadDocument = async (file: File, category: string, existingDocumentId?: string) => {
-    if (!user) {
-      throw new Error('You must be logged in to upload files.');
-    }
-
+  const uploadDocument = async (
+    file: File, 
+    category: string, 
+    documentId?: string
+  ): Promise<Document | null> => {
     setUploading(true);
-
     try {
-      const newDocument = await documentService.uploadDocument(
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+      
+      // Upload document
+      const document = await documentService.uploadDocument(
         file, 
         category, 
         dealId, 
         user.id,
-        existingDocumentId
+        documentId
       );
       
-      if (existingDocumentId) {
-        // Let parent component know document was updated
-        if (notifyDocumentsChange) {
-          const updateDocuments = (prevDocuments: Document[]) => 
-            prevDocuments.map(doc => 
-              doc.id === existingDocumentId ? newDocument : doc
-            );
-          notifyDocumentsChange(updateDocuments([]));
-        }
-        
-        showSuccessToast(
-          "New version uploaded",
-          `Version ${newDocument.version} of ${file.name} has been uploaded.`
-        );
-      } else {
-        // Let parent component know a new document was added
-        if (notifyDocumentsChange) {
-          const updateDocuments = (prevDocuments: Document[]) => [newDocument, ...prevDocuments];
-          notifyDocumentsChange(updateDocuments([]));
-        }
-        
-        showSuccessToast(
-          "File uploaded successfully!",
-          `${file.name} has been uploaded.`
-        );
+      // Notify parent component of document change
+      if (onDocumentsChange) {
+        // Fetch updated documents list
+        const updatedDocuments = await documentService.getDocuments(dealId);
+        onDocumentsChange(updatedDocuments);
       }
-
-      return newDocument;
+      
+      toast({
+        title: documentId ? "Version added" : "Document uploaded",
+        description: `${file.name} has been successfully uploaded.`
+      });
+      
+      return document;
     } catch (error: any) {
-      showErrorToast(error);
-      throw error;
+      console.error("Document upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return null;
     } finally {
       setUploading(false);
     }
   };
 
   /**
-   * Save a generated template as a document
+   * Save a generated text as a document
    */
-  const saveGeneratedTemplate = async (content: string, fileName: string, category: string) => {
-    if (!user) {
-      throw new Error('You must be logged in to save templates.');
-    }
-
-    setUploading(true);
-
-    try {
-      // Convert text content to a file object
-      const blob = new Blob([content], { type: 'text/plain' });
-      const file = new File([blob], fileName, { type: 'text/plain' });
-      
-      // Use the existing upload mechanism
-      const newDocument = await uploadDocument(file, category);
-      
-      return newDocument;
-    } catch (error) {
-      // Error is already handled in uploadDocument, just rethrow
-      throw error;
-    } finally {
-      setUploading(false);
-    }
+  const saveGeneratedTemplate = async (
+    content: string,
+    filename: string,
+    category: string
+  ): Promise<Document | null> => {
+    // Convert content to a file
+    const blob = new Blob([content], { type: "text/plain" });
+    const file = new File([blob], filename, { type: "text/plain" });
+    
+    // Use the standard document upload function
+    return uploadDocument(file, category);
   };
 
   return {
+    uploading,
     uploadDocument,
-    saveGeneratedTemplate,
-    uploading: setUploading
+    saveGeneratedTemplate
   };
 };
