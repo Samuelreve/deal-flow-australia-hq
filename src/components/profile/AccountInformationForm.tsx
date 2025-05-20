@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserProfile } from "@/types/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Building, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface AccountInformationFormProps {
   profile: UserProfile;
@@ -15,6 +16,7 @@ interface AccountInformationFormProps {
 
 const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile, onProfileUpdate }) => {
   const { updateUserProfile } = useAuth();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: profile.name || '',
@@ -35,7 +37,6 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
     setIsSubmitting(true);
     
     try {
-      // Use the new updateUserProfile function
       const updatedProfile = {
         ...profile,
         name: formData.name,
@@ -46,81 +47,112 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
       const success = await updateUserProfile(updatedProfile);
       
       if (success) {
-        // Update the profile in the parent component
+        toast({
+          title: "Profile updated",
+          description: "Your account information has been updated successfully",
+        });
         onProfileUpdate(updatedProfile);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "There was a problem updating your profile"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Account Information</CardTitle>
-        <CardDescription>Update your account details and preferences.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card className="border shadow-sm">
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
+              <Label htmlFor="name" className="font-medium">Full Name</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <User className="h-4 w-4" />
+                </div>
+                <Input 
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="pl-9"
+                  required
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="font-medium">Email</Label>
               <Input 
                 id="email"
                 name="email"
                 value={formData.email}
                 disabled
+                className="bg-gray-50"
                 title="Email cannot be changed"
               />
               <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
-              <Input 
-                id="company"
-                name="company"
-                value={formData.company || ''}
-                onChange={handleChange}
-              />
+              <Label htmlFor="company" className="font-medium">Company</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <Building className="h-4 w-4" />
+                </div>
+                <Input 
+                  id="company"
+                  name="company"
+                  value={formData.company || ''}
+                  onChange={handleChange}
+                  className="pl-9"
+                  placeholder="Your company name"
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input 
-                id="phone"
-                name="phone" 
-                value={formData.phone || ''}
-                onChange={handleChange}
-              />
+              <Label htmlFor="phone" className="font-medium">Phone</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <Input 
+                  id="phone"
+                  name="phone" 
+                  value={formData.phone || ''}
+                  onChange={handleChange}
+                  className="pl-9"
+                  placeholder="Your phone number"
+                />
+              </div>
             </div>
           </div>
           
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </Button>
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              className="min-w-[150px]" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

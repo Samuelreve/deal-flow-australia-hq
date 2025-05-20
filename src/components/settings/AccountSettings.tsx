@@ -8,7 +8,7 @@ import DangerZone from './DangerZone';
 
 const AccountSettings: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Account Information Section */}
       <AccountInformation />
 
@@ -22,9 +22,9 @@ const AccountSettings: React.FC = () => {
       {/* Account Security Section with 2FA */}
       <AccountSecuritySection />
 
-      {/* Account Deactivation Section */}
       <Separator />
       
+      {/* Account Deactivation Section */}
       <DangerZone />
     </div>
   );

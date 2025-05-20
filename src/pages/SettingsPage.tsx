@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserProfile } from "@/types/auth";
 import { Settings, Bell, User, Link as LinkIcon } from "lucide-react";
@@ -10,6 +10,7 @@ import AccountSettings from "@/components/settings/AccountSettings";
 import NotificationSettings from "@/components/settings/NotificationSettings";
 import ProfessionalProfileForm from "@/components/profile/ProfessionalProfileForm";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings";
+import { Separator } from "@/components/ui/separator";
 
 const SettingsPage: React.FC = () => {
   const { user, loading } = useAuth();
@@ -22,7 +23,7 @@ const SettingsPage: React.FC = () => {
     }
   }, [user]);
 
-  // Handle profile updates from the professional profile form
+  // Handle profile updates from forms
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setUserProfile(updatedProfile);
   };
@@ -52,108 +53,162 @@ const SettingsPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto py-6">
-        <div className="flex items-center mb-6">
-          <Settings className="h-6 w-6 mr-2" />
+      <div className="container mx-auto py-8">
+        <div className="flex items-center mb-8">
+          <Settings className="h-6 w-6 mr-3 text-primary" />
           <h1 className="text-3xl font-bold">Settings</h1>
         </div>
+        
+        <Separator className="mb-8" />
 
-        <Card>
-          <CardContent className="p-0">
-            <Tabs 
-              defaultValue="account" 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <div className="flex flex-col md:flex-row h-full">
-                {/* Settings Navigation (Sidebar) */}
-                <div className="md:w-1/4 border-r">
-                  <div className="p-4">
-                    <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-1">
-                      <TabsTrigger 
-                        value="account" 
-                        className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Account
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="notifications" 
-                        className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
-                      >
-                        <Bell className="h-4 w-4 mr-2" />
-                        Notifications
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="professional" 
-                        className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Professional Profile
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="integrations" 
-                        className="w-full justify-start text-left px-3 py-2 data-[state=active]:bg-muted"
-                      >
-                        <LinkIcon className="h-4 w-4 mr-2" />
-                        Integrations
-                      </TabsTrigger>
-                    </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+          {/* Desktop sidebar navigation */}
+          <div className="hidden lg:block">
+            <div className="space-y-1 sticky top-8">
+              <button 
+                onClick={() => setActiveTab("account")}
+                className={`w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 ${
+                  activeTab === "account" 
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                <User className="h-5 w-5" />
+                <span className="font-medium">Account</span>
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab("notifications")}
+                className={`w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 ${
+                  activeTab === "notifications" 
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                <Bell className="h-5 w-5" />
+                <span className="font-medium">Notifications</span>
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab("professional")}
+                className={`w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 ${
+                  activeTab === "professional" 
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                <User className="h-5 w-5" />
+                <span className="font-medium">Professional Profile</span>
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab("integrations")}
+                className={`w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 ${
+                  activeTab === "integrations" 
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                <LinkIcon className="h-5 w-5" />
+                <span className="font-medium">Integrations</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Mobile tabs navigation */}
+          <div className="lg:hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-4 w-full">
+                <TabsTrigger value="account">
+                  <span className="flex flex-col items-center">
+                    <User className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Account</span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="notifications">
+                  <span className="flex flex-col items-center">
+                    <Bell className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Notifications</span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="professional">
+                  <span className="flex flex-col items-center">
+                    <User className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Professional</span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="integrations">
+                  <span className="flex flex-col items-center">
+                    <LinkIcon className="h-4 w-4 mb-1" />
+                    <span className="text-xs">Integrations</span>
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          {/* Content area */}
+          <Card className="overflow-hidden border shadow-sm">
+            <CardContent className="p-0">
+              <div className={activeTab === "account" ? "block" : "hidden"}>
+                <div className="p-6 space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Account Settings</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage your account details and preferences
+                    </p>
                   </div>
-                </div>
-
-                {/* Settings Content Area */}
-                <div className="md:w-3/4 p-6">
-                  <TabsContent value="account" className="mt-0">
-                    <CardHeader className="px-0 pt-0">
-                      <CardTitle>Account Settings</CardTitle>
-                      <CardDescription>
-                        Manage your account details and preferences
-                      </CardDescription>
-                    </CardHeader>
-                    <AccountSettings />
-                  </TabsContent>
-
-                  <TabsContent value="notifications" className="mt-0">
-                    <CardHeader className="px-0 pt-0">
-                      <CardTitle>Notification Preferences</CardTitle>
-                      <CardDescription>
-                        Control when and how you receive notifications
-                      </CardDescription>
-                    </CardHeader>
-                    <NotificationSettings />
-                  </TabsContent>
-
-                  <TabsContent value="professional" className="mt-0">
-                    <CardHeader className="px-0 pt-0">
-                      <CardTitle>Professional Profile</CardTitle>
-                      <CardDescription>
-                        Manage your professional profile settings
-                      </CardDescription>
-                    </CardHeader>
-                    {userProfile && (
-                      <ProfessionalProfileForm 
-                        profile={userProfile} 
-                        onUpdate={handleProfileUpdate} 
-                      />
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="integrations" className="mt-0">
-                    <CardHeader className="px-0 pt-0">
-                      <CardTitle>Integrations</CardTitle>
-                      <CardDescription>
-                        Manage connections with external services
-                      </CardDescription>
-                    </CardHeader>
-                    <IntegrationsSettings />
-                  </TabsContent>
+                  <Separator />
+                  <AccountSettings />
                 </div>
               </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+              
+              <div className={activeTab === "notifications" ? "block" : "hidden"}>
+                <div className="p-6 space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Notification Preferences</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Control when and how you receive notifications
+                    </p>
+                  </div>
+                  <Separator />
+                  <NotificationSettings />
+                </div>
+              </div>
+              
+              <div className={activeTab === "professional" ? "block" : "hidden"}>
+                <div className="p-6 space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Professional Profile</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage your professional profile settings
+                    </p>
+                  </div>
+                  <Separator />
+                  {userProfile && (
+                    <ProfessionalProfileForm 
+                      profile={userProfile} 
+                      onUpdate={handleProfileUpdate} 
+                    />
+                  )}
+                </div>
+              </div>
+              
+              <div className={activeTab === "integrations" ? "block" : "hidden"}>
+                <div className="p-6 space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Integrations</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage connections with external services
+                    </p>
+                  </div>
+                  <Separator />
+                  <IntegrationsSettings />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppLayout>
   );
