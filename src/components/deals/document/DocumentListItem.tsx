@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Document, DocumentVersion } from '@/types/deal';
 import { ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
@@ -10,14 +11,15 @@ import { mapDbCommentToServiceComment } from '@/services/documentComment/mappers
 interface DocumentListItemProps {
   document: Document;
   isSelected: boolean;
-  onSelect: () => void;
-  onDelete?: () => void;
+  onSelect: (document: Document) => void;
+  onDelete?: (document: Document) => void;
   versions: DocumentVersion[];
   loadingVersions: boolean;
   userRole: string;
   userId?: string;
   onDeleteVersion?: (version: DocumentVersion) => void;
   onSelectVersion?: (version: DocumentVersion) => void;
+  onShareVersion?: (version: DocumentVersion) => void;
   isParticipant?: boolean;
 }
 
@@ -32,6 +34,7 @@ const DocumentListItem = ({
   userId,
   onDeleteVersion,
   onSelectVersion,
+  onShareVersion,
   isParticipant = false
 }: DocumentListItemProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -57,7 +60,7 @@ const DocumentListItem = ({
   const handleToggleExpand = () => {
     setExpanded(!expanded);
     if (!expanded) {
-      onSelect();
+      onSelect(document);
     }
   };
   
@@ -90,7 +93,7 @@ const DocumentListItem = ({
             className="h-8 w-8 text-destructive hover:bg-destructive/10"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete();
+              onDelete(document);
             }}
           >
             <Trash2 className="h-4 w-4" />
@@ -100,15 +103,19 @@ const DocumentListItem = ({
       
       {expanded && (
         <div className="p-3 pt-0 border-t">
-          <DocumentVersionList
-            versions={versions}
-            isLoading={loadingVersions}
-            userRole={userRole}
-            onDeleteVersion={onDeleteVersion}
-            onSelectVersion={onSelectVersion}
-            userId={userId}
-            isParticipant={isParticipant}
-          />
+          {onDeleteVersion && onSelectVersion && onShareVersion && (
+            <DocumentVersionList
+              versions={versions}
+              loading={loadingVersions}
+              userRole={userRole}
+              onDeleteVersion={onDeleteVersion}
+              onSelectVersion={onSelectVersion}
+              selectedVersionId=""
+              onShareVersion={onShareVersion}
+              userId={userId}
+              documentOwnerId={document.uploadedBy || ""}
+            />
+          )}
         </div>
       )}
     </div>

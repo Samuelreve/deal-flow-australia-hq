@@ -2,9 +2,9 @@
 import { useEffect, useMemo } from "react";
 import { Document, DocumentVersion } from "@/types/deal";
 import DocumentListItem from "./DocumentListItem";
-import DocumentVersionList from "./DocumentVersionList";
 import DocumentEmptyState from "./DocumentEmptyState";
 import DocumentLoadingState from "./DocumentLoadingState";
+import { useDocumentVersions } from "@/hooks/useDocumentVersions";
 
 export interface DocumentListProps {
   documents: Document[];
@@ -74,34 +74,25 @@ const DocumentList = ({
               <DocumentListItem
                 key={doc.id}
                 document={doc}
-                onDelete={onDeleteDocument}
+                onDelete={() => onDeleteDocument(doc)}
                 userRole={userRole}
                 userId={userId}
                 isParticipant={isParticipant}
-                onSelect={onSelectDocument}
+                onSelect={() => onSelectDocument(doc)}
                 isSelected={selectedDocument?.id === doc.id}
+                versions={selectedDocument?.id === doc.id ? documentVersions : []}
+                loadingVersions={loadingVersions}
+                onDeleteVersion={onDeleteVersion}
+                onSelectVersion={onSelectVersion}
+                onShareVersion={onShareVersion}
               />
             ))}
           </div>
         </div>
       ))}
       
-      {selectedDocument && (
-        <DocumentVersionList
-          versions={documentVersions}
-          loading={loadingVersions}
-          onDeleteVersion={onDeleteVersion}
-          onSelectVersion={onSelectVersion}
-          selectedVersionId={selectedVersionId}
-          onShareVersion={onShareVersion}
-          userRole={userRole}
-          userId={userId}
-          documentOwnerId={selectedDocument?.uploadedBy || ""}
-        />
-      )}
     </div>
   );
 };
 
 export default DocumentList;
-

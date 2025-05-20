@@ -14,6 +14,7 @@ interface DocumentVersionHeaderProps {
   dealId?: string;
   userRole?: string;
   onBack?: () => void;
+  onClick?: () => void;
 }
 
 const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
@@ -23,7 +24,8 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
   canDelete = false,
   dealId,
   userRole = 'user',
-  onBack
+  onBack,
+  onClick
 }) => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   
@@ -47,6 +49,26 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
   }
 
   // If no document or version provided, return empty header
+  if (!document && !version) {
+    return (
+      <div 
+        className="flex items-center cursor-pointer"
+        onClick={onClick}
+      >
+        <FileText className="h-5 w-5 mr-2 text-blue-500" />
+        <div>
+          <div className="text-sm">
+            Version {version?.versionNumber || '?'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {version && new Date(version.uploadedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no document or version provided with dealId, return empty header
   if (!document || !version || !dealId) {
     return null;
   }
