@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-export type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones';
+export type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document';
 
 export interface AIRequestOptions {
   content: string;
@@ -27,6 +27,10 @@ export interface AIResponse {
     description: string;
     order: number;
   }[];
+  analysis?: {
+    type: string;
+    content: any;
+  };
   disclaimer: string;
   success?: boolean;
   error?: string;

@@ -5,7 +5,8 @@ export type OperationType =
   "summarize_document" | 
   "explain_milestone" |
   "suggest_next_action" |
-  "generate_milestones";
+  "generate_milestones" |
+  "analyze_document";
 
 export interface RequestPayload {
   operation: OperationType;
@@ -25,5 +26,14 @@ export interface MilestoneGenerationResponse {
     description: string;
     order: number;
   }[];
+  disclaimer: string;
+}
+
+// Document analysis response type
+export interface DocumentAnalysisResponse {
+  analysis: {
+    type: string;
+    content: any; // Could be string or structured data depending on analysis type
+  };
   disclaimer: string;
 }

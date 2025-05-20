@@ -4,6 +4,7 @@ import { useExplanationOperations } from './useExplanationOperations';
 import { useDocumentGenerationOperations } from './useDocumentGenerationOperations';
 import { useDealInsightOperations } from './useDealInsightOperations';
 import { useMilestoneGenerationOperations } from './useMilestoneGenerationOperations';
+import { useDocumentAnalysisOperations } from './useDocumentAnalysisOperations';
 
 /**
  * Main hook for document AI operations, combining all specialized operations
@@ -39,6 +40,11 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     generateMilestones
   } = useMilestoneGenerationOperations({ processAIRequest });
   
+  // Get document analysis operations
+  const {
+    analyzeDocument
+  } = useDocumentAnalysisOperations({ processAIRequest });
+  
   return {
     // Base properties
     loading,
@@ -59,5 +65,8 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     
     // Milestone generation operations
     generateMilestones,
+    
+    // Document analysis operations
+    analyzeDocument,
   };
 };
