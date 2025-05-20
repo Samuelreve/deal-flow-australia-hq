@@ -1,4 +1,5 @@
 
+
 project_id = "wntmgfuclbdrezxcvzmw"
 
 [api]
@@ -17,7 +18,7 @@ major_version = 15
 enabled = true
 
 [storage]
-enabled = false
+enabled = true
 file_size_limit = "50MiB"
 
 [auth]
@@ -30,3 +31,6 @@ enable_signup = true
 [functions]
 [functions.document-comments]
 verify_jwt = true
+[functions.document-upload]
+verify_jwt = true
+

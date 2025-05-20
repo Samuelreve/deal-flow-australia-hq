@@ -463,6 +463,38 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          deal_id: string
+          id: string
+          sender_user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          sender_user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_assignments: {
         Row: {
           created_at: string
