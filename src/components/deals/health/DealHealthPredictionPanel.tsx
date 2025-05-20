@@ -17,7 +17,7 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
   const [isPredicting, setIsPredicting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { predictDealHealth } = useDocumentAI();
+  const { predictDealHealth } = useDocumentAI({ dealId });
   
   const handleGetPrediction = async () => {
     if (!dealId) return;

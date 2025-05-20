@@ -15,7 +15,8 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
         headers: {
           'Content-Type': 'application/json'
         },
-        query: { versionId }
+        // Use body for parameters instead of query
+        body: { versionId }
       });
 
     if (functionError) {
@@ -71,13 +72,13 @@ export async function addDocumentComment(
           page_number,
           location_data,
           parent_comment_id,
-          selected_text: selected_text || (location_data?.selectedText || null)
+          selected_text: selected_text || (location_data?.selectedText || null),
+          versionId // Include versionId in the body
         },
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        query: { versionId }
+        }
       });
 
     if (functionError) {
