@@ -1,79 +1,82 @@
 
-import { useNavigate } from "react-router-dom";
+// src/components/deals/DealHeader.tsx
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, FileText, MessageSquare, Download, Upload } from "lucide-react";
+import { ArrowLeftCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Deal } from "@/types/deal";
-import { StatusBadge } from "./status/StatusBadge";
-import { StatusChangeControl } from "./status/StatusChangeControl";
-import { useAllowedDealStatuses } from "@/hooks/useAllowedDealStatuses";
+import StatusBadge from "@/components/deals/status/StatusBadge";
+import StatusChangeControl from "@/components/deals/status/StatusChangeControl";
+import DealHealth from "@/components/deals/DealHealth";
+import DealSummaryButton from "@/components/deals/DealSummaryButton";
 
 interface DealHeaderProps {
   deal: Deal;
   userRole?: string;
-  isParticipant?: boolean;
+  isParticipant: boolean;
   onStatusUpdated?: () => void;
 }
 
-const DealHeader = ({ 
+const DealHeader: React.FC<DealHeaderProps> = ({ 
   deal, 
-  userRole = 'viewer', 
+  userRole = 'user', 
   isParticipant = false,
   onStatusUpdated
-}: DealHeaderProps) => {
+}) => {
   const navigate = useNavigate();
-  const { allowedStatuses, isLoading } = useAllowedDealStatuses(deal.id);
-
-  const handleAddDocument = () => {
-    // Scroll to the documents tab and activate it
-    const tabsElement = document.querySelector('[data-radix-tabs-id]');
-    const documentsTab = document.querySelector('[data-value="documents"]') as HTMLButtonElement;
-    
-    if (documentsTab) {
-      documentsTab.click();
-      setTimeout(() => {
-        const uploadSection = document.querySelector('.border-t.pt-4');
-        uploadSection?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
+  
+  const goBackToDealsList = () => {
+    navigate("/deals");
   };
-
+  
   return (
     <div className="mb-6">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-        <ChevronLeft className="h-4 w-4 mr-2" /> Back
-      </Button>
-      
-      <div className="flex flex-wrap gap-4 items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-semibold">{deal.title}</h1>
-            <div className="flex items-center gap-2">
-              <StatusBadge status={deal.status} />
-              
-              {/* Status Change Control - Only show for participants and when allowed statuses are loaded */}
-              {isParticipant && !isLoading && (
-                <StatusChangeControl 
-                  dealId={deal.id}
-                  currentStatus={deal.status}
-                  allowedStatuses={allowedStatuses}
-                  onStatusUpdated={onStatusUpdated}
-                />
-              )}
-            </div>
-          </div>
-          <p className="text-muted-foreground">{deal.description}</p>
-        </div>
-        <div className="flex gap-2">
+      <div className="flex justify-between items-center mb-2">
+        <Button 
+          variant="ghost" 
+          className="px-2 py-1 h-auto" 
+          onClick={goBackToDealsList}
+        >
+          <ArrowLeftCircle className="h-4 w-4 mr-1" /> Back to Deals
+        </Button>
+        
+        <div className="flex items-center gap-2">
           {isParticipant && (
-            <Button variant="outline" onClick={handleAddDocument}>
-              <Upload className="h-4 w-4 mr-2" /> Add Document
-            </Button>
+            <DealSummaryButton 
+              dealId={deal.id}
+              userRole={userRole}
+            />
           )}
-          {isParticipant && (
-            <Button>
-              <MessageSquare className="h-4 w-4 mr-2" /> Message
-            </Button>
+          
+          <StatusChangeControl 
+            dealId={deal.id}
+            currentStatus={deal.status}
+            onStatusUpdated={onStatusUpdated}
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">{deal.title}</h1>
+          
+          <div className="flex flex-wrap gap-2 mt-2 items-center">
+            <StatusBadge status={deal.status} />
+            
+            {deal.businessName && (
+              <Badge variant="outline" className="text-muted-foreground">
+                {deal.businessName}
+              </Badge>
+            )}
+            
+            <DealHealth healthScore={deal.healthScore} />
+          </div>
+          
+          {deal.description && (
+            <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
+              {deal.description}
+            </p>
           )}
         </div>
       </div>

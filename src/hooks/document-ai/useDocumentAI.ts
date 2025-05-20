@@ -32,7 +32,8 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
   
   // Get deal insight operations
   const {
-    suggestNextAction
+    suggestNextAction,
+    summarizeDeal
   } = useDealInsightOperations({ processAIRequest });
   
   // Get milestone generation operations
@@ -62,6 +63,7 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     
     // Deal insight operations
     suggestNextAction,
+    summarizeDeal,
     
     // Milestone generation operations
     generateMilestones,
