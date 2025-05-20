@@ -7,26 +7,45 @@ import { DocumentComment, DocumentCommentCreateData } from '@/types/documentComm
  */
 export async function fetchVersionComments(versionId: string): Promise<DocumentComment[]> {
   try {
-    const { data, error } = await supabase
-      .from('document_comments')
-      .select(`
-        *,
-        user:profiles(id, name, email, avatar_url),
-        replies:document_comments(
+    // First try using edge function (better authorization checking)
+    const { data: functionData, error: functionError } = await supabase.functions
+      .invoke('document-comments', {
+        body: {},
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        path: `/${versionId}/comments`
+      });
+
+    if (functionError) {
+      console.warn("Error fetching comments via edge function:", functionError);
+      console.log("Falling back to direct query...");
+      
+      // Fallback to direct query (with RLS policies applying)
+      const { data, error } = await supabase
+        .from('document_comments')
+        .select(`
           *,
-          user:profiles(id, name, email, avatar_url)
-        )
-      `)
-      .eq('document_version_id', versionId)
-      .is('parent_comment_id', null)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error("Error fetching comments:", error);
-      throw error;
+          user:profiles(id, name, email, avatar_url),
+          replies:document_comments(
+            *,
+            user:profiles(id, name, email, avatar_url)
+          )
+        `)
+        .eq('document_version_id', versionId)
+        .is('parent_comment_id', null)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error("Error in direct query fallback:", error);
+        throw error;
+      }
+      
+      return data || [];
     }
     
-    return data || [];
+    return functionData || [];
   } catch (error) {
     console.error("Error in fetchVersionComments:", error);
     return [];
@@ -44,26 +63,50 @@ export async function addDocumentComment(
   try {
     const { parent_comment_id, content, page_number, location_data, selected_text } = commentData;
     
-    const { data, error } = await supabase
-      .from('document_comments')
-      .insert({
-        document_version_id: versionId,
-        user_id: userId,
-        content,
-        page_number,
-        location_data,
-        parent_comment_id,
-        selected_text: selected_text || (location_data?.selectedText || null)
-      })
-      .select('*, user:profiles(id, name, email, avatar_url)')
-      .single();
-    
-    if (error) {
-      console.error("Error adding comment:", error);
-      throw error;
+    // Use edge function for better authorization checking
+    const { data: functionData, error: functionError } = await supabase.functions
+      .invoke('document-comments', {
+        body: {
+          content,
+          page_number,
+          location_data,
+          parent_comment_id,
+          selected_text: selected_text || (location_data?.selectedText || null)
+        },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        path: `/${versionId}/comments`
+      });
+
+    if (functionError) {
+      console.error("Error adding comment via edge function:", functionError);
+      
+      // Fallback to direct query (with RLS policies applying)
+      const { data, error } = await supabase
+        .from('document_comments')
+        .insert({
+          document_version_id: versionId,
+          user_id: userId,
+          content,
+          page_number,
+          location_data,
+          parent_comment_id,
+          selected_text: selected_text || (location_data?.selectedText || null)
+        })
+        .select('*, user:profiles(id, name, email, avatar_url)')
+        .single();
+      
+      if (error) {
+        console.error("Error in direct insert fallback:", error);
+        throw error;
+      }
+      
+      return data;
     }
     
-    return data;
+    return functionData;
   } catch (error) {
     console.error("Error in addDocumentComment:", error);
     return null;

@@ -1,290 +1,178 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowRight, AlertTriangle, Award, ChevronDown, ChevronUp } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { useDocumentAI } from '@/hooks/document-ai';
-import { Progress } from '@/components/ui/progress';
-import { formatRelativeTime } from '@/utils/formatDate';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDocumentAI } from "@/hooks/document-ai";
+import { Button } from "@/components/ui/button";
+import { Loader2, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { DealHealthPredictionResponse } from "@/hooks/document-ai/types";
+import { toast } from "sonner";
 
 interface DealHealthPredictionPanelProps {
   dealId: string;
 }
 
-type ImpactLevel = 'High' | 'Medium' | 'Low';
-
-interface PredictionResult {
-  probability_of_success_percentage: number;
-  confidence_level: 'High' | 'Medium' | 'Low';
-  prediction_reasoning: string;
-  suggested_improvements: Array<{
-    area: string;
-    recommendation: string;
-    impact: ImpactLevel;
-  }>;
-  disclaimer: string;
-}
-
 const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ dealId }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showAllRecommendations, setShowAllRecommendations] = useState(false);
-  const [lastPredictedAt, setLastPredictedAt] = useState<Date | null>(null);
-  const { toast } = useToast();
+  const [prediction, setPrediction] = useState<DealHealthPredictionResponse | null>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const { predictDealHealth, loading, result: aiResult, error } = useDocumentAI({ dealId });
-  
-  const predictionResult = aiResult as PredictionResult | null;
+  const { predictDealHealth } = useDocumentAI();
   
   const handleGetPrediction = async () => {
+    if (!dealId) return;
+    
+    setIsPredicting(true);
+    setError(null);
+    
     try {
-      await predictDealHealth();
-      setLastPredictedAt(new Date());
-      setIsExpanded(true);
+      const result = await predictDealHealth();
+      
+      if (result) {
+        setPrediction(result);
+      } else {
+        setError("Failed to generate deal health prediction");
+        toast.error("Couldn't generate prediction", {
+          description: "Please try again later"
+        });
+      }
     } catch (err: any) {
-      console.error('Error predicting deal health:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Prediction Failed',
-        description: err.message || 'Failed to predict deal health',
+      setError(err.message || "An error occurred");
+      toast.error("Error generating prediction", {
+        description: err.message || "Please try again later"
       });
-    }
-  };
-
-  // Helper function to get color for probability score
-  const getProbabilityColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 60) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-  
-  // Helper function to get color for confidence level
-  const getConfidenceColor = (level: string) => {
-    switch (level) {
-      case 'High': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Low': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    } finally {
+      setIsPredicting(false);
     }
   };
   
-  // Helper function to get color for impact level
-  const getImpactColor = (level: ImpactLevel) => {
-    switch (level) {
-      case 'High': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Low': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  // Helper function to determine color based on probability
+  const getProbabilityColor = (percentage: number): string => {
+    if (percentage >= 75) return "text-green-600";
+    if (percentage >= 50) return "text-yellow-600";
+    return "text-red-600";
+  };
+  
+  // Helper function to determine badge variant based on impact
+  const getImpactVariant = (impact: string): "default" | "outline" | "secondary" | "destructive" => {
+    switch (impact.toLowerCase()) {
+      case "high": return "destructive";
+      case "medium": return "default";
+      case "low": return "secondary";
+      default: return "outline";
     }
   };
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  // Get recommendations to display
-  const displayRecommendations = showAllRecommendations 
-    ? predictionResult?.suggested_improvements || []
-    : (predictionResult?.suggested_improvements || []).slice(0, 3);
-  
-  const hasMoreRecommendations = predictionResult?.suggested_improvements && 
-    predictionResult.suggested_improvements.length > 3;
-  
   return (
-    <Card className={`mt-4 overflow-hidden transition-all duration-300 ${isExpanded ? 'border-primary/20' : ''}`}>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              Deal Success Prediction
-            </CardTitle>
-            <CardDescription>
-              Get AI-powered insights on deal health and suggested improvements
-            </CardDescription>
-          </div>
-          {predictionResult && (
-            <button 
-              onClick={toggleExpanded} 
-              className="text-muted-foreground hover:text-foreground"
-              aria-label={isExpanded ? "Collapse prediction" : "Expand prediction"}
-            >
-              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-          )}
-        </div>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          Deal Health Prediction
+        </CardTitle>
+        <CardDescription>
+          AI-powered analysis of deal success probability
+        </CardDescription>
       </CardHeader>
       
-      {!predictionResult && !loading && (
-        <CardContent>
-          <div className="py-6 flex flex-col items-center justify-center text-center">
-            <p className="text-muted-foreground mb-4 max-w-md">
-              Our AI can analyze your deal data to predict success probability and suggest improvements to increase your chances of closing the deal.
+      <CardContent>
+        {!prediction && !isPredicting && !error && (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <TrendingUp size={32} className="mb-2 text-primary/60" />
+            <p className="text-muted-foreground max-w-xs">
+              Get AI-generated predictions about this deal's likelihood of success and recommendations for improvement.
             </p>
             <Button 
               onClick={handleGetPrediction} 
-              className="bg-primary hover:bg-primary/80"
+              className="mt-4"
             >
-              Get AI Prediction
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Generate Prediction
             </Button>
           </div>
-        </CardContent>
-      )}
-      
-      {loading && (
-        <CardContent className="flex flex-col items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Analyzing deal data...</p>
-          <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
-        </CardContent>
-      )}
-      
-      {error && !loading && (
-        <CardContent>
-          <div className="bg-destructive/10 p-4 rounded-md flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-destructive">Prediction failed</h4>
-              <p className="text-sm text-muted-foreground mt-1">{error}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3" 
-                onClick={handleGetPrediction}
-              >
-                Try Again
-              </Button>
-            </div>
+        )}
+        
+        {isPredicting && (
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-8 w-8 animate-spin text-primary/60 mb-2" />
+            <p className="text-muted-foreground">Analyzing deal data...</p>
           </div>
-        </CardContent>
-      )}
-      
-      {predictionResult && !loading && !error && (
-        <>
-          <CardContent className={`transition-all duration-300 ${isExpanded ? '' : 'hidden'}`}>
-            <div className="space-y-4">
-              {/* Prediction Score */}
-              <div className="mb-6">
-                <div className="flex justify-between items-end mb-2">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Success Probability</h3>
-                    <p className="text-3xl font-bold">{predictionResult.probability_of_success_percentage}%</p>
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className={`${getConfidenceColor(predictionResult.confidence_level)} px-2 py-0.5`}
-                  >
-                    {predictionResult.confidence_level} Confidence
-                  </Badge>
+        )}
+        
+        {error && !isPredicting && (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <TrendingDown size={32} className="mb-2 text-destructive/60" />
+            <p className="text-muted-foreground">{error}</p>
+            <Button
+              onClick={handleGetPrediction}
+              variant="outline"
+              className="mt-4"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
+        
+        {prediction && !isPredicting && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  Success Probability
                 </div>
-                <Progress 
-                  value={predictionResult.probability_of_success_percentage} 
-                  className="h-2" 
-                  indicatorClassName={getProbabilityColor(predictionResult.probability_of_success_percentage)} 
-                />
+                <div className={`text-2xl font-bold ${getProbabilityColor(prediction.probability_of_success_percentage)}`}>
+                  {prediction.probability_of_success_percentage}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Confidence: {prediction.confidence_level}
+                </div>
               </div>
               
-              {/* Reasoning */}
-              <div>
-                <h3 className="text-sm font-medium mb-1">Analysis</h3>
-                <p className="text-muted-foreground text-sm">{predictionResult.prediction_reasoning}</p>
+              <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center relative"
+                style={{ 
+                  borderColor: `var(--${prediction.probability_of_success_percentage >= 75 ? 'success' : (prediction.probability_of_success_percentage >= 50 ? 'warning' : 'destructive')})`,
+                  opacity: 0.8
+                }}
+              >
+                <span className="text-lg font-bold">{prediction.probability_of_success_percentage}%</span>
               </div>
-              
-              {/* Recommended Improvements */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">Recommended Improvements</h3>
-                <div className="space-y-3">
-                  {displayRecommendations.map((item, index) => (
-                    <motion.div 
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-muted p-3 rounded-md"
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-medium">{item.area}</h4>
-                        <Badge 
-                          variant="outline" 
-                          className={`${getImpactColor(item.impact)} text-xs px-2`}
-                        >
-                          {item.impact} Impact
+            </div>
+            
+            <div>
+              <div className="text-sm font-medium">Reasoning</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {prediction.prediction_reasoning}
+              </p>
+            </div>
+            
+            <div>
+              <div className="text-sm font-medium mb-2">Suggested Improvements</div>
+              <ul className="space-y-2">
+                {prediction.suggested_improvements.map((improvement, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm border-l-2 border-primary/20 pl-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{improvement.area}</span>
+                        <Badge variant={getImpactVariant(improvement.impact)} className="text-[10px]">
+                          {improvement.impact} Impact
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{item.recommendation}</p>
-                    </motion.div>
-                  ))}
-                </div>
-                
-                {hasMoreRecommendations && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setShowAllRecommendations(!showAllRecommendations)} 
-                    className="mt-2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showAllRecommendations ? 'Show Less' : 'Show All Recommendations'}
-                    {showAllRecommendations ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
-                  </Button>
-                )}
-              </div>
+                      <p className="text-muted-foreground mt-0.5">
+                        {improvement.recommendation}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </CardContent>
-          
-          <CardFooter className={`border-t pt-3 px-6 pb-3 bg-muted/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground ${isExpanded ? '' : 'hidden'}`}>
-            <div className="flex-1">
-              <p>{predictionResult.disclaimer}</p>
-              {lastPredictedAt && (
-                <p className="mt-1">Last predicted {formatRelativeTime(lastPredictedAt)}</p>
-              )}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGetPrediction} 
-              disabled={loading}
-              className="whitespace-nowrap"
-            >
-              Update Prediction
-            </Button>
-          </CardFooter>
-        </>
-      )}
-      
-      {predictionResult && !isExpanded && (
-        <CardContent className="pt-0 pb-4 px-6">
-          <div className="flex justify-between items-center" onClick={toggleExpanded}>
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getProbabilityColor(predictionResult.probability_of_success_percentage)}`}>
-                <span className="text-white text-xs font-medium">{predictionResult.probability_of_success_percentage}%</span>
-              </div>
-              <div>
-                <Badge 
-                  variant="outline" 
-                  className={`${getConfidenceColor(predictionResult.confidence_level)} px-2 py-0.5 text-xs`}
-                >
-                  {predictionResult.confidence_level} confidence
-                </Badge>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {lastPredictedAt && `Last updated ${formatRelativeTime(lastPredictedAt)}`}
-                </p>
-              </div>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-muted-foreground" 
-              onClick={toggleExpanded}
-            >
-              View details
-              <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
           </div>
-        </CardContent>
+        )}
+      </CardContent>
+      
+      {prediction && (
+        <CardFooter className="text-xs text-muted-foreground border-t pt-4">
+          <p>
+            {prediction.disclaimer}
+          </p>
+        </CardFooter>
       )}
     </Card>
   );

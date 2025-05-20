@@ -3,7 +3,7 @@
 import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { verifyAuth } from "../_shared/rbac.ts";
+import { verifyAuth } from "../_shared/auth.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -55,8 +55,8 @@ serve(async (req) => {
     
     // 2. Fetch comment details to check authorization
     const { data: comment, error: commentError } = await supabaseAdmin
-      .from("comments")
-      .select("id, user_id, deal_id")
+      .from("document_comments")
+      .select("id, user_id, document_version_id")
       .eq("id", commentId)
       .single();
     
@@ -68,6 +68,23 @@ serve(async (req) => {
       );
     }
     
+    // Get document and deal info for this comment
+    const { data: versionData, error: versionError } = await supabaseAdmin
+      .from("document_versions")
+      .select("document_id, documents:document_id(deal_id)")
+      .eq("id", comment.document_version_id)
+      .single();
+      
+    if (versionError || !versionData || !versionData.documents?.deal_id) {
+      console.error("Error fetching document version:", versionError);
+      return new Response(
+        JSON.stringify({ error: "Document information not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const dealId = versionData.documents.deal_id;
+    
     // 3. Check if user is the author or has admin/lawyer role in the deal
     let canDelete = comment.user_id === userId;
     
@@ -77,7 +94,7 @@ serve(async (req) => {
       const { data: participant, error: participantError } = await supabaseAdmin
         .from("deal_participants")
         .select("role")
-        .eq("deal_id", comment.deal_id)
+        .eq("deal_id", dealId)
         .eq("user_id", userId)
         .single();
       
@@ -100,7 +117,7 @@ serve(async (req) => {
     const { data: deal, error: dealError } = await supabaseAdmin
       .from("deals")
       .select("status")
-      .eq("id", comment.deal_id)
+      .eq("id", dealId)
       .single();
     
     if (dealError) {
@@ -115,7 +132,7 @@ serve(async (req) => {
     
     // 5. Perform deletion
     const { error: deleteError } = await supabaseAdmin
-      .from("comments")
+      .from("document_comments")
       .delete()
       .eq("id", commentId);
     
