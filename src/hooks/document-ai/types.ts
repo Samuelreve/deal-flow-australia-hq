@@ -9,7 +9,8 @@ export type OperationType =
   "analyze_document" |
   "summarize_deal" |
   "get_deal_insights" |
-  "deal_chat_query";
+  "deal_chat_query" |
+  "predict_deal_health";
 
 export interface RequestPayload {
   operation: OperationType;
@@ -65,6 +66,21 @@ export interface DealInsightsResponse {
   keyTrends?: string[];
   recommendations?: string[];
   disclaimer: string;
+}
+
+// Deal Health Prediction Response Type
+export interface DealHealthPredictionResponse {
+  probability_of_success_percentage: number;
+  confidence_level: "High" | "Medium" | "Low";
+  prediction_reasoning: string;
+  suggested_improvements: Array<{
+    area: string;
+    recommendation: string;
+    impact: "High" | "Medium" | "Low";
+  }>;
+  disclaimer: string;
+  success?: boolean;
+  error?: string;
 }
 
 // Deal Chat Response Type

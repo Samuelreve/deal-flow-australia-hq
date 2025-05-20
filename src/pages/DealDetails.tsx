@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -13,6 +14,7 @@ import DealHeader from "@/components/deals/DealHeader";
 import DealTabs from "@/components/deals/DealTabs";
 import DealSidebar from "@/components/deals/DealSidebar";
 import DealMessaging from "@/components/deals/messages/DealMessaging";
+import DealHealthPredictionPanel from "@/components/deals/health/DealHealthPredictionPanel";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -103,6 +105,13 @@ const DealDetails = () => {
         isParticipant={isParticipant}
         onStatusUpdated={handleStatusUpdated}
       />
+      
+      {/* Add Deal Health Prediction Panel */}
+      {isParticipant && id && (
+        <div className="container mx-auto px-4 mb-6">
+          <DealHealthPredictionPanel dealId={id} />
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">

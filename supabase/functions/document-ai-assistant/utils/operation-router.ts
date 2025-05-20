@@ -10,7 +10,8 @@ import {
   handleAnalyzeDocument,
   handleSummarizeDeal,
   handleGetDealInsights,
-  handleDealChatQuery
+  handleDealChatQuery,
+  handlePredictDealHealth
 } from "../operations/index.ts";
 
 /**
@@ -51,6 +52,8 @@ export async function routeOperation(payload: RequestPayload, openai: any): Prom
       return await handleGetDealInsights(userId, openai);
     case "deal_chat_query":
       return await handleDealChatQuery(dealId, userId, content, chatHistory, openai);
+    case "predict_deal_health":
+      return await handlePredictDealHealth(dealId, userId, openai);
     default:
       throw new Error("Invalid operation type");
   }
