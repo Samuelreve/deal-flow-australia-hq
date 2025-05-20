@@ -64,15 +64,14 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
   // Use document comments hook for comment functionality
   const { 
     comments,
-    isLoadingComments,
-    commentCount, 
-    handleAddComment,
-    isAddingComment
-  } = useDocumentComments({
-    dealId,
-    documentId,
-    versionId
-  });
+    loading: isLoadingComments,
+    submitting: isAddingComment,
+    addComment,
+    deleteComment
+  } = useDocumentComments(versionId || '');
+
+  // Calculate comment count
+  const commentCount = comments?.length || 0;
 
   // Use document explanation hook for AI explanation functionality
   const {
@@ -82,8 +81,6 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
   } = useDocumentExplanation({
     dealId
   });
-
-  const { deleteComment } = useDocumentOperations();
   
   // Handle opening the comment input form
   const handleOpenCommentInput = () => {
@@ -107,15 +104,20 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
       return;
     }
     
+    if (!versionId) {
+      toast({
+        title: "No document version selected",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
-      await handleAddComment({
+      await addComment({
         content: commentContent,
-        documentVersionId: versionId,
-        selection: {
-          text: selectedText || "",
-          pageNumber: currentPage,
-          locationData
-        }
+        page_number: currentPage,
+        location_data: locationData,
+        selected_text: selectedText || ""
       });
       
       // Reset UI state after successful comment
@@ -147,8 +149,8 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
     handleExplainSelectedText(selectedText);
   }, [selectedText, setShowCommentInput, setShowExplanation, handleExplainSelectedText]);
 
-  // Handle comment button click
-  const handleCommentClick = useCallback(() => {
+  // Handle adding a comment
+  const handleAddComment = useCallback(() => {
     setShowExplanation(false);
     setShowCommentInput(true);
     if (onCommentTriggered && selectedText && locationData) {
@@ -181,38 +183,30 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
     <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-background">
       <DocumentViewerHeader 
         documentVersionUrl={documentVersionUrl}
-        commentCount={commentCount}
+        commentsCount={commentCount}
         showCommentSidebar={showCommentSidebar}
         onToggleCommentSidebar={handleToggleCommentSidebar}
+        dealId={dealId}
       />
       
       <div className="flex-1 flex overflow-hidden">
         <DocumentViewerContent
-          documentContainerRef={documentContainerRef}
-          handleMouseUp={handleMouseUp}
           documentVersionUrl={documentVersionUrl}
           showCommentSidebar={showCommentSidebar}
-          selectedText={selectedText}
-          buttonPosition={buttonPosition}
-          showExplanation={showExplanation}
-          showCommentInput={showCommentInput}
-          aiLoading={aiLoading}
-          handleExplainSelectedText={handleExplainClick}
-          handleAddComment={handleCommentClick}
-          commentContent={commentContent}
-          setCommentContent={setCommentContent}
-          submitting={isAddingComment}
-          handleSubmitComment={handleSubmitComment}
-          handleCloseCommentInput={handleCloseCommentInput}
-          explanationResult={explanationResult}
-          handleCloseExplanation={handleCloseExplanation}
+          documentContainerRef={documentContainerRef}
+          handleMouseUp={handleMouseUp}
+          documentLoading={false}
+          documentError={null}
+          setDocumentLoading={() => {}}
+          setDocumentError={() => {}}
         />
         
         {showCommentSidebar && (
           <DocumentCommentsSidebar 
-            comments={comments}
-            isLoading={isLoadingComments}
-            onDeleteComment={handleDeleteComment}
+            versionId={versionId}
+            documentId={documentId}
+            dealId={dealId}
+            documentViewerRef={ref}
           />
         )}
       </div>
