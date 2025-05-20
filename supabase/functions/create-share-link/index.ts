@@ -23,6 +23,11 @@ const generateToken = () => {
 const getServiceClient = () => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+  
   return createClient(supabaseUrl, supabaseKey);
 };
 
@@ -39,9 +44,13 @@ const canUserShareDocument = async (
       .eq('id', versionId)
       .single();
     
-    if (versionError || !version) {
+    if (versionError) {
       console.error('Error fetching document version:', versionError);
-      return false;
+      throw new Error('Document version not found');
+    }
+    
+    if (!version) {
+      throw new Error('Document version does not exist');
     }
     
     // Get the document and associated deal
@@ -51,9 +60,13 @@ const canUserShareDocument = async (
       .eq('id', version.document_id)
       .single();
     
-    if (docError || !document) {
+    if (docError) {
       console.error('Error fetching document:', docError);
-      return false;
+      throw new Error('Document not found');
+    }
+    
+    if (!document) {
+      throw new Error('Document does not exist');
     }
     
     // Check if the user is a participant in the deal
@@ -63,16 +76,23 @@ const canUserShareDocument = async (
       .eq('deal_id', document.deal_id)
       .eq('user_id', userId);
     
-    if (participantError || count === 0) {
-      console.error('Error checking participation or user is not a participant:', participantError);
-      return false;
+    if (participantError) {
+      console.error('Error checking participation:', participantError);
+      throw new Error('Failed to verify deal participation');
+    }
+    
+    if (count === 0) {
+      throw new Error('Authorization denied: You are not a participant in this deal');
     }
     
     // User is a participant in the deal
-    return true;
+    return {
+      authorized: true,
+      document: document
+    };
   } catch (error) {
     console.error('Error in canUserShareDocument:', error);
-    return false;
+    throw error;
   }
 };
 
@@ -80,6 +100,39 @@ const canUserShareDocument = async (
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+};
+
+// Validate the request input
+const validateInput = (requestData: any) => {
+  if (!requestData.document_version_id) {
+    throw new Error('Missing required field: document_version_id');
+  }
+  
+  // Validate recipients if provided
+  if (requestData.recipients && requestData.recipients.length > 0) {
+    const invalidEmails = requestData.recipients.filter((email: string) => !isValidEmail(email));
+    if (invalidEmails.length > 0) {
+      throw new Error(`Invalid email addresses: ${invalidEmails.join(', ')}`);
+    }
+  }
+  
+  // Validate expires_at if provided
+  if (requestData.expires_at) {
+    try {
+      const date = new Date(requestData.expires_at);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date format for expires_at');
+      }
+      
+      if (date < new Date()) {
+        throw new Error('Expiry date must be in the future');
+      }
+    } catch (error) {
+      throw new Error('Invalid date format for expires_at');
+    }
+  }
+  
+  return true;
 };
 
 Deno.serve(async (req) => {
@@ -109,128 +162,135 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract the token
-    const token = authorization.replace('Bearer ', '');
-    const user = await verifyAuth(token);
+    let user;
+    try {
+      // Extract the token
+      const token = authorization.replace('Bearer ', '');
+      user = await verifyAuth(token);
+    } catch (authError) {
+      console.error('Authentication error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed: ' + (authError.message || 'Invalid token') }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Parse request body
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const { 
       document_version_id, 
       expires_at, 
       can_download,
       recipients = [],
       custom_message = "" 
-    } = await req.json();
+    } = requestData;
     
-    if (!document_version_id) {
+    try {
+      validateInput(requestData);
+    } catch (validationError) {
       return new Response(
-        JSON.stringify({ error: 'Missing document version ID' }),
+        JSON.stringify({ error: validationError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Validate email addresses if provided
-    if (recipients && recipients.length > 0) {
-      const invalidEmails = recipients.filter((email: string) => !isValidEmail(email));
-      if (invalidEmails.length > 0) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Invalid email addresses', 
-            invalidEmails 
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    let supabase;
+    try {
+      supabase = getServiceClient();
+    } catch (dbConfigError) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
-    const supabase = getServiceClient();
-    
     // Get user's profile information for email
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', user.id)
-      .single();
-      
-    if (profileError) {
+    let userProfile = { name: 'A Deal Pilot user' };
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+        
+      if (!profileError && profile) {
+        userProfile = profile;
+      }
+    } catch (profileError) {
       console.error('Error fetching user profile:', profileError);
-      // Continue without user profile (we'll use a generic name)
+      // Continue with default name
     }
     
     const sharerName = userProfile?.name || 'A Deal Pilot user';
     
     // Check if the user has permission to share this document
-    const canShare = await canUserShareDocument(supabase, user.id, document_version_id);
-    if (!canShare) {
+    let documentInfo;
+    try {
+      const result = await canUserShareDocument(supabase, user.id, document_version_id);
+      documentInfo = result.document;
+    } catch (authError) {
+      console.error('Permission error:', authError);
       return new Response(
-        JSON.stringify({ error: 'You do not have permission to share this document' }),
+        JSON.stringify({ error: authError.message || 'You do not have permission to share this document' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Get document and deal information for email
-    const { data: version, error: versionError } = await supabase
-      .from('document_versions')
-      .select('document_id')
-      .eq('id', document_version_id)
-      .single();
-      
-    if (versionError) {
-      console.error('Error fetching document version:', versionError);
-      return new Response(
-        JSON.stringify({ error: 'Document version not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Get deal information for email
+    let dealTitle = 'Untitled Deal';
+    let documentName = documentInfo?.name || 'Document';
     
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('name, deal_id')
-      .eq('id', version.document_id)
-      .single();
-      
-    if (docError) {
-      console.error('Error fetching document:', docError);
-      return new Response(
-        JSON.stringify({ error: 'Document not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const { data: deal, error: dealError } = await supabase
-      .from('deals')
-      .select('title')
-      .eq('id', document.deal_id)
-      .single();
-      
-    if (dealError) {
+    try {
+      const { data: deal, error: dealError } = await supabase
+        .from('deals')
+        .select('title')
+        .eq('id', documentInfo.deal_id)
+        .single();
+        
+      if (!dealError && deal) {
+        dealTitle = deal.title;
+      }
+    } catch (dealError) {
       console.error('Error fetching deal:', dealError);
-      // Continue without deal info
+      // Continue with default title
     }
-    
-    const dealTitle = deal?.title || 'Untitled Deal';
-    const documentName = document.name;
     
     // Generate a secure token
     const shareToken = generateToken();
     
     // Create the share record
-    const { data, error } = await supabase
-      .from('secure_share_links')
-      .insert({
-        document_version_id,
-        shared_by_user_id: user.id,
-        token: shareToken,
-        expires_at: expires_at || null,
-        can_download: !!can_download,
-      })
-      .select('*')
-      .single();
-    
-    if (error) {
-      console.error('Error creating share link:', error);
+    let shareData;
+    try {
+      const { data, error } = await supabase
+        .from('secure_share_links')
+        .insert({
+          document_version_id,
+          shared_by_user_id: user.id,
+          token: shareToken,
+          expires_at: expires_at || null,
+          can_download: !!can_download,
+        })
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error creating share link:', error);
+        throw new Error('Failed to create share link in database');
+      }
+      
+      shareData = data;
+    } catch (dbError) {
       return new Response(
-        JSON.stringify({ error: 'Failed to create share link' }),
+        JSON.stringify({ error: 'Database error: ' + (dbError.message || 'Failed to create share link') }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -258,7 +318,7 @@ Deno.serve(async (req) => {
           });
           
           // Send the email
-          const emailResult = await sendEmail({
+          await sendEmail({
             to: recipientEmail,
             subject: `Secure Document Shared: ${documentName}`,
             html: emailHtml,
@@ -287,7 +347,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true,
         data: {
-          ...data,
+          ...shareData,
           share_url: shareUrl
         },
         email_results: {
@@ -299,9 +359,28 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in create-share-link function:', error);
+    
+    // Determine appropriate error status code
+    let statusCode = 500;
+    let errorMessage = 'Internal server error';
+    
+    if (error.message.includes('Authentication') || error.message.includes('token')) {
+      statusCode = 401;
+      errorMessage = error.message;
+    } else if (error.message.includes('permission') || error.message.includes('Authorization')) {
+      statusCode = 403;
+      errorMessage = error.message;
+    } else if (error.message.includes('not found') || error.message.includes('does not exist')) {
+      statusCode = 404;
+      errorMessage = error.message;
+    } else if (error.message.includes('Missing') || error.message.includes('Invalid')) {
+      statusCode = 400;
+      errorMessage = error.message;
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: errorMessage }),
+      { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
