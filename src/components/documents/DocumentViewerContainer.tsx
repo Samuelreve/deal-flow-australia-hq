@@ -4,12 +4,11 @@ import DocumentViewerHeader from './DocumentViewerHeader';
 import DocumentViewerContent from './DocumentViewerContent';
 import DocumentCommentsSidebar from './DocumentCommentsSidebar';
 import { useDocumentViewerState } from '@/hooks/useDocumentViewerState';
-import { useDocumentComments } from '@/hooks/useDocumentComments';
-import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
 import { useDocumentSelection } from '@/hooks/useDocumentSelection';
 import { useDocumentViewerRef } from '@/hooks/useDocumentViewerRef';
-import { toast } from '@/components/ui/use-toast';
-import { useDocumentOperations } from '@/hooks/useDocumentOperations';
+import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
+import useDocumentCommentHandler from './DocumentCommentHandler';
+import DocumentToolbar from './DocumentToolbar';
 
 interface DocumentViewerContainerProps {
   documentVersionUrl: string;
@@ -56,70 +55,51 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
     setShowCommentInput,
     commentContent,
     setCommentContent,
-    explanationResult,
-    setExplanationResult,
     handleToggleCommentSidebar
   } = useDocumentViewerState({ documentVersionUrl });
   
   // Use document comments hook for comment functionality
   const { 
     comments,
-    loading: isLoadingComments,
-    submitting: isAddingComment,
-    addComment,
-    deleteComment
-  } = useDocumentComments(versionId || '');
-
-  // Calculate comment count
-  const commentCount = comments?.length || 0;
+    loading,
+    submitting,
+    commentCount,
+    handleSubmitComment,
+    handleDeleteComment
+  } = useDocumentCommentHandler({ versionId });
 
   // Use document explanation hook for AI explanation functionality
   const {
     aiLoading,
+    explanationResult,
     handleExplainSelectedText,
     handleCloseExplanation
-  } = useDocumentExplanation({
-    dealId
-  });
+  } = useDocumentExplanation({ dealId });
   
   // Handle opening the comment input form
-  const handleOpenCommentInput = () => {
+  const handleOpenCommentInput = useCallback(() => {
     setShowExplanation(false);
     setShowCommentInput(true);
-  };
+  }, [setShowExplanation, setShowCommentInput]);
 
   // Handle closing the comment input form
-  const handleCloseCommentInput = () => {
+  const handleCloseCommentInput = useCallback(() => {
     setShowCommentInput(false);
     clearSelection();
-  };
+  }, [setShowCommentInput, clearSelection]);
 
   // Handle submitting a new comment
-  const handleSubmitComment = async () => {
-    if (!commentContent.trim()) {
-      toast({
-        title: "Comment cannot be empty",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleSubmitCommentWrapper = useCallback(async () => {
+    if (!commentContent.trim() || !versionId) return false;
     
-    if (!versionId) {
-      toast({
-        title: "No document version selected",
-        variant: "destructive"
-      });
-      return;
-    }
+    const success = await handleSubmitComment(
+      commentContent,
+      currentPage,
+      locationData,
+      selectedText
+    );
     
-    try {
-      await addComment({
-        content: commentContent,
-        page_number: currentPage,
-        location_data: locationData,
-        selected_text: selectedText || ""
-      });
-      
+    if (success) {
       // Reset UI state after successful comment
       setCommentContent('');
       setShowCommentInput(false);
@@ -127,27 +107,33 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
       
       // Show the comment sidebar after posting
       setShowCommentSidebar(true);
-      
-      toast({
-        title: "Comment added successfully"
-      });
-      
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      toast({
-        title: "Failed to add comment",
-        description: "Please try again later",
-        variant: "destructive"
-      });
     }
-  };
+    
+    return success;
+  }, [
+    commentContent, 
+    versionId, 
+    handleSubmitComment, 
+    currentPage, 
+    locationData, 
+    selectedText, 
+    setCommentContent, 
+    setShowCommentInput, 
+    clearSelection, 
+    setShowCommentSidebar
+  ]);
 
   // Handle explain button click
   const handleExplainClick = useCallback(() => {
     setShowCommentInput(false);
     setShowExplanation(true);
     handleExplainSelectedText(selectedText);
-  }, [selectedText, setShowCommentInput, setShowExplanation, handleExplainSelectedText]);
+  }, [
+    selectedText, 
+    setShowCommentInput, 
+    setShowExplanation, 
+    handleExplainSelectedText
+  ]);
 
   // Handle adding a comment
   const handleAddComment = useCallback(() => {
@@ -160,24 +146,14 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
         locationData
       });
     }
-  }, [selectedText, locationData, currentPage, onCommentTriggered, setShowExplanation, setShowCommentInput]);
-
-  // Handle deleting a comment
-  const handleDeleteComment = useCallback(async (commentId: string) => {
-    try {
-      await deleteComment(commentId);
-      toast({
-        title: "Comment deleted successfully"
-      });
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      toast({
-        title: "Failed to delete comment",
-        description: "Please try again later",
-        variant: "destructive"
-      });
-    }
-  }, [deleteComment]);
+  }, [
+    selectedText, 
+    locationData, 
+    currentPage, 
+    onCommentTriggered, 
+    setShowExplanation, 
+    setShowCommentInput
+  ]);
 
   return (
     <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-background">
@@ -199,6 +175,16 @@ const DocumentViewerContainer = forwardRef<any, DocumentViewerContainerProps>((p
           documentError={null}
           setDocumentLoading={() => {}}
           setDocumentError={() => {}}
+        />
+        
+        <DocumentToolbar
+          showExplanation={showExplanation}
+          showCommentInput={showCommentInput}
+          selectedText={selectedText}
+          aiLoading={aiLoading}
+          onExplainClick={handleExplainClick}
+          onAddCommentClick={handleAddComment}
+          buttonPosition={buttonPosition}
         />
         
         {showCommentSidebar && (

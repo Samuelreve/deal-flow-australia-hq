@@ -1,45 +1,50 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
-import { toast } from '@/components/ui/use-toast';
+import { ContractClauseExplanationResponse } from '@/hooks/document-ai/types';
 
 interface UseDocumentExplanationProps {
-  dealId?: string;
+  dealId: string;
 }
 
-export function useDocumentExplanation({ dealId }: UseDocumentExplanationProps) {
-  const { explainClause, loading: aiLoading, result, error, clearResult } = useDocumentAI({
-    dealId,
-  });
-  
-  const [explanationResult, setExplanationResult] = useState<{ explanation?: string; disclaimer: string } | null>(null);
+export function useDocumentExplanation({
+  dealId,
+}: UseDocumentExplanationProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [explanationResult, setExplanationResult] = useState<ContractClauseExplanationResponse | null>(null);
 
-  // Handle triggering AI explanation
-  const handleExplainSelectedText = async (selectedText: string | null) => {
-    if (!selectedText || aiLoading) return;
+  const { explainClause } = useDocumentAI({ dealId });
 
-    setExplanationResult(null);
+  const handleExplainSelectedText = useCallback(async (selectedText: string | null) => {
+    if (!selectedText) {
+      setError('No text selected to explain');
+      return;
+    }
 
+    setLoading(true);
+    setError(null);
+    
     try {
       const result = await explainClause(selectedText);
-      setExplanationResult(result || { explanation: 'Could not get explanation.', disclaimer: 'Failed to retrieve explanation.' });
-    } catch (err) {
-      console.error('Error explaining clause:', err);
-      setExplanationResult({ explanation: 'An error occurred while getting the explanation.', disclaimer: 'Error occurred.' });
+      setExplanationResult(result);
+    } catch (err: any) {
+      console.error('Error explaining text:', err);
+      setError(err.message || 'Failed to explain the selected text');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [explainClause]);
 
-  // Handle closing explanation display
-  const handleCloseExplanation = () => {
+  const handleCloseExplanation = useCallback(() => {
     setExplanationResult(null);
-    clearResult();
-  };
+    setError(null);
+  }, []);
 
   return {
-    aiLoading,
-    result,
+    aiLoading: loading,
+    aiError: error,
     explanationResult,
-    setExplanationResult,
     handleExplainSelectedText,
     handleCloseExplanation
   };
