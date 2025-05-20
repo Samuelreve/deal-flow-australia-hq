@@ -61,8 +61,8 @@ const IntentCapturePage: React.FC = () => {
     try {
       // Prepare the data to update the user's profile
       const profileUpdateData = {
-        onboarding_complete: true,
         role: formData.primaryIntent,
+        // Set onboarding_complete to true only for non-professional roles
       };
 
       // Update the user's profile
@@ -79,29 +79,41 @@ const IntentCapturePage: React.FC = () => {
       }
 
       // Profile updated successfully
-      console.log('Onboarding complete. Profile updated:', data);
-      toast.success('Welcome to DealPilot!');
+      console.log('Onboarding intent saved. Profile updated:', data);
+      toast.success('Intent saved!');
 
-      // Update the local user state
-      if (user.profile) {
-        // This will update the application state with the new profile data
-        // This requires that your useAuth hook has a setUser function
-        // You may need to adjust this based on your actual implementation
-        const updatedUser = {
-          ...user,
-          profile: {
-            ...user.profile,
-            onboarding_complete: true,
-            role: formData.primaryIntent
-          }
-        };
-        // This assumes your AuthContext has a setUser method
-        // If not, you'll need to adjust this or implement it
-        // setUser(updatedUser);
+      // --- Conditional Redirection ---
+      // Check if the user selected a role that requires professional profile setup
+      const isProfessionalRole = ['advisor', 'lawyer'].includes(data.role);
+
+      if (isProfessionalRole) {
+        // For professional roles, update the is_professional flag
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ is_professional: true })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Error updating professional status:', updateError);
+        }
+
+        // Redirect to the professional profile setup page
+        navigate('/profile');
+        toast.info('Please complete your professional profile');
+      } else {
+        // For non-professional roles, mark onboarding as complete and go to dashboard
+        const { error: completeError } = await supabase
+          .from('profiles')
+          .update({ onboarding_complete: true })
+          .eq('id', user.id);
+
+        if (completeError) {
+          console.error('Error marking onboarding complete:', completeError);
+        }
+
+        // Redirect to the dashboard
+        navigate('/dashboard');
       }
-
-      // Redirect to the Dashboard
-      navigate('/dashboard');
 
     } catch (error: any) {
       console.error('Onboarding submission error:', error);
