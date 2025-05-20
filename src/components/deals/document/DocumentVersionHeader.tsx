@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Document, DocumentVersion } from "@/types/deal";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Trash2, ChevronLeft } from "lucide-react";
+import { FileText, Download, Trash2, ChevronLeft, Share2 } from "lucide-react";
 import DocumentSummaryButton from "./DocumentSummaryButton";
+import ShareDocumentDialog from './ShareDocumentDialog';
 
 interface DocumentVersionHeaderProps {
   document?: Document; // Make document optional
@@ -24,6 +25,8 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
   userRole = 'user',
   onBack
 }) => {
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  
   // If we have onBack but no version, this is the document header in the versions list view
   if (onBack && document && !version) {
     return (
@@ -52,6 +55,10 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
     // Open the URL in a new tab/window
     window.open(version.url, '_blank');
   };
+  
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
 
   return (
     <div className="flex justify-between items-center border-b pb-3 mb-3">
@@ -74,6 +81,17 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
           userRole={userRole}
         />
         
+        {/* Share Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-1" 
+          onClick={handleShare}
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
+        
         <Button variant="outline" size="sm" className="gap-1" onClick={handleDownload}>
           <Download className="h-4 w-4" />
           Download
@@ -91,6 +109,14 @@ const DocumentVersionHeader: React.FC<DocumentVersionHeaderProps> = ({
           </Button>
         )}
       </div>
+      
+      {/* Share Dialog */}
+      <ShareDocumentDialog 
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        documentVersion={version}
+        documentName={document.name}
+      />
     </div>
   );
 };

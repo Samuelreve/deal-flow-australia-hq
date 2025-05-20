@@ -663,6 +663,50 @@ export type Database = {
         }
         Relationships: []
       }
+      secure_share_links: {
+        Row: {
+          can_download: boolean
+          can_view: boolean
+          created_at: string
+          document_version_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          shared_by_user_id: string
+          token: string
+        }
+        Insert: {
+          can_download?: boolean
+          can_view?: boolean
+          created_at?: string
+          document_version_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          shared_by_user_id: string
+          token: string
+        }
+        Update: {
+          can_download?: boolean
+          can_view?: boolean
+          created_at?: string
+          document_version_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          shared_by_user_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secure_share_links_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
