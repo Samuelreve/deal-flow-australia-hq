@@ -118,12 +118,13 @@ export const useDocumentVersionActions = ({
         throw new Error("Authentication required");
       }
       
+      // Fix: pass versionId in the body instead of using query parameter
       const { data, error } = await supabase.functions.invoke('manage-share-links', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${session.access_token}`
         },
-        query: {
+        body: {
           versionId
         }
       });
