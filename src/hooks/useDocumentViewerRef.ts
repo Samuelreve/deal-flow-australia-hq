@@ -17,7 +17,9 @@ export function useDocumentViewerRef(
     // Create an object that implements DocumentViewerRef interface
     const refValue: DocumentViewerRef = {
       highlightLocation: (locationData: any) => {
-        highlightRef.current.highlightLocation(locationData);
+        if (highlightRef.current) {
+          highlightRef.current.highlightLocation(locationData);
+        }
       }
     };
     
@@ -26,7 +28,7 @@ export function useDocumentViewerRef(
     
     // Return the ref value
     return refValue;
-  });
+  }, [highlightRef]);
 
   return internalDocumentViewerRef;
 }

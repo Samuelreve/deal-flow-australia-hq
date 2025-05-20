@@ -1,4 +1,5 @@
-import React, { useState, ForwardedRef } from 'react';
+
+import React, { useState, useEffect, ForwardedRef } from 'react';
 import { useDocumentComments } from '@/hooks/documentComments';
 import { useAuth } from '@/contexts/AuthContext';
 import DocumentCommentForm from './DocumentCommentForm';
@@ -27,7 +28,15 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   onSidebarToggle
 }) => {
   const { user } = useAuth();
-  const { comments, loading, fetchComments, toggleResolved } = useDocumentComments(versionId);
+  const { 
+    comments, 
+    loading: loadingComments, 
+    fetchComments, 
+    toggleResolved 
+  } = useDocumentComments(versionId);
+  
+  // Error state for fetching
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // State for managing the comment form and selections
   const [showInputForm, setShowInputForm] = useState(false);
@@ -48,6 +57,17 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
   };
   
   useCommentsEffect(activeCommentId, comments, handleRefForEffect());
+
+  // Fetch comments when versionId changes
+  useEffect(() => {
+    if (versionId) {
+      setFetchError(null);
+      fetchComments().catch(err => {
+        console.error("Error fetching comments:", err);
+        setFetchError("Failed to load comments. Please try again.");
+      });
+    }
+  }, [versionId, fetchComments]);
 
   // Handle comment triggered from viewer
   const handleCommentTriggeredFromViewer = (details: {
@@ -76,6 +96,7 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     setShowInputForm(false);
     setSelectionDetails(null);
     setReplyToCommentId(null);
+    fetchComments();
     toast({
       title: "Comment posted",
       description: "Your comment has been added successfully"
@@ -110,13 +131,6 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
     setShowInputForm(true);
   };
 
-  // Fetch comments when versionId changes
-  React.useEffect(() => {
-    if (versionId) {
-      fetchComments();
-    }
-  }, [versionId, fetchComments]);
-
   return (
     <div className="h-full border rounded-lg overflow-y-auto bg-background p-4 w-full">
       <div className="flex justify-between items-center mb-4">
@@ -134,15 +148,30 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       </div>
       
       {/* Loading state */}
-      {loading && comments.length === 0 && (
+      {loadingComments && comments.length === 0 && (
         <div className="flex justify-center items-center h-20">
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
           <span className="text-muted-foreground">Loading comments...</span>
         </div>
       )}
       
+      {/* Error state */}
+      {fetchError && (
+        <div className="text-center py-4 text-destructive">
+          <p>{fetchError}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchComments()}
+            className="mt-2"
+          >
+            Try again
+          </Button>
+        </div>
+      )}
+      
       {/* Empty state */}
-      {!loading && comments.length === 0 && (
+      {!loadingComments && !fetchError && comments.length === 0 && (
         <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
           <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/60" />
           <p>No comments yet for this document.</p>
@@ -151,10 +180,10 @@ const DocumentCommentsSidebar: React.FC<DocumentCommentsSidebarProps> = ({
       )}
       
       {/* Comments list */}
-      {comments.length > 0 && (
+      {comments.length > 0 && !fetchError && (
         <DocumentCommentsList 
           comments={comments}
-          loading={loading}
+          loading={loadingComments}
           onCommentClick={handleCommentClick}
           onToggleResolved={toggleResolved}
           onReplyClick={handleReplyClick}

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ForwardedRef } from 'react';
 import DocumentContentArea from './DocumentContentArea';
 import DocumentSidebarContainer from './DocumentSidebarContainer';
 import { DocumentViewerRef } from './DocumentViewer';
@@ -13,7 +13,7 @@ interface DocumentViewerContentContainerProps {
   versionId?: string;
   currentPage: number;
   onMouseUp: () => void;
-  ref: React.ForwardedRef<DocumentViewerRef>;
+  ref: ForwardedRef<DocumentViewerRef>;
   onCommentClick?: (commentId: string, locationData: any) => void;
   onToggleSidebar?: () => void;
 }
@@ -24,6 +24,7 @@ const DocumentViewerContentContainer: React.FC<DocumentViewerContentContainerPro
   dealId,
   documentId,
   versionId,
+  currentPage,
   onMouseUp,
   ref,
   onCommentClick,
@@ -52,7 +53,7 @@ const DocumentViewerContentContainer: React.FC<DocumentViewerContentContainerPro
         versionId={versionId}
         documentId={documentId}
         dealId={dealId}
-        documentViewerRef={ref as React.RefObject<DocumentViewerRef>}
+        documentViewerRef={ref}
         onCommentClick={onCommentClick || handleSidebarCommentClick}
         onSidebarToggle={onToggleSidebar}
       />
