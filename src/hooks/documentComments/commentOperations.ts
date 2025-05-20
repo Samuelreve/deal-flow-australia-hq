@@ -15,7 +15,7 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
         headers: {
           'Content-Type': 'application/json'
         },
-        path: `/${versionId}/comments`
+        query: { versionId }
       });
 
     if (functionError) {
@@ -77,7 +77,7 @@ export async function addDocumentComment(
         headers: {
           'Content-Type': 'application/json'
         },
-        path: `/${versionId}/comments`
+        query: { versionId }
       });
 
     if (functionError) {

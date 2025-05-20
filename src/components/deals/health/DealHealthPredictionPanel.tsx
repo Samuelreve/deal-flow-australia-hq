@@ -26,7 +26,8 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
     setError(null);
     
     try {
-      const result = await predictDealHealth();
+      // Pass the dealId to the predictDealHealth function
+      const result = await predictDealHealth(dealId);
       
       if (result) {
         setPrediction(result);

@@ -14,8 +14,9 @@ export const useDealHealthPredictions = ({ processAIRequest }: UseDealHealthPred
   /**
    * Get AI-generated prediction about deal health and suggestions for improvement
    */
-  const predictDealHealth = async (): Promise<DealHealthPredictionResponse | null> => {
+  const predictDealHealth = async (dealId: string): Promise<DealHealthPredictionResponse | null> => {
     return await processAIRequest('predict_deal_health', {
+      dealId,
       content: '', // No content needed for this operation
     });
   };
