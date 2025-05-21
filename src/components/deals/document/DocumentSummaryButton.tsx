@@ -21,14 +21,12 @@ const DocumentSummaryButton = ({
   className = ""
 }: DocumentSummaryButtonProps) => {
   const [summarizing, setSummarizing] = useState(false);
-  // Fix: Remove versionId from the props as it's not in the expected type
   const { summarizeDocument } = useDocumentAI({ dealId, documentId });
   const { toast } = useToast();
 
   const handleSummarize = async () => {
     setSummarizing(true);
     try {
-      // Fix: Pass documentId and documentVersionId as arguments to summarizeDocument
       const summary = await summarizeDocument(documentId, documentVersionId);
       if (summary) {
         toast({
