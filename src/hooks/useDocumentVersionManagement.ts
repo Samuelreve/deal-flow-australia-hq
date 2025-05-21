@@ -1,165 +1,163 @@
 
 import { useState } from "react";
-import { DocumentVersion, VersionComparisonResult, DocumentVersionTag, DocumentVersionAnnotation } from "@/types/documentVersion";
-import { documentVersionManagementService } from "@/services/documents/documentVersionManagementService";
-import { useToast } from "@/components/ui/use-toast";
+import { versionTaggingService } from "@/services/documents/version-management/versionTaggingService";
+import { versionAnnotationService } from "@/services/documents/version-management/versionAnnotationService";
+import { DocumentVersionTag } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
-export const useDocumentVersionManagement = (dealId: string) => {
-  const [comparing, setComparing] = useState(false);
-  const [comparison, setComparison] = useState<VersionComparisonResult | null>(null);
-  const [restoring, setRestoring] = useState(false);
-  const [addingTag, setAddingTag] = useState(false);
-  const [addingAnnotation, setAddingAnnotation] = useState(false);
-  
-  const { toast } = useToast();
+/**
+ * Hook for managing document version tags and annotations
+ */
+export const useDocumentVersionManagement = (
+  dealId: string,
+  documentId: string,
+  onVersionsUpdated?: () => void
+) => {
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  
-  /**
-   * Compare two document versions
-   */
-  const compareVersions = async (version1Id: string, version2Id: string) => {
-    setComparing(true);
-    try {
-      const result = await documentVersionManagementService.compareVersions(version1Id, version2Id, dealId);
-      setComparison(result);
-      return result;
-    } catch (error: any) {
-      console.error("Error comparing versions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to compare document versions: " + error.message,
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setComparing(false);
-    }
-  };
-  
-  /**
-   * Restore a document version to make it the latest version
-   */
-  const restoreVersion = async (version: DocumentVersion, documentId: string) => {
-    if (!user?.id) {
-      toast({
-        title: "Authentication Required",
-        description: "You need to be logged in to restore document versions.",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
-    setRestoring(true);
-    try {
-      const result = await documentVersionManagementService.restoreVersion(
-        version,
-        documentId,
-        dealId,
-        user.id
-      );
-      
-      if (result) {
-        toast({
-          title: "Version Restored",
-          description: `Version ${version.versionNumber} has been restored as the latest version.`,
-        });
-      }
-      
-      return result;
-    } catch (error: any) {
-      console.error("Error restoring version:", error);
-      toast({
-        title: "Error",
-        description: "Failed to restore document version: " + error.message,
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setRestoring(false);
-    }
-  };
-  
+  const { toast } = useToast();
+
   /**
    * Add a tag to a document version
    */
-  const addVersionTag = async (versionId: string, name: string, color: string) => {
-    setAddingTag(true);
+  const addVersionTag = async (
+    versionId: string, 
+    tag: { name: string, color: string }
+  ) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add tags.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    setIsLoading(true);
     try {
-      const result = await documentVersionManagementService.addVersionTag(versionId, name, color);
+      const result = await versionTaggingService.addVersionTag(tag, versionId, user.id);
       
       if (result) {
         toast({
           title: "Tag Added",
-          description: `Tag "${name}" has been added to the version.`,
+          description: "Version tag has been added successfully."
         });
+        
+        if (onVersionsUpdated) {
+          onVersionsUpdated();
+        }
       }
       
       return result;
     } catch (error: any) {
       console.error("Error adding tag:", error);
       toast({
-        title: "Error",
-        description: "Failed to add tag: " + error.message,
-        variant: "destructive",
+        title: "Failed to Add Tag",
+        description: error.message || "There was an error adding the tag.",
+        variant: "destructive"
       });
       return null;
     } finally {
-      setAddingTag(false);
+      setIsLoading(false);
     }
   };
-  
+
+  /**
+   * Remove a tag from a document version
+   */
+  const removeVersionTag = async (versionId: string, tagId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to remove tags.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsLoading(true);
+    try {
+      const success = await versionTaggingService.removeVersionTag(tagId, versionId, user.id);
+      
+      if (success) {
+        toast({
+          title: "Tag Removed",
+          description: "Version tag has been removed successfully."
+        });
+        
+        if (onVersionsUpdated) {
+          onVersionsUpdated();
+        }
+      }
+      
+      return success;
+    } catch (error: any) {
+      console.error("Error removing tag:", error);
+      toast({
+        title: "Failed to Remove Tag",
+        description: error.message || "There was an error removing the tag.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   /**
    * Add an annotation to a document version
    */
-  const addVersionAnnotation = async (versionId: string, content: string) => {
-    if (!user?.id) {
+  const addVersionAnnotation = async (
+    versionId: string,
+    annotationContent: { content: string }
+  ) => {
+    if (!user) {
       toast({
         title: "Authentication Required",
-        description: "You need to be logged in to add annotations.",
-        variant: "destructive",
+        description: "Please log in to add annotations.",
+        variant: "destructive"
       });
       return null;
     }
-    
-    setAddingAnnotation(true);
+
+    setIsLoading(true);
     try {
-      const result = await documentVersionManagementService.addVersionAnnotation(
+      const result = await versionAnnotationService.addVersionAnnotation(
+        annotationContent,
         versionId,
-        user.id,
-        content
+        user.id
       );
       
       if (result) {
         toast({
           title: "Annotation Added",
-          description: "Your annotation has been added to the version.",
+          description: "Version annotation has been added successfully."
         });
+        
+        if (onVersionsUpdated) {
+          onVersionsUpdated();
+        }
       }
       
       return result;
     } catch (error: any) {
       console.error("Error adding annotation:", error);
       toast({
-        title: "Error",
-        description: "Failed to add annotation: " + error.message,
-        variant: "destructive",
+        title: "Failed to Add Annotation",
+        description: error.message || "There was an error adding the annotation.",
+        variant: "destructive"
       });
       return null;
     } finally {
-      setAddingAnnotation(false);
+      setIsLoading(false);
     }
   };
-  
+
   return {
-    comparing,
-    comparison,
-    restoring,
-    addingTag,
-    addingAnnotation,
-    compareVersions,
-    restoreVersion,
+    isLoading,
     addVersionTag,
+    removeVersionTag,
     addVersionAnnotation
   };
 };

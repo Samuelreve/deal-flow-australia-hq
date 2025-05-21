@@ -1,149 +1,132 @@
 
 import { useEffect, useState } from "react";
 import { DocumentVersion } from "@/types/documentVersion";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, User, Tag, MessageCircle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { formatBytes } from "@/lib/formatBytes";
+import { Tag, Clock, CalendarDays, FileText } from "lucide-react";
+import { useDocumentVersionManagement } from "@/hooks/useDocumentVersionManagement";
 
 interface DocumentVersionMetadataProps {
-  version: DocumentVersion | null;
+  version: DocumentVersion;
   dealId: string;
+  onVersionsUpdated?: () => void;
 }
 
-const DocumentVersionMetadata = ({
+const DocumentVersionMetadata = ({ 
   version,
-  dealId
+  dealId,
+  onVersionsUpdated = () => {}
 }: DocumentVersionMetadataProps) => {
-  const [uploaderName, setUploaderName] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-
-  // Fetch uploader information when version changes
-  useEffect(() => {
-    const fetchUploaderInfo = async () => {
-      if (!version) return;
-      
-      try {
-        setLoading(true);
-        // Get profile data which includes the name field
-        const { data } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', version.uploadedBy)
-          .single();
-          
-        if (data) {
-          setUploaderName(data.name || "Unknown User");
-        } else {
-          setUploaderName("Unknown User");
-        }
-      } catch (error) {
-        console.error("Error fetching uploader info:", error);
-        setUploaderName("Unknown User");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUploaderInfo();
-  }, [version]);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [tagName, setTagName] = useState("");
+  const [tagColor, setTagColor] = useState("#3b82f6");
   
-  if (!version) {
-    return (
-      <Card>
-        <CardContent className="p-4">
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-3/4" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const { 
+    addVersionTag, 
+    removeVersionTag,
+    isLoading 
+  } = useDocumentVersionManagement(dealId, version.documentId, onVersionsUpdated);
+
+  const handleAddTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tagName.trim()) {
+      await addVersionTag(version.id, { name: tagName, color: tagColor });
+      setTagName("");
+      setShowTagInput(false);
+    }
+  };
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-2">
-        <div className="flex items-center">
-          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-          <span className="font-medium">Version {version.versionNumber}</span>
-          {version.isRestored && (
-            <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">
-              Restored
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4 mr-2" />
-          <span>{new Date(version.uploadedAt).toLocaleString()}</span>
-        </div>
-        
-        <div className="flex items-center text-sm text-muted-foreground">
-          <User className="h-4 w-4 mr-2" />
-          <span>
-            {loading ? <Skeleton className="h-4 w-24" /> : uploaderName}
-          </span>
-        </div>
-        
-        {version.tags && version.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            <Tag className="h-4 w-4 mr-1 text-muted-foreground" />
-            {version.tags.map(tag => (
-              <span
-                key={tag.id}
-                className="px-2 py-0.5 rounded-full text-xs"
-                style={{
-                  backgroundColor: tag.color,
-                  color: isLightColor(tag.color) ? "#000" : "#fff"
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
-          </div>
-        )}
-        
-        {version.annotations && version.annotations.length > 0 && (
-          <div className="mt-2">
-            <div className="flex items-center mb-1">
-              <MessageCircle className="h-4 w-4 mr-1 text-muted-foreground" />
-              <span className="text-sm font-medium">Annotations ({version.annotations.length})</span>
-            </div>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {version.annotations.map(annotation => (
-                <div key={annotation.id} className="text-xs p-2 bg-muted rounded-md">
-                  {annotation.content}
-                </div>
+      <CardHeader className="py-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Version {version.versionNumber} Metadata
+          </CardTitle>
+          {version.tags && version.tags.length > 0 && (
+            <div className="flex gap-1">
+              {version.tags.map(tag => (
+                <Badge 
+                  key={tag.id}
+                  style={{ backgroundColor: tag.color, color: '#fff' }}
+                  className="flex items-center"
+                >
+                  {tag.name}
+                  <button 
+                    onClick={() => removeVersionTag(version.id, tag.id)}
+                    className="ml-1 hover:bg-white/20 rounded-full p-0.5"
+                    disabled={isLoading}
+                  >
+                    ×
+                  </button>
+                </Badge>
               ))}
             </div>
-          </div>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowTagInput(!showTagInput)}
+            className="flex items-center"
+          >
+            <Tag className="h-3 w-3 mr-1" />
+            {showTagInput ? "Cancel" : "Add Tag"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="py-3 space-y-4">
+        {showTagInput && (
+          <form onSubmit={handleAddTag} className="flex items-center gap-2 mb-4">
+            <input
+              type="text"
+              placeholder="Tag name"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+            />
+            <input
+              type="color"
+              className="h-9 w-12 cursor-pointer border border-input rounded-md"
+              value={tagColor}
+              onChange={(e) => setTagColor(e.target.value)}
+            />
+            <Button type="submit" size="sm" disabled={isLoading}>Add</Button>
+          </form>
         )}
         
-        <Button variant="outline" size="sm" className="w-full mt-2">
-          Download Original
-        </Button>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <div className="text-sm font-medium flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              Uploaded
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {new Date(version.uploadedAt).toLocaleString()}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm font-medium flex items-center">
+              <FileText className="h-3 w-3 mr-1" />
+              File Details
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatBytes(version.size)} • {version.type}
+            </div>
+          </div>
+        </div>
+        
+        {version.description && (
+          <div className="space-y-1">
+            <div className="text-sm font-medium">Description</div>
+            <div className="text-sm text-muted-foreground">{version.description}</div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-};
-
-// Utility function to determine if a color is light or dark
-const isLightColor = (color: string): boolean => {
-  // Convert hex to RGB
-  let hex = color.replace('#', '');
-  if (hex.length === 3) {
-    hex = hex.split('').map(c => c + c).join('');
-  }
-  
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  
-  // Calculate brightness
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  
-  // If brightness > 128, color is light
-  return brightness > 128;
 };
 
 export default DocumentVersionMetadata;

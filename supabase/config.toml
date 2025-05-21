@@ -1,36 +1,41 @@
 
-
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
 project_id = "wntmgfuclbdrezxcvzmw"
 
 [api]
 enabled = true
+# Port to use for the API URL.
 port = 54321
-schemas = ["public", "storage"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+schemes = ["http"]
+
+# Email testing server. Emails sent with the local dev setup are not actually delivered, rather
+# they are monitored, and you can view the emails that would have been delivered from the web
+# interface.
+[inbucket]
+enabled = true
+# Port to use for the inbucket API.
+port = 54324
+# Port to use for the inbucket web interface.
+web_port = 54325
+# Port to use for the inbucket SMTP server.
+smtp_port = 54326
 
 [db]
+# Port to use for the local database URL.
 port = 54322
-shadow_port = 54320
-major_version = 15
 
-[realtime]
+# Port to use for the local Studio URL.
+[studio]
 enabled = true
+port = 54323
 
-[storage]
-enabled = true
-file_size_limit = "50MiB"
-
+# Email testing server. Emails sent with the local dev setup are not actually delivered, rather
+# they are monitored, and you can view the emails that would have been delivered from the web
+# interface.
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
-jwt_expiry = 3600
-enable_signup = true
 
 [functions]
-[functions.document-comments]
+[functions.document-version-operations]
 verify_jwt = true
-[functions.document-upload]
-verify_jwt = true
-
