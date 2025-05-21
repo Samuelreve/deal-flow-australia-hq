@@ -45,8 +45,8 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
           description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
         });
         
-        // Navigate to the document view
-        navigate(`/deals/${dealId}/documents`);
+        // Navigate to the document view with a flag to open the analyzer
+        navigate(`/deals/${dealId}/documents?analyze=true&docId=${result.document.id}&versionId=${result.version.id}`);
       }
     } catch (error: any) {
       toast({
