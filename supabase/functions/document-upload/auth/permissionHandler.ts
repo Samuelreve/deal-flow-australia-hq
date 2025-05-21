@@ -20,12 +20,12 @@ export class PermissionHandler {
       // Before throwing an error, check if this is a public or special deal
       const { data: deal } = await this.supabaseAdmin
         .from('deals')
-        .select('type, created_by')
+        .select('deal_type, created_by')
         .eq('id', dealId)
         .single();
         
       // If the deal is of type 'analysis' or if the user created it, allow access
-      if (deal && (deal.type === 'analysis' || deal.created_by === userId)) {
+      if (deal && (deal.deal_type === 'analysis' || deal.created_by === userId)) {
         return true;
       }
       
@@ -51,12 +51,12 @@ export class PermissionHandler {
       // Before throwing an error, check if this is a public or special deal
       const { data: deal } = await this.supabaseAdmin
         .from('deals')
-        .select('type, created_by')
+        .select('deal_type, created_by')
         .eq('id', dealId)
         .single();
         
       // If the deal is of type 'analysis' or if the user created it, assume admin role
-      if (deal && (deal.type === 'analysis' || deal.created_by === userId)) {
+      if (deal && (deal.deal_type === 'analysis' || deal.created_by === userId)) {
         return 'admin';
       }
       
@@ -87,7 +87,7 @@ export class PermissionHandler {
     // Fetch the deal status
     const { data: deal, error } = await this.supabaseAdmin
       .from('deals')
-      .select('status, type')
+      .select('status, deal_type')
       .eq('id', dealId)
       .single();
 
@@ -100,7 +100,7 @@ export class PermissionHandler {
     const allowedStatuses = ['draft', 'active', 'pending', null];
     
     // If this is an analysis deal, always allow uploads
-    if (deal.type === 'analysis') {
+    if (deal.deal_type === 'analysis') {
       return true;
     }
     

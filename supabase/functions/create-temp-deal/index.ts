@@ -50,7 +50,7 @@ serve(async (req) => {
       .insert({
         title: title || "Temporary Contract Analysis Deal",
         description: description || "Auto-generated for contract analysis",
-        deal_type: type || "analysis",
+        deal_type: type || "analysis", // Make sure this column exists
         status: "draft",
         seller_id: userId, // Set the current user as the seller
         created_at: new Date().toISOString(),
