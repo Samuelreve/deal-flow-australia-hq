@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 import { Input } from "@/components/ui/input";
 import AIToolsModal from "@/components/ai/AIToolsModal";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   showSidebar?: boolean;
@@ -41,9 +42,11 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm flex h-16 items-center px-4 md:px-6">
       <div className="hidden md:block">
-        <h1 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-          DealPilot
-        </h1>
+        <Link to="/" className="hover:opacity-80 transition-opacity">
+          <h1 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+            DealPilot
+          </h1>
+        </Link>
       </div>
       
       <div className="ml-auto mr-4 hidden md:block max-w-md w-full">

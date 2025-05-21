@@ -65,14 +65,18 @@ const Sidebar = () => {
           "p-4 border-b flex items-center justify-between",
           isCompact && "justify-center"
         )}>
-          <h2 className={cn(
-            "text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70",
+          <Link to="/" className={cn(
+            "hover:opacity-80 transition-opacity",
             isCompact && "hidden"
           )}>
-            DealPilot
-          </h2>
+            <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+              DealPilot
+            </h2>
+          </Link>
           {isCompact && (
-            <div className="font-bold text-xl text-primary">DP</div>
+            <Link to="/" className="font-bold text-xl text-primary hover:opacity-80 transition-opacity">
+              DP
+            </Link>
           )}
           <Button 
             variant="ghost" 
