@@ -31,7 +31,10 @@ export const useDocumentAnalysisOperations = ({ processAIRequest }: UseDocumentA
     
     if (response && response.analysis) {
       return {
-        analysis: response.analysis,
+        // Convert the analysis to string if it's not already
+        analysis: typeof response.analysis === 'string' 
+          ? response.analysis 
+          : JSON.stringify(response.analysis),
         disclaimer: response.disclaimer || ''
       };
     }

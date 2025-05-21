@@ -43,6 +43,11 @@ export interface DealHealthPredictionResponse {
   recommendation?: string;
   disclaimer: string;
   success?: boolean;
+  // Adding fields that were referenced in code but not defined
+  probability_of_success_percentage?: number;
+  confidence_level?: string;
+  prediction_reasoning?: string;
+  suggested_improvements?: string[];
 }
 
 export interface DealSummaryResponse {
@@ -56,6 +61,8 @@ export interface DealInsightsResponse {
   recommendations?: string[];
   disclaimer: string;
   success?: boolean;
+  // Adding field that was referenced but not defined
+  insightsText?: string;
 }
 
 export interface DocumentAnalysisResponse {
