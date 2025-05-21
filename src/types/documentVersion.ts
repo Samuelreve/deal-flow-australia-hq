@@ -33,6 +33,18 @@ export interface DocumentVersion {
   isRestored?: boolean;
 }
 
+export interface Document {
+  id: string;
+  name: string;
+  category?: string;
+  type?: string;
+  uploadedBy?: string;
+  latestVersionId?: string;
+  latestVersion?: DocumentVersion;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface VersionComparisonResult {
   additions: string[];
   deletions: string[];

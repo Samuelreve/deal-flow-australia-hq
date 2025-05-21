@@ -3,7 +3,6 @@ import { DocumentVersion } from "@/types/documentVersion";
 import { Button } from "@/components/ui/button";
 import { 
   Calendar, 
-  Download, 
   FileText, 
   Trash2, 
   Share2,

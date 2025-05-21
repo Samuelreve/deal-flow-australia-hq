@@ -1,4 +1,4 @@
-import { DocumentVersion, VersionComparisonResult } from "@/types/documentVersion";
+import { DocumentVersion, VersionComparisonResult, DocumentVersionTag, DocumentVersionAnnotation } from "@/types/documentVersion";
 import { supabase } from "@/integrations/supabase/client";
 import { documentStorageService } from "./documentStorageService";
 import { documentDatabaseService } from "./documentDatabaseService";
@@ -222,6 +222,3 @@ export const documentVersionManagementService = {
     }
   }
 };
-
-// Add missing type import
-import { DocumentVersionTag } from "@/types/documentVersion";
