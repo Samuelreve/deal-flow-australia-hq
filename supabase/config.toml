@@ -1,13 +1,10 @@
 
-
 project_id = "wntmgfuclbdrezxcvzmw"
 
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+schemas = ["public", "storage", "graphql_public"]
 
 [db]
 port = 54322
@@ -17,20 +14,57 @@ major_version = 15
 [realtime]
 enabled = true
 
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
 [storage]
 enabled = true
-file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
-jwt_expiry = 3600
-enable_signup = true
+site_url = "http://127.0.0.1:3000"
 
-[functions]
-[functions.document-comments]
-verify_jwt = true
-[functions.document-upload]
-verify_jwt = true
+[analytics]
+enabled = false
 
+[experimental]
+trace = false
+
+[local.api]
+port = 54321
+
+[local.db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[local.realtime]
+enabled = true
+
+[local.studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[local.inbucket]
+enabled = true
+port = 54324
+
+[local.storage]
+enabled = true
+
+[local.auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+
+[local.analytics]
+enabled = false
+
+[functions.public-analyze-contract]
+verify_jwt = false
