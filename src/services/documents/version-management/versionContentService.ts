@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Service responsible for retrieving document version content
+ * Service for document version restoration operations
  */
 export const versionContentService = {
   /**
