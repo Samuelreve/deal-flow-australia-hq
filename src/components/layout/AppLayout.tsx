@@ -45,6 +45,16 @@ const AppLayout = ({ children, requiredRoles = [] }: AppLayoutProps) => {
     );
   }
   
+  // Comment out authentication checks to allow viewing without login
+  // if (!isAuthenticated) {
+  //   return <Navigate to="/login" replace />;
+  // }
+  
+  // If specific roles are required, check if user has permission
+  // if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
+  //   return <Navigate to="/unauthorized" replace />;
+  // }
+  
   // Create a mock user if none exists
   const mockUser = user || {
     id: "mock-user-id",
