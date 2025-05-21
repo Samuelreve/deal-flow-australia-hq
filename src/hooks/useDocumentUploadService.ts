@@ -78,19 +78,20 @@ export function useDocumentUploadService() {
         throw new Error("Authentication required");
       }
 
-      // Call the edge function using invoke method
-      // Since 'query' is not in the type definition, we'll include dealId in a different way
-      const functionPath = `document-upload?dealId=${encodeURIComponent(dealId)}`;
+      // Call the edge function
+      const functionPath = `document-upload`;
       
       const { data: result, error } = await supabase.functions.invoke(functionPath, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: formData
+        body: formData,
+        query: { dealId }
       });
 
       if (error) {
+        console.error("Upload error:", error);
         // Handle specific error for deal not found
         if (error.message?.includes('not found') || error.status === 404) {
           throw new Error(`Deal with ID ${dealId} not found or you don't have access to it`);

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,15 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
       setIsUploading(true);
       
       if (!dealId) {
-        // When on homepage, upload directly by creating a temporary deal
-        // First create a temp deal via the Edge Function
+        // When on homepage, create a temporary deal first
         const tempDealName = `Contract Analysis: ${file.name}`;
         
-        // Use the supabase client to call the edge function
+        toast({
+          title: "Creating temporary deal...",
+          description: "Please wait while we prepare everything for your contract analysis.",
+        });
+        
+        // Call the edge function to create a temporary deal
         const { data, error } = await supabase.functions.invoke('create-temp-deal', {
           body: {
             title: tempDealName,
@@ -40,10 +45,16 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         });
         
         if (error) {
+          console.error("Create temp deal error:", error);
           throw new Error(`Failed to create temporary deal: ${error.message}`);
         }
         
+        if (!data || !data.dealId) {
+          throw new Error("Failed to receive deal ID from server");
+        }
+        
         const newDealId = data.dealId;
+        console.log("Created temporary deal:", newDealId);
         
         // Upload the document with "contract" category to the new deal
         const result = await uploadDocument(file, newDealId, "contract");
@@ -72,6 +83,7 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         }
       }
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload contract",

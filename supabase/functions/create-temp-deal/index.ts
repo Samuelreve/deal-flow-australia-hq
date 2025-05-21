@@ -30,10 +30,8 @@ serve(async (req) => {
       .insert({
         title,
         description,
-        creator_id: user.id,
         seller_id: user.id,
         status: 'draft',
-        type,
       })
       .select()
       .single();
@@ -52,8 +50,7 @@ serve(async (req) => {
       .insert({
         deal_id: dealData.id,
         user_id: user.id,
-        role: 'owner',
-        status: 'active'
+        role: 'owner'
       });
       
     if (participantError) {
