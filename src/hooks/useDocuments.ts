@@ -46,7 +46,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     if (!documentId) return;
     setLoadingVersions(true);
     try {
-      const versions = await documentService.getDocumentVersions(documentId);
+      // Fix: Pass an empty object as the second parameter (options)
+      const versions = await documentService.getDocumentVersions(documentId, {});
       setDocumentVersions(versions);
     } catch (error: any) {
       console.error("Error fetching document versions:", error);
@@ -125,8 +126,12 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   
   const deleteDocument = async (document: Document): Promise<boolean> => {
     try {
-      // When calling documentService.deleteDocument, pass the document ID
-      await documentService.deleteDocument(document.id);
+      // Fix: Pass dealId and user.id (if available) as additional parameters
+      await documentService.deleteDocument(
+        document.id, 
+        dealId, 
+        user?.id || ''
+      );
       
       // Update local documents list
       setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== document.id));
@@ -155,8 +160,14 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   
   const deleteDocumentVersion = async (version: DocumentVersion): Promise<boolean> => {
     try {
-      // When calling documentService.deleteDocumentVersion, pass the version ID
-      await documentService.deleteDocumentVersion(version.id);
+      // Fix: Pass all required parameters
+      await documentService.deleteDocumentVersion(
+        version.id,
+        dealId,
+        user?.id || '',
+        selectedDocument?.id || '',
+        version.documentId
+      );
       
       // Update versions list
       setDocumentVersions(prevVersions => prevVersions.filter(v => v.id !== version.id));
