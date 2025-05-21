@@ -35,8 +35,18 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
           description: "Please wait while we prepare everything for your contract analysis.",
         });
         
+        // Get auth session for the function call
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("Authentication required");
+        }
+        
         // Call the edge function to create a temporary deal
         const { data, error } = await supabase.functions.invoke('create-temp-deal', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
           body: {
             title: tempDealName,
             description: 'Auto-generated for contract analysis',

@@ -62,6 +62,7 @@ export function useDocumentUploadService() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('category', category);
+      formData.append('dealId', dealId);
       
       if (documentId) {
         formData.append('documentId', documentId);
@@ -80,9 +81,6 @@ export function useDocumentUploadService() {
 
       // Call the edge function
       const functionPath = `document-upload`;
-      
-      // Add dealId to the formData instead of using the query parameter
-      formData.append('dealId', dealId);
       
       const { data: result, error } = await supabase.functions.invoke(functionPath, {
         method: 'POST',
