@@ -22,12 +22,14 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // If we're on the homepage and no dealId is provided, ask user to select a deal
     if (!dealId) {
+      // Navigate to the deals page where they can select a specific deal
       toast({
-        title: "No deal selected",
-        description: "Please select a deal first to upload a contract",
-        variant: "destructive"
+        title: "Select a deal first",
+        description: "Please select a deal to upload your contract to.",
       });
+      navigate('/deals');
       return;
     }
     
@@ -57,13 +59,9 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
     }
   };
   
-  const navigateToUploadPage = () => {
-    if (dealId) {
-      navigate(`/deals/${dealId}/documents`);
-    } else {
-      // If no deal is selected, navigate to deals page
-      navigate('/deals');
-    }
+  const navigateToDeals = () => {
+    // Navigate to deals page so user can select a deal
+    navigate('/deals');
   };
 
   return (
@@ -98,36 +96,50 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
           </div>
           
           <div className="flex flex-col gap-2">
-            <div className="relative">
+            {dealId ? (
+              // If a specific deal is selected (on dashboard)
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="w-full relative overflow-hidden" 
+                  disabled={isUploading || !user}
+                >
+                  <label 
+                    htmlFor="contract-upload" 
+                    className="absolute inset-0 cursor-pointer flex items-center justify-center"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploading ? "Uploading..." : "Upload a Contract"}
+                  </label>
+                </Button>
+                <input 
+                  type="file" 
+                  id="contract-upload" 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.txt"
+                  disabled={isUploading || !user}
+                />
+              </div>
+            ) : (
+              // If no deal is selected (on homepage)
               <Button 
                 variant="outline" 
-                className="w-full relative overflow-hidden" 
-                disabled={isUploading || !dealId || !user}
+                onClick={navigateToDeals}
+                className="w-full"
+                disabled={!user}
               >
-                <label 
-                  htmlFor="contract-upload" 
-                  className="absolute inset-0 cursor-pointer flex items-center justify-center"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? "Uploading..." : "Upload a Contract"}
-                </label>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload a Contract
               </Button>
-              <input 
-                type="file" 
-                id="contract-upload" 
-                className="hidden" 
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx,.txt"
-                disabled={isUploading || !dealId || !user}
-              />
-            </div>
+            )}
             
             <Button 
               variant="default" 
-              onClick={navigateToUploadPage}
+              onClick={navigateToDeals}
               className="w-full"
             >
-              Go to Document Manager
+              Go to My Deals
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
