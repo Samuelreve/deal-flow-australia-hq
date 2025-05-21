@@ -68,15 +68,35 @@ export const versionComparisonService = {
     dealId: string
   ): Promise<{ summary: string; disclaimer: string }> {
     try {
-      // Call the edge function to summarize version changes
+      // Get document ID for the versions
+      const { data: version, error: versionError } = await supabase
+        .from('document_versions')
+        .select('document_id')
+        .eq('id', currentVersionId)
+        .single();
+      
+      if (versionError || !version) {
+        throw new Error("Document version not found");
+      }
+      
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('You must be logged in to use AI features');
+      }
+      
+      // Call the AI assistant function to summarize changes
       const { data, error } = await supabase.functions.invoke(
-        'document-version-operations',
+        'document-ai-assistant',
         {
           body: {
-            operation: 'summarize_changes',
+            operation: 'summarize_version_changes',
+            dealId,
+            documentId: version.document_id,
             currentVersionId,
             previousVersionId,
-            dealId
+            userId: user.id
           }
         }
       );
@@ -85,11 +105,8 @@ export const versionComparisonService = {
         throw new Error(error.message || "Failed to summarize version changes");
       }
       
-      if (!data || !data.summary) {
-        return {
-          summary: "Unable to generate comparison summary.",
-          disclaimer: "No analysis could be performed."
-        };
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Failed to generate AI summary");
       }
       
       return {

@@ -1,47 +1,53 @@
+
 import { AIRequestOptions } from './useDocumentAIBase';
 
-export interface UseDocumentGenerationOperationsProps {
+interface UseDocumentGenerationOperationsProps {
   processAIRequest: (operation: string, options: AIRequestOptions) => Promise<any>;
 }
 
 /**
- * Hook for AI document generation and summarization operations
+ * Hook for document generation AI operations
  */
-export const useDocumentGenerationOperations = ({
-  processAIRequest
-}: UseDocumentGenerationOperationsProps) => {
-  
+export const useDocumentGenerationOperations = ({ processAIRequest }: UseDocumentGenerationOperationsProps) => {
   /**
-   * Generate a document template based on requirements and template type
+   * Generate a document template based on provided requirements
    */
-  const generateTemplate = async (requirements: string, templateType: string, additionalContext?: Record<string, any>) => {
-    const context = {
-      templateType,
-      ...additionalContext
-    };
-    
-    return processAIRequest('generate_template', { content: requirements, context });
+  const generateTemplate = async (requirements: string) => {
+    return await processAIRequest('generate_template', {
+      content: requirements
+    });
   };
-  
+
   /**
-   * Summarize a document using its content or by ID
+   * Summarize a document
    */
-  const summarizeDocument = async (
-    documentContent?: string, 
-    documentId?: string, 
-    documentVersionId?: string
+  const summarizeDocument = async (documentId: string, documentVersionId: string) => {
+    return await processAIRequest('summarize_document', {
+      content: '',
+      documentId,
+      documentVersionId
+    });
+  };
+
+  /**
+   * Summarize changes between document versions
+   */
+  const summarizeVersionChanges = async (
+    documentId: string, 
+    currentVersionId: string, 
+    previousVersionId: string
   ) => {
-    // If documentContent is provided, use it directly
-    // Otherwise, the backend will fetch it using the IDs
-    return processAIRequest('summarize_document', { 
-      content: documentContent || '', 
-      documentId, 
-      documentVersionId 
+    return await processAIRequest('summarize_version_changes', {
+      content: '',
+      documentId,
+      currentVersionId,
+      previousVersionId
     });
   };
 
   return {
     generateTemplate,
-    summarizeDocument
+    summarizeDocument,
+    summarizeVersionChanges
   };
 };

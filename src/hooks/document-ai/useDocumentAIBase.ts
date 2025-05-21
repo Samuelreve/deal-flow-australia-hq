@@ -1,13 +1,16 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-export type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document';
+export type AIOperation = 'explain_clause' | 'generate_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes';
 
 export interface AIRequestOptions {
   content: string;
   documentId?: string;
   documentVersionId?: string;
+  currentVersionId?: string;
+  previousVersionId?: string;
   milestoneId?: string;
   context?: Record<string, any>;
 }
@@ -74,6 +77,8 @@ export const useDocumentAIBase = ({ dealId, documentId }: UseDocumentAIBaseProps
           dealId,
           documentId: options.documentId || documentId,
           documentVersionId: options.documentVersionId,
+          currentVersionId: options.currentVersionId,
+          previousVersionId: options.previousVersionId,
           milestoneId: options.milestoneId,
           content: options.content,
           userId: user.id,

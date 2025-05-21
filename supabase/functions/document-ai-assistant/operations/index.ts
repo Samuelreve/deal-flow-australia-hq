@@ -11,3 +11,4 @@ export { handleGetDealInsights } from "./get-deal-insights.ts";
 export { handleDealChatQuery } from "./deal-chat-query.ts";
 export { handlePredictDealHealth } from "./predict-deal-health.ts";
 export { handleSummarizeContract, handleExplainContractClause } from "./smart-contract-operations.ts";
+export { handleSummarizeVersionChanges } from "./summarize-version-changes.ts";

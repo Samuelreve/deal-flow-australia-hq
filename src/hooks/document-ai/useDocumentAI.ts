@@ -32,7 +32,8 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
   // Get document generation operations
   const { 
     generateTemplate,
-    summarizeDocument
+    summarizeDocument,
+    summarizeVersionChanges
   } = useDocumentGenerationOperations({ processAIRequest });
   
   // Get deal insight operations
@@ -170,6 +171,7 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     // Document generation operations
     generateTemplate,
     summarizeDocument,
+    summarizeVersionChanges,
     
     // Deal insight operations
     suggestNextAction,
