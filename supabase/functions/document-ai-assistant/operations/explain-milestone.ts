@@ -1,74 +1,65 @@
 
+import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-function getSupabaseAdmin() {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
-
 /**
- * Handle milestone explanation operation
+ * Handler for explaining milestones using AI
  */
-export async function handleExplainMilestone(dealId: string, milestoneId: string, openai: any) {
-  if (!milestoneId) {
-    throw new Error("Milestone ID is required for explanation");
-  }
-
-  // Get Supabase admin client
-  const supabaseAdmin = getSupabaseAdmin();
-  
+export async function handleExplainMilestone(
+  milestoneId: string,
+  dealId: string,
+  openai: OpenAI,
+  supabase: ReturnType<typeof createClient>
+) {
   try {
-    // Fetch milestone details
-    const { data: milestone, error: milestoneError } = await supabaseAdmin
+    // 1. Fetch milestone details
+    const { data: milestone, error: milestoneError } = await supabase
       .from('milestones')
-      .select('title, description, status, deal_id')
+      .select('title, description, status, due_date')
       .eq('id', milestoneId)
+      .eq('deal_id', dealId)
       .single();
     
     if (milestoneError || !milestone) {
-      throw new Error(`Error fetching milestone: ${milestoneError?.message || "Milestone not found"}`);
+      throw new Error('Milestone not found or access denied.');
     }
+
+    // 2. Construct OpenAI prompt
+    const promptContent = `You are a business transaction advisor. Please explain the following milestone in a business transaction:
     
-    // Verify milestone belongs to the specified deal
-    if (milestone.deal_id !== dealId) {
-      throw new Error("Milestone does not belong to specified deal");
-    }
-    
-    // Call OpenAI for milestone explanation
+Milestone Title: ${milestone.title}
+Description: ${milestone.description || 'No description provided'}
+Status: ${milestone.status}
+Due Date: ${milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : 'No due date set'}
+
+Provide a clear explanation of:
+1. What this milestone typically involves
+2. Why it's important in the transaction process
+3. Common challenges or considerations
+4. Best practices for completing this milestone successfully`;
+
+    // 3. Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: "You are an AI business deal coach, specializing in explaining complex business deal milestones in simple, easy-to-understand terms. Avoid legal jargon and focus on practical explanations."
-        },
-        {
-          role: "user",
-          content: `Please explain the following business deal milestone in simple, easy-to-understand terms:
-          
-Milestone Name: ${milestone.title}
-Milestone Description: ${milestone.description || "No description provided"}
-Current Status: ${milestone.status}
-
-What does this milestone mean in the context of a business deal? What typically needs to happen during this milestone? Why is it important?`
-        }
+        { role: "system", content: "You are an AI business advisor specializing in transaction milestones." },
+        { role: "user", content: promptContent }
       ],
-      temperature: 0.7,
-      max_tokens: 400
+      temperature: 0.3,
+      max_tokens: 800
     });
 
+    const explanation = response.choices[0]?.message?.content || 'Failed to generate explanation';
+    
+    // 4. Return the explanation with milestone data
     return {
-      explanation: response.choices[0].message.content,
-      milestone: {
-        title: milestone.title,
-        status: milestone.status
-      },
-      disclaimer: "This explanation is provided for informational purposes only and should not be considered legal or financial advice. Consult with qualified professionals for guidance specific to your situation."
+      explanation,
+      milestone,
+      disclaimer: "This explanation is for informational purposes only and should not be considered professional advice."
     };
-  } catch (error) {
-    console.error(`Error explaining milestone for deal ${dealId}:`, error);
+    
+  } catch (error: any) {
+    console.error('Error in handleExplainMilestone:', error);
     throw error;
   }
 }

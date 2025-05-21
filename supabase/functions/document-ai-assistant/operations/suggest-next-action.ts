@@ -1,79 +1,77 @@
 
+import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-function getSupabaseAdmin() {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
-
 /**
- * Handle next action suggestion operation
+ * Handler for suggesting next actions in a deal using AI
  */
-export async function handleSuggestNextAction(dealId: string, openai: any) {
-  // Get Supabase admin client
-  const supabaseAdmin = getSupabaseAdmin();
-  
+export async function handleSuggestNextAction(
+  dealId: string,
+  openai: OpenAI,
+  supabase: ReturnType<typeof createClient>
+) {
   try {
-    // Fetch deal status
-    const { data: deal, error: dealError } = await supabaseAdmin
+    // 1. Fetch deal details
+    const { data: deal, error: dealError } = await supabase
       .from('deals')
-      .select('status')
+      .select('title, status, health_score')
       .eq('id', dealId)
       .single();
     
     if (dealError || !deal) {
-      throw new Error(`Error fetching deal: ${dealError?.message || "Deal not found"}`);
+      throw new Error('Deal not found or access denied.');
     }
-    
-    // Fetch all milestones for the deal
-    const { data: milestones, error: milestonesError } = await supabaseAdmin
+
+    // 2. Fetch milestones to understand deal progress
+    const { data: milestones, error: milestonesError } = await supabase
       .from('milestones')
-      .select('id, title, description, status, order_index')
+      .select('title, status, order_index')
       .eq('deal_id', dealId)
       .order('order_index', { ascending: true });
     
     if (milestonesError) {
-      throw new Error(`Error fetching milestones: ${milestonesError.message}`);
+      throw new Error('Failed to fetch deal milestones.');
     }
+
+    // 3. Construct OpenAI prompt
+    const promptContent = `You are a business transaction advisor. Based on the following deal information, suggest the next best action to move the deal forward:
     
-    // Format milestones for the prompt
-    const milestonesText = milestones.map(m => 
-      `- ${m.title}: ${m.status} ${m.description ? `(${m.description})` : ''}`
-    ).join('\n');
-    
-    // Call OpenAI for next action suggestion
+Deal Title: ${deal.title}
+Deal Status: ${deal.status}
+Deal Health Score: ${deal.health_score}/100
+
+Current Milestones:
+${milestones.map(m => `- ${m.title} (Status: ${m.status})`).join('\n')}
+
+Provide specific, practical advice on:
+1. The most important next action to take
+2. Why this action is important at this stage
+3. Any potential risks to mitigate
+4. Tips for successful execution`;
+
+    // 4. Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: "You are an AI business deal coach, specializing in providing strategic advice for moving business deals forward. Based on the current status of a deal and its milestones, suggest the most logical next action to progress the deal. Be specific and practical."
-        },
-        {
-          role: "user",
-          content: `Based on the current status of this business deal and its milestones, suggest the most logical next action to move the deal forward:
-          
-Deal Status: ${deal.status}
-
-Milestones:
-${milestonesText}
-
-What specific next action would you recommend to progress this deal? Focus on one clear, actionable step.`
-        }
+        { role: "system", content: "You are an AI business advisor specializing in deal execution strategy." },
+        { role: "user", content: promptContent }
       ],
-      temperature: 0.7,
-      max_tokens: 400
+      temperature: 0.3,
+      max_tokens: 800
     });
 
+    const suggestion = response.choices[0]?.message?.content || 'Failed to generate suggestion';
+    
+    // 5. Return the suggestion with deal data
     return {
-      suggestion: response.choices[0].message.content,
+      suggestion,
       dealStatus: deal.status,
-      disclaimer: "This suggestion is provided for informational purposes only and should not be considered legal or financial advice. Consult with qualified professionals for guidance specific to your situation."
+      healthScore: deal.health_score,
+      disclaimer: "This suggestion is for informational purposes only and should not be considered professional advice."
     };
-  } catch (error) {
-    console.error(`Error suggesting next action for deal ${dealId}:`, error);
+    
+  } catch (error: any) {
+    console.error('Error in handleSuggestNextAction:', error);
     throw error;
   }
 }

@@ -1,237 +1,161 @@
-
+import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { OpenAI } from "https://esm.sh/openai@4.35.0";
 
-// Define response type
-export interface DealHealthPredictionResponse {
-  probability_of_success_percentage: number;
-  confidence_level: "High" | "Medium" | "Low";
-  prediction_reasoning: string;
-  suggested_improvements: Array<{
-    area: string;
-    recommendation: string;
-    impact: "High" | "Medium" | "Low";
-  }>;
-  disclaimer: string;
-}
-
+/**
+ * Handler for predicting deal health using AI
+ */
 export async function handlePredictDealHealth(
   dealId: string,
-  userId: string,
   openai: OpenAI,
-): Promise<DealHealthPredictionResponse> {
+  supabase: ReturnType<typeof createClient>
+) {
   try {
-    // Initialize Supabase client with admin privileges
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    // 1. Fetch deal details
+    const { data: deal, error: dealError } = await supabase
+      .from('deals')
+      .select('title, status, description, created_at')
+      .eq('id', dealId)
+      .single();
     
-    // Verify user is a participant in the deal
-    const { data: participant, error: participantError } = await supabaseAdmin
-      .from("deal_participants")
-      .select("role")
-      .eq("deal_id", dealId)
-      .eq("user_id", userId)
-      .single();
-      
-    if (participantError || !participant) {
-      throw new Error("You are not a participant in this deal");
+    if (dealError || !deal) {
+      throw new Error('Deal not found or access denied.');
     }
 
-    // 1. Fetch comprehensive deal data
-    const { data: dealData, error: dealError } = await supabaseAdmin
-      .from("deals")
-      .select(`
-        *,
-        seller:seller_id(name:profiles(name)),
-        buyer:buyer_id(name:profiles(name))
-      `)
-      .eq("id", dealId)
-      .single();
-      
-    if (dealError || !dealData) {
-      throw new Error("Deal not found");
-    }
-
-    // 2. Fetch milestones
-    const { data: milestonesData, error: milestonesError } = await supabaseAdmin
-      .from("milestones")
-      .select("*")
-      .eq("deal_id", dealId)
-      .order("order_index", { ascending: true });
-      
+    // 2. Fetch milestones to assess progress
+    const { data: milestones, error: milestonesError } = await supabase
+      .from('milestones')
+      .select('title, status, due_date, completed_at')
+      .eq('deal_id', dealId);
+    
     if (milestonesError) {
-      throw new Error("Error fetching milestones data");
+      console.error('Error fetching milestones:', milestonesError);
+      // Continue without milestones data
     }
 
-    // 3. Fetch participants
-    const { data: participantsData, error: participantsError } = await supabaseAdmin
-      .from("deal_participants")
-      .select("*, user:user_id(name:profiles(name))")
-      .eq("deal_id", dealId);
-      
-    if (participantsError) {
-      throw new Error("Error fetching participants data");
+    // 3. Fetch recent activities
+    const { data: activities, error: activitiesError } = await supabase
+      .from('deal_activities')
+      .select('activity_type, created_at, description')
+      .eq('deal_id', dealId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (activitiesError) {
+      console.error('Error fetching activities:', activitiesError);
+      // Continue without activities data
     }
 
-    // 4. Fetch documents summary
-    const { data: documentsData, error: documentsError } = await supabaseAdmin
-      .from("documents")
-      .select("id, name, type, category, created_at")
-      .eq("deal_id", dealId);
-      
-    if (documentsError) {
-      throw new Error("Error fetching documents data");
+    // 4. Fetch document count
+    const { count: documentCount, error: documentError } = await supabase
+      .from('documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('deal_id', dealId);
+    
+    if (documentError) {
+      console.error('Error counting documents:', documentError);
+      // Continue without document count
     }
 
-    // 5. Calculate derived metrics
-    const totalMilestones = milestonesData?.length || 0;
-    const completedMilestones = milestonesData?.filter(m => m.status === "completed").length || 0;
-    const blockedMilestones = milestonesData?.filter(m => m.status === "blocked").length || 0;
-    const overdueMilestones = milestonesData?.filter(m => {
-      return m.status !== "completed" && m.due_date && new Date(m.due_date) < new Date();
-    }).length || 0;
-
-    const documentCategories = documentsData?.reduce((acc, doc) => {
-      acc[doc.category || doc.type || "uncategorized"] = (acc[doc.category || doc.type || "uncategorized"] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
-
-    const dealAgeDays = dealData.created_at 
-      ? Math.floor((new Date().getTime() - new Date(dealData.created_at).getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    // 6. Format data for the prompt
-    let formattedContext = `Current Deal Status and Progress for Deal: ${dealData.title} (ID: ${dealId})\n`;
-    formattedContext += `Business: ${dealData.business_legal_name || "N/A"}\n`;
-    formattedContext += `Deal Type: ${dealData.deal_type || "N/A"}\n`;
-    formattedContext += `Current Overall Status: ${dealData.status} (Health Score: ${dealData.health_score}%)\n`;
-    formattedContext += `Deal Age: ${dealAgeDays} days\n`;
-    formattedContext += `Asking Price: $${dealData.asking_price || "N/A"}\n`;
-    formattedContext += `Reason for Selling: ${dealData.reason_for_selling || "N/A"}\n\n`;
-
-    formattedContext += `Milestone Breakdown (${completedMilestones}/${totalMilestones} completed, ${overdueMilestones} overdue, ${blockedMilestones} blocked):\n`;
-    if (milestonesData && milestonesData.length > 0) {
-      milestonesData.forEach(m => {
-        formattedContext += `- ${m.title}: ${m.status}${m.due_date ? ` (Due: ${new Date(m.due_date).toLocaleDateString()})` : ''}${m.completed_at ? ` (Completed: ${new Date(m.completed_at).toLocaleDateString()})` : ''}\n`;
-      });
-    } else {
-      formattedContext += "No milestones defined for this deal.\n";
-    }
-    formattedContext += `\n`;
-
-    formattedContext += `Key Participants: `;
-    if (participantsData && participantsData.length > 0) {
-      formattedContext += participantsData
-        .map(p => `${p.user?.name || "Unknown"} (${p.role})`)
-        .join(", ");
-    } else {
-      formattedContext += "None";
-    }
-    formattedContext += `\n\n`;
-
-    formattedContext += `Document Summary:\n`;
-    if (Object.keys(documentCategories).length > 0) {
-      for (const [category, count] of Object.entries(documentCategories)) {
-        formattedContext += `- ${category}: ${count} document(s)\n`;
+    // 5. Calculate basic metrics
+    const dealAgeInDays = Math.floor((new Date().getTime() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    
+    const completedMilestones = milestones?.filter(m => m.status === 'completed') || [];
+    const totalMilestones = milestones?.length || 0;
+    const milestoneCompletionRate = totalMilestones > 0 ? (completedMilestones.length / totalMilestones) * 100 : 0;
+    
+    const overdueMilestones = milestones?.filter(m => {
+      if (m.status !== 'completed' && m.due_date) {
+        return new Date(m.due_date) < new Date();
       }
-    } else {
-      formattedContext += "No documents uploaded for this deal.\n";
-    }
-    formattedContext += `\n`;
+      return false;
+    }) || [];
 
-    // 7. Construct OpenAI prompt
-    const messages = [
-      {
-        role: "system",
-        content: `You are an expert business deal strategist and risk analyst. Your task is to analyze the provided deal data, predict its probability of success, and suggest actionable improvements to increase that probability or accelerate the deal.`
-      },
-      {
-        role: "user",
-        content: `Deal Context:
-${formattedContext}
+    // 6. Construct OpenAI prompt
+    const promptContent = `You are a deal health prediction AI. Based on the following deal information, predict the health and likelihood of successful completion for this business transaction:
+    
+Deal Title: ${deal.title}
+Deal Status: ${deal.status}
+Deal Age: ${dealAgeInDays} days
+Description: ${deal.description || 'No description provided'}
 
-Provide your analysis in the following structured JSON format:
-{
-  "probability_of_success_percentage": [Integer from 0-100],
-  "confidence_level": "[High|Medium|Low]",
-  "prediction_reasoning": "[Brief explanation of why this prediction]",
-  "suggested_improvements": [
-    { "area": "[e.g., Milestones, Documents, Communication, Participants]", "recommendation": "[Specific actionable step]", "impact": "[High|Medium|Low]" },
-    { "area": "...", "recommendation": "...", "impact": "..." }
-  ],
-  "disclaimer": "This is an AI-generated prediction based on available data and should not be taken as professional advice or a guarantee."
-}
+Milestone Progress:
+- Total Milestones: ${totalMilestones}
+- Completed Milestones: ${completedMilestones.length} (${milestoneCompletionRate.toFixed(1)}%)
+- Overdue Milestones: ${overdueMilestones.length}
 
-**Important Rules:**
-1. Base your prediction and suggestions **ONLY** on the 'Deal Context' provided. Do not make up information.
-2. The 'probability_of_success_percentage' must be an integer between 0 and 100.
-3. Recommendations should be specific, actionable steps related to the deal's current state.
-4. Do NOT provide legal or financial advice.
-5. If data is insufficient for a strong prediction, state that in 'prediction_reasoning' and use 'Low' confidence.`
-      }
-    ];
+Document Count: ${documentCount || 'Unknown'}
 
-    // 8. Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages as any,
-      response_format: { type: "json_object" },
-      max_tokens: 1000,
-      temperature: 0.2,
+Recent Activities: ${activities?.length ? activities.map(a => `
+- ${a.activity_type}: ${a.description} (${new Date(a.created_at).toLocaleDateString()})`).join('') : 'No recent activities'}
+
+Based on this information, provide:
+1. A health score from 0-100 (where 100 is perfect health)
+2. A confidence level for your prediction (low, medium, high)
+3. Key factors affecting the deal health (positive and negative)
+4. Recommendations to improve deal health
+
+Format your response as structured JSON with the following keys:
+- score: number
+- confidence: string
+- factors: array of objects with factor, impact (positive/negative/neutral), and description
+- recommendations: array of strings
+- summary: string (brief textual summary of the health assessment)`;
+
+    // 7. Call OpenAI API
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are an AI deal health prediction assistant. Respond with valid JSON only." },
+        { role: "user", content: promptContent }
+      ],
+      temperature: 0.3,
+      response_format: { type: "json_object" }
     });
 
-    // 9. Process and return the response
-    const generatedJsonString = completion.choices[0]?.message?.content || "{}";
-    let predictionResult: DealHealthPredictionResponse;
+    // 8. Parse the response
+    const responseContent = response.choices[0]?.message?.content || '{"error": "Failed to generate prediction"}';
+    let prediction;
     
     try {
-      predictionResult = JSON.parse(generatedJsonString);
-      
-      // Ensure the required fields exist
-      if (!predictionResult.probability_of_success_percentage) {
-        predictionResult.probability_of_success_percentage = 50;
-      }
-      
-      if (!predictionResult.confidence_level) {
-        predictionResult.confidence_level = "Low";
-      }
-      
-      if (!predictionResult.prediction_reasoning) {
-        predictionResult.prediction_reasoning = "Insufficient data to provide a detailed reasoning.";
-      }
-      
-      if (!Array.isArray(predictionResult.suggested_improvements)) {
-        predictionResult.suggested_improvements = [];
-      }
-      
-      if (!predictionResult.disclaimer) {
-        predictionResult.disclaimer = "This is an AI-generated prediction based on available data and should not be taken as professional advice or a guarantee.";
-      }
-      
-    } catch (error) {
-      console.error("Error parsing OpenAI response:", error);
-      
-      // Return a fallback prediction
-      predictionResult = {
-        probability_of_success_percentage: 50,
-        confidence_level: "Low",
-        prediction_reasoning: "The AI assistant encountered an error while generating the prediction.",
-        suggested_improvements: [
-          {
-            area: "General",
-            recommendation: "Please try again later or contact support if the issue persists.",
-            impact: "Medium"
-          }
-        ],
-        disclaimer: "This is an AI-generated prediction based on available data and should not be taken as professional advice or a guarantee."
+      prediction = JSON.parse(responseContent);
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      prediction = {
+        score: 50,
+        confidence: "low",
+        factors: [{ factor: "Insufficient Data", impact: "neutral", description: "Could not analyze deal health with available information" }],
+        recommendations: ["Provide more information about the deal"],
+        summary: "Deal health assessment inconclusive due to parsing error"
       };
     }
-
-    return predictionResult;
     
-  } catch (error) {
-    console.error("Error in handlePredictDealHealth:", error);
+    // 9. Save the prediction to the database
+    try {
+      await supabase
+        .from('deal_health_predictions')
+        .insert({
+          deal_id: dealId,
+          health_score: prediction.score,
+          confidence_level: prediction.confidence,
+          factors: prediction.factors,
+          recommendations: prediction.recommendations,
+          summary: prediction.summary,
+          created_at: new Date().toISOString()
+        });
+    } catch (saveError) {
+      console.error('Error saving health prediction:', saveError);
+      // Continue anyway to return prediction to user
+    }
+    
+    // 10. Return the prediction
+    return {
+      prediction,
+      dealStatus: deal.status,
+      disclaimer: "This health prediction is based on available data and AI analysis. It should be used as one of many inputs for decision-making, not as the sole determining factor."
+    };
+    
+  } catch (error: any) {
+    console.error('Error in handlePredictDealHealth:', error);
     throw error;
   }
 }

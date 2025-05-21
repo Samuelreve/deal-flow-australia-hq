@@ -1,94 +1,75 @@
 
-import { useState, useEffect } from 'react';
-import { useDocumentAI } from '@/hooks/document-ai';
+import { useState, useCallback, useEffect } from 'react';
+import { useDocumentAI } from '@/hooks/useDocumentAI';
+import { getAnalysisLabel } from './constants';
 
 export const useAnalysisState = (dealId: string, documentId: string, versionId: string) => {
-  const [activeTab, setActiveTab] = useState('summarize_contract');
+  const [activeTab, setActiveTab] = useState<string>('summarize_contract');
   const [analysisResults, setAnalysisResults] = useState<Record<string, any>>({});
   const [analysisInProgress, setAnalysisInProgress] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [analysisStartTime, setAnalysisStartTime] = useState<Date | null>(null);
-
-  // Initialize document AI hook
-  const {
-    analyzeDocument,
+  
+  const { 
+    analyzeDocument, 
     summarizeContract,
-    loading: aiLoading,
-    error: aiError
-  } = useDocumentAI({ dealId, documentId });
+    loading: aiLoading, 
+    error: aiError 
+  } = useDocumentAI({ dealId });
 
-  // Simulate progress updates during analysis
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout | null = null;
-    
-    if (analysisInProgress) {
-      setAnalysisProgress(0);
-      setAnalysisStartTime(new Date());
-      
-      progressInterval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          // Gradually increase progress but never reach 100% until analysis is complete
-          const newProgress = prev + (100 - prev) * 0.1;
-          return Math.min(newProgress, 95);
-        });
-      }, 500);
-    } else if (analysisProgress > 0 && analysisProgress < 100) {
-      // Set to 100% when analysis is complete
-      setAnalysisProgress(100);
-      
-      // Reset progress after a delay
-      const resetTimeout = setTimeout(() => {
-        setAnalysisProgress(0);
-      }, 1000);
-      
-      return () => clearTimeout(resetTimeout);
-    }
-    
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
-    };
-  }, [analysisInProgress, analysisProgress]);
-
-  const runAnalysis = async (analysisType: string) => {
-    if (analysisInProgress || analysisResults[analysisType]) return;
+  // Function to run analysis for a specific type
+  const runAnalysis = useCallback(async (analysisType: string) => {
+    if (aiLoading || analysisInProgress) return;
     
     setAnalysisInProgress(analysisType);
+    setAnalysisStartTime(new Date());
+    setAnalysisProgress(0);
     
     try {
       let result;
+      
+      // Use a progress timer to simulate progress
+      const progressTimer = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 90) return prev;
+          const increment = Math.random() * 10 + 5;
+          return Math.min(90, prev + increment);
+        });
+      }, 800);
+      
+      // Run the appropriate analysis based on type
       if (analysisType === 'summarize_contract') {
         result = await summarizeContract(documentId, versionId);
-        if (result) {
-          setAnalysisResults(prev => ({
-            ...prev,
-            [analysisType]: {
-              type: analysisType,
-              content: { summary: result.summary }
-            }
-          }));
-        }
       } else {
         result = await analyzeDocument(documentId, versionId, analysisType);
-        if (result) {
-          setAnalysisResults(prev => ({
-            ...prev,
-            [analysisType]: result.analysis
-          }));
-        }
       }
+      
+      // Clear timer and set 100% progress
+      clearInterval(progressTimer);
+      setAnalysisProgress(100);
+      
+      // Update results with the new analysis
+      setAnalysisResults(prev => ({
+        ...prev,
+        [analysisType]: result
+      }));
+      
     } catch (error) {
-      console.error(`Error running ${analysisType} analysis:`, error);
+      console.error(`Error analyzing document for ${analysisType}:`, error);
     } finally {
       setAnalysisInProgress(null);
     }
-  };
+  }, [dealId, documentId, versionId, aiLoading, analysisInProgress, analyzeDocument, summarizeContract]);
 
-  const handleTabChange = (value: string) => {
+  // Function to handle tab changes
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
-    if (!analysisResults[value]) {
+    
+    // If we don't have results for this tab yet, run the analysis
+    if (!analysisResults[value] && !analysisInProgress) {
       runAnalysis(value);
     }
-  };
+  }, [analysisResults, analysisInProgress, runAnalysis]);
 
   return {
     activeTab,
@@ -100,6 +81,5 @@ export const useAnalysisState = (dealId: string, documentId: string, versionId: 
     aiError,
     runAnalysis,
     handleTabChange,
-    setActiveTab,
   };
 };
