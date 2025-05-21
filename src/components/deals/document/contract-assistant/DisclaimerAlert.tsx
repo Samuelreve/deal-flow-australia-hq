@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DisclaimerAlertProps {
   disclaimer: string;
@@ -10,8 +11,9 @@ const DisclaimerAlert: React.FC<DisclaimerAlertProps> = ({ disclaimer }) => {
   if (!disclaimer) return null;
   
   return (
-    <Alert className="mt-6 bg-blue-50 border-blue-200">
-      <AlertDescription className="text-xs text-blue-700">
+    <Alert variant="default" className="mt-4 bg-blue-50 border-blue-200 text-xs">
+      <AlertTriangle className="h-3 w-3 text-blue-600" />
+      <AlertDescription className="text-xs">
         {disclaimer}
       </AlertDescription>
     </Alert>

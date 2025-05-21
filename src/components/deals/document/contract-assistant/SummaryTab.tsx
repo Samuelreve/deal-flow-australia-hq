@@ -1,61 +1,40 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Loader2 } from 'lucide-react';
 
 interface SummaryTabProps {
-  summaryResult: any | null;
+  summaryResult: any;
   isAnalyzing: boolean;
 }
 
 const SummaryTab: React.FC<SummaryTabProps> = ({ summaryResult, isAnalyzing }) => {
   if (isAnalyzing) {
-    return <div className="py-8 text-center">Analyzing contract...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Analyzing contract...</p>
+      </div>
+    );
   }
   
   if (!summaryResult) {
-    return <div className="py-8 text-center">No summary available</div>;
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">
+          No contract summary available. Please wait while the contract is being analyzed.
+        </p>
+      </div>
+    );
   }
   
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Summary</h3>
-        <p className="mt-2 whitespace-pre-line">{summaryResult.summaryText}</p>
+    <div className="space-y-4">
+      <div className="prose prose-sm max-w-none">
+        <h3 className="text-lg font-medium">Contract Summary</h3>
+        <div className="whitespace-pre-wrap">
+          {summaryResult.summary}
+        </div>
       </div>
-      
-      <div>
-        <h3 className="text-lg font-medium">Contract Type</h3>
-        <p className="mt-2">{summaryResult.contractType || "Not specified"}</p>
-      </div>
-      
-      <div>
-        <h3 className="text-lg font-medium">Parties Involved</h3>
-        {summaryResult.parties && summaryResult.parties.length > 0 ? (
-          <ul className="mt-2 list-disc pl-5">
-            {summaryResult.parties.map((party: string, i: number) => (
-              <li key={i}>{party}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2">No parties explicitly specified</p>
-        )}
-      </div>
-      
-      <div>
-        <h3 className="text-lg font-medium">Key Obligations</h3>
-        {summaryResult.keyObligations && summaryResult.keyObligations.length > 0 ? (
-          <ul className="mt-2 list-disc pl-5">
-            {summaryResult.keyObligations.map((obligation: string, i: number) => (
-              <li key={i}>{obligation}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2">No key obligations explicitly specified</p>
-        )}
-      </div>
-      
-      {/* Additional sections could be added here for timelines, terminationRules, and liabilities */}
     </div>
   );
 };

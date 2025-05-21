@@ -1,46 +1,74 @@
 
-import { useCallback } from 'react';
-import { ContractSummaryResponse, ContractClauseExplanationResponse } from '@/hooks/document-ai/types';
+import { AIRequestOptions, AIResponse } from './useDocumentAIBase';
+import { ContractSummaryResponse, ContractClauseExplanationResponse } from './types';
 
 interface UseSmartContractOperationsProps {
-  processAIRequest: (operation: string, options: any) => Promise<any>;
+  processAIRequest: (
+    operation: string,
+    options: AIRequestOptions
+  ) => Promise<AIResponse | null>;
 }
 
+/**
+ * Hook for smart contract operations
+ */
 export const useSmartContractOperations = ({ processAIRequest }: UseSmartContractOperationsProps) => {
+  
   /**
-   * Summarize a contract document
+   * Summarize a contract
    */
-  const summarizeContract = useCallback(async (
+  const summarizeContract = async (
     documentId: string,
-    documentVersionId: string,
-    context?: Record<string, any>
+    documentVersionId: string
   ): Promise<ContractSummaryResponse | null> => {
-    return processAIRequest('summarize_contract', {
-      content: '',
+    const response = await processAIRequest('summarize_contract', {
       documentId,
       documentVersionId,
-      context
+      content: ''
     });
-  }, [processAIRequest]);
-
+    
+    if (response && response.summary) {
+      return {
+        summary: response.summary,
+        disclaimer: response.disclaimer || '',
+        parties: [],
+        contractType: '',
+        keyObligations: [],
+        timelines: [],
+        terminationRules: [],
+        liabilities: []
+      };
+    }
+    
+    return null;
+  };
+  
   /**
-   * Explain a contract clause
+   * Explain a specific clause from a contract
    */
-  const explainContractClause = useCallback(async (
-    selectedText: string,
-    documentId?: string,
-    documentVersionId?: string,
-    context?: Record<string, any>
+  const explainContractClause = async (
+    clauseText: string,
+    documentId: string,
+    documentVersionId: string
   ): Promise<ContractClauseExplanationResponse | null> => {
-    return processAIRequest('explain_contract_clause', {
-      content: selectedText,
-      selectedText,
+    const response = await processAIRequest('explain_contract_clause', {
       documentId,
       documentVersionId,
-      context
+      content: clauseText
     });
-  }, [processAIRequest]);
-
+    
+    if (response && response.explanation) {
+      return {
+        explanation: response.explanation,
+        isAmbiguous: response.isAmbiguous || false,
+        ambiguityExplanation: response.ambiguityExplanation || '',
+        disclaimer: response.disclaimer || ''
+      };
+    }
+    
+    return null;
+  };
+  
   return {
     summarizeContract,
     explainContractClause

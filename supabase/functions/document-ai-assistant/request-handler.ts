@@ -1,54 +1,105 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
-import { RequestPayload } from "./types.ts";
-import { validateRequestPayload } from "./utils/request-validation.ts";
-import { verifyUserDealParticipation, createErrorResponse, createSuccessResponse } from "./utils/authorization.ts";
-import { routeOperation } from "./utils/operation-router.ts";
+import { verifyAuth, verifyDealParticipant } from "../_shared/rbac.ts";
+import { validateRequest } from "./utils/request-validation.ts";
+import { 
+  handleExplainClause, 
+  handleExplainMilestone, 
+  handleGenerateTemplate, 
+  handleSuggestNextAction,
+  handleSummarizeDocument, 
+  handleSummarizeDeal, 
+  handleGenerateMilestones,
+  handleDealInsights,
+  handleDealChatQuery,
+  handlePredictDealHealth,
+  handleAnalyzeDocument,
+  handleSummarizeContract,
+  handleExplainContractClause
+} from "./operations/index.ts";
 
-/**
- * Main request handler for the document AI assistant
- */
-export async function handleRequest(req: Request, openai: any): Promise<Response> {
+export async function handleRequest(req: Request, openai: any) {
   try {
-    // Parse request payload
-    const payload = await req.json() as RequestPayload;
-    
-    // Validate request payload
-    const validationError = validateRequestPayload(payload);
-    if (validationError) {
-      return createErrorResponse(validationError);
+    // Validate and parse the request
+    const body = await req.json();
+    const { operation, dealId, userId, content, documentId, documentVersionId, milestoneId, context } = 
+      validateRequest(body);
+
+    // Verify the user has access to the deal
+    await verifyDealParticipant(userId, dealId);
+
+    // Process the request based on operation type
+    let result = null;
+
+    switch (operation) {
+      case "explain_clause":
+        result = await handleExplainClause(content, null, openai);
+        break;
+      case "explain_milestone":
+        result = await handleExplainMilestone(milestoneId, openai);
+        break;
+      case "generate_template":
+        result = await handleGenerateTemplate(content, dealId, openai);
+        break;
+      case "summarize_document":
+        result = await handleSummarizeDocument(documentId, documentVersionId, openai);
+        break;
+      case "summarize_deal":
+        result = await handleSummarizeDeal(dealId, openai);
+        break;
+      case "suggest_next_action":
+        result = await handleSuggestNextAction(dealId, openai);
+        break;
+      case "generate_milestones":
+        result = await handleGenerateMilestones(dealId, content, openai);
+        break;
+      case "get_deal_insights":
+        result = await handleDealInsights(userId, dealId, openai);
+        break;
+      case "deal_chat_query":
+        result = await handleDealChatQuery(dealId, content, openai);
+        break;
+      case "predict_deal_health":
+        result = await handlePredictDealHealth(dealId, openai);
+        break;
+      case "analyze_document":
+        result = await handleAnalyzeDocument(dealId, documentId, documentVersionId, context?.analysisType, openai);
+        break;
+      case "summarize_contract":
+        result = await handleSummarizeContract(dealId, documentId, documentVersionId, openai);
+        break;
+      case "explain_contract_clause":
+        result = await handleExplainContractClause(content, documentId, documentVersionId, dealId, openai);
+        break;
+      default:
+        return new Response(
+          JSON.stringify({ error: "Invalid operation type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
     }
 
-    // Log the request details (excluding content for privacy/security)
-    console.log(`Processing ${payload.operation} request for user ${payload.userId}`);
-
-    // For operations that don't need a specific deal, skip verification
-    if (!['get_deal_insights', 'deal_chat_query'].includes(payload.operation)) {
-      try {
-        await verifyUserDealParticipation(payload.userId, payload.dealId);
-      } catch (error) {
-        console.error("Authorization error:", error);
-        return createErrorResponse(`Authorization error: ${error.message}`, 403);
-      }
-    }
-    
-    // For deal_chat_query, verify the user is a participant in this deal
-    if (payload.operation === 'deal_chat_query') {
-      try {
-        await verifyUserDealParticipation(payload.userId, payload.dealId);
-      } catch (error) {
-        console.error("Authorization error:", error);
-        return createErrorResponse(`Authorization error: ${error.message}`, 403);
-      }
-    }
-
-    // Route the request to the appropriate handler
-    const result = await routeOperation(payload, openai);
-
-    // Return success response
-    return createSuccessResponse(result);
+    // Return the result
+    return new Response(
+      JSON.stringify({ ...result, success: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error("Error processing document AI request:", error);
-    return createErrorResponse(`Failed to process request: ${error.message}`, 500);
+    console.error("Error handling request:", error);
+    
+    let status = 500;
+    let message = "Internal server error";
+    
+    if (error.message.includes("Missing required fields")) {
+      status = 400;
+      message = "Missing required fields";
+    } else if (error.message.includes("Authorization error")) {
+      status = 403;
+      message = "Authorization error";
+    }
+    
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 }

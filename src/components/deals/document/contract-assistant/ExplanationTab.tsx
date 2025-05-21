@@ -1,46 +1,71 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ExplanationTabProps {
-  explanationResult: any | null;
+  explanationResult: any;
   isAnalyzing: boolean;
   selectedText: string | null;
 }
 
 const ExplanationTab: React.FC<ExplanationTabProps> = ({ 
   explanationResult, 
-  isAnalyzing, 
+  isAnalyzing,
   selectedText 
 }) => {
+  if (!selectedText) {
+    return (
+      <Alert variant="default" className="bg-amber-50 border-amber-200">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertDescription>
+          Please select a clause from the contract to get an explanation.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
   if (isAnalyzing) {
-    return <div className="py-8 text-center">Analyzing clause...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Analyzing selected clause...</p>
+      </div>
+    );
   }
   
   if (!explanationResult) {
     return (
-      <div className="py-8 text-center">
-        {selectedText ? "Analyzing..." : "Select text in the document to explain a clause"}
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">
+          Click the "Explain" button to get an analysis of the selected clause.
+        </p>
       </div>
     );
   }
   
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Clause Explanation</h3>
-        <p className="mt-2 whitespace-pre-line">{explanationResult.explanation}</p>
+    <div className="space-y-4">
+      <div className="bg-gray-50 p-4 rounded-md border text-sm">
+        <h4 className="text-sm font-medium mb-2">Selected Text:</h4>
+        <p className="italic text-gray-700">{selectedText}</p>
       </div>
       
-      {explanationResult.isAmbiguous && (
-        <Alert className="bg-amber-50 border-amber-300">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            This clause contains ambiguous language. {explanationResult.ambiguityExplanation}
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="prose prose-sm max-w-none">
+        <h3 className="text-lg font-medium">Explanation</h3>
+        <div className="whitespace-pre-wrap">
+          {explanationResult.explanation}
+        </div>
+        
+        {explanationResult.isAmbiguous && (
+          <Alert className="mt-4 bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription>
+              <strong>Note:</strong> {explanationResult.ambiguityExplanation}
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   );
 };

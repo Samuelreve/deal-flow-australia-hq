@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useDocumentAI } from "@/hooks/document-ai";
+import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from 'react-router-dom';
+import { toast } from "sonner";
 import SummaryTab from './contract-assistant/SummaryTab';
 import ExplanationTab from './contract-assistant/ExplanationTab';
 import DisclaimerAlert from './contract-assistant/DisclaimerAlert';
@@ -38,6 +39,7 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
     summarizeContract,
     explainContractClause,
     loading: isAnalyzing,
+    error: aiError
   } = useDocumentAI({ dealId, documentId });
 
   // Check URL search params for auto-analysis flag
@@ -45,9 +47,9 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
     const searchParams = new URLSearchParams(location.search);
     const shouldAnalyze = searchParams.get('analyze') === 'true';
     const docId = searchParams.get('docId');
-    const versionId = searchParams.get('versionId');
+    const verId = searchParams.get('versionId');
     
-    if (shouldAnalyze && docId === documentId && versionId) {
+    if (shouldAnalyze && docId === documentId && verId) {
       // Auto-open the dialog and start analysis
       setIsDialogOpen(true);
       handleSummarize();
@@ -63,6 +65,7 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
   
   const handleSummarize = async () => {
     setActiveTab("summary");
+    setSummaryResult(null); // Clear previous result
     
     try {
       const result = await summarizeContract(documentId, versionId);
@@ -70,18 +73,32 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
       if (result) {
         setSummaryResult(result);
         setDisclaimer(result.disclaimer);
+        return;
+      }
+      
+      if (aiError) {
+        toast.error("Failed to summarize contract", {
+          description: aiError
+        });
       }
     } catch (error) {
       console.error('Contract summarization failed:', error);
+      toast.error("Contract summarization failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
     }
   };
   
   const handleExplainClause = async () => {
     if (!selectedText) {
+      toast.error("No text selected", {
+        description: "Please select a clause from the contract to get an explanation."
+      });
       return;
     }
     
     setActiveTab("explanation");
+    setExplanationResult(null); // Clear previous result
     
     try {
       const result = await explainContractClause(selectedText, documentId, versionId);
@@ -89,15 +106,27 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
       if (result) {
         setExplanationResult(result);
         setDisclaimer(result.disclaimer);
+        return;
+      }
+      
+      if (aiError) {
+        toast.error("Failed to explain clause", {
+          description: aiError
+        });
       }
     } catch (error) {
       console.error('Clause explanation failed:', error);
+      toast.error("Clause explanation failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
     }
   };
   
   const handleOpen = () => {
     setIsDialogOpen(true);
-    handleSummarize();
+    if (!summaryResult) {
+      handleSummarize();
+    }
   };
   
   const handleClose = () => {

@@ -1,4 +1,3 @@
-
 export { handleExplainClause } from "./explain-clause.ts";
 export { handleGenerateTemplate } from "./generate-template.ts";
 export { handleSummarizeDocument } from "./summarize-document.ts";
@@ -10,5 +9,4 @@ export { handleSummarizeDeal } from "./summarize-deal.ts";
 export { handleGetDealInsights } from "./get-deal-insights.ts";
 export { handleDealChatQuery } from "./deal-chat-query.ts";
 export { handlePredictDealHealth } from "./predict-deal-health.ts";
-export { handleSummarizeContract } from "./summarize-contract.ts";
-export { handleExplainContractClause } from "./explain-contract-clause.ts";
+export { handleSummarizeContract, handleExplainContractClause } from "./smart-contract-operations.ts";
