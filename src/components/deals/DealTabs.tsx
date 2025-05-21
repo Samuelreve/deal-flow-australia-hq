@@ -1,8 +1,9 @@
+
 import { Link } from "react-router-dom";
 import { Deal } from "@/types/deal";
 import DocumentManagement from "./DocumentManagement";
 import DealMessaging from "./messages/DealMessaging";
-import DealTimeline from "./DealTimeline";
+import DealTimeline from "./timeline/DealTimeline";
 import DealParticipants from "./DealParticipants";
 import MilestoneTracker from "./milestones/MilestoneTracker";
 import DealHealthPredictionPanel from "./health/DealHealthPredictionPanel";
@@ -84,11 +85,11 @@ const DealTabs = ({
         )}
         
         {activeTab === "messages" && (
-          <DealMessaging dealId={deal.id} userRole={effectiveUserRole} />
+          <DealMessaging dealId={deal.id} isParticipant={isParticipant} />
         )}
         
         {activeTab === "timeline" && (
-          <DealTimeline dealId={deal.id} />
+          <DealTimeline deal={deal} />
         )}
         
         {activeTab === "milestones" && isParticipant && (
@@ -96,7 +97,7 @@ const DealTabs = ({
         )}
         
         {activeTab === "participants" && isParticipant && (
-          <DealParticipants dealId={deal.id} />
+          <DealParticipants deal={deal} />
         )}
       </div>
     </div>
