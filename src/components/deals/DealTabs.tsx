@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Deal } from "@/types/deal";
 import DocumentManagement from "./DocumentManagement";
 import DealMessaging from "./messages/DealMessaging";
-import DealTimeline from "./timeline/DealTimeline";
+import DealTimeline from "./DealTimeline";
 import DealParticipants from "./DealParticipants";
 import MilestoneTracker from "./milestones/MilestoneTracker";
 import DealHealthPredictionPanel from "./health/DealHealthPredictionPanel";
