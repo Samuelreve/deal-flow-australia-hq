@@ -56,18 +56,14 @@ export const useDocumentDelete = (
     }
     
     try {
-      // Extract storage path from URL
-      const storagePath = version.url.split('?')[0].split('/').pop();
-      if (!storagePath) {
-        throw new Error("Could not determine file path from URL");
-      }
-      
+      // Pass the version object directly instead of just its ID
+      // This aligns with the updated documentService.deleteDocumentVersion signature
       const success = await documentService.deleteDocumentVersion(
-        version.id, 
-        version.documentId, 
+        version,
         dealId, 
-        storagePath,
-        user.id
+        user.id,
+        version.documentId, 
+        version.documentId
       );
       
       if (success) {
