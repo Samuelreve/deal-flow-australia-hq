@@ -9,7 +9,6 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import OnboardingCheck from "@/components/auth/OnboardingCheck";
 
 // Pages
-import HomePage from "./pages/HomePage"; // Add this line
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -49,8 +48,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<HomePage />} /> {/* Update this line */}
-            <Route path="/landing" element={<Index />} /> {/* Add this line */}
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/reset-password" element={<ResetPassword />} />
