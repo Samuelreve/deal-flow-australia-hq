@@ -95,10 +95,11 @@ const DocumentVersionList = ({
       </div>
       
       <DocumentVersionComparison 
-        open={comparisonOpen}
-        onOpenChange={setComparisonOpen}
+        selectedVersionId={selectedVersionId}
         versions={versions}
         dealId={dealId}
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
       />
     </div>
   );

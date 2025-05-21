@@ -1,37 +1,45 @@
 
-import { DocumentVersion } from "@/types/documentVersion";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Service responsible for document version restoration
+ * Service for document version restoration operations
  */
 export const versionRestoreService = {
   /**
-   * Restore a document version (make it the latest version)
+   * Restore a previous document version
+   * 
+   * @param versionId ID of the version to restore
+   * @param documentId ID of the document
+   * @param dealId ID of the deal
+   * @param userId ID of the user performing the restore
+   * @returns Promise resolving to boolean success indicator
    */
   async restoreVersion(
-    version: DocumentVersion, 
-    documentId: string, 
+    versionId: string, 
+    documentId: string,
     dealId: string,
     userId: string
-  ): Promise<DocumentVersion | null> {
+  ): Promise<boolean> {
     try {
-      // Create a new version based on the restored one
-      const { data: restoredVersion, error } = await supabase.functions.invoke('restore-document-version', {
-        body: { 
-          versionId: version.id,
+      // Call the edge function to restore the version
+      const { data, error } = await supabase.functions.invoke('restore-document-version', {
+        body: {
+          versionId,
           documentId,
           dealId,
           userId
         }
       });
-      
+
       if (error) {
-        console.error("Error restoring document version:", error);
-        throw error;
+        throw new Error(error.message || "Failed to restore document version");
       }
-      
-      return restoredVersion;
+
+      if (!data.success) {
+        throw new Error(data.message || "Failed to restore document version");
+      }
+
+      return true;
     } catch (error) {
       console.error("Error restoring document version:", error);
       throw error;

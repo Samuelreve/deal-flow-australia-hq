@@ -2,6 +2,7 @@
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { documentService } from "@/services/documentService";
 import { useDocumentOperationsBase } from "./useDocumentOperationsBase";
+import { adaptDocumentToDealType } from "@/utils/documentTypeAdapter";
 
 /**
  * Hook for document deletion operations
@@ -27,7 +28,9 @@ export const useDocumentDelete = (
     }
     
     try {
-      const success = await documentService.deleteDocument(document, dealId, user.id);
+      // Convert to deal document type for the service call
+      const dealDocument = adaptDocumentToDealType(document);
+      const success = await documentService.deleteDocument(dealDocument, dealId, user.id);
       
       if (success && notifyDocumentsChange) {
         const updatedDocuments = await documentService.getDocuments(dealId);
@@ -55,11 +58,12 @@ export const useDocumentDelete = (
     }
     
     try {
-      // Delete the version
+      // Delete the version with correct parameters
       const success = await documentService.deleteDocumentVersion(
         version,
         dealId, 
         user.id,
+        version.documentId,
         version.documentId
       );
       

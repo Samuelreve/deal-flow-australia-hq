@@ -14,3 +14,6 @@ export function fileSize(bytes: number, decimals: number = 2): string {
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
 }
+
+// Alias for backwards compatibility
+export const formatBytes = fileSize;

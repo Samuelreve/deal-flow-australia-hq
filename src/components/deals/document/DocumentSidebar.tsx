@@ -3,6 +3,7 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentList from "./DocumentList";
 import DocumentUpload from "./DocumentUpload";
 import InlineDocumentAnalyzer from "./InlineDocumentAnalyzer";
+import { adaptDocumentsToDealType } from "@/utils/documentTypeAdapter";
 
 interface DocumentSidebarProps {
   documents: Document[];
@@ -81,7 +82,7 @@ const DocumentSidebar = ({
         uploading={uploading}
         userRole={userRole}
         isParticipant={isParticipant}
-        documents={documents}
+        documents={adaptDocumentsToDealType(documents)}
         dealId={dealId}
       />
       

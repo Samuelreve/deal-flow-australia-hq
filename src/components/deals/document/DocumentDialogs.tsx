@@ -3,6 +3,7 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import DeleteDocumentDialog from "./DeleteDocumentDialog";
 import DeleteVersionDialog from "./DeleteVersionDialog";
 import ShareDocumentDialog from "./ShareDocumentDialog";
+import { adaptDocumentToDealType } from "@/utils/documentTypeAdapter";
 
 interface DocumentDialogsProps {
   // Document delete dialog props
@@ -46,7 +47,7 @@ const DocumentDialogs = ({
     <>
       {/* Dialog Components */}
       <DeleteDocumentDialog
-        document={documentToDelete}
+        document={documentToDelete ? adaptDocumentToDealType(documentToDelete) : null}
         isOpen={showDeleteDialog}
         isDeleting={isDeleting}
         onClose={onCloseDeleteDialog}

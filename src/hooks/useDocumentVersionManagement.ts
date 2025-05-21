@@ -36,7 +36,11 @@ export const useDocumentVersionManagement = (
 
     setIsLoading(true);
     try {
-      const result = await versionTaggingService.addVersionTag(tag, versionId);
+      const result = await versionTaggingService.addVersionTag(
+        tag, 
+        versionId,
+        dealId  // Added dealId parameter
+      );
       
       if (result) {
         toast({
@@ -125,7 +129,8 @@ export const useDocumentVersionManagement = (
     try {
       const result = await versionAnnotationService.addVersionAnnotation(
         annotationContent,
-        versionId
+        versionId,
+        dealId  // Added dealId parameter
       );
       
       if (result) {

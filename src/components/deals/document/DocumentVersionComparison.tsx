@@ -10,11 +10,17 @@ import { Loader2 } from "lucide-react";
 interface DocumentVersionComparisonProps {
   versions: DocumentVersion[];
   selectedVersionId: string;
+  dealId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const DocumentVersionComparison: React.FC<DocumentVersionComparisonProps> = ({
   versions,
-  selectedVersionId
+  selectedVersionId,
+  dealId,
+  open = false,
+  onOpenChange
 }) => {
   const [comparing, setComparing] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<any>(null);
@@ -32,7 +38,8 @@ const DocumentVersionComparison: React.FC<DocumentVersionComparisonProps> = ({
     try {
       const result = await versionComparisonService.compareVersions(
         currentVersionId, 
-        previousVersion.id
+        previousVersion.id,
+        dealId
       );
       
       setComparisonResult(result);
@@ -46,7 +53,11 @@ const DocumentVersionComparison: React.FC<DocumentVersionComparisonProps> = ({
     } finally {
       setComparing(false);
     }
-  }, [previousVersion, toast]);
+  }, [previousVersion, toast, dealId]);
+
+  if (!open) {
+    return null;
+  }
 
   if (!hasPreviousVersion) {
     return null;

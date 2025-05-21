@@ -3,49 +3,74 @@ import { DocumentVersionAnnotation } from "@/types/documentVersion";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Service responsible for document version annotations
+ * Service for managing document version annotations
  */
 export const versionAnnotationService = {
   /**
    * Add an annotation to a document version
+   * 
+   * @param annotationContent Object containing annotation content
+   * @param versionId ID of the version to annotate
+   * @param dealId ID of the deal (for authorization)
+   * @returns Promise resolving to the created annotation
    */
   async addVersionAnnotation(
-    annotation: { content: string },
+    annotationContent: { content: string },
     versionId: string,
-    userId: string
+    dealId: string
   ): Promise<DocumentVersionAnnotation | null> {
     try {
-      // Call edge function to add annotation
-      const { data, error } = await supabase.functions.invoke('document-version-operations', {
-        body: { 
-          action: 'addAnnotation',
-          versionId,
-          userId,
-          annotation
+      // Call the edge function to add annotation
+      const { data, error } = await supabase.functions.invoke(
+        'document-version-operations',
+        {
+          body: {
+            operation: 'addAnnotation',
+            versionId,
+            dealId,
+            content: annotationContent.content
+          }
         }
-      });
+      );
       
       if (error) {
-        console.error("Error adding version annotation:", error);
-        return null;
+        throw new Error(error.message || "Failed to add annotation to document version");
       }
       
-      if (!data || typeof data !== 'object') {
-        console.error("Invalid response adding annotation");
-        return null;
-      }
-      
-      // Map the returned data to our application type
-      return {
-        id: data.id as string,
-        versionId: data.versionId as string,
-        userId: data.userId as string,
-        content: data.content as string,
-        createdAt: new Date(data.createdAt as string)
-      };
+      return data.annotation as DocumentVersionAnnotation;
     } catch (error) {
-      console.error("Error adding version annotation:", error);
-      return null;
+      console.error("Error adding annotation to document version:", error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get all annotations for a document version
+   * 
+   * @param versionId ID of the version
+   * @returns Promise resolving to array of annotations
+   */
+  async getVersionAnnotations(versionId: string): Promise<DocumentVersionAnnotation[]> {
+    try {
+      // Call the edge function to get annotations
+      const { data, error } = await supabase.functions.invoke(
+        'document-version-operations',
+        {
+          body: {
+            operation: 'getAnnotations',
+            versionId
+          }
+        }
+      );
+      
+      if (error) {
+        throw new Error(error.message || "Failed to get annotations for document version");
+      }
+      
+      return data.annotations as DocumentVersionAnnotation[] || [];
+    } catch (error) {
+      console.error("Error getting annotations for document version:", error);
+      throw error;
     }
   }
 };

@@ -9,7 +9,7 @@ import {
   ArrowDownToLine,
   History
 } from "lucide-react";
-import { formatBytes } from "@/lib/formatBytes";
+import { fileSize } from "@/lib/formatBytes";
 import RestoreVersionButton from "./RestoreVersionButton";
 
 interface DocumentVersionItemProps {
@@ -78,7 +78,7 @@ const DocumentVersionItem = ({
           <div>
             <div className="font-medium">Version {version.versionNumber}</div>
             <div className="text-xs opacity-80">
-              {formatBytes(version.size)} • {version.type}
+              {fileSize(version.size)} • {version.type}
               {version.isRestored && <span className="ml-1">(Restored)</span>}
             </div>
             <div className="text-xs opacity-80 flex items-center">
@@ -160,7 +160,6 @@ const DocumentVersionItem = ({
           <RestoreVersionButton 
             version={version} 
             dealId={dealId}
-            documentId={documentId}
             onRestored={onRestored}
           />
         </div>

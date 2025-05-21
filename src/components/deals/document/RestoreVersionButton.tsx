@@ -23,8 +23,13 @@ const RestoreVersionButton: React.FC<RestoreVersionButtonProps> = ({
   const handleRestore = async () => {
     setRestoring(true);
     try {
-      // Use the versionRestoreService directly
-      await versionRestoreService.restoreVersion(version.id, version.documentId);
+      // Use the versionRestoreService with correct parameters
+      await versionRestoreService.restoreVersion(
+        version.id, 
+        version.documentId,
+        dealId,
+        version.uploadedBy
+      );
       
       toast({
         title: "Version Restored",
