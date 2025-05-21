@@ -1,221 +1,148 @@
 
-import { useState } from "react";
-import { DocumentVersion, DocumentVersionTag, DocumentVersionAnnotation } from "@/types/documentVersion";
+import { useEffect, useState } from "react";
+import { DocumentVersion } from "@/types/documentVersion";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDocumentVersionManagement } from "@/hooks/useDocumentVersionManagement";
-import { HexColorPicker } from "react-colorful";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tag, MessageSquarePlus, User, Calendar, XCircle } from "lucide-react";
+import { Calendar, FileText, User, Tag, MessageCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentVersionMetadataProps {
-  version: DocumentVersion;
+  version: DocumentVersion | null;
   dealId: string;
-  onUpdate: () => void;
 }
 
 const DocumentVersionMetadata = ({
   version,
-  dealId,
-  onUpdate
+  dealId
 }: DocumentVersionMetadataProps) => {
-  const [addTagOpen, setAddTagOpen] = useState(false);
-  const [addAnnotationOpen, setAddAnnotationOpen] = useState(false);
-  const [tagName, setTagName] = useState("");
-  const [tagColor, setTagColor] = useState("#3B82F6");
-  const [annotation, setAnnotation] = useState("");
-  
-  const { 
-    addingTag, 
-    addingAnnotation, 
-    addVersionTag,
-    addVersionAnnotation
-  } = useDocumentVersionManagement(dealId);
-  
-  const handleAddTag = async () => {
-    if (tagName && tagColor) {
-      const result = await addVersionTag(version.id, tagName, tagColor);
-      if (result) {
-        setTagName("");
-        setTagColor("#3B82F6");
-        setAddTagOpen(false);
-        onUpdate();
+  const [uploaderName, setUploaderName] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  // Fetch uploader information when version changes
+  useEffect(() => {
+    const fetchUploaderInfo = async () => {
+      if (!version) return;
+      
+      try {
+        setLoading(true);
+        // Get profile data which includes the name field
+        const { data } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', version.uploadedBy)
+          .single();
+          
+        if (data) {
+          setUploaderName(data.name || "Unknown User");
+        } else {
+          setUploaderName("Unknown User");
+        }
+      } catch (error) {
+        console.error("Error fetching uploader info:", error);
+        setUploaderName("Unknown User");
+      } finally {
+        setLoading(false);
       }
-    }
-  };
+    };
+    
+    fetchUploaderInfo();
+  }, [version]);
   
-  const handleAddAnnotation = async () => {
-    if (annotation) {
-      const result = await addVersionAnnotation(version.id, annotation);
-      if (result) {
-        setAnnotation("");
-        setAddAnnotationOpen(false);
-        onUpdate();
-      }
-    }
-  };
-  
+  if (!version) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-3/4" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="mb-4">
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Version Metadata</span>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setAddTagOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <Tag className="h-4 w-4" />
-              Add Tag
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setAddAnnotationOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <MessageSquarePlus className="h-4 w-4" />
-              Add Annotation
-            </Button>
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-center">
+          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+          <span className="font-medium">Version {version.versionNumber}</span>
+          {version.isRestored && (
+            <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">
+              Restored
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4 mr-2" />
+          <span>{new Date(version.uploadedAt).toLocaleString()}</span>
+        </div>
+        
+        <div className="flex items-center text-sm text-muted-foreground">
+          <User className="h-4 w-4 mr-2" />
+          <span>
+            {loading ? <Skeleton className="h-4 w-24" /> : uploaderName}
+          </span>
+        </div>
+        
+        {version.tags && version.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            <Tag className="h-4 w-4 mr-1 text-muted-foreground" />
+            {version.tags.map(tag => (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 rounded-full text-xs"
+                style={{
+                  backgroundColor: tag.color,
+                  color: isLightColor(tag.color) ? "#000" : "#fff"
+                }}
+              >
+                {tag.name}
+              </span>
+            ))}
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="tags">
-          <TabsList className="mb-4">
-            <TabsTrigger value="tags">Tags</TabsTrigger>
-            <TabsTrigger value="annotations">Annotations</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="tags">
-            {(!version.tags || version.tags.length === 0) ? (
-              <p className="text-muted-foreground text-center py-4">
-                No tags added to this version yet
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {version.tags.map(tag => (
-                  <span 
-                    key={tag.id} 
-                    className="px-2 py-1 rounded-full text-sm font-medium"
-                    style={{ 
-                      backgroundColor: tag.color, 
-                      color: isLightColor(tag.color) ? "#000" : "#fff"
-                    }}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="annotations">
-            {(!version.annotations || version.annotations.length === 0) ? (
-              <p className="text-muted-foreground text-center py-4">
-                No annotations added to this version yet
-              </p>
-            ) : (
-              <ScrollArea className="h-48">
-                <div className="space-y-4">
-                  {version.annotations.map(annotation => (
-                    <Card key={annotation.id} className="bg-muted/50">
-                      <CardContent className="pt-4">
-                        <p className="mb-2">{annotation.content}</p>
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <User className="h-3 w-3 mr-1" />
-                          <span className="mr-3">{annotation.user?.name || "Unknown user"}</span>
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span>{new Date(annotation.createdAt).toLocaleString()}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+        )}
+        
+        {version.annotations && version.annotations.length > 0 && (
+          <div className="mt-2">
+            <div className="flex items-center mb-1">
+              <MessageCircle className="h-4 w-4 mr-1 text-muted-foreground" />
+              <span className="text-sm font-medium">Annotations ({version.annotations.length})</span>
+            </div>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {version.annotations.map(annotation => (
+                <div key={annotation.id} className="text-xs p-2 bg-muted rounded-md">
+                  {annotation.content}
                 </div>
-              </ScrollArea>
-            )}
-          </TabsContent>
-        </Tabs>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <Button variant="outline" size="sm" className="w-full mt-2">
+          Download Original
+        </Button>
       </CardContent>
-      
-      {/* Add Tag Dialog */}
-      <Dialog open={addTagOpen} onOpenChange={setAddTagOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Tag to Version</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Tag Name</label>
-              <Input
-                value={tagName}
-                onChange={(e) => setTagName(e.target.value)}
-                placeholder="Enter tag name"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Tag Color</label>
-              <div className="h-40 mb-2">
-                <HexColorPicker color={tagColor} onChange={setTagColor} />
-              </div>
-              <Input
-                value={tagColor}
-                onChange={(e) => setTagColor(e.target.value)}
-                className="mt-2"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddTagOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddTag} disabled={!tagName || addingTag}>
-              {addingTag ? "Adding..." : "Add Tag"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Add Annotation Dialog */}
-      <Dialog open={addAnnotationOpen} onOpenChange={setAddAnnotationOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Annotation to Version</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Annotation</label>
-              <Textarea
-                value={annotation}
-                onChange={(e) => setAnnotation(e.target.value)}
-                placeholder="Enter your annotation about this version"
-                rows={5}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddAnnotationOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddAnnotation} disabled={!annotation || addingAnnotation}>
-              {addingAnnotation ? "Adding..." : "Add Annotation"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 };
 
-// Helper function to determine if a color is light or dark
-const isLightColor = (color: string) => {
-  const hex = color.replace('#', '');
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+// Utility function to determine if a color is light or dark
+const isLightColor = (color: string): boolean => {
+  // Convert hex to RGB
+  let hex = color.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Calculate brightness
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  
+  // If brightness > 128, color is light
   return brightness > 128;
 };
 

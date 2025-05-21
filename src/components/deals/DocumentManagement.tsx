@@ -1,15 +1,9 @@
 
-import { useState, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Document, DocumentVersion } from "@/types/documentVersion";
-import DocumentList from "./document/DocumentList";
-import DocumentUpload from "./document/DocumentUpload";
-import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
-import DeleteVersionDialog from "./document/DeleteVersionDialog";
+import { Document } from "@/types/documentVersion";
 import DocumentViewerSection from "./document/DocumentViewerSection";
-import { useDocuments } from "@/hooks/useDocuments";
-import ShareDocumentDialog from "./document/ShareDocumentDialog";
-import InlineDocumentAnalyzer from "./document/InlineDocumentAnalyzer";
+import { useDocumentManagement } from "@/hooks/useDocumentManagement";
+import DocumentSidebar from "./document/DocumentSidebar";
+import DocumentDialogs from "./document/DocumentDialogs";
 
 // Define props for the DocumentManagement component
 interface DocumentManagementProps {
@@ -25,190 +19,85 @@ const DocumentManagement = ({
   initialDocuments = [],
   isParticipant = false
 }: DocumentManagementProps) => {
-  const { user } = useAuth();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showVersionDeleteDialog, setShowVersionDeleteDialog] = useState(false);
-  const [versionToDelete, setVersionToDelete] = useState<DocumentVersion | null>(null);
-  const [isDeletingVersion, setIsDeletingVersion] = useState(false);
-  const [selectedVersionUrl, setSelectedVersionUrl] = useState<string>('');
-  const [selectedVersionId, setSelectedVersionId] = useState<string>('');
-  
-  // Share dialog state
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const [versionToShare, setVersionToShare] = useState<DocumentVersion | null>(null);
-  
-  // Track the last uploaded document for inline analysis
-  const [lastUploadedDocument, setLastUploadedDocument] = useState<{
-    id: string;
-    versionId: string;
-    name: string;
-  } | null>(null);
-
-  const { 
-    documents, 
-    isLoading, 
-    uploading, 
-    uploadDocument, 
-    deleteDocument,
+  const {
+    // Document list state and handlers
+    documents,
+    isLoading,
+    uploading,
     selectedDocument,
-    selectDocument,
     documentVersions,
     loadingVersions,
-    deleteDocumentVersion,
-    refreshDocuments,
-    refreshVersions
-  } = useDocuments(dealId, initialDocuments);
-
-  // Handle document deletion
-  const openDeleteDialog = (document: Document) => {
-    setDocumentToDelete(document);
-    setShowDeleteDialog(true);
-  };
-  
-  const closeDeleteDialog = () => {
-    setShowDeleteDialog(false);
-    setDocumentToDelete(null);
-  };
-  
-  const confirmDelete = async () => {
-    if (!documentToDelete) return;
+    handleSelectDocument,
+    handleUpload,
     
-    setIsDeleting(true);
-    try {
-      await deleteDocument(documentToDelete);
-      closeDeleteDialog();
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Handle version deletion
-  const openVersionDeleteDialog = (version: DocumentVersion) => {
-    setVersionToDelete(version);
-    setShowVersionDeleteDialog(true);
-  };
-  
-  const closeVersionDeleteDialog = () => {
-    setShowVersionDeleteDialog(false);
-    setVersionToDelete(null);
-  };
-  
-  const confirmVersionDelete = async () => {
-    if (!versionToDelete) return;
+    // Document deletion
+    openDeleteDialog,
+    closeDeleteDialog,
+    confirmDelete,
+    documentToDelete,
+    showDeleteDialog,
+    isDeleting,
     
-    setIsDeletingVersion(true);
-    try {
-      await deleteDocumentVersion(versionToDelete);
-      closeVersionDeleteDialog();
-    } finally {
-      setIsDeletingVersion(false);
-    }
-  };
-
-  // Handle document selection with Promise conversion to match expected type
-  const handleSelectDocument = async (document: Document) => {
-    selectDocument(document);
-    return Promise.resolve();
-  };
-
-  // Handle document upload with category and optional documentId
-  const handleUpload = async (file: File, category: string, documentId?: string) => {
-    const uploadedDoc = await uploadDocument(file, category, documentId);
+    // Version operations
+    handleSelectVersion,
+    selectedVersionUrl,
+    selectedVersionId,
     
-    // If upload was successful, set the last uploaded document info for inline analysis
-    if (uploadedDoc) {
-      setLastUploadedDocument({
-        id: uploadedDoc.id,
-        versionId: uploadedDoc.latestVersionId || '',
-        name: uploadedDoc.name || file.name
-      });
-    }
+    // Version deletion
+    openVersionDeleteDialog,
+    closeVersionDeleteDialog,
+    confirmVersionDelete,
+    versionToDelete,
+    showVersionDeleteDialog,
+    isDeletingVersion,
     
-    return uploadedDoc;
-  };
-
-  // Handle selecting a version for viewing
-  const handleSelectVersion = (version: DocumentVersion) => {
-    if (version && version.url) {
-      setSelectedVersionUrl(version.url);
-      setSelectedVersionId(version.id);
-    }
-  };
-  
-  // Handle sharing a document version
-  const handleShareVersion = (version: DocumentVersion) => {
-    setVersionToShare(version);
-    setShowShareDialog(true);
-  };
-  
-  const closeShareDialog = () => {
-    setShowShareDialog(false);
-    setVersionToShare(null);
-  };
-  
-  // Clear the last uploaded document info
-  const clearLastUploadedDocument = () => {
-    setLastUploadedDocument(null);
-  };
-  
-  // Handle versions update
-  const handleVersionsUpdated = useCallback(() => {
-    refreshVersions(selectedDocument?.id);
-  }, [refreshVersions, selectedDocument]);
-  
-  // Handle documents update
-  const handleDocumentsUpdated = useCallback(() => {
-    refreshDocuments();
-  }, [refreshDocuments]);
+    // Sharing
+    handleShareVersion,
+    closeShareDialog,
+    showShareDialog,
+    versionToShare,
+    
+    // Inline analyzer
+    lastUploadedDocument,
+    clearLastUploadedDocument,
+    
+    // Updates
+    handleVersionsUpdated,
+    
+    // User info
+    user
+  } = useDocumentManagement({ 
+    dealId, 
+    initialDocuments, 
+    isParticipant 
+  });
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          {/* Document List */}
-          <DocumentList 
-            documents={documents}
-            isLoading={isLoading}
-            onDeleteDocument={openDeleteDialog}
-            userRole={userRole}
-            userId={user?.id}
-            isParticipant={isParticipant}
-            onSelectDocument={handleSelectDocument}
-            selectedDocument={selectedDocument}
-            documentVersions={documentVersions}
-            loadingVersions={loadingVersions}
-            onDeleteVersion={openVersionDeleteDialog}
-            onSelectVersion={handleSelectVersion}
-            selectedVersionId={selectedVersionId}
-            onShareVersion={handleShareVersion}
-            dealId={dealId}
-            onVersionsUpdated={handleVersionsUpdated}
-          />
-
-          {/* Document Upload Section */}
-          <DocumentUpload 
-            onUpload={handleUpload}
-            uploading={uploading}
-            userRole={userRole}
-            isParticipant={isParticipant}
-            documents={documents}
-            dealId={dealId}
-          />
-          
-          {/* Inline Document Analyzer for the last uploaded document */}
-          {lastUploadedDocument && (
-            <InlineDocumentAnalyzer
-              documentId={lastUploadedDocument.id}
-              versionId={lastUploadedDocument.versionId}
-              documentName={lastUploadedDocument.name}
-              dealId={dealId}
-              userRole={userRole}
-              onClose={clearLastUploadedDocument}
-            />
-          )}
-        </div>
+        {/* Document sidebar with list and upload functionality */}
+        <DocumentSidebar
+          documents={documents}
+          isLoading={isLoading}
+          onDeleteDocument={openDeleteDialog}
+          userRole={userRole}
+          userId={user?.id}
+          isParticipant={isParticipant}
+          onSelectDocument={handleSelectDocument}
+          selectedDocument={selectedDocument}
+          documentVersions={documentVersions}
+          loadingVersions={loadingVersions}
+          onDeleteVersion={openVersionDeleteDialog}
+          onSelectVersion={handleSelectVersion}
+          selectedVersionId={selectedVersionId}
+          onShareVersion={handleShareVersion}
+          dealId={dealId}
+          onVersionsUpdated={handleVersionsUpdated}
+          uploading={uploading}
+          onUpload={handleUpload}
+          lastUploadedDocument={lastUploadedDocument}
+          onCloseAnalyzer={clearLastUploadedDocument}
+        />
         
         {/* Document Viewer Section */}
         <DocumentViewerSection 
@@ -221,27 +110,21 @@ const DocumentManagement = ({
         />
       </div>
       
-      {/* Dialog Components */}
-      <DeleteDocumentDialog
-        document={documentToDelete}
-        isOpen={showDeleteDialog}
+      {/* All dialog components */}
+      <DocumentDialogs
+        documentToDelete={documentToDelete}
+        showDeleteDialog={showDeleteDialog}
         isDeleting={isDeleting}
-        onClose={closeDeleteDialog}
-        onConfirm={confirmDelete}
-      />
-
-      <DeleteVersionDialog
-        version={versionToDelete}
-        isOpen={showVersionDeleteDialog}
-        isDeleting={isDeletingVersion}
-        onClose={closeVersionDeleteDialog}
-        onConfirm={confirmVersionDelete}
-      />
-      
-      <ShareDocumentDialog
-        isOpen={showShareDialog}
-        onClose={closeShareDialog}
-        documentVersion={versionToShare || undefined}
+        onCloseDeleteDialog={closeDeleteDialog}
+        onConfirmDelete={confirmDelete}
+        versionToDelete={versionToDelete}
+        showVersionDeleteDialog={showVersionDeleteDialog}
+        isDeletingVersion={isDeletingVersion}
+        onCloseVersionDeleteDialog={closeVersionDeleteDialog}
+        onConfirmVersionDelete={confirmVersionDelete}
+        showShareDialog={showShareDialog}
+        onCloseShareDialog={closeShareDialog}
+        versionToShare={versionToShare}
         documentName={selectedDocument?.name}
       />
     </div>
