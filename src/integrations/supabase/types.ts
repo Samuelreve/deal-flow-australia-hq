@@ -265,6 +265,51 @@ export type Database = {
           },
         ]
       }
+      document_analyses: {
+        Row: {
+          analysis_content: Json
+          analysis_type: string
+          created_at: string
+          created_by: string | null
+          document_id: string
+          document_version_id: string
+          id: string
+        }
+        Insert: {
+          analysis_content: Json
+          analysis_type: string
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          document_version_id: string
+          id?: string
+        }
+        Update: {
+          analysis_content?: Json
+          analysis_type?: string
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          document_version_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_analyses_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_analyses_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_comments: {
         Row: {
           content: string

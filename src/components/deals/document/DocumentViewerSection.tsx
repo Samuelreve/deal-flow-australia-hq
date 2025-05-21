@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from "@/hooks/document-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { useLocation } from 'react-router-dom';
 import DocumentAnalysisButton from './DocumentAnalysisButton';
 import DocumentSummaryButton from './DocumentSummaryButton';
 import SmartContractAssistant from './SmartContractAssistant';
-import ContractAnalyzerDialog from './ContractAnalyzerDialog';
+import EnhancedDocumentAnalyzer from './EnhancedDocumentAnalyzer';
 
 interface DocumentViewerSectionProps {
   selectedVersionUrl: string;
@@ -34,7 +35,7 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
   const analysisDocId = queryParams.get('docId');
   const analysisVersionId = queryParams.get('versionId');
   
-  // State for Contract Analyzer Dialog
+  // State for Enhanced Document Analyzer Dialog
   const [analyzerOpen, setAnalyzerOpen] = useState(false);
   
   // Check if we should open the analyzer automatically
@@ -65,25 +66,15 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
           <div className="flex space-x-2">
             {selectedDocument && selectedVersionId && (
               <>
-                <DocumentAnalysisButton 
-                  dealId={dealId}
-                  documentId={selectedDocument.id}
-                  versionId={selectedVersionId}
-                />
-                <DocumentSummaryButton 
-                  dealId={dealId}
-                  documentId={selectedDocument.id}
-                  documentVersionId={selectedVersionId}
-                />
-                {/* Add Contract Analyzer button */}
-                <button 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setAnalyzerOpen(true)}
-                  className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 transition-colors text-blue-700 rounded flex items-center"
+                  className="flex items-center gap-1"
                 >
-                  <FileQuestion className="h-3.5 w-3.5 mr-1" />
-                  Contract Analyzer
-                </button>
-                {/* Smart Contract Assistant Component */}
+                  <FileCog className="h-4 w-4" />
+                  Enhanced Analysis
+                </Button>
                 <SmartContractAssistant
                   dealId={dealId}
                   documentId={selectedDocument.id}
@@ -112,9 +103,9 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
         </CardContent>
       </Card>
       
-      {/* Contract Analyzer Dialog */}
+      {/* Enhanced Document Analyzer Dialog */}
       {selectedDocument && selectedVersionId && (
-        <ContractAnalyzerDialog
+        <EnhancedDocumentAnalyzer
           dealId={dealId}
           documentId={selectedDocument.id}
           versionId={selectedVersionId}
@@ -125,5 +116,8 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
     </div>
   );
 };
+
+// Need to add Button import
+import { Button } from "@/components/ui/button";
 
 export default DocumentViewerSection;

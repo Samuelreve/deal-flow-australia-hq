@@ -40,7 +40,7 @@ export async function handleAnalyzeDocument(
 
   switch (analysisType) {
     case "key_clauses":
-      prompt = `Analyze the following legal document and extract the most important clauses related to a business sale. 
+      prompt = `Analyze the following legal document and extract the most important clauses related to a business deal. 
       List each key clause by its heading or first few words, and provide a very brief, one-sentence summary of its purpose. 
       Output as a JSON array of objects with 'heading' (string) and 'summary' (string).
 
@@ -49,7 +49,7 @@ export async function handleAnalyzeDocument(
       break;
       
     case "risk_identification":
-      prompt = `Review the following contract text for potential legal or business risks for the Buyer in a business acquisition. 
+      prompt = `Review the following contract text for potential legal or business risks. 
       Identify any unusual clauses, liabilities, or unfavorable terms. List each risk with a brief explanation and its location (e.g., 'Clause X'). 
       Output as a JSON array of objects with 'risk' (string), 'location' (string), and 'explanation' (string).
 
@@ -57,12 +57,38 @@ export async function handleAnalyzeDocument(
       ${trimmedContent}`;
       break;
       
-    case "financial_summary":
-      prompt = `Analyze the following financial statement data and provide a summary of key financial risks and opportunities for a potential buyer. 
-      Focus on profitability, debt, and cash flow. Structure your response as a JSON object with 'summary' (string), 'risks' (array of strings), 
-      and 'opportunities' (array of strings).
-
-      Financial Data:
+    case "legal_compliance":
+      prompt = `Analyze the following document for potential legal compliance considerations. 
+      Identify areas that may require attention from a compliance perspective. Explain each consideration briefly.
+      Output as a JSON object with 'summary' (string) and 'considerations' (array of objects with 'area' (string) and 'explanation' (string)).
+      
+      Document Content:
+      ${trimmedContent}`;
+      break;
+      
+    case "obligations_analysis":
+      prompt = `Extract all obligations, commitments, and important dates from the following document.
+      For each obligation, identify who is responsible, what they must do, and when they must do it (if specified).
+      Output as a JSON object with 'summary' (string) and 'obligations' (array of objects with 'party' (string), 'obligation' (string), 'deadline' (string or null), and 'section' (string)).
+      
+      Document Content:
+      ${trimmedContent}`;
+      break;
+      
+    case "financial_terms":
+      prompt = `Analyze the following document and extract all financial terms, monetary obligations, payment schedules, and financial conditions.
+      Output as a JSON object with 'summary' (string) and 'terms' (array of objects with 'category' (string), 'description' (string), 'amount' (string or null), and 'section' (string)).
+      
+      Document Content:
+      ${trimmedContent}`;
+      break;
+      
+    case "technical_specification":
+      prompt = `Analyze the following document for technical specifications, requirements, and standards.
+      Extract and explain any technical details, specifications, or requirements mentioned.
+      Output as a JSON object with 'summary' (string) and 'specifications' (array of objects with 'category' (string), 'description' (string), and 'section' (string)).
+      
+      Document Content:
       ${trimmedContent}`;
       break;
       

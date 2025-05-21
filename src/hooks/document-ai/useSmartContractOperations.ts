@@ -1,10 +1,9 @@
 
 import { AIRequestOptions, AIResponse } from './useDocumentAIBase';
-import { ContractSummaryResponse, ContractClauseExplanationResponse } from './types';
 
 interface UseSmartContractOperationsProps {
   processAIRequest: (
-    operation: string,
+    operation: 'analyze_document',
     options: AIRequestOptions
   ) => Promise<AIResponse | null>;
 }
@@ -19,24 +18,23 @@ export const useSmartContractOperations = ({ processAIRequest }: UseSmartContrac
    */
   const summarizeContract = async (
     documentId: string,
-    documentVersionId: string
-  ): Promise<ContractSummaryResponse | null> => {
-    const response = await processAIRequest('summarize_contract', {
+    documentVersionId: string,
+    autoSave: boolean = true
+  ) => {
+    const response = await processAIRequest('analyze_document', {
       documentId,
       documentVersionId,
-      content: ''
+      content: '',
+      context: { 
+        analysisType: 'contract_summary',
+        saveAnalysis: autoSave 
+      }
     });
     
-    if (response && response.summary) {
+    if (response && response.analysis && response.analysis.content) {
       return {
-        summary: response.summary,
-        disclaimer: response.disclaimer || '',
-        parties: [],
-        contractType: '',
-        keyObligations: [],
-        timelines: [],
-        terminationRules: [],
-        liabilities: []
+        summary: response.analysis.content.summary || '',
+        disclaimer: response.disclaimer || ''
       };
     }
     
@@ -44,24 +42,28 @@ export const useSmartContractOperations = ({ processAIRequest }: UseSmartContrac
   };
   
   /**
-   * Explain a specific clause from a contract
+   * Explain a contract clause
    */
   const explainContractClause = async (
-    clauseText: string,
+    clause: string,
     documentId: string,
     documentVersionId: string
-  ): Promise<ContractClauseExplanationResponse | null> => {
-    const response = await processAIRequest('explain_contract_clause', {
+  ) => {
+    const response = await processAIRequest('analyze_document', {
       documentId,
       documentVersionId,
-      content: clauseText
+      content: clause,
+      context: { 
+        analysisType: 'explain_contract_clause',
+        clause 
+      }
     });
     
-    if (response && response.explanation) {
+    if (response) {
       return {
-        explanation: response.explanation,
-        // Use optional chaining and provide default values for type safety
-        isAmbiguous: response.isAmbiguous ?? false,
+        explanation: response.explanation || 
+          (response.analysis?.content?.explanation ?? ''),
+        isAmbiguous: response.isAmbiguous || false,
         ambiguityExplanation: response.ambiguityExplanation || '',
         disclaimer: response.disclaimer || ''
       };
@@ -72,6 +74,6 @@ export const useSmartContractOperations = ({ processAIRequest }: UseSmartContrac
   
   return {
     summarizeContract,
-    explainContractClause
+    explainContractClause,
   };
 };
