@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
 import { ChatMessage, DealChatResponse } from "@/hooks/document-ai/types";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 
 interface DealChatAssistantPanelProps {
