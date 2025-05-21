@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from "@/hooks/document-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DocumentViewer } from "@/components/documents/DocumentViewer";
+import DocumentViewer from "@/components/documents/DocumentViewer";
 import { FileCog, FileQuestion, FileText } from "lucide-react";
 import { Document, DocumentVersion } from "@/types/deal";
 import { useLocation } from 'react-router-dom';
@@ -74,7 +74,7 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
                 <DocumentSummaryButton 
                   dealId={dealId}
                   documentId={selectedDocument.id}
-                  versionId={selectedVersionId}
+                  documentVersionId={selectedVersionId}
                 />
                 {/* Add Contract Analyzer button */}
                 <button 

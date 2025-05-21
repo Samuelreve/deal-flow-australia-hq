@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
@@ -10,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 interface DocumentSummaryButtonProps {
   dealId: string;
   documentId: string;
-  documentVersionId: string;
+  documentVersionId: string;  // Updated prop name from versionId to documentVersionId
   userRole?: string;
   className?: string;
 }
