@@ -30,7 +30,3 @@ export const versionContentService = {
     }
   }
 };
-
-// Update the versionComparisonService to use this service
-import { versionComparisonService } from './versionComparisonService';
-versionComparisonService.getVersionTextContent = versionContentService.getVersionTextContent;
