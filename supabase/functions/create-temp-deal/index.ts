@@ -1,54 +1,86 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
-import { handleCorsRequest, addCorsHeaders } from "./utils/corsHandler.ts";
-import { getAuthenticatedUser } from "./auth/authService.ts";
-import { createTempDeal } from "./services/dealService.ts";
+import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+
+// CORS headers for browser requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 serve(async (req) => {
-  // Handle CORS preflight
-  const corsResponse = handleCorsRequest(req);
-  if (corsResponse) return corsResponse;
-  
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Authenticate user
-    const { user } = await getAuthenticatedUser(req);
+    // Get the authorization header from the request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header is required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace("Bearer ", "");
     
-    // Parse request body
+    // Verify the user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = user.id;
     const { title, description, type } = await req.json();
-    
-    if (!title) {
+
+    // Create a new deal
+    const { data: dealData, error: dealError } = await supabase
+      .from("deals")
+      .insert({
+        title: title || "Temporary Contract Analysis Deal",
+        description: description || "Auto-generated for contract analysis",
+        deal_type: type || "analysis",
+        status: "draft",
+        seller_id: userId, // Set the current user as the seller
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select('id, title')
+      .single();
+
+    if (dealError || !dealData) {
+      console.error("Error creating deal:", dealError);
       return new Response(
-        JSON.stringify({ error: 'Title is required' }),
-        addCorsHeaders({ status: 400 })
+        JSON.stringify({ error: "Failed to create temporary deal" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    try {
-      // Create the temporary deal
-      const dealData = await createTempDeal({ 
-        title, 
-        description, 
-        type, 
-        userId: user.id 
-      });
-      
-      return new Response(
-        JSON.stringify({ dealId: dealData.id, dealTitle: dealData.title }),
-        addCorsHeaders({ status: 200 })
-      );
-    } catch (dbError) {
-      console.error('Database operation error:', dbError);
-      return new Response(
-        JSON.stringify({ error: `Database error: ${dbError.message}` }),
-        addCorsHeaders({ status: 500 })
-      );
-    }
-  } catch (error) {
-    console.error('Error in create-temp-deal function:', error);
+
+    // Return the deal ID
     return new Response(
-      JSON.stringify({ error: error.message || 'An unexpected error occurred' }),
-      addCorsHeaders({ status: error.message?.includes('Authorization') ? 401 : 500 })
+      JSON.stringify({ 
+        dealId: dealData.id,
+        dealTitle: dealData.title
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Error in create-temp-deal function:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

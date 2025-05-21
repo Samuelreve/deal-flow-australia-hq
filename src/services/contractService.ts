@@ -64,7 +64,7 @@ export async function addDealParticipant(dealId: string, userId: string) {
       body: {
         dealId: dealId,
         userId: userId,
-        role: 'admin' // Use 'admin' role instead of 'owner'
+        role: 'admin' // Changed from 'owner' to 'admin' which is a valid role
       }
     });
     
