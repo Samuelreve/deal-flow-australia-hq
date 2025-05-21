@@ -19,8 +19,8 @@ export const documentService = {
   /**
    * Get all versions for a document
    */
-  async getDocumentVersions(dealId: string, documentId: string): Promise<DocumentVersion[]> {
-    return documentVersionService.getDocumentVersions(dealId, documentId);
+  async getDocumentVersions(documentId: string, documentId2: string): Promise<DocumentVersion[]> {
+    return documentVersionService.getDocumentVersions(documentId, documentId2);
   },
 
   /**
@@ -126,11 +126,11 @@ export const documentService = {
    * Includes RBAC checks
    */
   async deleteDocumentVersion(
-    versionId: string, 
-    documentId: string, 
+    version: DocumentVersion,
     dealId: string, 
-    storagePath: string,
-    userId: string
+    userId: string,
+    documentId: string,
+    versionDocumentId: string
   ): Promise<boolean> {
     // Verify user has permission to delete document versions
     const accessControl = await documentRetrievalService.getDocumentAccessControl(dealId, userId);
@@ -139,7 +139,7 @@ export const documentService = {
     }
     
     // Check if user can delete this specific version
-    const canDeleteVersion = await documentVersionService.canDeleteDocumentVersion(versionId, documentId, userId);
+    const canDeleteVersion = await documentVersionService.canDeleteDocumentVersion(version.id, documentId, userId);
     if (!canDeleteVersion) {
       throw new Error("Permission denied: You cannot delete this document version");
     }
@@ -150,7 +150,7 @@ export const documentService = {
       throw new Error(`Document version deletion is not allowed when the deal status is "${dealStatusCheck.dealStatus}"`);
     }
     
-    return documentVersionService.deleteDocumentVersion(versionId, documentId, dealId, storagePath, userId);
+    return documentVersionService.deleteDocumentVersion(version.id, documentId, dealId, version.id, userId);
   },
   
   /**

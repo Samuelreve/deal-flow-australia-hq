@@ -46,8 +46,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     if (!documentId) return;
     setLoadingVersions(true);
     try {
-      // Fix: Pass an empty object as the second parameter (options)
-      const versions = await documentService.getDocumentVersions(documentId, {});
+      // Fix: Pass documentId as the second parameter, not an empty object
+      const versions = await documentService.getDocumentVersions(documentId, documentId);
       setDocumentVersions(versions);
     } catch (error: any) {
       console.error("Error fetching document versions:", error);
@@ -126,9 +126,9 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   
   const deleteDocument = async (document: Document): Promise<boolean> => {
     try {
-      // Fix: Pass dealId and user.id (if available) as additional parameters
+      // Fix: Pass the complete document object instead of just the ID
       await documentService.deleteDocument(
-        document.id, 
+        document, 
         dealId, 
         user?.id || ''
       );
@@ -162,7 +162,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     try {
       // Fix: Pass all required parameters
       await documentService.deleteDocumentVersion(
-        version.id,
+        version,
         dealId,
         user?.id || '',
         selectedDocument?.id || '',
