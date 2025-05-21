@@ -11,7 +11,6 @@ import DealInsightsPanel from "@/components/dashboard/DealInsightsPanel";
 import { toast } from "sonner";
 import { useDocumentAI } from "@/hooks/document-ai";
 import DealHealthPredictionPanel from "@/components/deals/health/DealHealthPredictionPanel";
-import SmartContractPanel from "@/components/dashboard/SmartContractPanel";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -95,9 +94,6 @@ const Dashboard = () => {
           
           {/* Sidebar area - takes 1/3 of the space on large screens */}
           <div className="space-y-6">
-            {/* Add the Smart Contract Assistant panel at the top */}
-            <SmartContractPanel dealId={needsAttentionDeal?.id} />
-            
             <DealInsightsPanel />
             
             {/* Render Deal Health Prediction Panel if there are active deals */}
