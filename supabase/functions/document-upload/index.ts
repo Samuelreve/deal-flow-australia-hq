@@ -1,12 +1,6 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// CORS headers to allow cross-origin requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 // Helper function to handle multipart form data parsing
 async function parseMultipartFormData(request: Request) {
@@ -15,6 +9,7 @@ async function parseMultipartFormData(request: Request) {
   const category = formData.get('category') as string;
   const documentId = formData.get('documentId') as string;
   const documentName = formData.get('documentName') as string;
+  const dealId = formData.get('dealId') as string;
 
   if (!file) {
     throw new Error('Missing file in form data');
@@ -31,7 +26,8 @@ async function parseMultipartFormData(request: Request) {
     },
     category,
     documentId: documentId || undefined,
-    documentName: documentName || file.name
+    documentName: documentName || file.name,
+    dealId
   };
 }
 
@@ -92,28 +88,11 @@ serve(async (req) => {
     const user = await authenticateUser(req, supabaseAdmin);
     const userId = user.id;
 
-    // 2. Parse the URL path to extract dealId
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
-    const dealIdIndex = pathParts.findIndex(part => part === 'deals') + 1;
-    
-    if (dealIdIndex >= pathParts.length || dealIdIndex === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid URL path. Expected format: /deals/:dealId/documents/upload' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-    
-    const dealId = pathParts[dealIdIndex];
-
-    // 3. Parse form data
+    // 2. Parse form data - updated to get dealId from form data
     const formData = await parseMultipartFormData(req);
-    const { file, category, documentId, documentName } = formData;
+    const { file, category, documentId, documentName, dealId } = formData;
 
-    // 4. Validate required fields
+    // 3. Validate required fields
     if (!dealId || !file || !category) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields (dealId, file, category)' }),
@@ -134,7 +113,7 @@ serve(async (req) => {
       );
     }
 
-    // 5. Authorization: Check if user is a participant in the deal
+    // 4. Authorization: Check if user is a participant in the deal
     const { count: participantCount, error: participantError } = await supabaseAdmin
       .from('deal_participants')
       .select('*', { count: 'exact', head: true })
@@ -156,7 +135,7 @@ serve(async (req) => {
       );
     }
 
-    // 6. Get user's role for this deal
+    // 5. Get user's role for this deal
     const { data: participant, error: roleError } = await supabaseAdmin
       .from('deal_participants')
       .select('role')
@@ -171,7 +150,7 @@ serve(async (req) => {
 
     const userRole = participant.role;
 
-    // 7. Role-Based Access Control: Check if user's role can upload documents
+    // 6. Role-Based Access Control: Check if user's role can upload documents
     const authorizedUploaderRoles = ['admin', 'seller', 'lawyer'];
     if (!authorizedUploaderRoles.includes(userRole.toLowerCase())) {
       return new Response(
@@ -183,7 +162,7 @@ serve(async (req) => {
       );
     }
 
-    // 8. Check deal status allows document uploads
+    // 7. Check deal status allows document uploads
     const { data: deal, error: dealError } = await supabaseAdmin
       .from('deals')
       .select('status')
@@ -208,7 +187,7 @@ serve(async (req) => {
       );
     }
 
-    // 9. Determine if adding version or creating new document
+    // 8. Determine if adding version or creating new document
     let logicalDocumentId: string;
     let versionNumber: number;
     let storagePath: string;
@@ -216,7 +195,7 @@ serve(async (req) => {
 
     // PROCESSING DOCUMENT
     if (documentId) {
-      // 9A. Adding a new version to an existing document
+      // 8A. Adding a new version to an existing document
       logicalDocumentId = documentId;
 
       // Verify document exists and belongs to this deal
@@ -260,7 +239,7 @@ serve(async (req) => {
       storagePath = `${dealId}/${logicalDocumentId}/v${versionNumber}-${sanitizedFileName}`;
 
     } else {
-      // 9B. Creating a new document and its first version
+      // 8B. Creating a new document and its first version
       // Generate new UUID for document
       const { data: newDocument, error: insertDocError } = await supabaseAdmin
         .from('documents')
@@ -296,7 +275,7 @@ serve(async (req) => {
         .eq('id', logicalDocumentId);
     }
 
-    // 10. Upload file to Supabase Storage
+    // 9. Upload file to Supabase Storage
     const bucketName = 'deal-documents';
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from(bucketName)
@@ -316,7 +295,7 @@ serve(async (req) => {
       throw new Error('Failed to upload file to storage');
     }
 
-    // 11. Save version metadata
+    // 10. Save version metadata
     const { data: newVersion, error: insertVersionError } = await supabaseAdmin
       .from('document_versions')
       .insert({
@@ -345,7 +324,7 @@ serve(async (req) => {
       throw new Error('Failed to save document version metadata');
     }
 
-    // 12. Update document to link to latest version
+    // 11. Update document to link to latest version
     const { data: updatedDocument, error: updateDocError } = await supabaseAdmin
       .from('documents')
       .update({ latest_version_id: newVersion.id })
@@ -358,7 +337,7 @@ serve(async (req) => {
       // Non-critical error, continue
     }
 
-    // 13. Generate signed URL for immediate access
+    // 12. Generate signed URL for immediate access
     const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
       .from(bucketName)
       .createSignedUrl(storagePath, 3600); // 1 hour expiration
@@ -368,7 +347,7 @@ serve(async (req) => {
       // Non-critical error, continue
     }
 
-    // 14. Return success response with document and version data
+    // 13. Return success response with document and version data
     return new Response(
       JSON.stringify({
         document: updatedDocument || { id: logicalDocumentId, name: finalDocumentName, category },
