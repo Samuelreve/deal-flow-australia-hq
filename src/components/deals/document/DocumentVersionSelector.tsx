@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DocumentVersion } from "@/types/documentVersion";
 import { Badge } from "@/components/ui/badge";
-import { FileHistory, Clock } from "lucide-react";
+import { History, Clock } from "lucide-react";
 
 interface DocumentVersionSelectorProps {
   versions: DocumentVersion[];
@@ -27,7 +27,7 @@ const DocumentVersionSelector = ({
   return (
     <div className="flex items-center">
       <div className="flex items-center mr-2">
-        <FileHistory className="h-4 w-4 text-muted-foreground mr-1" />
+        <History className="h-4 w-4 text-muted-foreground mr-1" />
         <span className="text-sm text-muted-foreground">Version:</span>
       </div>
       <Select
