@@ -1,277 +1,312 @@
 
-import React, { useState, useCallback, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DocumentVersion, VersionComparisonResult } from "@/types/documentVersion";
-import { versionComparisonService } from "@/services/documents/version-management/versionComparisonService";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2, FileText, GitCompare } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { versionComparisonService } from "@/services/documents/version-management";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 
 interface DocumentVersionComparisonProps {
   versions: DocumentVersion[];
   selectedVersionId: string;
   dealId: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const DocumentVersionComparison: React.FC<DocumentVersionComparisonProps> = ({
+const DocumentVersionComparison = ({
   versions,
   selectedVersionId,
   dealId,
-  open = false,
+  open,
   onOpenChange
-}) => {
-  const [comparing, setComparing] = useState(false);
+}: DocumentVersionComparisonProps) => {
+  const [compareVersionId, setCompareVersionId] = useState<string>("");
   const [comparisonResult, setComparisonResult] = useState<VersionComparisonResult | null>(null);
-  const [comparisonProgress, setComparisonProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState("summary");
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("differences");
+  
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [comparisonSummary, setComparisonSummary] = useState<{ summary: string; disclaimer: string } | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  // Find previous version for comparison
-  const selectedVersionIndex = versions.findIndex(v => v.id === selectedVersionId);
-  const hasPreviousVersion = selectedVersionIndex < versions.length - 1 && selectedVersionIndex !== -1;
-  const previousVersion = hasPreviousVersion ? versions[selectedVersionIndex + 1] : null;
-  const selectedVersion = versions.find(v => v.id === selectedVersionId);
-
-  // Reset progress and result when versions change
+  // Select the most recent version (other than the current one) for comparison by default
   useEffect(() => {
-    setComparisonResult(null);
-    setComparisonProgress(0);
-  }, [selectedVersionId]);
-
-  // Simulate progress updates during comparison
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout | null = null;
-    
-    if (comparing) {
-      setComparisonProgress(0);
-      
-      progressInterval = setInterval(() => {
-        setComparisonProgress(prev => {
-          const newProgress = prev + (100 - prev) * 0.1;
-          return Math.min(newProgress, 95);
-        });
-      }, 500);
-    } else if (comparisonProgress > 0 && comparisonProgress < 100) {
-      setComparisonProgress(100);
-      
-      const resetTimeout = setTimeout(() => {
-        setComparisonProgress(0);
-      }, 1000);
-      
-      return () => clearTimeout(resetTimeout);
+    if (open && versions.length > 1 && !compareVersionId) {
+      const otherVersions = versions.filter(v => v.id !== selectedVersionId);
+      if (otherVersions.length > 0) {
+        // Sort by version number descending and take the first one
+        otherVersions.sort((a, b) => b.versionNumber - a.versionNumber);
+        setCompareVersionId(otherVersions[0].id);
+      }
     }
-    
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
+  }, [open, versions, selectedVersionId, compareVersionId]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setComparisonResult(null);
+      setError(null);
+      setComparisonSummary(null);
+      setSummaryError(null);
+      setActiveTab("differences");
+    }
+  }, [open]);
+
+  // Fetch comparison when both versions are selected
+  useEffect(() => {
+    const fetchComparison = async () => {
+      if (selectedVersionId && compareVersionId && selectedVersionId !== compareVersionId) {
+        setLoading(true);
+        setError(null);
+        try {
+          const result = await versionComparisonService.compareVersions(
+            selectedVersionId,
+            compareVersionId,
+            dealId
+          );
+          setComparisonResult(result);
+        } catch (err: any) {
+          setError(err.message || "Failed to compare versions");
+        } finally {
+          setLoading(false);
+        }
+      }
     };
-  }, [comparing, comparisonProgress]);
 
-  const compareVersions = useCallback(async (currentVersionId: string) => {
-    if (!previousVersion) return;
-    
-    setComparing(true);
-    try {
-      const result = await versionComparisonService.compareVersions(
-        currentVersionId, 
-        previousVersion.id,
-        dealId
-      );
-      
-      setComparisonResult(result);
-    } catch (error: any) {
-      console.error("Error comparing versions:", error);
-      toast({
-        title: "Comparison Failed",
-        description: error.message || "Failed to compare document versions",
-        variant: "destructive"
-      });
-    } finally {
-      setComparing(false);
+    if (open && selectedVersionId && compareVersionId) {
+      fetchComparison();
     }
-  }, [previousVersion, toast, dealId]);
+  }, [selectedVersionId, compareVersionId, dealId, open]);
 
-  if (!open) {
-    return null;
-  }
+  const handleCompareVersionChange = (versionId: string) => {
+    setCompareVersionId(versionId);
+  };
 
-  if (!hasPreviousVersion) {
-    return (
-      <Card className="mt-4">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Version Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            This is the earliest version of this document. There are no previous versions to compare with.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getCurrentVersionName = () => {
+    const version = versions.find(v => v.id === selectedVersionId);
+    return version ? `Version ${version.versionNumber}` : "Current";
+  };
+
+  const getCompareVersionName = () => {
+    const version = versions.find(v => v.id === compareVersionId);
+    return version ? `Version ${version.versionNumber}` : "Select a version";
+  };
+
+  const getAISummary = async () => {
+    if (selectedVersionId && compareVersionId && selectedVersionId !== compareVersionId) {
+      setLoadingSummary(true);
+      setSummaryError(null);
+      
+      try {
+        const summary = await versionComparisonService.getVersionComparisonSummary(
+          selectedVersionId,
+          compareVersionId,
+          dealId
+        );
+        setComparisonSummary(summary);
+      } catch (err: any) {
+        setSummaryError(err.message || "Failed to generate AI summary");
+      } finally {
+        setLoadingSummary(false);
+      }
+    }
+  };
 
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-2 flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-sm font-medium flex items-center gap-1">
-            <GitCompare className="h-4 w-4" /> Version Comparison
-          </CardTitle>
-        </div>
-        {onOpenChange && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onOpenChange(false)}
-            className="h-8 w-8 p-0"
-          >
-            <span className="sr-only">Close</span>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor"/>
-            </svg>
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm mb-1">
-                Comparing <span className="font-medium">V{selectedVersion?.versionNumber}</span> with previous version <span className="font-medium">V{previousVersion?.versionNumber}</span>
-              </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <FileText className="h-3 w-3" />
-                <span>
-                  {new Date(selectedVersion?.uploadedAt || '').toLocaleDateString()}
-                </span>
-                <span>→</span>
-                <span>
-                  {new Date(previousVersion?.uploadedAt || '').toLocaleDateString()}
-                </span>
-              </div>
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Document Version Comparison</DialogTitle>
+        </DialogHeader>
 
-            <Button
-              size="sm"
-              onClick={() => compareVersions(selectedVersionId)}
-              disabled={comparing}
-            >
-              {comparing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Comparing...
-                </>
-              ) : comparisonResult ? (
-                "Compare Again"
-              ) : (
-                "Compare Versions"
-              )}
-            </Button>
+        <div className="flex items-center gap-4 mb-4">
+          <div>
+            <div className="text-sm font-medium mb-1">Current</div>
+            <Badge variant="outline" className="font-mono">
+              {getCurrentVersionName()}
+            </Badge>
           </div>
+          
+          <div>vs</div>
+          
+          <div>
+            <div className="text-sm font-medium mb-1">Compare with</div>
+            <Select value={compareVersionId} onValueChange={handleCompareVersionChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {versions
+                  .filter(v => v.id !== selectedVersionId)
+                  .map(version => (
+                    <SelectItem key={version.id} value={version.id}>
+                      Version {version.versionNumber}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-          {comparing && (
-            <div className="mb-6">
-              <Progress value={comparisonProgress} className="h-2 mb-1" />
-              <p className="text-xs text-muted-foreground text-center">Analyzing document differences...</p>
-            </div>
-          )}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList>
+            <TabsTrigger value="differences">Differences</TabsTrigger>
+            <TabsTrigger value="ai-summary">AI Summary</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="differences" className="flex-1 overflow-hidden flex flex-col">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center flex-1 py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground mt-2">Comparing versions...</p>
+              </div>
+            ) : error ? (
+              <Alert variant="destructive" className="my-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : comparisonResult ? (
+              <ScrollArea className="flex-1">
+                <div className="space-y-6 p-4">
+                  {comparisonResult.differenceSummary && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium mb-2">Summary</h3>
+                      <p className="text-muted-foreground">{comparisonResult.differenceSummary}</p>
+                    </div>
+                  )}
 
-          {comparisonResult && (
-            <>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="summary">
-                    Summary
-                  </TabsTrigger>
-                  <TabsTrigger value="additions">
-                    Additions
-                    <Badge variant="outline" className="ml-2">
-                      {comparisonResult.additions.length}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="deletions">
-                    Deletions
-                    <Badge variant="outline" className="ml-2">
-                      {comparisonResult.deletions.length}
-                    </Badge>
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="summary">
-                  <div className="p-4 bg-muted rounded-md">
-                    <h4 className="font-medium mb-2">Differences Summary:</h4>
-                    <p className="text-sm">{comparisonResult.differenceSummary || "Documents are similar in content."}</p>
-                    
-                    <div className="mt-4 grid grid-cols-3 gap-4">
-                      <div className="p-3 bg-background rounded-md border">
-                        <div className="text-xl font-bold">{comparisonResult.additions.length}</div>
-                        <div className="text-xs text-muted-foreground">Additions</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-md border">
-                        <div className="text-xl font-bold">{comparisonResult.deletions.length}</div>
-                        <div className="text-xs text-muted-foreground">Deletions</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-md border">
-                        <div className="text-xl font-bold">{comparisonResult.unchanged.length}</div>
-                        <div className="text-xs text-muted-foreground">Unchanged</div>
+                  {comparisonResult.additions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-2 text-green-600 dark:text-green-400">
+                        Additions ({comparisonResult.additions.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {comparisonResult.additions.map((addition, i) => (
+                          <div 
+                            key={i} 
+                            className="p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 dark:border-green-400 rounded"
+                          >
+                            {addition}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="additions">
-                  <div className="max-h-60 overflow-y-auto rounded-md border p-2">
-                    {comparisonResult.additions.length > 0 ? (
-                      comparisonResult.additions.map((addition, index) => (
-                        <div key={index} className="p-2 bg-green-50 mb-2 rounded text-sm">
-                          <span className="font-mono">{addition}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center p-4">No additions detected</p>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="deletions">
-                  <div className="max-h-60 overflow-y-auto rounded-md border p-2">
-                    {comparisonResult.deletions.length > 0 ? (
-                      comparisonResult.deletions.map((deletion, index) => (
-                        <div key={index} className="p-2 bg-red-50 mb-2 rounded text-sm">
-                          <span className="font-mono">{deletion}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center p-4">No deletions detected</p>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
+                  )}
 
-          {!comparing && !comparisonResult && (
-            <div className="flex flex-col items-center justify-center p-8 bg-muted/40 rounded-md">
-              <GitCompare className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-center font-medium">Compare document versions</p>
-              <p className="text-center text-sm text-muted-foreground mb-4">
-                See what has changed between versions
-              </p>
-              <Button 
-                onClick={() => compareVersions(selectedVersionId)}
-                size="sm"
-              >
-                Start Comparison
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                  {comparisonResult.deletions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-2 text-red-600 dark:text-red-400">
+                        Deletions ({comparisonResult.deletions.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {comparisonResult.deletions.map((deletion, i) => (
+                          <div 
+                            key={i} 
+                            className="p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-400 rounded"
+                          >
+                            {deletion}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {comparisonResult.unchanged.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-2 text-muted-foreground">
+                        Unchanged ({comparisonResult.unchanged.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {comparisonResult.unchanged.slice(0, 5).map((text, i) => (
+                          <div 
+                            key={i} 
+                            className="p-3 bg-muted/50 border-l-4 border-muted-foreground/30 rounded"
+                          >
+                            {text}
+                          </div>
+                        ))}
+                        {comparisonResult.unchanged.length > 5 && (
+                          <div className="text-center text-sm text-muted-foreground p-2">
+                            + {comparisonResult.unchanged.length - 5} more unchanged sections
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 p-6 text-center text-muted-foreground">
+                <p>Select a version to compare with the current version</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ai-summary" className="flex-1 overflow-hidden flex flex-col">
+            {!comparisonSummary && !loadingSummary && !summaryError && (
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                <p className="text-muted-foreground mb-4 text-center">
+                  Get an AI-generated summary of the key differences between versions
+                </p>
+                <Button 
+                  onClick={getAISummary}
+                  disabled={!selectedVersionId || !compareVersionId || selectedVersionId === compareVersionId}
+                >
+                  Generate AI Summary
+                </Button>
+              </div>
+            )}
+
+            {loadingSummary && (
+              <div className="flex flex-col items-center justify-center flex-1 py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground mt-2">Generating AI summary...</p>
+              </div>
+            )}
+
+            {summaryError && (
+              <Alert variant="destructive" className="my-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{summaryError}</AlertDescription>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2" 
+                  onClick={getAISummary}
+                >
+                  Try Again
+                </Button>
+              </Alert>
+            )}
+
+            {comparisonSummary && (
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <Card className="p-4 mb-4">
+                    <h3 className="text-lg font-medium mb-4">AI Summary of Changes</h3>
+                    <div className="whitespace-pre-line">{comparisonSummary.summary}</div>
+                  </Card>
+                  
+                  <Alert className="bg-muted/40">
+                    <AlertDescription className="text-sm">
+                      {comparisonSummary.disclaimer}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </ScrollArea>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };
 
