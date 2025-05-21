@@ -1,84 +1,63 @@
-import React, { useState } from 'react';
-import { toast } from "@/components/ui/use-toast";
-import { useDocumentAI } from "@/hooks/useDocumentAI";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 
-interface SmartTemplateButtonProps {
-  requirements: string;
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FileText, Loader2 } from "lucide-react";
+import { useDocumentAI } from "@/hooks/useDocumentAI";
+import { useToast } from "@/components/ui/use-toast";
+
+export interface SmartTemplateButtonProps {
+  documentId?: string;
+  dealId: string;
+  onDocumentSaved: () => void;
+  userRole: string;
 }
 
-const SmartTemplateButton = ({ requirements }: SmartTemplateButtonProps) => {
-  const [generatedTemplate, setGeneratedTemplate] = useState<string>('');
-  const [showReviewDialog, setShowReviewDialog] = useState(false);
+const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: SmartTemplateButtonProps) => {
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { generateTemplate } = useDocumentAI({ dealId: '' });
   const { toast } = useToast();
+  const { generateSmartTemplate } = useDocumentAI({ dealId, documentId });
 
-  const handleGenerateTemplate = async () => {
-    if (!requirements || requirements.trim() === '') {
-      toast({
-        title: "Error",
-        description: "Please provide template requirements",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+  const handleGenerate = async () => {
     setGenerating(true);
-    setError(null);
-    
     try {
-      // Fix: Pass only 1 argument as expected
-      const result = await generateTemplate(requirements);
-      
-      if (result?.template) {
-        setGeneratedTemplate(result.template);
-        setShowReviewDialog(true);
-      } else {
-        throw new Error("Failed to generate template");
-      }
-    } catch (err: any) {
-      console.error("Error generating template:", err);
-      setError(err.message || "An error occurred while generating the template");
+      await generateSmartTemplate();
       toast({
-        title: "Generation Failed",
-        description: err.message || "Failed to generate template",
-        variant: "destructive"
+        title: "Contract template generated",
+        description: "A new contract has been created based on deal data",
+      });
+      onDocumentSaved();
+    } catch (error) {
+      console.error("Error generating template:", error);
+      toast({
+        title: "Generation failed",
+        description: "Failed to generate contract template",
+        variant: "destructive",
       });
     } finally {
       setGenerating(false);
     }
   };
 
-  return (
-    <>
-      <Button onClick={handleGenerateTemplate} disabled={generating}>
-        {generating ? "Generating..." : "Generate Template"}
-      </Button>
+  // Only certain roles should see this button
+  if (!["admin", "seller"].includes(userRole?.toLowerCase())) {
+    return null;
+  }
 
-      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Review Generated Template</DialogTitle>
-            <DialogDescription>
-              Review the generated template and make any necessary adjustments.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Textarea
-                value={generatedTemplate}
-                readOnly
-                className="col-span-4"
-              />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+  return (
+    <Button
+      onClick={handleGenerate}
+      disabled={generating}
+      variant="outline"
+      size="sm"
+      className="flex items-center"
+    >
+      {generating ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <FileText className="mr-2 h-4 w-4" />
+      )}
+      Smart Template
+    </Button>
   );
 };
 
