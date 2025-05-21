@@ -47,21 +47,32 @@ const DocumentViewerSection = ({
     setSelectedText(text);
   };
 
+  // Handle version selection
+  const handleVersionSelect = (versionId: string) => {
+    if (versionId !== selectedVersionId) {
+      // Find the version by ID and trigger the selection callback
+      const version = documentVersions.find(v => v.id === versionId);
+      if (version) {
+        onVersionsUpdated();
+      }
+    }
+  };
+
   return (
     <div className="lg:col-span-2">
       {/* Version Selector */}
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <DocumentVersionSelector
           versions={documentVersions}
           selectedVersionId={selectedVersionId}
-          onSelectVersion={(versionId) => {
-            // Find the version by ID and trigger the selection callback
-            const version = documentVersions.find(v => v.id === versionId);
-            if (version) {
-              onVersionsUpdated();
-            }
-          }}
+          onSelectVersion={handleVersionSelect}
         />
+
+        {selectedDocument && (
+          <div className="text-sm text-muted-foreground">
+            {selectedDocument.name}
+          </div>
+        )}
       </div>
 
       {/* Document Analyzer when URL parameters are present */}
