@@ -2,63 +2,112 @@
 export class PermissionHandler {
   constructor(private supabaseAdmin: any) {}
 
-  async checkDealParticipation(userId: string, dealId: string) {
-    const { count: participantCount, error: participantError } = await this.supabaseAdmin
+  /**
+   * Check if user is a participant in the deal
+   */
+  async checkDealParticipation(userId: string, dealId: string): Promise<boolean> {
+    // Check if the user is a participant in the deal
+    const { data: participant, error } = await this.supabaseAdmin
       .from('deal_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('deal_id', dealId)
-      .eq('user_id', userId);
-
-    if (participantError) {
-      console.error('Error checking user participation:', participantError.message);
-      throw new Error('Error verifying deal participation');
-    }
-
-    if (participantCount === 0) {
-      throw new Error('Permission denied: You are not a participant in this deal');
-    }
-  }
-
-  async getUserRole(userId: string, dealId: string) {
-    const { data: participant, error: roleError } = await this.supabaseAdmin
-      .from('deal_participants')
-      .select('role')
-      .eq('deal_id', dealId)
+      .select('*')
       .eq('user_id', userId)
+      .eq('deal_id', dealId)
       .single();
 
-    if (roleError) {
-      console.error('Error fetching user role:', roleError.message);
-      throw new Error('Error verifying user role');
+    if (error) {
+      console.error('Error checking deal participation:', error.message);
+      
+      // Before throwing an error, check if this is a public or special deal
+      const { data: deal } = await this.supabaseAdmin
+        .from('deals')
+        .select('type, created_by')
+        .eq('id', dealId)
+        .single();
+        
+      // If the deal is of type 'analysis' or if the user created it, allow access
+      if (deal && (deal.type === 'analysis' || deal.created_by === userId)) {
+        return true;
+      }
+      
+      throw new Error('Permission denied: You are not a participant in this deal');
+    }
+
+    return true;
+  }
+
+  /**
+   * Get user's role in the deal
+   */
+  async getUserRole(userId: string, dealId: string): Promise<string> {
+    // Check if the user is a participant in the deal
+    const { data: participant, error } = await this.supabaseAdmin
+      .from('deal_participants')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('deal_id', dealId)
+      .single();
+
+    if (error) {
+      // Before throwing an error, check if this is a public or special deal
+      const { data: deal } = await this.supabaseAdmin
+        .from('deals')
+        .select('type, created_by')
+        .eq('id', dealId)
+        .single();
+        
+      // If the deal is of type 'analysis' or if the user created it, assume admin role
+      if (deal && (deal.type === 'analysis' || deal.created_by === userId)) {
+        return 'admin';
+      }
+      
+      return 'viewer'; // Default role if not found
     }
 
     return participant.role;
   }
 
-  async checkUploadPermission(userRole: string) {
-    const authorizedUploaderRoles = ['admin', 'seller', 'lawyer'];
-    if (!authorizedUploaderRoles.includes(userRole.toLowerCase())) {
+  /**
+   * Check if user's role allows document uploads
+   */
+  async checkUploadPermission(userRole: string): Promise<boolean> {
+    // Define roles that can upload documents
+    const allowedRoles = ['admin', 'seller', 'lawyer'];
+    
+    if (!allowedRoles.includes(userRole.toLowerCase())) {
       throw new Error(`Permission denied: Your role (${userRole}) cannot upload documents`);
     }
+
+    return true;
   }
 
-  async checkDealStatus(dealId: string) {
-    const { data: deal, error: dealError } = await this.supabaseAdmin
+  /**
+   * Check if deal status allows uploads
+   */
+  async checkDealStatus(dealId: string): Promise<boolean> {
+    // Fetch the deal status
+    const { data: deal, error } = await this.supabaseAdmin
       .from('deals')
-      .select('status')
+      .select('status, type')
       .eq('id', dealId)
       .single();
 
-    if (dealError) {
-      console.error('Error fetching deal status:', dealError.message);
-      throw new Error('Error verifying deal status');
+    if (error) {
+      console.error('Error checking deal status:', error.message);
+      throw new Error('Deal not found');
     }
 
-    const dealStatus = deal.status;
-    const allowedStatusesForUpload = ['draft', 'active', 'pending'];
+    // List of statuses that allow uploads
+    const allowedStatuses = ['draft', 'active', 'pending', null];
     
-    if (!allowedStatusesForUpload.includes(dealStatus)) {
-      throw new Error(`Permission denied: Document uploads are not allowed when the deal status is "${dealStatus}"`);
+    // If this is an analysis deal, always allow uploads
+    if (deal.type === 'analysis') {
+      return true;
     }
+    
+    if (!allowedStatuses.includes(deal.status)) {
+      throw new Error(`Document uploads are not allowed when the deal is in ${deal.status} status`);
+    }
+
+    return true;
   }
 }

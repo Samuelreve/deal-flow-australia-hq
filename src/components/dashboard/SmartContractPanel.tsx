@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Upload, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDocumentUploadService } from "@/hooks/useDocumentUploadService";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,6 +66,27 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         const newDealId = data.dealId;
         console.log("Created temporary deal:", newDealId);
         
+        // Add the current user as a participant to the deal with admin role
+        try {
+          const { error: participantError } = await supabase.functions.invoke('add-deal-participant', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: {
+              dealId: newDealId,
+              userId: user?.id,
+              role: 'admin' // Use 'admin' role instead of 'owner'
+            }
+          });
+          
+          if (participantError) {
+            console.error("Error adding participant:", participantError);
+          }
+        } catch (participantErr) {
+          console.error("Failed to add participant:", participantErr);
+        }
+        
         // Upload the document with "contract" category to the new deal
         const result = await uploadDocument(file, newDealId, "contract");
         
@@ -96,7 +117,7 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
       console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload contract",
+        description: error.message || "Failed to upload contract. Please try again later.",
         variant: "destructive"
       });
     } finally {
