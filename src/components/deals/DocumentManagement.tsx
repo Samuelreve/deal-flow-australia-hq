@@ -105,6 +105,12 @@ const DocumentManagement = ({
     }
   };
 
+  // Handle document selection with Promise conversion to match expected type
+  const handleSelectDocument = async (document: Document) => {
+    selectDocument(document);
+    return Promise.resolve();
+  };
+
   // Handle document upload with category and optional documentId
   const handleUpload = async (file: File, category: string, documentId?: string) => {
     const uploadedDoc = await uploadDocument(file, category, documentId);
@@ -117,6 +123,8 @@ const DocumentManagement = ({
         name: uploadedDoc.name || file.name
       });
     }
+    
+    return uploadedDoc;
   };
 
   // Handle selecting a version for viewing
@@ -155,7 +163,7 @@ const DocumentManagement = ({
             userRole={userRole}
             userId={user?.id}
             isParticipant={isParticipant}
-            onSelectDocument={selectDocument}
+            onSelectDocument={handleSelectDocument}
             selectedDocument={selectedDocument}
             documentVersions={documentVersions}
             loadingVersions={loadingVersions}

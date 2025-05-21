@@ -92,6 +92,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     
     setUploading(true);
     try {
+      // When calling documentService.uploadDocument, pass all required parameters
       const uploadedDocument = await documentService.uploadDocument(
         file, 
         category, 
@@ -124,6 +125,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   
   const deleteDocument = async (document: Document): Promise<boolean> => {
     try {
+      // When calling documentService.deleteDocument, pass the document ID
       await documentService.deleteDocument(document.id);
       
       // Update local documents list
@@ -153,6 +155,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   
   const deleteDocumentVersion = async (version: DocumentVersion): Promise<boolean> => {
     try {
+      // When calling documentService.deleteDocumentVersion, pass the version ID
       await documentService.deleteDocumentVersion(version.id);
       
       // Update versions list

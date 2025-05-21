@@ -4,7 +4,6 @@ import { Document, DocumentVersion } from "@/types/deal";
 import DocumentListItem from "./DocumentListItem";
 import DocumentEmptyState from "./DocumentEmptyState";
 import DocumentLoadingState from "./DocumentLoadingState";
-import { useDocumentVersions } from "@/hooks/useDocumentVersions";
 
 export interface DocumentListProps {
   documents: Document[];

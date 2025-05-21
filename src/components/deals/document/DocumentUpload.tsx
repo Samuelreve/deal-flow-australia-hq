@@ -52,11 +52,6 @@ const DocumentUpload = ({
     }
     return null;
   }
-  
-  // Wrapper for the onUpload function to handle the Document return type
-  const handleUpload = async (file: File, category: string, documentId?: string) => {
-    return await onUpload(file, category, documentId);
-  };
 
   return (
     <div className="border-t pt-4 mt-4">
@@ -64,7 +59,7 @@ const DocumentUpload = ({
       
       <div className="flex items-center gap-3 mb-4">
         <DocumentUploadForm 
-          onUpload={handleUpload}
+          onUpload={onUpload}
           uploading={uploading}
           documents={documents}
         />
