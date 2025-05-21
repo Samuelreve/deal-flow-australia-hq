@@ -1,11 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/rbac.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,37 +11,11 @@ serve(async (req) => {
   }
   
   try {
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify authentication and get user
+    const { user, supabase } = await verifyAuth(req);
     
-    // Create a Supabase client with the auth token
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-    
-    // Get the authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const { title, description, type } = await req.json();
+    // Parse request body
+    const { title, description = 'Auto-generated for document analysis', type = 'analysis' } = await req.json();
     
     if (!title) {
       return new Response(
@@ -58,10 +29,11 @@ serve(async (req) => {
       .from('deals')
       .insert({
         title,
-        description: description || 'Auto-generated for document analysis',
+        description,
         creator_id: user.id,
+        seller_id: user.id,
         status: 'draft',
-        type: type || 'analysis',
+        type,
       })
       .select()
       .single();

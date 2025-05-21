@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useDocumentUploadService } from "@/hooks/useDocumentUploadService";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SmartContractPanelProps {
   dealId?: string;
@@ -27,25 +27,23 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
       
       if (!dealId) {
         // When on homepage, upload directly by creating a temporary deal
-        // First create a temp deal via the API
+        // First create a temp deal via the Edge Function
         const tempDealName = `Contract Analysis: ${file.name}`;
-        const response = await fetch('/api/deals/create-temp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        
+        // Use the supabase client to call the edge function
+        const { data, error } = await supabase.functions.invoke('create-temp-deal', {
+          body: {
             title: tempDealName,
             description: 'Auto-generated for contract analysis',
             type: 'analysis'
-          }),
+          },
         });
         
-        if (!response.ok) {
-          throw new Error("Failed to create temporary deal");
+        if (error) {
+          throw new Error(`Failed to create temporary deal: ${error.message}`);
         }
         
-        const { dealId: newDealId } = await response.json();
+        const newDealId = data.dealId;
         
         // Upload the document with "contract" category to the new deal
         const result = await uploadDocument(file, newDealId, "contract");
