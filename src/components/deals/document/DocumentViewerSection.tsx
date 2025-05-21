@@ -3,13 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from "@/hooks/document-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DocumentViewer from "@/components/documents/DocumentViewer";
-import { FileCog, FileQuestion, FileText } from "lucide-react";
-import { Document, DocumentVersion } from "@/types/deal";
+import { FileCog, FileQuestion, FileText, History } from "lucide-react";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useLocation } from 'react-router-dom';
 import DocumentAnalysisButton from './DocumentAnalysisButton';
 import DocumentSummaryButton from './DocumentSummaryButton';
 import SmartContractAssistant from './SmartContractAssistant';
 import EnhancedDocumentAnalyzer from './EnhancedDocumentAnalyzer';
+import { Button } from "@/components/ui/button";
+import DocumentVersionComparison from './DocumentVersionComparison';
+import DocumentVersionMetadata from './DocumentVersionMetadata';
 
 interface DocumentViewerSectionProps {
   selectedVersionUrl: string;
@@ -17,6 +20,7 @@ interface DocumentViewerSectionProps {
   dealId: string;
   selectedDocument: Document | null;
   selectedVersionId: string;
+  onVersionsUpdated?: () => void;
 }
 
 const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({ 
@@ -24,10 +28,15 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
   documentVersions, 
   dealId,
   selectedDocument,
-  selectedVersionId
+  selectedVersionId,
+  onVersionsUpdated = () => {}
 }) => {
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const location = useLocation();
+  
+  // Get the currently selected version object
+  const selectedVersion = documentVersions.find(v => v.id === selectedVersionId);
   
   // Check URL for analysis parameters
   const queryParams = new URLSearchParams(location.search);
@@ -54,7 +63,17 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
   };
   
   return (
-    <div className="lg:col-span-2">
+    <div className="lg:col-span-2 space-y-4">
+      {/* Document Version Metadata */}
+      {selectedVersion && selectedDocument && (
+        <DocumentVersionMetadata
+          version={selectedVersion}
+          dealId={dealId}
+          onUpdate={onVersionsUpdated}
+        />
+      )}
+
+      {/* Document Viewer Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>
@@ -64,6 +83,17 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
             </div>
           </CardTitle>
           <div className="flex space-x-2">
+            {documentVersions.length > 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setComparisonOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <History className="h-4 w-4" />
+                Compare Versions
+              </Button>
+            )}
             {selectedDocument && selectedVersionId && (
               <>
                 <Button
@@ -103,6 +133,14 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
         </CardContent>
       </Card>
       
+      {/* Version Comparison Dialog */}
+      <DocumentVersionComparison
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        versions={documentVersions}
+        dealId={dealId}
+      />
+      
       {/* Enhanced Document Analyzer Dialog */}
       {selectedDocument && selectedVersionId && (
         <EnhancedDocumentAnalyzer
@@ -116,8 +154,5 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
     </div>
   );
 };
-
-// Need to add Button import
-import { Button } from "@/components/ui/button";
 
 export default DocumentViewerSection;

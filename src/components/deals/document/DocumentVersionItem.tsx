@@ -1,10 +1,17 @@
 
-import React from 'react';
-import { DocumentVersion } from "@/types/deal";
-import { Share2 } from "lucide-react";
+import { DocumentVersion } from "@/types/documentVersion";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import DocumentVersionHeader from "./DocumentVersionHeader";
+import { 
+  Calendar, 
+  Download, 
+  FileText, 
+  Trash2, 
+  Share2,
+  ArrowDownToLine,
+  History
+} from "lucide-react";
+import { formatBytes } from "@/lib/formatBytes";
+import RestoreVersionButton from "./RestoreVersionButton";
 
 interface DocumentVersionItemProps {
   version: DocumentVersion;
@@ -12,74 +19,172 @@ interface DocumentVersionItemProps {
   onSelect: (version: DocumentVersion) => void;
   onDelete?: (version: DocumentVersion) => void;
   onShare?: (version: DocumentVersion) => void;
+  onCompare?: (version: DocumentVersion) => void;
   canDelete: boolean;
+  dealId: string;
+  documentId: string;
+  onRestored?: () => void;
 }
 
-const DocumentVersionItem: React.FC<DocumentVersionItemProps> = ({
+const DocumentVersionItem = ({
   version,
   selectedVersionId,
   onSelect,
   onDelete,
   onShare,
+  onCompare,
   canDelete,
-}) => {
+  dealId,
+  documentId,
+  onRestored = () => {}
+}: DocumentVersionItemProps) => {
   const isSelected = selectedVersionId === version.id;
+  const formattedDate = new Date(version.uploadedAt).toLocaleDateString();
+  const formattedTime = new Date(version.uploadedAt).toLocaleTimeString();
   
+  // Tags rendering
+  const renderTags = () => {
+    if (!version.tags || version.tags.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="flex mt-1 flex-wrap gap-1">
+        {version.tags.map(tag => (
+          <span 
+            key={tag.id} 
+            className="px-1.5 py-0.5 rounded-full text-xs"
+            style={{ 
+              backgroundColor: tag.color, 
+              color: isLightColor(tag.color) ? "#000" : "#fff"
+            }}
+          >
+            {tag.name}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div 
-      key={version.id} 
-      className={`p-2 rounded-md ${
-        isSelected ? "bg-accent/50" : "hover:bg-muted"
-      }`}
+    <div
+      className={`p-2 rounded-md cursor-pointer ${
+        isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+      } transition-colors`}
+      onClick={() => onSelect(version)}
     >
       <div className="flex items-center justify-between">
-        <DocumentVersionHeader 
-          version={version}
-          onClick={() => onSelect(version)}
-        />
-        
+        <div className="flex items-center">
+          <FileText className="h-4 w-4 mr-2" />
+          <div>
+            <div className="font-medium">Version {version.versionNumber}</div>
+            <div className="text-xs opacity-80">
+              {formatBytes(version.size)} • {version.type}
+              {version.isRestored && <span className="ml-1">(Restored)</span>}
+            </div>
+            <div className="text-xs opacity-80 flex items-center">
+              <Calendar className="h-3 w-3 mr-1" />
+              {formattedDate} at {formattedTime}
+            </div>
+            {renderTags()}
+          </div>
+        </div>
+
         <div className="flex space-x-1">
+          {onCompare && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${isSelected ? "hover:bg-primary-foreground/20" : "hover:bg-accent"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCompare(version);
+              }}
+              title="Compare with another version"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          )}
+
           {onShare && (
             <Button
-              size="icon"
               variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${isSelected ? "hover:bg-primary-foreground/20" : "hover:bg-accent"}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onShare(version);
               }}
-              title="Share this version"
+              title="Share version"
             >
               <Share2 className="h-4 w-4" />
             </Button>
           )}
-          
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 ${isSelected ? "hover:bg-primary-foreground/20" : "hover:bg-accent"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(version.url, "_blank");
+            }}
+            title="Download version"
+          >
+            <ArrowDownToLine className="h-4 w-4" />
+          </Button>
+
           {canDelete && onDelete && (
             <Button
-              size="icon"
               variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${
+                isSelected
+                  ? "hover:bg-red-300"
+                  : "hover:bg-red-100 text-red-500"
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(version);
               }}
-              title="Delete this version"
-              className="text-destructive hover:text-destructive"
+              title="Delete version"
             >
-              <span className="sr-only">Delete</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-              </svg>
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
-      
-      {version.description && (
-        <p className="text-xs text-muted-foreground mt-1">{version.description}</p>
+
+      {/* Show restore button if selected */}
+      {isSelected && (
+        <div className="mt-2 flex justify-end">
+          <RestoreVersionButton 
+            version={version} 
+            dealId={dealId}
+            documentId={documentId}
+            onRestored={onRestored}
+          />
+        </div>
       )}
 
-      <Separator className="mt-2" />
+      {/* Show description if it exists */}
+      {version.description && (
+        <div className="mt-2 text-xs italic">
+          {version.description}
+        </div>
+      )}
     </div>
   );
+};
+
+// Helper function to determine if a color is light or dark
+const isLightColor = (color: string) => {
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return brightness > 128;
 };
 
 export default DocumentVersionItem;

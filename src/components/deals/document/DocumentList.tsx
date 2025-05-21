@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo } from "react";
-import { Document, DocumentVersion } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentListItem from "./DocumentListItem";
 import DocumentEmptyState from "./DocumentEmptyState";
 import DocumentLoadingState from "./DocumentLoadingState";
@@ -20,6 +20,8 @@ export interface DocumentListProps {
   onSelectVersion: (version: DocumentVersion) => void;
   selectedVersionId: string;
   onShareVersion: (version: DocumentVersion) => void;
+  dealId: string;
+  onVersionsUpdated?: () => void;
 }
 
 const DocumentList = ({
@@ -37,6 +39,8 @@ const DocumentList = ({
   onSelectVersion,
   selectedVersionId,
   onShareVersion,
+  dealId,
+  onVersionsUpdated = () => {}
 }: DocumentListProps) => {
   // Group documents by category for display
   const documentsByCategory = useMemo(() => {
@@ -84,6 +88,8 @@ const DocumentList = ({
                 onDeleteVersion={onDeleteVersion}
                 onSelectVersion={onSelectVersion}
                 onShareVersion={onShareVersion}
+                dealId={dealId}
+                onVersionsUpdated={onVersionsUpdated}
               />
             ))}
           </div>

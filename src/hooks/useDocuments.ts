@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Document, DocumentVersion } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import { documentService } from "@/services/documentService";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -16,7 +16,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     if (!dealId) return;
     setIsLoading(true);
     try {
@@ -40,13 +40,13 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dealId, selectedDocument, toast]);
   
-  const fetchDocumentVersions = async (documentId: string) => {
+  const fetchDocumentVersions = useCallback(async (documentId?: string) => {
     if (!documentId) return;
     setLoadingVersions(true);
     try {
-      // Fix: Pass documentId as the second parameter, not an empty object
+      // Fix: Pass documentId as the second parameter
       const versions = await documentService.getDocumentVersions(documentId, documentId);
       setDocumentVersions(versions);
     } catch (error: any) {
@@ -59,14 +59,14 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     } finally {
       setLoadingVersions(false);
     }
-  };
+  }, [toast]);
   
   // Load documents on initial render
   useEffect(() => {
     if (dealId) {
       fetchDocuments();
     }
-  }, [dealId]);
+  }, [dealId, fetchDocuments]);
   
   // Load document versions when a document is selected
   useEffect(() => {
@@ -75,7 +75,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     } else {
       setDocumentVersions([]);
     }
-  }, [selectedDocument]);
+  }, [selectedDocument, fetchDocumentVersions]);
   
   const uploadDocument = async (
     file: File, 
@@ -196,6 +196,18 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     setSelectedDocument(document);
   };
   
+  // Function to manually refresh documents
+  const refreshDocuments = useCallback(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+  
+  // Function to manually refresh versions for a specific document
+  const refreshVersions = useCallback((documentId?: string) => {
+    if (documentId) {
+      fetchDocumentVersions(documentId);
+    }
+  }, [fetchDocumentVersions]);
+  
   return {
     documents,
     isLoading,
@@ -206,6 +218,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
     selectDocument,
     documentVersions,
     loadingVersions,
-    deleteDocumentVersion
+    deleteDocumentVersion,
+    refreshDocuments,
+    refreshVersions
   };
 };

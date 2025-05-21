@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Document, DocumentVersion } from '@/types/deal';
+import { Document, DocumentVersion } from '@/types/documentVersion';
 import { ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DocumentVersionList from './DocumentVersionList';
@@ -21,6 +21,8 @@ interface DocumentListItemProps {
   onSelectVersion?: (version: DocumentVersion) => void;
   onShareVersion?: (version: DocumentVersion) => void;
   isParticipant?: boolean;
+  dealId: string;
+  onVersionsUpdated?: () => void;
 }
 
 const DocumentListItem = ({
@@ -35,7 +37,9 @@ const DocumentListItem = ({
   onDeleteVersion,
   onSelectVersion,
   onShareVersion,
-  isParticipant = false
+  isParticipant = false,
+  dealId,
+  onVersionsUpdated = () => {}
 }: DocumentListItemProps) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -114,6 +118,9 @@ const DocumentListItem = ({
               onShareVersion={onShareVersion}
               userId={userId}
               documentOwnerId={document.uploadedBy || ""}
+              dealId={dealId}
+              documentId={document.id}
+              onVersionsUpdated={onVersionsUpdated}
             />
           )}
         </div>

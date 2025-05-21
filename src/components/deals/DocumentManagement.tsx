@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Document, DocumentVersion } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentList from "./document/DocumentList";
 import DocumentUpload from "./document/DocumentUpload";
 import DeleteDocumentDialog from "./document/DeleteDocumentDialog";
@@ -56,7 +56,9 @@ const DocumentManagement = ({
     selectDocument,
     documentVersions,
     loadingVersions,
-    deleteDocumentVersion
+    deleteDocumentVersion,
+    refreshDocuments,
+    refreshVersions
   } = useDocuments(dealId, initialDocuments);
 
   // Handle document deletion
@@ -150,6 +152,16 @@ const DocumentManagement = ({
   const clearLastUploadedDocument = () => {
     setLastUploadedDocument(null);
   };
+  
+  // Handle versions update
+  const handleVersionsUpdated = useCallback(() => {
+    refreshVersions(selectedDocument?.id);
+  }, [refreshVersions, selectedDocument]);
+  
+  // Handle documents update
+  const handleDocumentsUpdated = useCallback(() => {
+    refreshDocuments();
+  }, [refreshDocuments]);
 
   return (
     <div className="space-y-4">
@@ -171,6 +183,8 @@ const DocumentManagement = ({
             onSelectVersion={handleSelectVersion}
             selectedVersionId={selectedVersionId}
             onShareVersion={handleShareVersion}
+            dealId={dealId}
+            onVersionsUpdated={handleVersionsUpdated}
           />
 
           {/* Document Upload Section */}
@@ -203,6 +217,7 @@ const DocumentManagement = ({
           dealId={dealId}
           selectedDocument={selectedDocument}
           selectedVersionId={selectedVersionId}
+          onVersionsUpdated={handleVersionsUpdated}
         />
       </div>
       
