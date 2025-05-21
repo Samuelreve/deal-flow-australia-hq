@@ -28,6 +28,7 @@ import OnboardingIntentPage from "./pages/OnboardingIntentPage";
 import IntentCapturePage from "./pages/IntentCapturePage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import SharePage from "./pages/SharePage";
+import DocumentsPage from "./pages/DocumentsPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/deals/:id" element={<DealDetails />} />
+                <Route path="/deals/:dealId/documents" element={<DocumentsPage />} />
                 <Route path="/create-deal" element={<CreateDealPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />

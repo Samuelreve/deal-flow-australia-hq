@@ -1,16 +1,11 @@
-
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import DealProgress from "@/components/deals/DealProgress";
-import DealTimeline from "@/components/deals/DealTimeline";
-import DocumentManagement from "@/components/deals/DocumentManagement";
-import MilestoneTracker from "@/components/deals/MilestoneTracker";
-import DealComments from "@/components/deals/DealComments";
-import DealMessaging from "@/components/deals/messages/DealMessaging";
-import DealChatTab from "@/components/deals/chat/DealChatTab";
+import { Link } from "react-router-dom";
 import { Deal } from "@/types/deal";
+import DocumentManagement from "./DocumentManagement";
+import DealMessaging from "./messages/DealMessaging";
+import DealTimeline from "./DealTimeline";
+import DealParticipants from "./DealParticipants";
+import MilestoneTracker from "./milestones/MilestoneTracker";
+import DealHealthPredictionPanel from "./health/DealHealthPredictionPanel";
 
 interface DealTabsProps {
   deal: Deal;
@@ -20,105 +15,91 @@ interface DealTabsProps {
   isParticipant: boolean;
 }
 
-const DealTabs: React.FC<DealTabsProps> = ({ 
+const DealTabs = ({ 
   deal, 
   activeTab, 
-  setActiveTab, 
+  setActiveTab,
   effectiveUserRole,
-  isParticipant 
-}) => {
+  isParticipant
+}: DealTabsProps) => {
+  // Define tabs available to all users
+  const commonTabs = [
+    { id: "overview", label: "Overview" },
+    { id: "documents", label: "Documents" },
+    { id: "messages", label: "Messages" },
+    { id: "timeline", label: "Timeline" }
+  ];
+  
+  // Define tabs only available to participants
+  const participantOnlyTabs = [
+    { id: "milestones", label: "Milestones" },
+    { id: "participants", label: "Participants" }
+  ];
+  
+  // Combine tabs based on user participation
+  const availableTabs = isParticipant 
+    ? [...commonTabs, ...participantOnlyTabs]
+    : commonTabs;
+
   return (
-    <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="mb-4">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="documents">Documents</TabsTrigger>
-        <TabsTrigger value="milestones">Milestones</TabsTrigger>
-        <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        <TabsTrigger value="comments">Comments</TabsTrigger>
-        <TabsTrigger value="messages">Messages</TabsTrigger>
-        <TabsTrigger value="chat-assistant">AI Assistant</TabsTrigger>
-      </TabsList>
+    <div className="mb-6">
+      <div className="border-b">
+        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+          {availableTabs.map((tab) => (
+            <Link
+              key={tab.id}
+              to={tab.id === "documents" ? `/deals/${deal.id}/documents` : "#"}
+              className={`
+                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === tab.id
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}
+              `}
+              onClick={(e) => {
+                if (tab.id !== "documents") {
+                  e.preventDefault();
+                  setActiveTab(tab.id);
+                }
+              }}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
       
-      <TabsContent value="overview">
-        <Card>
-          <CardHeader>
-            <CardTitle>Deal Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DealProgress milestones={deal.milestones} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="documents">
-        <Card>
-          <CardHeader>
-            <CardTitle>Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DocumentManagement
-              dealId={deal.id}
-              initialDocuments={deal.documents}
-              userRole={effectiveUserRole}
-              isParticipant={isParticipant}
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="milestones">
-        <Card>
-          <CardHeader>
-            <CardTitle>Milestones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MilestoneTracker
-              dealId={deal.id}
-              userRole={effectiveUserRole}
-              initialMilestones={deal.milestones}
-              isParticipant={isParticipant}
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="timeline">
-        <Card>
-          <CardHeader>
-            <CardTitle>Timeline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DealTimeline deal={deal} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="comments">
-        <Card>
-          <CardHeader>
-            <CardTitle>Comments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DealComments dealId={deal.id} userRole={effectiveUserRole} isParticipant={isParticipant} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="messages">
-        <Card>
-          <CardHeader>
-            <CardTitle>Messages</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DealMessaging dealId={deal.id} isParticipant={isParticipant} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="chat-assistant">
-        <DealChatTab dealId={deal.id} isParticipant={isParticipant} />
-      </TabsContent>
-    </Tabs>
+      {/* Tab Content */}
+      <div className="py-4">
+        {activeTab === "overview" && (
+          <div>
+            <h3 className="text-lg font-semibold">Deal Overview</h3>
+            <p>A summary of the deal's key information and status.</p>
+          </div>
+        )}
+        
+        {activeTab === "documents" && (
+          <div>
+            {/* The DocumentManagement component is now rendered in the DocumentsPage */}
+          </div>
+        )}
+        
+        {activeTab === "messages" && (
+          <DealMessaging dealId={deal.id} userRole={effectiveUserRole} />
+        )}
+        
+        {activeTab === "timeline" && (
+          <DealTimeline dealId={deal.id} />
+        )}
+        
+        {activeTab === "milestones" && isParticipant && (
+          <MilestoneTracker dealId={deal.id} userRole={effectiveUserRole} />
+        )}
+        
+        {activeTab === "participants" && isParticipant && (
+          <DealParticipants dealId={deal.id} />
+        )}
+      </div>
+    </div>
   );
 };
 
