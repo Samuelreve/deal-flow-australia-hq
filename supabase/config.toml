@@ -1,41 +1,14 @@
 
-# A string used to distinguish different Supabase projects on the same host. Defaults to the
-# working directory name when running `supabase init`.
+# This is an example supabase/config.toml for configuring edge functions
+
 project_id = "wntmgfuclbdrezxcvzmw"
 
-[api]
-enabled = true
-# Port to use for the API URL.
-port = 54321
-schemes = ["http"]
-
-# Email testing server. Emails sent with the local dev setup are not actually delivered, rather
-# they are monitored, and you can view the emails that would have been delivered from the web
-# interface.
-[inbucket]
-enabled = true
-# Port to use for the inbucket API.
-port = 54324
-# Port to use for the inbucket web interface.
-web_port = 54325
-# Port to use for the inbucket SMTP server.
-smtp_port = 54326
-
-[db]
-# Port to use for the local database URL.
-port = 54322
-
-# Port to use for the local Studio URL.
-[studio]
-enabled = true
-port = 54323
-
-# Email testing server. Emails sent with the local dev setup are not actually delivered, rather
-# they are monitored, and you can view the emails that would have been delivered from the web
-# interface.
-[auth]
-enabled = true
-
-[functions]
-[functions.document-version-operations]
+[functions."document-ai-assistant"]
 verify_jwt = true
+
+[functions."text-extractor"]
+verify_jwt = false
+
+[[functions.import_map.imports]]
+name = "std/server"
+path = "https://deno.land/std@0.170.0/http/server.ts"
