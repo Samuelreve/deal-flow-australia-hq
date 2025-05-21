@@ -5,7 +5,9 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentViewerContainer from "@/components/documents/DocumentViewerContainer";
 import DocumentVersionSelector from "./DocumentVersionSelector";
 import DocumentAnalyzerView from "./DocumentAnalyzerView";
-import { Loader2 } from "lucide-react";
+import DocumentVersionComparison from "./DocumentVersionComparison";
+import { Loader2, GitCompare } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DocumentViewerSectionProps {
   selectedVersionUrl: string;
@@ -27,6 +29,7 @@ const DocumentViewerSection = ({
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const documentViewerRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showComparison, setShowComparison] = useState(false);
   
   // Check URL parameters for document analysis
   const analyzeModeActive = searchParams.get("analyze") === "true";
@@ -60,7 +63,7 @@ const DocumentViewerSection = ({
 
   return (
     <div className="lg:col-span-2">
-      {/* Version Selector */}
+      {/* Version Selector & Controls */}
       <div className="mb-4 flex items-center justify-between">
         <DocumentVersionSelector
           versions={documentVersions}
@@ -68,11 +71,25 @@ const DocumentViewerSection = ({
           onSelectVersion={handleVersionSelect}
         />
 
-        {selectedDocument && (
-          <div className="text-sm text-muted-foreground">
-            {selectedDocument.name}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {documentVersions.length > 1 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => setShowComparison(!showComparison)}
+            >
+              <GitCompare className="h-3.5 w-3.5" />
+              {showComparison ? "Hide Comparison" : "Compare Versions"}
+            </Button>
+          )}
+        
+          {selectedDocument && (
+            <div className="text-sm text-muted-foreground">
+              {selectedDocument.name}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Document Analyzer when URL parameters are present */}
@@ -87,8 +104,21 @@ const DocumentViewerSection = ({
         </div>
       )}
       
+      {/* Version Comparison */}
+      {selectedVersionId && showComparison && (
+        <div className="mb-4">
+          <DocumentVersionComparison
+            versions={documentVersions}
+            selectedVersionId={selectedVersionId}
+            dealId={dealId}
+            open={showComparison}
+            onOpenChange={setShowComparison}
+          />
+        </div>
+      )}
+      
       {/* Document Viewer */}
-      <div className="bg-background rounded-lg overflow-hidden border h-[calc(100vh-220px)]">
+      <div className={`bg-background rounded-lg overflow-hidden border ${showComparison ? "h-[calc(100vh-350px)]" : "h-[calc(100vh-220px)]"}`}>
         {selectedVersionUrl ? (
           <DocumentViewerContainer
             ref={documentViewerRef}

@@ -37,6 +37,16 @@ export const versionComparisonService = {
         throw new Error(error.message || "Failed to compare document versions");
       }
       
+      // Provide a default if data is missing or incomplete
+      if (!data || !data.result) {
+        return {
+          additions: [],
+          deletions: [],
+          unchanged: [],
+          differenceSummary: "Unable to generate comparison results."
+        };
+      }
+      
       return data.result as VersionComparisonResult;
     } catch (error) {
       console.error("Error comparing document versions:", error);

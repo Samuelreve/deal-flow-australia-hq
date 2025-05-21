@@ -7,7 +7,8 @@ import {
   Trash2, 
   Share2,
   ArrowDownToLine,
-  History
+  History,
+  GitCompare
 } from "lucide-react";
 import { fileSize } from "@/lib/formatBytes";
 import RestoreVersionButton from "./RestoreVersionButton";
@@ -101,7 +102,7 @@ const DocumentVersionItem = ({
               }}
               title="Compare with another version"
             >
-              <History className="h-4 w-4" />
+              <GitCompare className="h-4 w-4" />
             </Button>
           )}
 
