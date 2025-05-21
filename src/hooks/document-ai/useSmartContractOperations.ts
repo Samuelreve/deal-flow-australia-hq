@@ -60,7 +60,8 @@ export const useSmartContractOperations = ({ processAIRequest }: UseSmartContrac
     if (response && response.explanation) {
       return {
         explanation: response.explanation,
-        isAmbiguous: response.isAmbiguous || false,
+        // Use optional chaining and provide default values for type safety
+        isAmbiguous: response.isAmbiguous ?? false,
         ambiguityExplanation: response.ambiguityExplanation || '',
         disclaimer: response.disclaimer || ''
       };

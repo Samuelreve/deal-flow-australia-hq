@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -34,6 +33,8 @@ export interface AIResponse {
   disclaimer: string;
   success?: boolean;
   error?: string;
+  isAmbiguous?: boolean;
+  ambiguityExplanation?: string;
 }
 
 export interface UseDocumentAIBaseProps {

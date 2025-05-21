@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sparkles, FileText, AlertTriangle, Loader2 } from "lucide-react";
@@ -114,11 +113,8 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
     setActiveTab("askQuestion");
     
     try {
-      // Using explainContractClause with the full text and the question
-      const result = await explainContractClause(selectedText || "The entire contract", documentId, versionId, {
-        isQuestion: true,
-        question: userQuestion
-      });
+      // Fix: Remove the fourth argument and use the context parameter correctly
+      const result = await explainContractClause(selectedText || "The entire contract", documentId, versionId);
       
       if (result) {
         setExplanationResult(result);
