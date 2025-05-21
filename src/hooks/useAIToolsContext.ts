@@ -37,7 +37,14 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           .order('updated_at', { ascending: false })
           .limit(20);
           
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
+        
+        if (!data || !Array.isArray(data)) {
+          setDeals([]);
+          return;
+        }
         
         // Map to DealSummary type with proper field mapping
         const mappedDeals: DealSummary[] = data.map(deal => ({
@@ -62,6 +69,9 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           description: 'Please try again later',
           variant: 'destructive'
         });
+        
+        // Set an empty array to avoid undefined errors
+        setDeals([]);
       } finally {
         setLoadingDeals(false);
       }
@@ -90,7 +100,14 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           .eq('deal_id', selectedDealId)
           .order('created_at', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
+        
+        if (!data || !Array.isArray(data)) {
+          setDocuments([]);
+          return;
+        }
         
         // Map to DocumentSummary
         const mappedDocs: DocumentSummary[] = data.map(doc => ({
@@ -108,6 +125,9 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           description: 'Please try again later',
           variant: 'destructive'
         });
+        
+        // Set an empty array to avoid undefined errors
+        setDocuments([]);
       } finally {
         setLoadingDocs(false);
       }
