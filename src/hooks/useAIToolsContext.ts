@@ -40,7 +40,7 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           .select(`
             id, 
             title, 
-            business_name,
+            business_legal_name,
             status, 
             created_at, 
             updated_at, 
@@ -64,7 +64,7 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
         const mappedDeals: DealSummary[] = data.map(deal => ({
           id: deal.id,
           title: deal.title,
-          businessName: deal.business_name,
+          businessName: deal.business_legal_name || '',
           status: deal.status,
           createdAt: deal.created_at,
           updatedAt: deal.updated_at,
