@@ -31,10 +31,13 @@ export const useDocumentAnalysisOperations = ({ processAIRequest }: UseDocumentA
     
     if (response && response.analysis) {
       return {
-        // Convert the analysis to string if it's not already
-        analysis: typeof response.analysis === 'string' 
-          ? response.analysis 
-          : JSON.stringify(response.analysis),
+        // Convert the analysis to object format as required by the type
+        analysis: {
+          type: analysisType,
+          content: typeof response.analysis === 'string' 
+            ? JSON.parse(response.analysis) 
+            : response.analysis
+        },
         disclaimer: response.disclaimer || ''
       };
     }

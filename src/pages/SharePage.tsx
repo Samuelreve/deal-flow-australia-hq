@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, FileText, Download, AlertCircle, Calendar } from 'lucide-react';
@@ -126,7 +125,7 @@ const SharePage: React.FC = () => {
           <CardContent className="p-0">
             <div className="h-[70vh]">
               <DocumentViewer 
-                documentVersionUrl={documentData.signedUrl} 
+                documentUrl={documentData.signedUrl} 
                 dealId=""  // Using an empty string as this is an external sharing context
                 documentId=""
                 versionId=""

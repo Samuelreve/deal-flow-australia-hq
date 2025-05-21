@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useDocumentAI } from "@/hooks/document-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +99,9 @@ const DocumentViewerSection: React.FC<DocumentViewerSectionProps> = ({
             <DocumentViewer 
               documentUrl={selectedVersionUrl} 
               onTextSelection={handleTextSelection}
+              dealId={dealId}
+              documentId={selectedDocument?.id}
+              versionId={selectedVersionId}
             />
           ) : (
             <div className="border rounded-md p-8 text-center text-muted-foreground">

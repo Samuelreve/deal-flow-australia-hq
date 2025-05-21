@@ -23,7 +23,7 @@ const AIDrivenDocumentViewer: React.FC<AIDrivenDocumentViewerProps> = ({
   return (
     <div className="h-full">
       <DocumentViewer 
-        documentVersionUrl={documentVersion.url}
+        documentUrl={documentVersion.url}
         dealId={dealId}
         documentId={documentVersion.documentId}
         versionId={documentVersion.id}

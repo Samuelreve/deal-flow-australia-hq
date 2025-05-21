@@ -5,6 +5,9 @@ import DocumentViewerContainer from './DocumentViewerContainer';
 // Define props for the DocumentViewer component
 interface DocumentViewerProps {
   documentUrl: string; // The secure URL of the document file
+  dealId?: string; // The ID of the deal (optional)
+  documentId?: string; // The ID of the document (optional)
+  versionId?: string; // The ID of the version (optional)
   onTextSelection?: (text: string | null) => void; // Callback for selected text
 }
 
@@ -15,7 +18,7 @@ export interface DocumentViewerRef {
 
 // This component is now a thin wrapper around DocumentViewerContainer that exposes the ref
 const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>((props, ref) => {
-  const { onTextSelection } = props;
+  const { documentUrl, onTextSelection, dealId = "", documentId = "", versionId = "" } = props;
 
   // Handle text selection
   const handleTextSelection = useCallback((text: string | null) => {
@@ -26,7 +29,10 @@ const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>((props
 
   // Create enhanced props with the text selection handler
   const enhancedProps = {
-    ...props,
+    documentVersionUrl: documentUrl, // Map documentUrl to documentVersionUrl expected by container
+    dealId,
+    documentId,
+    versionId,
     onTextSelected: handleTextSelection
   };
 
