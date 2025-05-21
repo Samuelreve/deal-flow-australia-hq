@@ -54,8 +54,10 @@ const DocumentAnalysisResults: React.FC<DocumentAnalysisResultsProps> = ({
     );
   };
   
-  const renderFinancialSummary = (content: any) => {
-    if (!content) return <p>No financial summary available.</p>;
+  const renderLegalCompliance = (content: any) => {
+    if (!content || !content.considerations) {
+      return <p>No compliance considerations identified.</p>;
+    }
     
     return (
       <div className="space-y-4">
@@ -66,33 +68,25 @@ const DocumentAnalysisResults: React.FC<DocumentAnalysisResultsProps> = ({
           </div>
         )}
         
-        {content.risks && content.risks.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Identified Risks</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              {content.risks.map((risk: string, index: number) => (
-                <li key={index} className="text-sm">{risk}</li>
-              ))}
-            </ul>
+        <div>
+          <h4 className="font-medium mb-2">Compliance Considerations</h4>
+          <div className="space-y-3">
+            {content.considerations.map((item: any, index: number) => (
+              <div key={index} className="border-b pb-2">
+                <h5 className="font-medium">{item.area}</h5>
+                <p className="text-sm text-muted-foreground">{item.explanation}</p>
+              </div>
+            ))}
           </div>
-        )}
-        
-        {content.opportunities && content.opportunities.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Opportunities</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              {content.opportunities.map((opportunity: string, index: number) => (
-                <li key={index} className="text-sm">{opportunity}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
   
-  const renderGeneralAnalysis = (content: any) => {
-    if (!content) return <p>No analysis available.</p>;
+  const renderObligations = (content: any) => {
+    if (!content || !content.obligations) {
+      return <p>No obligations identified.</p>;
+    }
     
     return (
       <div className="space-y-4">
@@ -103,16 +97,68 @@ const DocumentAnalysisResults: React.FC<DocumentAnalysisResultsProps> = ({
           </div>
         )}
         
-        {content.key_points && content.key_points.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-2">Obligations & Commitments</h4>
+          <div className="space-y-3">
+            {content.obligations.map((item: any, index: number) => (
+              <div key={index} className="border-b pb-2">
+                <div className="flex justify-between">
+                  <h5 className="font-medium">{item.party}</h5>
+                  {item.deadline && (
+                    <span className="text-sm text-blue-600">{item.deadline}</span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">{item.obligation}</p>
+                {item.section && (
+                  <p className="text-xs text-muted-foreground mt-1">Section: {item.section}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  const renderFinancialTerms = (content: any) => {
+    if (!content || !content.terms) {
+      return <p>No financial terms identified.</p>;
+    }
+    
+    return (
+      <div className="space-y-4">
+        {content.summary && (
           <div>
-            <h4 className="font-medium mb-2">Key Points</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              {content.key_points.map((point: string, index: number) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
+            <h4 className="font-medium mb-2">Summary</h4>
+            <p>{content.summary}</p>
           </div>
         )}
+        
+        <div>
+          <h4 className="font-medium mb-2">Financial Terms</h4>
+          <div className="space-y-3">
+            {content.terms.map((item: any, index: number) => (
+              <div key={index} className="border-b pb-2">
+                <h5 className="font-medium">{item.category}</h5>
+                <p className="text-sm text-muted-foreground">{item.description}</p>
+                {item.amount && (
+                  <p className="text-sm font-medium text-green-600 mt-1">{item.amount}</p>
+                )}
+                {item.section && (
+                  <p className="text-xs text-muted-foreground mt-1">Section: {item.section}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  const renderSummarizeContract = (content: any) => {
+    return (
+      <div className="prose prose-sm max-w-none">
+        <p className="whitespace-pre-wrap">{content.summary}</p>
       </div>
     );
   };
@@ -125,11 +171,23 @@ const DocumentAnalysisResults: React.FC<DocumentAnalysisResultsProps> = ({
         return renderKeyClauses(content);
       case 'risk_identification':
         return renderRisks(content);
-      case 'financial_summary':
-        return renderFinancialSummary(content);
-      case 'general':
+      case 'legal_compliance':
+        return renderLegalCompliance(content);
+      case 'obligations_analysis':
+        return renderObligations(content);
+      case 'financial_terms':
+        return renderFinancialTerms(content);
+      case 'summarize_contract':
+        return renderSummarizeContract(content);
       default:
-        return renderGeneralAnalysis(content);
+        // For other analysis types, render a generic view
+        return (
+          <div>
+            <pre className="text-sm bg-gray-50 p-4 rounded overflow-auto max-h-96">
+              {JSON.stringify(content, null, 2)}
+            </pre>
+          </div>
+        );
     }
   };
 
