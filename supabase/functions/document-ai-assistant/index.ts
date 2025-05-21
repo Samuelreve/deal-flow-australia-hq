@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import OpenAI from "https://esm.sh/openai@4.0.0";
@@ -12,7 +11,7 @@ import { handleExplainMilestone } from "./operations/explain-milestone.ts";
 import { handleSuggestNextAction } from "./operations/suggest-next-action.ts";
 import { handleDealSummary } from "./operations/deal-summary.ts";
 import { handleGenerateMilestones } from "./operations/generate-milestones.ts";
-import { handleDealChat } from "./operations/deal-chat.ts";
+import { handleDealChatQuery } from "./operations/deal-chat-query.ts";
 import { handlePredictDealHealth } from "./operations/predict-deal-health.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
@@ -154,7 +153,7 @@ serve(async (req) => {
         if (!dealId || !content) {
           throw new Error("Missing required parameters for deal_chat: dealId, content");
         }
-        result = await handleDealChat(dealId, content, openai, supabase);
+        result = await handleDealChatQuery(dealId, content, openai, supabase);
         break;
         
       case 'predict_deal_health':
