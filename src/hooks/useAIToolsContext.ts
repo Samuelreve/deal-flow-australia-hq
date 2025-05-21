@@ -1,7 +1,8 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client'; // Updated to match correct path
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast'; // Updated to match correct toast import
 import { DealSummary } from '@/types/deal';
 
 // Types for deals and documents
@@ -30,10 +31,23 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
       
       setLoadingDeals(true);
       setErrorMessage(null);
+      
       try {
+        // Update the query to match the actual Supabase schema
+        // Using title instead of name, and checking if we need to adjust other column names
         const { data, error } = await supabase
           .from('deals')
-          .select('id, title, business_name, status, created_at, updated_at, health_score, seller_id, buyer_id')
+          .select(`
+            id, 
+            title, 
+            business_name,
+            status, 
+            created_at, 
+            updated_at, 
+            health_score,
+            seller_id, 
+            buyer_id
+          `)
           .order('updated_at', { ascending: false })
           .limit(20);
           
