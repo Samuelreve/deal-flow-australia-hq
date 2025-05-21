@@ -1,63 +1,79 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-function getSupabaseAdmin() {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
-
 /**
- * Fetch document content from Supabase Storage
+ * Fetch document content from storage
  */
-export async function fetchDocumentContent(dealId: string, documentId: string, documentVersionId: string) {
-  // Get Supabase admin client
-  const supabaseAdmin = getSupabaseAdmin();
+export async function fetchDocumentContent(
+  dealId: string,
+  documentId: string,
+  documentVersionId: string
+) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase credentials not available");
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   try {
-    // First, get the storage path for the document version
-    const { data: versionData, error: versionError } = await supabaseAdmin
+    // Get document version details
+    const { data: version, error: versionError } = await supabase
       .from('document_versions')
-      .select('storage_path, document_id')
+      .select('text_content, file_path')
       .eq('id', documentVersionId)
       .eq('document_id', documentId)
       .single();
-    
-    if (versionError || !versionData) {
-      throw new Error(`Error fetching document version: ${versionError?.message || "Version not found"}`);
+      
+    if (versionError) {
+      throw versionError;
     }
     
-    // Verify this document belongs to the specified deal
-    const { data: documentData, error: documentError } = await supabaseAdmin
-      .from('documents')
-      .select('deal_id')
-      .eq('id', documentId)
-      .single();
-    
-    if (documentError || !documentData) {
-      throw new Error(`Error fetching document: ${documentError?.message || "Document not found"}`);
+    if (!version) {
+      throw new Error("Document version not found");
     }
     
-    if (documentData.deal_id !== dealId) {
-      throw new Error("Document does not belong to specified deal");
+    // If text content is available directly, use it
+    if (version.text_content) {
+      return version.text_content;
     }
     
-    // Now download the file from storage
-    const storagePath = `${dealId}/${versionData.storage_path}`;
-    const { data: fileData, error: fileError } = await supabaseAdmin.storage
-      .from('deal-documents')
-      .download(storagePath);
-    
-    if (fileError || !fileData) {
-      throw new Error(`Error downloading document from storage: ${fileError?.message}`);
+    // Otherwise, fetch from storage
+    if (version.file_path) {
+      // Get the document to find the bucket
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .select('storage_bucket')
+        .eq('id', documentId)
+        .single();
+        
+      if (docError) {
+        throw docError;
+      }
+      
+      if (!document || !document.storage_bucket) {
+        throw new Error("Document or storage bucket not found");
+      }
+      
+      // Download file
+      const { data: fileData, error: fileError } = await supabase
+        .storage
+        .from(document.storage_bucket)
+        .download(version.file_path);
+        
+      if (fileError) {
+        throw fileError;
+      }
+      
+      // Convert to text
+      const text = await fileData.text();
+      return text;
     }
     
-    // Convert Blob to text
-    const text = await fileData.text();
-    return text;
+    throw new Error("No content available for document");
   } catch (error) {
-    console.error(`Error in fetchDocumentContent for deal ${dealId}, document ${documentId}:`, error);
+    console.error("Error fetching document content:", error);
     throw error;
   }
 }

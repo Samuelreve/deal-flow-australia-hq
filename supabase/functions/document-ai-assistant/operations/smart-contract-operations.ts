@@ -1,21 +1,21 @@
 
-import { handleExplainClause } from "./explain-clause.ts";
 import { fetchDocumentContent } from "./document-content.ts";
 
 /**
- * Handle request to summarize a smart contract
+ * Handles the contract summary operation
  */
 export async function handleSummarizeContract(
   dealId: string,
   documentId: string,
   documentVersionId: string,
+  userId: string,
   openai: any
 ) {
   if (!documentId || !documentVersionId) {
     throw new Error("Document ID and version ID are required for contract summarization");
   }
 
-  // Fetch document content from storage
+  // Fetch document content
   let documentContent;
   try {
     documentContent = await fetchDocumentContent(dealId, documentId, documentVersionId);
@@ -25,81 +25,86 @@ export async function handleSummarizeContract(
   }
 
   if (!documentContent || documentContent.trim() === "") {
-    throw new Error("No document content available for analysis");
+    throw new Error("No document content available for summarization");
   }
 
-  // Limit content length for API efficiency
-  const maxContentLength = 12000; // Approximate token limit for GPT models
-  const trimmedContent = documentContent.length > maxContentLength 
-    ? documentContent.substring(0, maxContentLength) + "... [content truncated due to length]" 
-    : documentContent;
-
-  // Construct the prompt for contract summary
-  const prompt = `Analyze the following legal contract and provide a comprehensive summary. Focus on:
-  
-  1. Identifying the parties involved
-  2. The main purpose of the contract 
-  3. Key obligations for each party
-  4. Important dates and deadlines
-  5. Any significant conditions or contingencies
-  6. Termination conditions
-  7. Governing law
-  
-  Respond with a well-structured summary that would be helpful for a business person reviewing this contract.
-  
-  Contract Content:
-  ${trimmedContent}`;
-
-  // Call OpenAI for contract summary
+  // Summarize with OpenAI
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini", // Using a more efficient model
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: "You are a legal assistant specializing in contract analysis. Provide clear, accurate summaries focusing on key business and legal aspects without giving legal advice."
+        content: "You are a contract analysis assistant specialized in providing clear, accurate summaries of legal documents. Your summaries are concise but capture all key points. Use plain language where possible but maintain accuracy for technical terms."
       },
       {
         role: "user",
-        content: prompt
+        content: `Please provide a comprehensive summary of the following contract document. Identify the main parties, key provisions, obligations, rights, timeframes, and any notable conditions or clauses:\n\n${documentContent.substring(0, 12000)}`
       }
     ],
-    temperature: 0.3, // Lower temperature for more factual analysis
-    max_tokens: 1500  // Adjust based on desired summary length
+    temperature: 0.3,
+    max_tokens: 1500
   });
 
   return {
     summary: response.choices[0].message.content,
-    disclaimer: "This contract summary is AI-generated and provided for informational purposes only. It is not legal advice and should be reviewed by qualified legal professionals before making decisions."
+    disclaimer: "This summary is AI-generated and provided for informational purposes only. It should not be considered legal advice or a substitute for reading the full document."
   };
 }
 
 /**
- * Handle request to explain a specific clause from a contract
+ * Handles the contract clause explanation operation
  */
 export async function handleExplainContractClause(
+  dealId: string, 
+  userId: string,
   clauseText: string,
-  documentId: string,
-  documentVersionId: string,
-  dealId: string,
   openai: any
 ) {
   if (!clauseText || clauseText.trim() === "") {
-    throw new Error("Clause text is required for explanation");
+    throw new Error("No clause text provided for explanation");
   }
-  
-  // We can leverage the existing explain clause function
-  // But customize the prompt for contract-specific explanation
-  const customPrompt = `You are a legal assistant specialized in contract analysis. 
-  Explain the following contract clause in plain language that a business person without legal training can understand.
-  Identify any potential issues, ambiguities, or important implications of this clause.
-  
-  Contract Clause:
-  ${clauseText}`;
 
-  const result = await handleExplainClause(clauseText, customPrompt, openai);
-  
+  // Analyze if the clause is ambiguous
+  const ambiguityAnalysisResponse = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a contract analysis assistant specialized in identifying ambiguity in legal clauses. Analyze the provided clause text and determine if it contains ambiguous language, inconsistencies, or vague terms that could lead to different interpretations."
+      },
+      {
+        role: "user",
+        content: `Analyze the following contract clause for ambiguity. Respond with JSON containing 'isAmbiguous' (boolean) and 'ambiguityExplanation' (string explaining why it's ambiguous, if applicable):\n\n${clauseText}`
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.2
+  });
+
+  // Parse ambiguity analysis
+  const ambiguityAnalysis = JSON.parse(ambiguityAnalysisResponse.choices[0].message.content);
+
+  // Get explanation for the clause
+  const explanationResponse = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a contract analysis assistant specialized in explaining legal clauses in clear, simple language. Provide explanations that are accurate but accessible to non-lawyers."
+      },
+      {
+        role: "user",
+        content: `Please explain the following contract clause in plain language, addressing its meaning, implications, and purpose:\n\n${clauseText}`
+      }
+    ],
+    temperature: 0.3,
+    max_tokens: 500
+  });
+
   return {
-    ...result,
-    disclaimer: "This explanation is AI-generated and provided for informational purposes only. It is not legal advice and should be reviewed by qualified legal professionals before making decisions."
+    explanation: explanationResponse.choices[0].message.content,
+    isAmbiguous: ambiguityAnalysis.isAmbiguous,
+    ambiguityExplanation: ambiguityAnalysis.ambiguityExplanation || "",
+    disclaimer: "This explanation is AI-generated and provided for informational purposes only. It should not be considered legal advice."
   };
 }

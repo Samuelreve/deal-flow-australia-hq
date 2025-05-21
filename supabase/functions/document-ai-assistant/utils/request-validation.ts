@@ -1,49 +1,79 @@
 
+import { RequestValidationResult } from "../types.ts";
+
 /**
- * Validate the request body for the document-ai-assistant endpoint
+ * Validates the request body for required fields
  */
-export function validateRequest(body: any) {
+export function validateRequest(body: any): RequestValidationResult {
   if (!body) {
-    throw new Error("Missing required fields: request body is empty");
-  }
-  
-  const { operation, dealId, userId } = body;
-  
-  if (!operation || !dealId || !userId) {
-    throw new Error("Missing required fields: operation, dealId, userId");
+    throw new Error("Missing request body");
   }
 
-  // Optional fields with defaults
-  const content = body.content || "";
-  const documentId = body.documentId || null;
-  const documentVersionId = body.documentVersionId || null;
-  const milestoneId = body.milestoneId || null;
-  const context = body.context || {};
-  
-  // Additional validations based on operation type
-  if (operation === "explain_clause" && !content) {
-    throw new Error("Missing required fields: content is required for explain_clause operation");
-  }
-  
-  if (operation === "explain_milestone" && !milestoneId) {
-    throw new Error("Missing required fields: milestoneId is required for explain_milestone operation");
-  }
-  
-  if (operation === "summarize_document" && (!documentId || !documentVersionId)) {
-    throw new Error("Missing required fields: documentId and documentVersionId are required for summarize_document operation");
-  }
-  
-  if (operation === "analyze_document" && (!documentId || !documentVersionId || !context.analysisType)) {
-    throw new Error("Missing required fields: documentId, documentVersionId, and analysisType are required for analyze_document operation");
+  const {
+    operation,
+    dealId,
+    userId,
+    content = "",
+    documentId = "",
+    documentVersionId = "",
+    milestoneId = "",
+    context = {}
+  } = body;
+
+  // Check for required fields
+  if (!operation) {
+    throw new Error("Missing required fields: operation");
   }
 
-  if (operation === "summarize_contract" && (!documentId || !documentVersionId)) {
-    throw new Error("Missing required fields: documentId and documentVersionId are required for summarize_contract operation");
+  if (!userId) {
+    throw new Error("Missing required fields: userId");
   }
 
-  if (operation === "explain_contract_clause" && (!content || !documentId || !documentVersionId)) {
-    throw new Error("Missing required fields: content, documentId, and documentVersionId are required for explain_contract_clause operation");
+  // Different operations have different required fields
+  switch (operation) {
+    case "explain_clause":
+      if (!content) {
+        throw new Error("Missing required fields for explain_clause: content");
+      }
+      break;
+
+    case "analyze_document":
+    case "summarize_contract":
+      if (!documentId || !documentVersionId) {
+        throw new Error(`Missing required fields for ${operation}: documentId, documentVersionId`);
+      }
+      break;
+
+    case "explain_milestone":
+      if (!milestoneId) {
+        throw new Error("Missing required fields for explain_milestone: milestoneId");
+      }
+      break;
+
+    case "suggest_next_action":
+    case "summarize_deal":
+    case "generate_milestones":
+    case "predict_deal_health":
+      if (!dealId) {
+        throw new Error(`Missing required fields for ${operation}: dealId`);
+      }
+      break;
+
+    case "deal_chat_query":
+      if (!dealId || !content) {
+        throw new Error("Missing required fields for deal_chat_query: dealId, content");
+      }
+      break;
   }
-  
-  return { operation, dealId, userId, content, documentId, documentVersionId, milestoneId, context };
+
+  return {
+    operation,
+    dealId,
+    userId,
+    content,
+    documentId,
+    documentVersionId,
+    milestoneId,
+    context
+  };
 }

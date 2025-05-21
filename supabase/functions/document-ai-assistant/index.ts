@@ -140,7 +140,7 @@ serve(async (req) => {
         if (!dealId) {
           throw new Error("Missing required parameter for summarize_deal: dealId");
         }
-        result = await handleDealSummary(dealId, openai, supabase);
+        result = await handleDealSummary(dealId, openai);
         break;
         
       case 'generate_milestones':
