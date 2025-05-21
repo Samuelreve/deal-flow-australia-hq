@@ -6,7 +6,7 @@ import DocumentUploadForm from "./DocumentUploadForm";
 import SmartTemplateButton from "./SmartTemplateButton";
 
 interface DocumentUploadProps {
-  onUpload: (file: File, category: string, documentId?: string) => Promise<void>;
+  onUpload: (file: File, category: string, documentId?: string) => Promise<Document | null>;
   uploading: boolean;
   userRole?: string;
   isParticipant?: boolean;
@@ -17,7 +17,7 @@ interface DocumentUploadProps {
     userRole: string | null;
   };
   dealStatus?: string | null;
-  dealId: string; // Add dealId prop for the SmartTemplateButton
+  dealId: string;
 }
 
 const DocumentUpload = ({ 
@@ -52,6 +52,11 @@ const DocumentUpload = ({
     }
     return null;
   }
+  
+  // Wrapper for the onUpload function to handle the Document return type
+  const handleUpload = async (file: File, category: string, documentId?: string) => {
+    return await onUpload(file, category, documentId);
+  };
 
   return (
     <div className="border-t pt-4 mt-4">
@@ -59,7 +64,7 @@ const DocumentUpload = ({
       
       <div className="flex items-center gap-3 mb-4">
         <DocumentUploadForm 
-          onUpload={onUpload}
+          onUpload={handleUpload}
           uploading={uploading}
           documents={documents}
         />

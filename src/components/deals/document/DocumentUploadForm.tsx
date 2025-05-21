@@ -1,25 +1,21 @@
 
-import { Document } from "@/types/deal";
-import { Button } from "@/components/ui/button";
-import { useDocumentUpload } from "@/hooks/useDocumentUpload";
-
-// Define document categories
-const documentCategories = [
-  'NDA',
-  'Financial',
-  'Legal', 
-  'Operational',
-  'Marketing',
-  'Other'
-];
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { Document } from '@/types/deal';
+import { Button } from '@/components/ui/button';
+import { Upload, Loader } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 
 interface DocumentUploadFormProps {
   onUpload: (file: File, category: string, documentId?: string) => Promise<void>;
   uploading: boolean;
-  documents: Document[];
+  documents?: Document[];
 }
 
-const DocumentUploadForm = ({ onUpload, uploading, documents }: DocumentUploadFormProps) => {
+const DocumentUploadForm = ({ 
+  onUpload, 
+  uploading, 
+  documents = [] 
+}: DocumentUploadFormProps) => {
   const {
     selectedFile,
     selectedCategory,
@@ -33,94 +29,102 @@ const DocumentUploadForm = ({ onUpload, uploading, documents }: DocumentUploadFo
     handleUploadClick,
     isUploadDisabled
   } = useDocumentUpload({ onUpload, uploading, documents });
-
+  
+  const documentCategories = [
+    "Contract",
+    "Agreement",
+    "Financial Statement",
+    "Legal Document",
+    "Business Plan",
+    "Due Diligence",
+    "Other"
+  ];
+  
   return (
-    <>
-      {/* Upload Type Selection */}
-      <div className="mb-3">
-        <label htmlFor="upload-type" className="block text-sm font-medium text-gray-700 mb-1">
-          Upload Type
-        </label>
-        <select
-          id="upload-type"
-          value={uploadType}
-          onChange={handleUploadTypeChange}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          disabled={uploading}
-        >
-          <option value="new">New Document</option>
-          <option value="version" disabled={documents.length === 0}>New Version of Existing Document</option>
-        </select>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3">
+        <div>
+          <select 
+            className="w-full border rounded p-2 text-sm"
+            onChange={handleUploadTypeChange}
+            value={uploadType}
+          >
+            <option value="new">Upload New Document</option>
+            <option value="version" disabled={documents.length === 0}>
+              Add Version to Existing Document
+            </option>
+          </select>
+        </div>
+        
+        {uploadType === 'version' && (
+          <div>
+            <select 
+              className="w-full border rounded p-2 text-sm"
+              onChange={handleDocumentChange}
+              value={selectedDocumentId}
+              disabled={documents.length === 0}
+            >
+              <option value="">Select Document</option>
+              {documents.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {uploadType === 'new' && (
+          <div>
+            <select 
+              className="w-full border rounded p-2 text-sm"
+              onChange={handleCategoryChange}
+              value={selectedCategory}
+            >
+              <option value="">Select Category</option>
+              {documentCategories.map((category) => (
+                <option key={category} value={category.toLowerCase()}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        <div className="flex items-center space-x-2">
+          <input 
+            type="file" 
+            id="document-file" 
+            className="w-full text-sm" 
+            onChange={handleFileChange}
+          />
+          
+          <Button
+            onClick={handleUploadClick}
+            disabled={isUploadDisabled}
+            size="sm"
+          >
+            {uploading ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {uploadError && (
+          <Alert variant="destructive">
+            <p className="text-xs">{uploadError}</p>
+          </Alert>
+        )}
       </div>
-      
-      {/* Document Selection (for new versions) */}
-      {uploadType === 'version' && (
-        <div className="mb-3">
-          <label htmlFor="document-select" className="block text-sm font-medium text-gray-700 mb-1">
-            Select Document
-          </label>
-          <select
-            id="document-select"
-            value={selectedDocumentId}
-            onChange={handleDocumentChange}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-            disabled={uploading}
-          >
-            <option value="">-- Select a Document --</option>
-            {documents.map(doc => (
-              <option key={doc.id} value={doc.id}>{doc.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      
-      {/* Category Selection (for new documents) */}
-      {uploadType === 'new' && (
-        <div className="mb-3">
-          <label htmlFor="document-category" className="block text-sm font-medium text-gray-700 mb-1">
-            Document Category
-          </label>
-          <select
-            id="document-category"
-            value={selectedCategory}
-            onChange={handleCategoryChange}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-            disabled={uploading}
-          >
-            <option value="">-- Select a Category --</option>
-            {documentCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      
-      {/* File Selection */}
-      <input
-        type="file"
-        onChange={handleFileChange}
-        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 mb-3"
-        disabled={uploading}
-      />
-
-      {selectedFile && (
-        <p className="text-sm text-muted-foreground mb-3">
-          Selected file: <span className="font-medium">{selectedFile.name}</span>
-        </p>
-      )}
-
-      {uploadError && (
-        <p className="text-sm text-red-600 mb-3">{uploadError}</p>
-      )}
-
-      <Button
-        onClick={handleUploadClick}
-        disabled={isUploadDisabled}
-        className="mt-2"
-      >
-        {uploading ? 'Uploading...' : uploadType === 'new' ? 'Upload Document' : 'Upload New Version'}
-      </Button>
-    </>
+    </div>
   );
 };
 

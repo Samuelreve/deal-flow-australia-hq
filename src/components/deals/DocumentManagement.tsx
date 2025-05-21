@@ -9,6 +9,7 @@ import DeleteVersionDialog from "./document/DeleteVersionDialog";
 import DocumentViewerSection from "./document/DocumentViewerSection";
 import { useDocuments } from "@/hooks/useDocuments";
 import ShareDocumentDialog from "./document/ShareDocumentDialog";
+import InlineDocumentAnalyzer from "./document/InlineDocumentAnalyzer";
 
 // Define props for the DocumentManagement component
 interface DocumentManagementProps {
@@ -37,6 +38,13 @@ const DocumentManagement = ({
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [versionToShare, setVersionToShare] = useState<DocumentVersion | null>(null);
+  
+  // Track the last uploaded document for inline analysis
+  const [lastUploadedDocument, setLastUploadedDocument] = useState<{
+    id: string;
+    versionId: string;
+    name: string;
+  } | null>(null);
 
   const { 
     documents, 
@@ -99,7 +107,16 @@ const DocumentManagement = ({
 
   // Handle document upload with category and optional documentId
   const handleUpload = async (file: File, category: string, documentId?: string) => {
-    await uploadDocument(file, category, documentId);
+    const uploadedDoc = await uploadDocument(file, category, documentId);
+    
+    // If upload was successful, set the last uploaded document info for inline analysis
+    if (uploadedDoc) {
+      setLastUploadedDocument({
+        id: uploadedDoc.id,
+        versionId: uploadedDoc.latest_version_id || '',
+        name: uploadedDoc.name || file.name
+      });
+    }
   };
 
   // Handle selecting a version for viewing
@@ -119,6 +136,11 @@ const DocumentManagement = ({
   const closeShareDialog = () => {
     setShowShareDialog(false);
     setVersionToShare(null);
+  };
+  
+  // Clear the last uploaded document info
+  const clearLastUploadedDocument = () => {
+    setLastUploadedDocument(null);
   };
 
   return (
@@ -152,6 +174,18 @@ const DocumentManagement = ({
             documents={documents}
             dealId={dealId}
           />
+          
+          {/* Inline Document Analyzer for the last uploaded document */}
+          {lastUploadedDocument && (
+            <InlineDocumentAnalyzer
+              documentId={lastUploadedDocument.id}
+              versionId={lastUploadedDocument.versionId}
+              documentName={lastUploadedDocument.name}
+              dealId={dealId}
+              userRole={userRole}
+              onClose={clearLastUploadedDocument}
+            />
+          )}
         </div>
         
         {/* Document Viewer Section */}
