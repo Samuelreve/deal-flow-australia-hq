@@ -1,118 +1,83 @@
-
 import React, { useState } from 'react';
+import { toast } from "@/components/ui/use-toast";
+import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
-import { useDocumentOperations } from "@/hooks/document-operations/useDocumentOperations";
-import TemplateSelectionModal from "./TemplateSelectionModal";
-import GeneratedDocumentReview from "./GeneratedDocumentReview";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SmartTemplateButtonProps {
-  dealId: string;
-  onDocumentSaved: () => void;
-  userRole?: string;
+  requirements: string;
 }
 
-const SmartTemplateButton: React.FC<SmartTemplateButtonProps> = ({ 
-  dealId, 
-  onDocumentSaved,
-  userRole = 'user'
-}) => {
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [generatedText, setGeneratedText] = useState<string>('');
-  const [isSaving, setIsSaving] = useState(false);
-  
+const SmartTemplateButton = ({ requirements }: SmartTemplateButtonProps) => {
+  const [generatedTemplate, setGeneratedTemplate] = useState<string>('');
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { generateTemplate } = useDocumentAI({ dealId: '' });
   const { toast } = useToast();
-  const { generateTemplate, loading: isGenerating } = useDocumentAI({ dealId });
-  const { saveGeneratedTemplate } = useDocumentOperations(dealId);
-  
-  // Check if user role allows template generation
-  const canGenerateTemplates = ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
-  
-  if (!canGenerateTemplates) {
-    return null;
-  }
-  
-  const handleGenerateTemplate = async (templateType: string, requirements: string) => {
-    try {
-      const result = await generateTemplate(requirements, templateType);
-      if (result?.template) {
-        setGeneratedText(result.template);
-        setShowTemplateModal(false);
-        setShowReviewModal(true);
-      } else {
-        toast({
-          title: "Template Generation Failed",
-          description: "Could not generate the template. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Template generation error:", error);
+
+  const handleGenerateTemplate = async () => {
+    if (!requirements || requirements.trim() === '') {
       toast({
-        title: "Template Generation Failed",
-        description: error.message || "An error occurred while generating the template.",
-        variant: "destructive",
+        title: "Error",
+        description: "Please provide template requirements",
+        variant: "destructive"
       });
+      return;
     }
-  };
-  
-  const handleSaveDocument = async (text: string, filename: string, category: string) => {
-    setIsSaving(true);
+    
+    setGenerating(true);
+    setError(null);
+    
     try {
-      // Use the document operations hook to save the template
-      await saveGeneratedTemplate(text, filename, category);
+      // Fix: Pass only 1 argument as expected
+      const result = await generateTemplate(requirements);
       
+      if (result?.template) {
+        setGeneratedTemplate(result.template);
+        setShowReviewDialog(true);
+      } else {
+        throw new Error("Failed to generate template");
+      }
+    } catch (err: any) {
+      console.error("Error generating template:", err);
+      setError(err.message || "An error occurred while generating the template");
       toast({
-        title: "Document Saved",
-        description: `${filename} has been saved successfully.`,
-      });
-      
-      setShowReviewModal(false);
-      setGeneratedText('');
-      
-      // Notify parent component to refresh document list
-      onDocumentSaved();
-      
-    } catch (error: any) {
-      console.error("Save document error:", error);
-      toast({
-        title: "Save Failed",
-        description: error.message || "Failed to save the document.",
-        variant: "destructive",
+        title: "Generation Failed",
+        description: err.message || "Failed to generate template",
+        variant: "destructive"
       });
     } finally {
-      setIsSaving(false);
+      setGenerating(false);
     }
   };
-  
+
   return (
     <>
-      <Button 
-        variant="outline" 
-        onClick={() => setShowTemplateModal(true)}
-        className="gap-2"
-      >
-        <FileText className="h-4 w-4" />
-        Generate Template
+      <Button onClick={handleGenerateTemplate} disabled={generating}>
+        {generating ? "Generating..." : "Generate Template"}
       </Button>
-      
-      <TemplateSelectionModal
-        open={showTemplateModal}
-        onClose={() => setShowTemplateModal(false)}
-        onGenerateTemplate={handleGenerateTemplate}
-        isGenerating={isGenerating}
-      />
-      
-      <GeneratedDocumentReview
-        open={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
-        initialText={generatedText}
-        isSaving={isSaving}
-        onSave={handleSaveDocument}
-      />
+
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Review Generated Template</DialogTitle>
+            <DialogDescription>
+              Review the generated template and make any necessary adjustments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Textarea
+                value={generatedTemplate}
+                readOnly
+                className="col-span-4"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
