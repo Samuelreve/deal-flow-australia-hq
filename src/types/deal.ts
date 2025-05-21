@@ -1,4 +1,3 @@
-
 import { User, UserRole } from "@/types/auth";
 
 // Define milestone status
@@ -105,8 +104,8 @@ export interface DealSummary {
   id: string;
   title: string;
   status: DealStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date;  // This expects a Date object, not a string
+  updatedAt: Date;  // This expects a Date object, not a string
   healthScore: number;
   nextMilestone?: string;
   nextAction?: string;

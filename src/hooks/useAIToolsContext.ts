@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Updated to match correct path
+import { supabase } from '@/integrations/supabase/client'; 
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast'; // Updated to match correct toast import
+import { toast } from '@/components/ui/use-toast'; 
 import { DealSummary } from '@/types/deal';
 
 // Types for deals and documents
@@ -34,7 +34,6 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
       
       try {
         // Update the query to match the actual Supabase schema
-        // Using title instead of name, and checking if we need to adjust other column names
         const { data, error } = await supabase
           .from('deals')
           .select(`
@@ -60,14 +59,14 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           return;
         }
         
-        // Map to DealSummary type with proper field mapping
+        // Convert string dates to Date objects to match DealSummary type
         const mappedDeals: DealSummary[] = data.map(deal => ({
           id: deal.id,
           title: deal.title,
           businessName: deal.business_legal_name || '',
           status: deal.status,
-          createdAt: deal.created_at,
-          updatedAt: deal.updated_at,
+          createdAt: new Date(deal.created_at),  // Convert string to Date
+          updatedAt: new Date(deal.updated_at),  // Convert string to Date
           healthScore: deal.health_score,
           sellerId: deal.seller_id,
           buyerId: deal.buyer_id || '',
