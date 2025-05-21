@@ -28,5 +28,31 @@ export const versionContentService = {
       console.error("Error fetching document content:", error);
       return null;
     }
+  },
+  
+  /**
+   * Compare two versions of a document
+   */
+  async compareVersions(currentVersionId: string, previousVersionId: string, dealId: string) {
+    try {
+      // Call edge function to compare versions
+      const { data, error } = await supabase.functions.invoke('document-version-comparison', {
+        body: { 
+          currentVersionId,
+          previousVersionId,
+          dealId
+        }
+      });
+      
+      if (error) {
+        console.error("Error comparing document versions:", error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error comparing document versions:", error);
+      return null;
+    }
   }
 };

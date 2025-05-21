@@ -4,7 +4,8 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentList from "./DocumentList";
 import DocumentUpload from "./DocumentUpload";
 import InlineDocumentAnalyzer from "./InlineDocumentAnalyzer";
-import { adaptDocumentsToDealType } from "@/utils/documentTypeAdapter";
+import { adaptDocumentsToDealType, adaptDocumentToDealType } from "@/utils/documentTypeAdapter";
+import { Document as DealDocument } from "@/types/deal";
 
 interface DocumentSidebarProps {
   documents: Document[];
@@ -55,6 +56,18 @@ const DocumentSidebar = ({
   lastUploadedDocument,
   onCloseAnalyzer
 }: DocumentSidebarProps) => {
+  // Convert Document from documentVersion type to deal type for the DocumentUpload component
+  const adaptedDocuments: DealDocument[] = adaptDocumentsToDealType(documents);
+  
+  // Create an adapter function for onUpload to handle type conversion
+  const handleUpload = async (file: File, category: string, documentId?: string): Promise<DealDocument | null> => {
+    const result = await onUpload(file, category, documentId);
+    if (result) {
+      return adaptDocumentToDealType(result);
+    }
+    return null;
+  };
+
   return (
     <div className="lg:col-span-1">
       {/* Document List */}
@@ -79,11 +92,11 @@ const DocumentSidebar = ({
 
       {/* Document Upload Section */}
       <DocumentUpload 
-        onUpload={onUpload}
+        onUpload={handleUpload}
         uploading={uploading}
         userRole={userRole}
         isParticipant={isParticipant}
-        documents={adaptDocumentsToDealType(documents)}
+        documents={adaptedDocuments}
         dealId={dealId}
       />
       
