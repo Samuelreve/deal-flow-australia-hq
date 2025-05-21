@@ -1,5 +1,5 @@
 
-import { Document, DocumentVersion } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import { documentService } from "@/services/documentService";
 import { useDocumentOperationsBase } from "./useDocumentOperationsBase";
 
@@ -30,9 +30,8 @@ export const useDocumentDelete = (
       const success = await documentService.deleteDocument(document, dealId, user.id);
       
       if (success && notifyDocumentsChange) {
-        const updateDocuments = (prevDocuments: Document[]) => 
-          prevDocuments.filter(doc => doc.id !== document.id);
-        notifyDocumentsChange(updateDocuments([]));
+        const updatedDocuments = await documentService.getDocuments(dealId);
+        notifyDocumentsChange(updatedDocuments);
         
         showSuccessToast(
           "Document deleted",
@@ -56,22 +55,19 @@ export const useDocumentDelete = (
     }
     
     try {
-      // Pass the version object directly instead of just its ID
-      // This aligns with the updated documentService.deleteDocumentVersion signature
+      // Delete the version
       const success = await documentService.deleteDocumentVersion(
         version,
         dealId, 
         user.id,
-        version.documentId, 
         version.documentId
       );
       
       if (success) {
         // Inform parent component that versions have been updated
         if (onVersionsChange) {
-          const updateVersions = (prevVersions: DocumentVersion[]) => 
-            prevVersions.filter(v => v.id !== version.id);
-          onVersionsChange(updateVersions([]));
+          const updatedVersions = await documentService.getDocumentVersions(dealId, version.documentId);
+          onVersionsChange(updatedVersions);
         }
         
         // Refresh documents to get updated latest_version_id

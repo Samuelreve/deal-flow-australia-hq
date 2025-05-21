@@ -1,8 +1,8 @@
 
 import { useState } from "react";
-import { Document } from "@/types/deal";
+import { Document } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 /**
  * Base hook with common functionality for document operations
@@ -13,6 +13,7 @@ export const useDocumentOperationsBase = (
 ) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
   
   /**
    * Helper to show success toast
@@ -42,6 +43,7 @@ export const useDocumentOperationsBase = (
     uploading,
     setUploading,
     onDocumentsChange,
+    toast,
     showSuccessToast,
     showErrorToast
   };

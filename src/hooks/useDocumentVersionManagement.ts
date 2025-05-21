@@ -36,7 +36,7 @@ export const useDocumentVersionManagement = (
 
     setIsLoading(true);
     try {
-      const result = await versionTaggingService.addVersionTag(tag, versionId, user.id);
+      const result = await versionTaggingService.addVersionTag(tag, versionId);
       
       if (result) {
         toast({
@@ -78,7 +78,7 @@ export const useDocumentVersionManagement = (
 
     setIsLoading(true);
     try {
-      const success = await versionTaggingService.removeVersionTag(tagId, versionId, user.id);
+      const success = await versionTaggingService.removeVersionTag(tagId, versionId);
       
       if (success) {
         toast({
@@ -125,8 +125,7 @@ export const useDocumentVersionManagement = (
     try {
       const result = await versionAnnotationService.addVersionAnnotation(
         annotationContent,
-        versionId,
-        user.id
+        versionId
       );
       
       if (result) {

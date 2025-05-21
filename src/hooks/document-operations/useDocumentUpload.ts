@@ -1,16 +1,22 @@
 
 import { useState } from "react";
-import { Document } from "@/types/deal";
+import { Document } from "@/types/documentVersion";
 import { documentService } from "@/services/documentService";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useDocumentOperationsBase } from "./useDocumentOperationsBase";
 
 export const useDocumentUpload = (
   dealId: string,
   onDocumentsChange?: (documents: Document[]) => void
 ) => {
-  const [uploading, setUploading] = useState(false);
-  const { toast } = useToast();
+  const { 
+    user, 
+    uploading, 
+    setUploading, 
+    onDocumentsChange: notifyDocumentsChange,
+    showSuccessToast,
+    showErrorToast
+  } = useDocumentOperationsBase(dealId, onDocumentsChange);
 
   /**
    * Upload a document to the deal
@@ -20,15 +26,15 @@ export const useDocumentUpload = (
     category: string, 
     documentId?: string
   ): Promise<Document | null> => {
+    if (!user) {
+      showErrorToast({
+        message: "Authentication required to upload documents."
+      });
+      return null;
+    }
+    
     setUploading(true);
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("Authentication required");
-      }
-      
       // Upload document
       const document = await documentService.uploadDocument(
         file, 
@@ -39,25 +45,20 @@ export const useDocumentUpload = (
       );
       
       // Notify parent component of document change
-      if (onDocumentsChange) {
+      if (notifyDocumentsChange) {
         // Fetch updated documents list
         const updatedDocuments = await documentService.getDocuments(dealId);
-        onDocumentsChange(updatedDocuments);
+        notifyDocumentsChange(updatedDocuments);
       }
       
-      toast({
-        title: documentId ? "Version added" : "Document uploaded",
-        description: `${file.name} has been successfully uploaded.`
-      });
+      showSuccessToast(
+        documentId ? "Version added" : "Document uploaded",
+        `${file.name} has been successfully uploaded.`
+      );
       
       return document;
     } catch (error: any) {
-      console.error("Document upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      showErrorToast(error);
       return null;
     } finally {
       setUploading(false);

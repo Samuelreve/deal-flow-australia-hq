@@ -1,5 +1,5 @@
 
-import { Document, DocumentVersion } from "@/types/deal";
+import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useDocumentUpload } from "./useDocumentUpload";
 import { useDocumentDelete } from "./useDocumentDelete";
 import { useDocumentOperationsBase } from "./useDocumentOperationsBase";

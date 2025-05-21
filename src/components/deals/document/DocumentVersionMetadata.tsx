@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { DocumentVersion, Document } from "@/types/documentVersion";
+import { DocumentVersion } from "@/types/documentVersion";
 import { useDocumentVersionManagement } from "@/hooks/useDocumentVersionManagement";
 import { format } from "date-fns";
 import { fileSize } from "@/lib/formatBytes";
