@@ -12,7 +12,7 @@ export const adaptDocumentToDealType = (doc: VersionDocument): DealDocument => {
     name: doc.name,
     url: doc.latestVersion?.url || "",
     uploadedBy: doc.uploadedBy || "",
-    uploadedAt: doc.createdAt || new Date(),
+    uploadedAt: new Date(doc.createdAt || new Date()),
     size: doc.latestVersion?.size || 0,
     type: doc.type || "",
     status: "draft",
