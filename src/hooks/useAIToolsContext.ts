@@ -2,19 +2,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { DealSummary } from '@/types/deal';
 
 // Types for deals and documents
-export interface DealSummary {
-  id: string;
-  title: string;
-  business_name: string;
-  status: string;
-}
-
 export interface DocumentSummary {
   id: string;
   name: string;
-  versionId: string; 
+  latestVersionId?: string;
 }
 
 export function useAIToolsContext(isOpen: boolean, userId: string) {
@@ -23,10 +17,11 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
   const [loadingDocs, setLoadingDocs] = useState(false);
-  const [selectedDealId, setSelectedDealId] = useState<string>('');
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
-  const [selectedVersionId, setSelectedVersionId] = useState<string>('');
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [clauseText, setClauseText] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch deals when modal opens
   useEffect(() => {
@@ -34,17 +29,34 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
       if (!isOpen || !userId) return;
       
       setLoadingDeals(true);
+      setErrorMessage(null);
       try {
         const { data, error } = await supabase
           .from('deals')
-          .select('id, title, business_name, status')
+          .select('id, title, business_name, status, created_at, updated_at, health_score, seller_id, buyer_id')
           .order('updated_at', { ascending: false })
           .limit(20);
           
         if (error) throw error;
-        setDeals(data as DealSummary[]);
-      } catch (error) {
+        
+        // Map to DealSummary type with proper field mapping
+        const mappedDeals: DealSummary[] = data.map(deal => ({
+          id: deal.id,
+          title: deal.title,
+          businessName: deal.business_name,
+          status: deal.status,
+          createdAt: deal.created_at,
+          updatedAt: deal.updated_at,
+          healthScore: deal.health_score,
+          sellerId: deal.seller_id,
+          buyerId: deal.buyer_id || '',
+          // Add additional fields if required by DealSummary
+        }));
+        
+        setDeals(mappedDeals);
+      } catch (error: any) {
         console.error('Error fetching deals:', error);
+        setErrorMessage('Failed to load deals. Please try again later.');
         toast({
           title: 'Failed to load deals',
           description: 'Please try again later',
@@ -73,23 +85,24 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
           .select(`
             id,
             name,
-            document_versions (id, version_number)
+            latest_version_id
           `)
           .eq('deal_id', selectedDealId)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
         
-        // Map to format we need with latest version ID
-        const docsWithVersions = (data || []).map(doc => ({
+        // Map to DocumentSummary
+        const mappedDocs: DocumentSummary[] = data.map(doc => ({
           id: doc.id,
           name: doc.name,
-          versionId: doc.document_versions?.[0]?.id || ''
-        })).filter(doc => doc.versionId);
+          latestVersionId: doc.latest_version_id
+        })).filter(doc => doc.latestVersionId);
         
-        setDocuments(docsWithVersions);
-      } catch (error) {
+        setDocuments(mappedDocs);
+      } catch (error: any) {
         console.error('Error fetching documents:', error);
+        setErrorMessage('Failed to load documents. Please try again later.');
         toast({
           title: 'Failed to load documents',
           description: 'Please try again later',
@@ -108,10 +121,11 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedDealId('');
-      setSelectedDocumentId('');
-      setSelectedVersionId('');
+      setSelectedDealId(null);
+      setSelectedDocumentId(null);
+      setSelectedVersionId(null);
       setClauseText('');
+      setErrorMessage(null);
     }
   }, [isOpen]);
 
@@ -120,6 +134,7 @@ export function useAIToolsContext(isOpen: boolean, userId: string) {
     documents,
     loadingDeals,
     loadingDocs,
+    errorMessage,
     selectedDealId,
     setSelectedDealId,
     selectedDocumentId,

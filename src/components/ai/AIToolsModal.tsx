@@ -40,6 +40,7 @@ const AIToolsModal: React.FC<AIToolsModalProps> = ({ isOpen, onClose }) => {
     documents,
     loadingDeals,
     loadingDocs,
+    errorMessage,
     selectedDealId,
     setSelectedDealId,
     selectedDocumentId,
@@ -55,7 +56,7 @@ const AIToolsModal: React.FC<AIToolsModalProps> = ({ isOpen, onClose }) => {
     aiError,
     aiResult,
     runAI
-  } = useAITools({ dealId: selectedDealId, documentId: selectedDocumentId });
+  } = useAITools({ dealId: selectedDealId || '', documentId: selectedDocumentId || '' });
   
   // Handle selecting an AI operation
   const handleSelectOperation = (operation: string) => {
@@ -67,19 +68,6 @@ const AIToolsModal: React.FC<AIToolsModalProps> = ({ isOpen, onClose }) => {
   const handleBackToMain = () => {
     setActiveOperation('');
     setActiveTab('deals');
-  };
-
-  // Handle selecting a deal
-  const handleDealSelect = (dealId: string) => {
-    setSelectedDealId(dealId);
-    setSelectedDocumentId('');
-    setSelectedVersionId('');
-  };
-
-  // Handle selecting a document
-  const handleDocumentSelect = (docId: string, versionId: string) => {
-    setSelectedDocumentId(docId);
-    setSelectedVersionId(versionId);
   };
 
   // Handle running the AI operation
@@ -120,25 +108,26 @@ const AIToolsModal: React.FC<AIToolsModalProps> = ({ isOpen, onClose }) => {
           deals={deals}
           loadingDeals={loadingDeals}
           selectedDealId={selectedDealId}
-          onDealSelect={handleDealSelect}
-          aiLoading={aiLoading}
+          setSelectedDealId={setSelectedDealId}
+          errorMessage={errorMessage}
           onRunAI={handleRunAI}
+          isLoading={aiLoading}
           activeOperation={activeOperation}
-          activeTab={activeTab}
-          onNextTab={() => setActiveTab('documents')}
         />
         
         <DocumentSelectionTab 
           documents={documents}
-          loadingDocs={loadingDocs}
-          selectedDealId={selectedDealId}
+          loadingDocuments={loadingDocs}
           selectedDocumentId={selectedDocumentId}
-          onDocumentSelect={handleDocumentSelect}
-          activeOperation={activeOperation}
-          aiLoading={aiLoading}
+          setSelectedDocumentId={setSelectedDocumentId}
+          selectedVersionId={selectedVersionId}
+          setSelectedVersionId={setSelectedVersionId}
+          selectedText={clauseText}
+          setSelectedText={setClauseText}
+          errorMessage={errorMessage}
           onRunAI={handleRunAI}
-          clauseText={clauseText}
-          onClauseTextChange={setClauseText}
+          isLoading={aiLoading}
+          activeOperation={activeOperation}
         />
         
         <AIResultDisplay 
