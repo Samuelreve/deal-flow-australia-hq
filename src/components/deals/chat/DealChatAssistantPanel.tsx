@@ -3,12 +3,11 @@ import React, { useState, useRef, useEffect } from "react";
 import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
 import { ChatMessage, DealChatResponse } from "@/hooks/document-ai/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { SendIcon, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from 'uuid';
 
 interface DealChatAssistantPanelProps {
   dealId: string;
@@ -21,9 +20,10 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
 }) => {
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
-    sender: "ai",
+    id: uuidv4(),
+    role: "assistant",
     content: "Hello! I'm your Deal Assistant. Ask me any questions about this deal, and I'll help you find information based on the deal data.",
-    timestamp: new Date()
+    timestamp: Date.now()
   }]);
   
   const { dealChatQuery, loading } = useDocumentAI({ dealId });
@@ -48,9 +48,10 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
     }
 
     const newUserMessage: ChatMessage = { 
-      sender: 'user', 
+      id: uuidv4(),
+      role: 'user', 
       content: userQuestion.trim(),
-      timestamp: new Date()
+      timestamp: Date.now()
     };
     
     setChatMessages(prev => [...prev, newUserMessage]);
@@ -65,24 +66,27 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
         const answer = (result as DealChatResponse).answer;
         
         const newAiMessage: ChatMessage = { 
-          sender: 'ai', 
+          id: uuidv4(),
+          role: 'assistant', 
           content: answer,
-          timestamp: new Date()
+          timestamp: Date.now()
         };
         setChatMessages(prev => [...prev, newAiMessage]);
       } else {
         setChatMessages(prev => [...prev, { 
-          sender: 'ai', 
+          id: uuidv4(),
+          role: 'assistant', 
           content: "I'm sorry, I couldn't process your question. Please try asking in a different way.",
-          timestamp: new Date()
+          timestamp: Date.now()
         }]);
       }
     } catch (error) {
       console.error('Deal chat query failed:', error);
       setChatMessages(prev => [...prev, { 
-        sender: 'ai', 
+        id: uuidv4(),
+        role: 'assistant', 
         content: 'Sorry, I encountered an error while processing your question. Please try again later.',
-        timestamp: new Date()
+        timestamp: Date.now()
       }]);
       
       toast({
@@ -102,10 +106,10 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
             key={idx} 
             className={cn(
               "flex items-start gap-2 animate-fadeIn",
-              msg.sender === 'user' ? "justify-end" : "justify-start"
+              msg.role === 'user' ? "justify-end" : "justify-start"
             )}
           >
-            {msg.sender === 'ai' && (
+            {msg.role === 'assistant' && (
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                 <Bot size={16} />
               </div>
@@ -114,7 +118,7 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
             <div 
               className={cn(
                 "rounded-lg p-3 max-w-[80%]",
-                msg.sender === 'user' 
+                msg.role === 'user' 
                   ? "bg-primary text-primary-foreground" 
                   : "bg-muted"
               )}
@@ -122,12 +126,12 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
               <div className="whitespace-pre-line text-sm">{msg.content}</div>
               {msg.timestamp && (
                 <div className="text-xs opacity-70 mt-1">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               )}
             </div>
             
-            {msg.sender === 'user' && (
+            {msg.role === 'user' && (
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                 <span className="text-sm font-medium">You</span>
               </div>
@@ -159,7 +163,10 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
             size="icon" 
             disabled={loading || !userQuestion.trim() || !isParticipant}
           >
-            <SendIcon size={18} />
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z"/>
+              <path d="M22 2 11 13"/>
+            </svg>
           </Button>
         </div>
         

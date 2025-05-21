@@ -47,7 +47,11 @@ export interface DealHealthPredictionResponse {
   probability_of_success_percentage?: number;
   confidence_level?: string;
   prediction_reasoning?: string;
-  suggested_improvements?: string[];
+  suggested_improvements?: {
+    area: string;
+    recommendation: string;
+    impact: "High" | "Medium" | "Low";
+  }[];
 }
 
 export interface DealSummaryResponse {

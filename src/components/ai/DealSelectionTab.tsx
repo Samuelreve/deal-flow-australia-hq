@@ -1,93 +1,100 @@
 
-import React from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DealSummary } from '@/hooks/useAIToolsContext'; 
+import { TabsContent } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { DealSummary } from '@/types/deal';
 
 interface DealSelectionTabProps {
   deals: DealSummary[];
+  selectedDealId: string | null;
+  setSelectedDealId: (dealId: string) => void;
   loadingDeals: boolean;
-  selectedDealId: string;
-  onDealSelect: (id: string) => void;
-  aiLoading: boolean;
+  errorMessage: string | null;
   onRunAI: () => void;
+  isLoading: boolean;
   activeOperation: string;
-  activeTab: string;
-  onNextTab: () => void;
 }
 
 const DealSelectionTab: React.FC<DealSelectionTabProps> = ({
   deals,
-  loadingDeals,
   selectedDealId,
-  onDealSelect,
-  aiLoading,
+  setSelectedDealId,
+  loadingDeals,
+  errorMessage,
   onRunAI,
-  activeOperation,
-  activeTab,
-  onNextTab
+  isLoading,
+  activeOperation
 }) => {
-  // Determine if this is a document-specific operation
-  const isDocumentOperation = ['summarize_document', 'explain_clause', 'summarize_contract', 'explain_contract_clause'].includes(activeOperation);
-  
-  // Determine button text based on operation
-  const getButtonText = () => {
-    if (activeOperation === 'summarize_deal') return 'Run AI Analysis';
-    if (activeOperation === 'predict_deal_health') return 'Run AI Analysis';
-    return '';
+  // Format operation specific button text
+  const getOperationButtonText = () => {
+    switch (activeOperation) {
+      case 'summarize_deal':
+        return 'Generate Deal Summary';
+      case 'predict_deal_health':
+        return 'Predict Deal Health';
+      case 'deal_chat_query':
+        return 'Ask Question';
+      default:
+        return 'Run Analysis';
+    }
   };
 
   return (
-    <TabsContent value="deals">
-      <div className="space-y-4 py-2">
-        <div>
-          <Label htmlFor="deal">Select a deal</Label>
-          <Select 
-            value={selectedDealId} 
-            onValueChange={(value) => onDealSelect(value)}
-            disabled={loadingDeals || aiLoading}
+    <TabsContent value="deals" className="flex flex-col space-y-4">
+      {loadingDeals ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading deals...</span>
+        </div>
+      ) : errorMessage ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <p className="mt-2 text-sm text-destructive">{errorMessage}</p>
+        </div>
+      ) : deals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm text-muted-foreground">No deals found</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Create a deal first to use AI analysis tools.
+          </p>
+        </div>
+      ) : (
+        <>
+          <Select
+            value={selectedDealId || ""}
+            onValueChange={setSelectedDealId}
+            disabled={isLoading}
           >
-            <SelectTrigger id="deal">
-              <SelectValue placeholder="Select deal..." />
+            <SelectTrigger>
+              <SelectValue placeholder="Select a deal" />
             </SelectTrigger>
             <SelectContent>
               {deals.map((deal) => (
                 <SelectItem key={deal.id} value={deal.id}>
-                  {deal.title} ({deal.status})
+                  {deal.title || deal.businessName || "Untitled Deal"}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {loadingDeals && <p className="text-sm text-muted-foreground mt-2">Loading deals...</p>}
-        </div>
-
-        {activeTab === 'deals' && isDocumentOperation && (
-          <Button 
-            onClick={onNextTab}
-            disabled={!selectedDealId}
-          >
-            Next: Select Document
-          </Button>
-        )}
-
-        {(activeOperation === 'summarize_deal' || activeOperation === 'predict_deal_health') && (
-          <Button 
+          
+          <Button
             onClick={onRunAI}
-            disabled={!selectedDealId || aiLoading}
+            disabled={!selectedDealId || isLoading}
+            className="w-full"
           >
-            {aiLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              getButtonText()
-            )}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {getOperationButtonText()}
           </Button>
-        )}
-      </div>
+        </>
+      )}
     </TabsContent>
   );
 };
