@@ -113,7 +113,7 @@ const DocumentManagement = ({
     if (uploadedDoc) {
       setLastUploadedDocument({
         id: uploadedDoc.id,
-        versionId: uploadedDoc.latest_version_id || '',
+        versionId: uploadedDoc.latestVersionId || '',
         name: uploadedDoc.name || file.name
       });
     }

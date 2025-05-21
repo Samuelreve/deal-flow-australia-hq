@@ -163,7 +163,7 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
       
       toast({
         title: "Version Deleted",
-        description: `Version ${version.version_number} has been deleted successfully.`
+        description: `Version ${version.versionNumber} has been deleted successfully.`
       });
       
       return true;

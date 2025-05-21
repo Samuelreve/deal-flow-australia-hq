@@ -6,7 +6,7 @@ import { Upload, Loader } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 
 interface DocumentUploadFormProps {
-  onUpload: (file: File, category: string, documentId?: string) => Promise<void>;
+  onUpload: (file: File, category: string, documentId?: string) => Promise<Document | null>;
   uploading: boolean;
   documents?: Document[];
 }

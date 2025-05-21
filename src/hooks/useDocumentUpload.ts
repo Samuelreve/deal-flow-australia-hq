@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Document } from "@/types/deal";
 
 interface UseDocumentUploadProps {
-  onUpload: (file: File, category: string, documentId?: string) => Promise<void>;
+  onUpload: (file: File, category: string, documentId?: string) => Promise<Document | null>;
   uploading: boolean;
   documents: Document[];
 }
@@ -60,20 +60,23 @@ export const useDocumentUpload = ({ onUpload, uploading, documents }: UseDocumen
     
     try {
       // For new documents, pass category; for versions, pass existing document ID
+      let result: Document | null;
       if (uploadType === 'new') {
-        await onUpload(selectedFile, selectedCategory);
+        result = await onUpload(selectedFile, selectedCategory);
       } else {
-        await onUpload(selectedFile, '', selectedDocumentId);
+        result = await onUpload(selectedFile, '', selectedDocumentId);
       }
       
       // Clear form after successful upload
-      setSelectedFile(null);
-      setSelectedCategory("");
-      setSelectedDocumentId("");
+      if (result) {
+        setSelectedFile(null);
+        setSelectedCategory("");
+        setSelectedDocumentId("");
       
-      // Clear file input
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+        // Clear file input
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      }
     } catch (error: any) {
       setUploadError(error.message || 'File upload failed');
     }
