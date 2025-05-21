@@ -65,9 +65,8 @@ export const useDocumentOperations = (
 
   const deleteDocument = useCallback(async (document: Document): Promise<boolean> => {
     try {
-      // Fix: Pass the complete document object instead of just the ID
       await documentService.deleteDocument(
-        document, 
+        document as any, 
         dealId, 
         user?.id || ''
       );
