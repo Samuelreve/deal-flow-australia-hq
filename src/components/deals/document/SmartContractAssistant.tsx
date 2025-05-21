@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Sparkles, FileText, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDocumentAI } from "@/hooks/document-ai";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLocation } from 'react-router-dom';
 
 interface SmartContractAssistantProps {
   dealId: string;
@@ -29,12 +30,27 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
   const [summaryResult, setSummaryResult] = useState<any>(null);
   const [explanationResult, setExplanationResult] = useState<any>(null);
   const [disclaimer, setDisclaimer] = useState<string>('');
+  const location = useLocation();
   
   const {
     summarizeContract,
     explainContractClause,
     loading: isAnalyzing,
   } = useDocumentAI({ dealId, documentId });
+
+  // Check URL search params for auto-analysis flag
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldAnalyze = searchParams.get('analyze') === 'true';
+    const docId = searchParams.get('docId');
+    const versionId = searchParams.get('versionId');
+    
+    if (shouldAnalyze && docId === documentId && versionId) {
+      // Auto-open the dialog and start analysis
+      setIsDialogOpen(true);
+      handleSummarize();
+    }
+  }, [location.search, documentId]);
 
   // Check if user role allows contract analysis
   const canAnalyzeContracts = ['admin', 'seller', 'buyer', 'lawyer'].includes(userRole.toLowerCase());

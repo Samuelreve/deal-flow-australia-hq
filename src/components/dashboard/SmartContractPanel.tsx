@@ -22,31 +22,56 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // If we're on the homepage and no dealId is provided, ask user to select a deal
-    if (!dealId) {
-      // Navigate to the deals page where they can select a specific deal
-      toast({
-        title: "Select a deal first",
-        description: "Please select a deal to upload your contract to.",
-      });
-      navigate('/deals');
-      return;
-    }
-    
     try {
       setIsUploading(true);
       
-      // Upload the document with "contract" category
-      const result = await uploadDocument(file, dealId, "contract");
-      
-      if (result) {
-        toast({
-          title: "Contract uploaded",
-          description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
+      if (!dealId) {
+        // When on homepage, upload directly by creating a temporary deal
+        // First create a temp deal via the API
+        const tempDealName = `Contract Analysis: ${file.name}`;
+        const response = await fetch('/api/deals/create-temp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: tempDealName,
+            description: 'Auto-generated for contract analysis',
+            type: 'analysis'
+          }),
         });
         
-        // Navigate to the document view with a flag to open the analyzer
-        navigate(`/deals/${dealId}/documents?analyze=true&docId=${result.document.id}&versionId=${result.version.id}`);
+        if (!response.ok) {
+          throw new Error("Failed to create temporary deal");
+        }
+        
+        const { dealId: newDealId } = await response.json();
+        
+        // Upload the document with "contract" category to the new deal
+        const result = await uploadDocument(file, newDealId, "contract");
+        
+        if (result) {
+          toast({
+            title: "Contract uploaded",
+            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
+          });
+          
+          // Navigate to the document view with a flag to open the analyzer
+          navigate(`/deals/${newDealId}/documents?analyze=true&docId=${result.document.id}&versionId=${result.version.id}`);
+        }
+      } else {
+        // If dealId exists, proceed normally
+        const result = await uploadDocument(file, dealId, "contract");
+        
+        if (result) {
+          toast({
+            title: "Contract uploaded",
+            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
+          });
+          
+          // Navigate to the document view with a flag to open the analyzer
+          navigate(`/deals/${dealId}/documents?analyze=true&docId=${result.document.id}&versionId=${result.version.id}`);
+        }
       }
     } catch (error: any) {
       toast({
@@ -96,43 +121,29 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
           </div>
           
           <div className="flex flex-col gap-2">
-            {dealId ? (
-              // If a specific deal is selected (on dashboard)
-              <div className="relative">
-                <Button 
-                  variant="outline" 
-                  className="w-full relative overflow-hidden" 
-                  disabled={isUploading || !user}
-                >
-                  <label 
-                    htmlFor="contract-upload" 
-                    className="absolute inset-0 cursor-pointer flex items-center justify-center"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {isUploading ? "Uploading..." : "Upload a Contract"}
-                  </label>
-                </Button>
-                <input 
-                  type="file" 
-                  id="contract-upload" 
-                  className="hidden" 
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.txt"
-                  disabled={isUploading || !user}
-                />
-              </div>
-            ) : (
-              // If no deal is selected (on homepage)
+            <div className="relative">
               <Button 
                 variant="outline" 
-                onClick={navigateToDeals}
-                className="w-full"
-                disabled={!user}
+                className="w-full relative overflow-hidden" 
+                disabled={isUploading || !user}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload a Contract
+                <label 
+                  htmlFor="contract-upload" 
+                  className="absolute inset-0 cursor-pointer flex items-center justify-center"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? "Uploading..." : "Upload a Contract"}
+                </label>
               </Button>
-            )}
+              <input 
+                type="file" 
+                id="contract-upload" 
+                className="hidden" 
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx,.txt"
+                disabled={isUploading || !user}
+              />
+            </div>
             
             <Button 
               variant="default" 
