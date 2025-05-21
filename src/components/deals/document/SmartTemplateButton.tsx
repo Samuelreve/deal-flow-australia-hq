@@ -15,12 +15,14 @@ export interface SmartTemplateButtonProps {
 const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: SmartTemplateButtonProps) => {
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
-  const { generateSmartTemplate } = useDocumentAI({ dealId, documentId });
+  // Fix: Use generateTemplate instead of generateSmartTemplate
+  const { generateTemplate } = useDocumentAI({ dealId, documentId });
 
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await generateSmartTemplate();
+      // Fix: Pass the requirements as a string parameter to generateTemplate
+      await generateTemplate("Generate contract template based on deal data");
       toast({
         title: "Contract template generated",
         description: "A new contract has been created based on deal data",

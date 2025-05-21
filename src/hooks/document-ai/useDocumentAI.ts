@@ -1,4 +1,3 @@
-
 import { useDocumentAIBase, UseDocumentAIBaseProps } from './useDocumentAIBase';
 import { useExplanationOperations } from './useExplanationOperations';
 import { useDocumentGenerationOperations } from './useDocumentGenerationOperations';
@@ -32,6 +31,7 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
   // Get document generation operations
   const { 
     generateTemplate,
+    generateSmartTemplate,
     summarizeDocument,
     summarizeVersionChanges
   } = useDocumentGenerationOperations({ processAIRequest });
@@ -170,6 +170,7 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     
     // Document generation operations
     generateTemplate,
+    generateSmartTemplate,
     summarizeDocument,
     summarizeVersionChanges,
     

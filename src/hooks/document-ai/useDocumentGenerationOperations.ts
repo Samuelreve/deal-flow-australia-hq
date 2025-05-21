@@ -19,6 +19,17 @@ export const useDocumentGenerationOperations = ({ processAIRequest }: UseDocumen
   };
 
   /**
+   * Generate a smart contract template based on deal data
+   * This is an alias for generateTemplate with a specific context
+   */
+  const generateSmartTemplate = async () => {
+    return await processAIRequest('generate_template', {
+      content: 'Generate smart contract template based on deal data',
+      context: { isSmartTemplate: true }
+    });
+  };
+
+  /**
    * Summarize a document
    */
   const summarizeDocument = async (documentId: string, documentVersionId: string) => {
@@ -47,6 +58,7 @@ export const useDocumentGenerationOperations = ({ processAIRequest }: UseDocumen
 
   return {
     generateTemplate,
+    generateSmartTemplate,
     summarizeDocument,
     summarizeVersionChanges
   };
