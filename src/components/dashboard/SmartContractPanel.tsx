@@ -30,9 +30,8 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         // When on homepage, create a temporary deal first
         const tempDealName = `Contract Analysis: ${file.name}`;
         
-        toast({
-          title: "Creating temporary deal...",
-          description: "Please wait while we prepare everything for your contract analysis.",
+        toast.info("Creating temporary deal...", {
+          description: "Please wait while we prepare everything for your contract analysis."
         });
         
         // Get auth session for the function call
@@ -91,9 +90,8 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         const result = await uploadDocument(file, newDealId, "contract");
         
         if (result) {
-          toast({
-            title: "Contract uploaded",
-            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
+          toast.success("Contract uploaded", {
+            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant."
           });
           
           // Navigate to the document view with a flag to open the analyzer
@@ -104,9 +102,8 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
         const result = await uploadDocument(file, dealId, "contract");
         
         if (result) {
-          toast({
-            title: "Contract uploaded",
-            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant.",
+          toast.success("Contract uploaded", {
+            description: "Your contract has been uploaded successfully. You can now use the Smart Contract Assistant."
           });
           
           // Navigate to the document view with a flag to open the analyzer
@@ -115,10 +112,8 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
       }
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload contract. Please try again later.",
-        variant: "destructive"
+      toast.error("Upload failed", {
+        description: error.message || "Failed to upload contract. Please try again later."
       });
     } finally {
       setIsUploading(false);
