@@ -4,11 +4,10 @@ import {
   FileText, 
   FileImage, 
   FileSpreadsheet,
-  FilePdf,
+  File, 
   FileCode,
   FileArchive,
-  FileDigit,
-  File 
+  FileDigit 
 } from 'lucide-react';
 
 /**
@@ -18,7 +17,7 @@ export const getFileIconByType = (fileType: string) => {
   const type = fileType.toLowerCase();
   
   if (type.includes('pdf')) {
-    return FilePdf;
+    return FileText; // Using FileText for PDF files since FilePdf doesn't exist
   }
   
   if (type.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].some(ext => type.includes(ext))) {
