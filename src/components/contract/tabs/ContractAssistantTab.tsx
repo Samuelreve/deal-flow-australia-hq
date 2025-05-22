@@ -10,16 +10,18 @@ import { toast } from 'sonner';
 interface ContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<{ answer: string; sources?: string[] } | string>;
   questionHistory?: Array<{question: string, answer: string}>;
+  isProcessing?: boolean;
 }
 
 const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ 
   onAskQuestion,
-  questionHistory = []
+  questionHistory = [],
+  isProcessing = false
 }) => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<Array<{question: string, answer: string}>>(questionHistory);
 
   const handleAskQuestion = async () => {
@@ -28,7 +30,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
       return;
     }
     
-    setIsLoading(true);
+    setLoading(true);
     setAnswer(null);
     setSources([]);
     
@@ -50,7 +52,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
       toast.error("Failed to process your question");
       console.error("Error processing question:", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -73,12 +75,12 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
               placeholder="e.g., What is the duration of this agreement?"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAskQuestion()}
-              disabled={isLoading}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && !isProcessing && handleAskQuestion()}
+              disabled={loading || isProcessing}
               className="flex-1"
             />
-            <Button onClick={handleAskQuestion} disabled={isLoading}>
-              {isLoading ? (
+            <Button onClick={handleAskQuestion} disabled={loading || isProcessing}>
+              {(loading || isProcessing) ? (
                 <>
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   Analyzing
@@ -127,7 +129,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
           )}
           
           <div className="text-xs text-muted-foreground pt-2">
-            Try questions like "What is the termination period?" or "What is the duration of this agreement?"
+            Try questions like "What happens in case of breach?" or "What is the governing law of this agreement?"
           </div>
         </CardContent>
       </Card>

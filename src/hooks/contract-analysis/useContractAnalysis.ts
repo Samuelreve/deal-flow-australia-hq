@@ -40,7 +40,8 @@ export const useContractAnalysis = () => {
   // Get question answering functionality
   const {
     questionHistory,
-    handleAskQuestion
+    handleAskQuestion,
+    isProcessing
   } = useQuestionAnswering();
   
   useEffect(() => {
@@ -64,6 +65,7 @@ export const useContractAnalysis = () => {
     analysisStage,
     analysisProgress,
     questionHistory,
+    isProcessing,
     handleFileUpload,
     handleAskQuestion
   };
