@@ -3,7 +3,7 @@ import { useDocumentAIBase, UseDocumentAIBaseProps } from './useDocumentAIBase';
 import { useCombinedDocumentAIOperations } from './useCombinedDocumentAIOperations';
 import { useEnhancedDocumentOperations } from './useEnhancedDocumentOperations';
 import { useAnalysisResultManagement } from './useAnalysisResultManagement';
-import { formatInsightsToText } from '../dashboard/insights/utils/insightsFormatter';
+import { formatInsightsToText } from '../../components/dashboard/insights/utils/insightsFormatter';
 
 /**
  * Main hook for document AI operations, combining all specialized operations
