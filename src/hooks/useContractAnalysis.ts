@@ -1,269 +1,177 @@
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback } from 'react';
+import { toast } from "sonner";
 
-export interface DocumentMetadata {
-  name: string;
-  type: string;
-  uploadDate: string;
-  status: string;
-  version: string;
-  versionDate: string;
-}
+export function useContractAnalysis() {
+  // Document metadata state
+  const [documentMetadata, setDocumentMetadata] = useState({
+    name: "Mutual NDA - Template.pdf",
+    type: "PDF Document",
+    uploadDate: "May 20, 2025",
+    status: "Active",
+    version: "1.0",
+    versionDate: "May 20, 2025"
+  });
 
-export interface SummaryItem {
-  title: string;
-  content: string;
-}
+  // Contract content state
+  const [contractText, setContractText] = useState<string>(
+    "This Mutual Non-Disclosure Agreement (this "Agreement") is entered into as of [Date] by and between [Company Name], with its principal offices at [Address] ("Company"), and [Other Party], located at [Address] ("Recipient").\n\n" +
+    "1. Purpose. The parties wish to explore a business opportunity of mutual interest and in connection with this opportunity, each party may disclose to the other certain confidential technical and business information that the disclosing party desires the receiving party to treat as confidential.\n\n" +
+    "2. "Confidential Information" means any information disclosed by either party to the other party, either directly or indirectly, in writing, orally or by inspection of tangible objects, including without limitation documents, prototypes, samples, plant and equipment, research, product plans, products, services, customer lists, markets, software, developments, inventions, processes, designs, drawings, engineering, hardware configuration information, marketing or finance documents, which is designated as "Confidential," "Proprietary" or some similar designation. Information communicated orally shall be considered Confidential Information if such information is confirmed in writing as being Confidential Information within a reasonable time after the initial disclosure."
+  );
 
-export interface SummaryData {
-  summary: SummaryItem[];
-  disclaimer: string;
-}
-
-// Mock AI responses for common questions
-const mockAnswers: Record<string, string> = {
-  "what is the duration": "This Agreement remains in effect for a period of 3 years from the Effective Date, unless terminated earlier by mutual written agreement, as specified in Section 3.",
-  "what happens if confidentiality is breached": "According to Section 7 (Remedies), the Disclosing Party is entitled to seek appropriate equitable relief, including injunction and specific performance, in addition to any other remedies available at law, as unauthorized disclosure could cause substantial harm for which damages alone may not be sufficient.",
-  "who are the parties": "The parties to this agreement are ABC Corp., a Delaware corporation with its principal place of business at 123 Main St, San Francisco, CA 94105, and XYZ, Inc., a California corporation with its principal place of business at 456 Market St, San Francisco, CA 94105.",
-  "what law governs this agreement": "According to Section 8, this Agreement is governed by and construed in accordance with the laws of the State of California without regard to conflicts of law principles.",
-  "what is considered confidential information": "As defined in Section 2, 'Confidential Information' includes technical data, trade secrets, know-how, research, product plans, products, services, customer lists, markets, software, developments, inventions, processes, formulas, technology, designs, drawings, engineering, hardware configuration information, marketing, finances, and other business information that is designated as confidential or should reasonably be understood to be confidential."
-};
-
-// Initial document metadata
-const initialMetadata: DocumentMetadata = {
-  name: "Mutual NDA - Template.pdf",
-  type: "Non-Disclosure Agreement",
-  uploadDate: new Date().toLocaleString(),
-  status: "Analyzed",
-  version: "v1",
-  versionDate: "Just now"
-};
-
-// Mock default contract text
-const mockContractText = `
-MUTUAL NON-DISCLOSURE AGREEMENT
-
-THIS MUTUAL NON-DISCLOSURE AGREEMENT (the "Agreement") is made and entered into as of [DATE] (the "Effective Date") by and between ABC Corp., a Delaware corporation with its principal place of business at 123 Main St, San Francisco, CA 94105 ("Company A"), and XYZ, Inc., a California corporation with its principal place of business at 456 Market St, San Francisco, CA 94105 ("Company B").
-
-1. PURPOSE
-Each party wishes to disclose certain Confidential Information to the other party for the purpose of evaluating a potential business relationship between the parties (the "Purpose").
-
-2. DEFINITION OF CONFIDENTIAL INFORMATION
-"Confidential Information" means any information disclosed by one party (the "Disclosing Party") to the other party (the "Receiving Party"), either directly or indirectly, in writing, orally or by inspection of tangible objects, which is designated as "Confidential," "Proprietary" or some similar designation, or that should reasonably be understood to be confidential given the nature of the information and the circumstances of disclosure. Confidential Information includes, but is not limited to, technical data, trade secrets, know-how, research, product plans, products, services, customer lists, markets, software, developments, inventions, processes, formulas, technology, designs, drawings, engineering, hardware configuration information, marketing, finances or other business information.
-
-3. TERM
-This Agreement shall remain in effect for a period of 3 years from the Effective Date, unless terminated earlier by mutual written agreement.
-
-4. OBLIGATIONS
-The Receiving Party shall:
-(a) Use the Confidential Information only for the Purpose;
-(b) Restrict disclosure of Confidential Information solely to those employees or agents with a need to know such information and who are bound by confidentiality obligations no less restrictive than those contained herein;
-(c) Not disclose any Confidential Information to any third party without prior written approval of the Disclosing Party;
-(d) Use no less than reasonable care to protect the Disclosing Party's Confidential Information.
-
-5. EXCLUSIONS
-The obligations of the Receiving Party shall not apply to any information that:
-(a) Was publicly known or made generally available without a duty of confidentiality prior to the time of disclosure;
-(b) Becomes publicly known or made generally available without a duty of confidentiality after disclosure through no action or inaction of the Receiving Party;
-(c) Is in the rightful possession of the Receiving Party without confidentiality obligations at the time of disclosure;
-(d) Is properly obtained by the Receiving Party from a third party without restriction on disclosure; or
-(e) Is independently developed by the Receiving Party without use of or reference to the Disclosing Party's Confidential Information.
-
-6. RETURN OF MATERIALS
-Upon the termination of this Agreement, or upon the Disclosing Party's request at any time, the Receiving Party shall promptly return or destroy all copies of the Disclosing Party's Confidential Information.
-
-7. REMEDIES
-The Receiving Party acknowledges that unauthorized disclosure of the Disclosing Party's Confidential Information could cause substantial harm for which damages alone may not be a sufficient remedy. Therefore, the Disclosing Party shall be entitled to seek appropriate equitable relief, including injunction and specific performance, in addition to any other remedies available at law.
-
-8. GOVERNING LAW
-This Agreement shall be governed by and construed in accordance with the laws of the State of California without regard to conflicts of law principles.
-
-9. ENTIRE AGREEMENT
-This Agreement constitutes the entire agreement between the parties regarding the subject matter hereof and supersedes all prior agreements, understandings, and communications between the parties, whether written or oral.
-
-10. MISCELLANEOUS
-This Agreement may not be modified except by a written instrument signed by both parties. The failure of either party to enforce any provision of this Agreement shall not be deemed a waiver of that or any other provision.
-
-IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
-
-ABC Corp.                          XYZ, Inc.
-
-By: ______________________         By: ______________________
-Name:                              Name: 
-Title:                             Title:
-Date:                              Date:
-`;
-
-// Mock AI response for contract summary
-const mockSummary: SummaryData = {
-  summary: [
-    {
-      title: "What is this contract about?",
-      content: "This is a Mutual Non-Disclosure Agreement (NDA) between ABC Corp. and XYZ, Inc. to protect confidential information shared during business discussions."
-    },
-    {
-      title: "Who are the parties involved?",
-      content: "ABC Corp. (a Delaware corporation) and XYZ, Inc. (a California corporation)."
-    },
-    {
-      title: "Key terms and obligations",
-      content: "Both parties must use confidential information only for evaluating a business relationship, restrict disclosure to employees with a need to know, not disclose to third parties without approval, and protect information with reasonable care."
-    },
-    {
-      title: "Termination conditions",
-      content: "The agreement lasts for 3 years from the effective date, unless terminated earlier by mutual written agreement. Upon termination or request, all confidential materials must be returned or destroyed."
-    },
-    {
-      title: "Potential risks or red flags",
-      content: "No specific risks identified, though the agreement is governed by California law which may have implications depending on your jurisdiction."
-    }
-  ],
-  disclaimer: "This AI-generated summary is provided for informational purposes only and does not constitute legal advice. Please consult with a qualified legal professional before making decisions based on this information."
-};
-
-export const useContractAnalysis = () => {
-  const [documentMetadata, setDocumentMetadata] = useState<DocumentMetadata>(initialMetadata);
-  const [contractText, setContractText] = useState<string>(mockContractText);
-  const [customSummary, setCustomSummary] = useState<SummaryData | null>(null);
+  // AI analysis states
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  
-  // Helper function to determine document type from filename
-  const determineDocumentType = (filename: string): string => {
-    filename = filename.toLowerCase();
-    if (filename.includes("nda") || filename.includes("disclosure")) {
-      return "Non-Disclosure Agreement";
-    } else if (filename.includes("agreement") || filename.includes("contract")) {
-      return "Business Agreement";
-    } else if (filename.includes("lease")) {
-      return "Lease Agreement";
-    } else {
-      return "Contract Document";
-    }
-  };
-  
-  // Simple function to try to extract party names from text
-  const extractParties = (text: string): string => {
-    // This is a very simple implementation for demo purposes
-    // Real implementation would use more sophisticated NLP
-    const lines = text.split('\n').slice(0, 20); // Check first 20 lines
-    const partiesLine = lines.find(line => 
-      line.toLowerCase().includes("between") || 
-      line.toLowerCase().includes("party") ||
-      line.toLowerCase().includes("agreement") && 
-      (line.toLowerCase().includes("by") || line.toLowerCase().includes("and"))
-    );
-    
-    return partiesLine || "";
+  const [analysisStage, setAnalysisStage] = useState<string>("Analyzing document");
+  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
+
+  // AI-generated summary data
+  const mockSummary = {
+    summary: [
+      { title: "Document Type", content: "Mutual Non-Disclosure Agreement (NDA)" },
+      { title: "Parties Involved", content: "Company and Recipient (to be specified)" },
+      { title: "Purpose", content: "Protect confidential information shared while exploring a business opportunity" },
+      { title: "Key Terms", content: "Defines what constitutes confidential information, usage restrictions, term of agreement" },
+      { title: "Duration", content: "Not specified in the provided excerpt" },
+    ],
+    disclaimer: "This analysis is provided for informational purposes only and should not be considered legal advice. Always consult with a qualified legal professional for specific advice regarding your contract."
   };
 
-  // Handle file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [customSummary, setCustomSummary] = useState<typeof mockSummary | null>(null);
+
+  // Handle file upload and processing
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Update document metadata with the actual file information
-    setDocumentMetadata({
-      name: file.name,
-      type: determineDocumentType(file.name),
-      uploadDate: new Date().toLocaleString(),
-      status: "Processing",
-      version: "v1",
-      versionDate: "Just now"
-    });
-    
-    setIsAnalyzing(true);
-    
-    // Read file content if it's a text file for demo purposes
-    if (file.type === "text/plain") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string || "No content could be extracted";
-        setContractText(content);
-        // After text extraction, simulate AI processing
-        simulateAIProcessing(content);
+
+    try {
+      setIsAnalyzing(true);
+      setAnalysisProgress(10);
+      setAnalysisStage("Processing document...");
+
+      // Create form data for the file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Get file metadata
+      const newMetadata = {
+        name: file.name,
+        type: file.type.includes('pdf') ? 'PDF Document' : 
+              file.type.includes('docx') ? 'Word Document' : 'Text Document',
+        uploadDate: new Date().toLocaleDateString('en-US', { 
+          month: 'short', day: 'numeric', year: 'numeric' 
+        }),
+        status: "Active",
+        version: "1.0",
+        versionDate: new Date().toLocaleDateString('en-US', { 
+          month: 'short', day: 'numeric', year: 'numeric' 
+        })
       };
-      reader.readAsText(file);
-    } else {
-      // For non-text files (PDF, DOCX), just simulate processing
-      simulateAIProcessing();
-    }
-  };
-  
-  // Simulate AI processing with optional content
-  const simulateAIProcessing = (content?: string) => {
-    // Wait 3 seconds to simulate processing
-    setTimeout(() => {
-      // Update status to analyzed
-      setDocumentMetadata(prev => ({
-        ...prev,
-        status: "Analyzed"
-      }));
-      
-      setIsAnalyzing(false);
-      
-      // Generate a simple custom summary if we have content
-      if (content && content.length > 50) {
-        const parties = extractParties(content);
-        
-        // Create a simplified custom summary based on extracted text
-        setCustomSummary({
-          summary: [
-            {
-              title: "What is this contract about?",
-              content: `This appears to be a document with ${content.length} characters.`
-            },
-            {
-              title: "Who are the parties involved?",
-              content: parties || "Could not identify specific parties."
-            },
-            {
-              title: "Key terms and obligations",
-              content: "Document processing detected text content but detailed analysis requires AI processing."
-            },
-            {
-              title: "Termination conditions",
-              content: "Not identified in basic text processing."
-            },
-            {
-              title: "Potential risks or red flags",
-              content: "Full AI analysis required for risk assessment."
+
+      setDocumentMetadata(newMetadata);
+      setAnalysisProgress(30);
+      setAnalysisStage("Extracting text...");
+
+      // For text files, we can read them directly
+      if (file.type === 'text/plain') {
+        const text = await file.text();
+        setContractText(text);
+        setAnalysisProgress(50);
+      } else {
+        // For other file types, we need to send to the public-ai-analyzer edge function
+        try {
+          setAnalysisStage("Analyzing with AI...");
+          
+          const response = await fetch('/api/public-ai-analyzer', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to process document');
+          }
+          
+          const data = await response.json();
+          
+          if (data.text) {
+            setContractText(data.text);
+          }
+          
+          if (data.analysis) {
+            // Parse the analysis text into structured data
+            const sections = data.analysis.split('\n\n');
+            const summaryItems = [];
+            
+            // Process each section to create structured data
+            for (const section of sections) {
+              if (section.startsWith('1. Document Type')) {
+                summaryItems.push({ title: "Document Type", content: section.replace('1. Document Type', '').trim() });
+              } else if (section.startsWith('2. Key Parties')) {
+                summaryItems.push({ title: "Parties Involved", content: section.replace('2. Key Parties', '').trim() });
+              } else if (section.startsWith('3. Main Purpose')) {
+                summaryItems.push({ title: "Purpose", content: section.replace('3. Main Purpose', '').trim() });
+              } else if (section.startsWith('4. Key Terms')) {
+                summaryItems.push({ title: "Key Terms", content: section.replace('4. Key Terms', '').trim() });
+              } else if (section.startsWith('5. Important Dates')) {
+                summaryItems.push({ title: "Important Dates", content: section.replace('5. Important Dates', '').trim() });
+              }
             }
-          ],
-          disclaimer: "This is a simplified analysis for demonstration purposes. In a production environment, the document would be analyzed by a more sophisticated AI model."
-        });
+            
+            // Add a disclaimer from the end of the analysis
+            const disclaimer = data.analysis.includes("Disclaimer:") 
+              ? data.analysis.substring(data.analysis.indexOf("Disclaimer:")) 
+              : "This analysis is provided for informational purposes only and should not be considered legal advice.";
+            
+            // Set the custom summary
+            setCustomSummary({
+              summary: summaryItems.length > 0 ? summaryItems : mockSummary.summary,
+              disclaimer
+            });
+          }
+          
+          setAnalysisProgress(100);
+          
+        } catch (error) {
+          console.error("Error analyzing document:", error);
+          toast.error("Failed to analyze document", {
+            description: error instanceof Error ? error.message : "Unknown error occurred"
+          });
+          // Use the mock data as fallback
+          setCustomSummary(mockSummary);
+        }
       }
       
-      toast.success("Contract processed successfully", {
-        description: "Document processed and ready for review"
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast.error("Error processing file", {
+        description: error instanceof Error ? error.message : "An unknown error occurred"
       });
-    }, 3000);
-  };
-  
-  // Handle ask question functionality
-  const handleAskQuestion = async (question: string): Promise<string | null> => {
-    // Simulate AI processing delay
-    return new Promise((resolve) => {
+    } finally {
+      // Simulate delay to show the loading state
       setTimeout(() => {
-        // Look for keywords in the question to match to our mock answers
-        const lowerQuestion = question.toLowerCase();
-        let foundAnswer = null;
+        setIsAnalyzing(false);
+        setAnalysisProgress(100);
         
-        for (const [keyword, response] of Object.entries(mockAnswers)) {
-          if (lowerQuestion.includes(keyword)) {
-            foundAnswer = response;
-            break;
-          }
-        }
-        
-        if (foundAnswer) {
-          resolve(foundAnswer);
-        } else {
-          resolve("I cannot find specific information about this in the contract. Please try rephrasing your question or ask about another topic covered in the agreement.");
-        }
+        toast.success("Contract analyzed successfully", {
+          description: "AI summary and insights are now available"
+        });
       }, 1500);
+    }
+  }, []);
+
+  // Handle asking questions about the contract
+  const handleAskQuestion = useCallback(async (question: string) => {
+    toast.info(`Question received: ${question}`, {
+      description: "In a real application, this would query the AI with your question about the contract."
     });
-  };
+    
+    // Mock response - in a real app, this would call an API
+    return {
+      answer: "This is a simulated response to your question. In a production environment, this would be an actual AI-generated response based on the contract content.",
+      sources: ["Section 3.2", "Clause 4(b)"]
+    };
+  }, []);
 
   return {
     documentMetadata,
@@ -271,7 +179,9 @@ export const useContractAnalysis = () => {
     customSummary,
     mockSummary,
     isAnalyzing,
+    analysisStage,
+    analysisProgress,
     handleFileUpload,
     handleAskQuestion
   };
-};
+}

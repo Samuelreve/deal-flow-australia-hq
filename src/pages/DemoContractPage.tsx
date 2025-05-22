@@ -22,6 +22,8 @@ const DemoContractPage: React.FC = () => {
     customSummary,
     mockSummary,
     isAnalyzing,
+    analysisStage,
+    analysisProgress,
     handleFileUpload,
     handleAskQuestion
   } = useContractAnalysis();
@@ -66,7 +68,7 @@ const DemoContractPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Loading state */}
             {isAnalyzing ? (
-              <ContractAnalyzingState />
+              <ContractAnalyzingState stage={analysisStage} progress={analysisProgress} />
             ) : (
               <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">

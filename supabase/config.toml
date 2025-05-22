@@ -1,14 +1,32 @@
 
-# This is an example supabase/config.toml for configuring edge functions
-
 project_id = "wntmgfuclbdrezxcvzmw"
 
-[functions."document-ai-assistant"]
-verify_jwt = true
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
 
-[functions."text-extractor"]
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[analytics]
+enabled = false
+
+[realtime]
+enabled = true
+
+# Make the public-ai-analyzer function publicly accessible without JWT verification
+[functions.public-ai-analyzer]
 verify_jwt = false
-
-[[functions.import_map.imports]]
-name = "std/server"
-path = "https://deno.land/std@0.170.0/http/server.ts"
