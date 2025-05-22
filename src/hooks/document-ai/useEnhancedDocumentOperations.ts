@@ -1,95 +1,66 @@
 
-import { useToast } from '@/components/ui/use-toast';
-import { useAnalysisResultManagement } from './useAnalysisResultManagement';
-
-interface UseEnhancedDocumentOperationsProps {
-  analyzeDocument: (documentId: string, documentVersionId: string, analysisType: string) => Promise<any>;
-  summarizeContract: (documentId: string, documentVersionId: string) => Promise<any>;
-}
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 /**
- * Hook for enhanced document operations with auto-saving functionality
+ * Enhanced document operations with better error handling and UI feedback
  */
 export const useEnhancedDocumentOperations = ({
   analyzeDocument,
   summarizeContract
-}: UseEnhancedDocumentOperationsProps) => {
-  const { toast } = useToast();
-  const { saveAnalysisResult } = useAnalysisResultManagement();
+}: {
+  analyzeDocument: (...args: any[]) => Promise<any>;
+  summarizeContract: (...args: any[]) => Promise<any>;
+}) => {
+  const [enhancedLoading, setEnhancedLoading] = useState(false);
 
   /**
-   * Enhanced analyze document with auto-saving
+   * Enhanced document analysis with better error handling
    */
-  const enhancedAnalyzeDocument = async (
-    documentId: string,
-    documentVersionId: string,
-    analysisType: string,
-    autoSave = true
-  ) => {
+  const enhancedAnalyzeDocument = async (...args: Parameters<typeof analyzeDocument>) => {
+    setEnhancedLoading(true);
     try {
-      const result = await analyzeDocument(documentId, documentVersionId, analysisType);
+      const result = await analyzeDocument(...args);
       
-      // Auto-save the analysis if requested
-      if (result && autoSave) {
-        const saved = await saveAnalysisResult(
-          analysisType, 
-          result.analysis.content, 
-          documentId, 
-          documentVersionId
-        );
-        
-        if (saved) {
-          toast({
-            title: "Analysis Saved",
-            description: "The analysis has been saved for future reference."
-          });
-        }
+      if (result) {
+        toast.success('Document analysis completed');
       }
       
       return result;
-    } catch (error) {
-      console.error("Enhanced analyze document error:", error);
-      throw error;
+    } catch (error: any) {
+      console.error('Enhanced document analysis error:', error);
+      toast.error('Failed to analyze document: ' + (error.message || 'Unknown error'));
+      return null;
+    } finally {
+      setEnhancedLoading(false);
     }
   };
-  
+
   /**
-   * Enhanced summarize contract with auto-saving
+   * Enhanced contract summarization with better error handling
    */
-  const enhancedSummarizeContract = async (
-    documentId: string,
-    documentVersionId: string,
-    autoSave = true
-  ) => {
+  const enhancedSummarizeContract = async (...args: Parameters<typeof summarizeContract>) => {
+    setEnhancedLoading(true);
     try {
-      const result = await summarizeContract(documentId, documentVersionId);
+      const result = await summarizeContract(...args);
       
-      // Auto-save the summary if requested
-      if (result && autoSave) {
-        const saved = await saveAnalysisResult(
-          'contract_summary', 
-          { summary: result.summary }, 
-          documentId, 
-          documentVersionId
-        );
-        
-        if (saved) {
-          toast({
-            title: "Summary Saved",
-            description: "The contract summary has been saved for future reference."
-          });
-        }
+      if (result) {
+        toast.success('Contract summary generated');
       }
       
       return result;
-    } catch (error) {
-      console.error("Enhanced summarize contract error:", error);
-      throw error;
+    } catch (error: any) {
+      console.error('Enhanced contract summary error:', error);
+      toast.error('Failed to summarize contract: ' + (error.message || 'Unknown error'));
+      return null;
+    } finally {
+      setEnhancedLoading(false);
     }
   };
 
   return {
     enhancedAnalyzeDocument,
-    enhancedSummarizeContract
+    enhancedSummarizeContract,
+    enhancedLoading
   };
 };

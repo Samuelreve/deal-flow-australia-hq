@@ -1,105 +1,97 @@
 
-import { corsHeaders } from "../_shared/cors.ts";
-import { verifyAuth, verifyDealParticipant } from "../_shared/rbac.ts";
-import { validateRequest } from "./utils/request-validation.ts";
-import { 
-  handleExplainClause, 
-  handleExplainMilestone, 
-  handleGenerateTemplate, 
+import {
+  handleExplainClause,
+  handleGenerateTemplate,
+  handleGenerateSmartTemplate,
+  handleSummarizeDocument,
+  handleExplainMilestone,
   handleSuggestNextAction,
-  handleSummarizeDocument, 
-  handleSummarizeDeal, 
   handleGenerateMilestones,
-  handleDealInsights,
-  handleDealChatQuery,
-  handlePredictDealHealth,
   handleAnalyzeDocument,
-  handleSummarizeContract,
-  handleExplainContractClause
+  handleSummarizeVersionChanges,
+  handleDealChatQuery,
+  handleGetDealInsights,
+  handlePredictDealHealth,
+  handleSummarizeDeal,
+  handleExplainContractClause,
+  analyzeSmartContract,
+  explainSmartContractClause,
+  summarizeSmartContract,
+  initializeOpenAI
 } from "./operations/index.ts";
 
-export async function handleRequest(req: Request, openai: any) {
-  try {
-    // Validate and parse the request
-    const body = await req.json();
-    const { operation, dealId, userId, content, documentId, documentVersionId, milestoneId, context } = 
-      validateRequest(body);
-
-    // Verify the user has access to the deal
-    await verifyDealParticipant(userId, dealId);
-
-    // Process the request based on operation type
-    let result = null;
-
-    switch (operation) {
-      case "explain_clause":
-        result = await handleExplainClause(content, null, openai);
-        break;
-      case "explain_milestone":
-        result = await handleExplainMilestone(milestoneId, openai);
-        break;
-      case "generate_template":
-        result = await handleGenerateTemplate(content, dealId, openai);
-        break;
-      case "summarize_document":
-        result = await handleSummarizeDocument(documentId, documentVersionId, openai);
-        break;
-      case "summarize_deal":
-        result = await handleSummarizeDeal(dealId, openai);
-        break;
-      case "suggest_next_action":
-        result = await handleSuggestNextAction(dealId, openai);
-        break;
-      case "generate_milestones":
-        result = await handleGenerateMilestones(dealId, content, openai);
-        break;
-      case "get_deal_insights":
-        result = await handleDealInsights(userId, dealId, openai);
-        break;
-      case "deal_chat_query":
-        result = await handleDealChatQuery(dealId, content, openai);
-        break;
-      case "predict_deal_health":
-        result = await handlePredictDealHealth(dealId, openai);
-        break;
-      case "analyze_document":
-        result = await handleAnalyzeDocument(dealId, documentId, documentVersionId, context?.analysisType, openai);
-        break;
-      case "summarize_contract":
-        result = await handleSummarizeContract(dealId, documentId, documentVersionId, openai);
-        break;
-      case "explain_contract_clause":
-        result = await handleExplainContractClause(content, documentId, documentVersionId, dealId, openai);
-        break;
-      default:
-        return new Response(
-          JSON.stringify({ error: "Invalid operation type" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-    }
-
-    // Return the result
-    return new Response(
-      JSON.stringify({ ...result, success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error handling request:", error);
-    
-    let status = 500;
-    let message = "Internal server error";
-    
-    if (error.message.includes("Missing required fields")) {
-      status = 400;
-      message = "Missing required fields";
-    } else if (error.message.includes("Authorization error")) {
-      status = 403;
-      message = "Authorization error";
-    }
-    
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+/**
+ * Handle the AI assistant request based on the operation
+ */
+export async function handleRequest(
+  operation: string, 
+  content: string,
+  dealId: string,
+  userId: string,
+  documentId?: string,
+  documentVersionId?: string,
+  currentVersionId?: string,
+  previousVersionId?: string,
+  milestoneId?: string,
+  context?: Record<string, any>
+) {
+  // Initialize OpenAI client
+  const openai = initializeOpenAI();
+  
+  // Route the request based on the operation
+  switch (operation) {
+    case "explain_clause":
+      return await handleExplainClause(content, documentId!, documentVersionId!, openai);
+      
+    case "generate_template":
+      return await handleGenerateTemplate(content, dealId, userId, context?.documentType || "contract", context, openai);
+      
+    case "generate_smart_template":
+      return await handleGenerateSmartTemplate(content, dealId, userId, context?.documentType || "contract", context, openai);
+      
+    case "summarize_document":
+      return await handleSummarizeDocument(documentId!, documentVersionId!, openai);
+      
+    case "explain_milestone":
+      return await handleExplainMilestone(milestoneId!, dealId, openai);
+      
+    case "suggest_next_action":
+      return await handleSuggestNextAction(dealId, openai);
+      
+    case "generate_milestones":
+      return await handleGenerateMilestones(dealId, content, userId, openai);
+      
+    case "analyze_document":
+      return await handleAnalyzeDocument(documentId!, documentVersionId!, content, openai);
+      
+    case "summarize_version_changes":
+      return await handleSummarizeVersionChanges(documentId!, currentVersionId!, previousVersionId!, openai);
+      
+    case "deal_chat_query":
+      return await handleDealChatQuery(content, dealId, userId, context, openai);
+      
+    case "get_deal_insights":
+      return await handleGetDealInsights(dealId, openai);
+      
+    case "predict_deal_health":
+      return await handlePredictDealHealth(dealId, openai);
+      
+    case "summarize_deal":
+      return await handleSummarizeDeal(dealId, openai);
+      
+    case "explain_contract_clause":
+      return await handleExplainContractClause(content, documentId!, documentVersionId!, openai);
+      
+    case "analyze_smart_contract":
+      return await analyzeSmartContract(documentId!, documentVersionId!, content, openai);
+      
+    case "explain_smart_contract_clause":
+      return await explainSmartContractClause(documentId!, documentVersionId!, content, openai);
+      
+    case "summarize_smart_contract":
+      return await summarizeSmartContract(documentId!, documentVersionId!, openai);
+      
+    default:
+      throw new Error(`Unknown operation: ${operation}`);
   }
 }

@@ -1,48 +1,60 @@
 
-import { documentAnalysisService } from '@/services/documentAnalysisService';
-import { useToast } from '@/components/ui/use-toast';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 /**
  * Hook for managing document analysis results
  */
 export const useAnalysisResultManagement = () => {
-  const { toast } = useToast();
-
+  const [saving, setSaving] = useState(false);
+  
   /**
-   * Save analysis results to the database
+   * Save analysis result to the database for future reference
    */
   const saveAnalysisResult = async (
-    analysisType: string, 
-    content: any, 
     documentId: string, 
-    documentVersionId: string
+    versionId: string, 
+    analysisType: string,
+    result: any
   ) => {
+    setSaving(true);
     try {
-      await documentAnalysisService.saveAnalysis({
-        documentId,
-        documentVersionId,
-        analysisType,
-        analysisContent: content
-      });
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('You must be logged in to save analysis results');
+      }
+      
+      // Save the analysis result to the database
+      const { error } = await supabase
+        .from('document_analysis_history')
+        .insert({
+          document_id: documentId,
+          document_version_id: versionId,
+          analysis_type: analysisType,
+          result: result,
+          created_by: user.id
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Analysis result saved for future reference');
       return true;
-    } catch (error) {
-      console.error("Error saving analysis:", error);
+    } catch (err: any) {
+      console.error('Error saving analysis result:', err);
+      toast.error('Failed to save analysis result');
       return false;
+    } finally {
+      setSaving(false);
     }
   };
-
-  /**
-   * Display toast notification for saved analysis
-   */
-  const notifySaved = () => {
-    toast({
-      title: "Analysis Saved",
-      description: "The analysis has been saved for future reference."
-    });
-  };
-
+  
   return {
-    saveAnalysisResult,
-    notifySaved
+    saving,
+    saveAnalysisResult
   };
 };

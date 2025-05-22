@@ -57,7 +57,7 @@ const Index = () => {
         
         <div className="max-w-3xl mx-auto">
           {isAuthenticated ? (
-            <SmartContractPanel />
+            <SmartContractPanel dealId="demo-deal" />
           ) : (
             <Card className="bg-gradient-to-br from-white to-blue-50">
               <CardHeader className="pb-2 flex items-center">

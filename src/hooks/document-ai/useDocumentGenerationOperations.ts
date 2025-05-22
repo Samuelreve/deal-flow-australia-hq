@@ -1,77 +1,51 @@
 
-import { AIOperation, AIRequestOptions, AIResponse } from '../document-ai/useDocumentAIBase';
-
-interface DocumentGenerationOperationsProps {
-  processAIRequest: (operation: AIOperation, options: AIRequestOptions) => Promise<AIResponse | null>;
+interface UseDocumentAIBaseOperations {
+  processAIRequest: (operation: any, options: any) => Promise<any>;
 }
 
 /**
  * Hook for document generation operations
  */
-export const useDocumentGenerationOperations = ({ processAIRequest }: DocumentGenerationOperationsProps) => {
+export const useDocumentGenerationOperations = ({
+  processAIRequest
+}: UseDocumentAIBaseOperations) => {
+  
   /**
-   * Generate a document template
+   * Generate a document template based on deal data
    */
   const generateTemplate = async (
     documentType: string,
-    context: Record<string, any>
-  ): Promise<AIResponse | null> => {
-    return processAIRequest('generate_template', {
-      content: documentType,
-      context
-    });
+    customization: string,
+    context?: Record<string, any>
+  ) => {
+    return processAIRequest(
+      'generate_template',
+      {
+        content: customization || 'Standard template',
+        context: context || {}
+      }
+    );
   };
   
   /**
-   * Generate a smart template with AI customization
+   * Generate a smart template with AI-powered insights
    */
   const generateSmartTemplate = async (
     documentType: string,
     customization: string,
-    context: Record<string, any>
-  ): Promise<AIResponse | null> => {
-    return processAIRequest('generate_smart_template', {
-      content: `${documentType}:${customization}`,
-      context
-    });
-  };
-  
-  /**
-   * Summarize a document's content
-   */
-  const summarizeDocument = async (
-    documentId: string,
-    documentVersionId: string
-  ): Promise<AIResponse | null> => {
-    return processAIRequest('summarize_document', {
-      documentId,
-      documentVersionId,
-      content: ''
-    });
-  };
-  
-  /**
-   * Summarize changes between document versions
-   */
-  const summarizeVersionChanges = async (
-    documentId: string,
-    currentVersionId: string,
-    previousVersionId: string
-  ): Promise<AIResponse | null> => {
-    console.log(`Requesting version change summary: doc=${documentId}, current=${currentVersionId}, prev=${previousVersionId}`);
-    
-    return processAIRequest('summarize_version_changes', {
-      documentId,
-      currentVersionId,
-      previousVersionId,
-      content: ''
-    });
+    context?: Record<string, any>
+  ) => {
+    return processAIRequest(
+      'generate_smart_template',
+      {
+        content: `Generate ${documentType} with ${customization}`,
+        context: context || {}
+      }
+    );
   };
   
   return {
     generateTemplate,
-    generateSmartTemplate,
-    summarizeDocument,
-    summarizeVersionChanges
+    generateSmartTemplate
   };
 };

@@ -48,7 +48,7 @@ const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
       // Redirect to the deal/document page
       // In a real scenario, this would redirect to the newly created document
       setTimeout(() => {
-        navigate('/deals/new');
+        navigate(dealId ? `/deals/${dealId}` : '/deals/new');
       }, 1500);
       
     } catch (error: any) {

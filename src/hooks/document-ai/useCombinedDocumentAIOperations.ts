@@ -1,110 +1,57 @@
 
-import { useDocumentAIBase } from './useDocumentAIBase';
-import { useExplanationOperations } from './useExplanationOperations';
-import { useDocumentGenerationOperations } from './useDocumentGenerationOperations';
-import { useDealInsightOperations } from './useDealInsightOperations';
-import { useMilestoneGenerationOperations } from './useMilestoneGenerationOperations';
+import { UseDocumentAIBaseProps, useDocumentAIBase } from './useDocumentAIBase';
 import { useDocumentAnalysisOperations } from './useDocumentAnalysisOperations';
-import { useDealChatOperations } from './useDealChatOperations';
-import { useDealHealthPredictions } from './useDealHealthPredictions';
+import { useDocumentGenerationOperations } from './useDocumentGenerationOperations';
+import { useExplanationOperations } from './useExplanationOperations';
+import { useMilestoneGenerationOperations } from './useMilestoneGenerationOperations';
+import { useDealInsightOperations } from './useDealInsightOperations';
 import { useSmartContractOperations } from './useSmartContractOperations';
-import { UseDocumentAIBaseProps } from './useDocumentAIBase';
 
 /**
- * Hook that combines all AI operations into a single interface
+ * Combines all document AI operations into a single hook
  */
 export const useCombinedDocumentAIOperations = (props: UseDocumentAIBaseProps) => {
-  const {
-    loading,
-    error,
-    result,
-    processAIRequest,
-    clearResult
-  } = useDocumentAIBase(props);
+  const baseOperations = useDocumentAIBase(props);
   
-  // Get explanation operations (clause, milestone)
-  const { 
-    explainClause,
-    explainMilestone
-  } = useExplanationOperations({ processAIRequest });
+  // Document analysis operations
+  const analysisOperations = useDocumentAnalysisOperations(baseOperations);
   
-  // Get document generation operations
-  const { 
-    generateTemplate,
-    generateSmartTemplate,
-    summarizeDocument,
-    summarizeVersionChanges
-  } = useDocumentGenerationOperations({ processAIRequest });
+  // Document generation operations
+  const generationOperations = useDocumentGenerationOperations(baseOperations);
   
-  // Get deal insight operations
-  const {
-    suggestNextAction,
-    summarizeDeal,
-    getDealInsights
-  } = useDealInsightOperations({ processAIRequest });
+  // Explanation operations
+  const explanationOperations = useExplanationOperations(baseOperations);
   
-  // Get milestone generation operations
-  const {
-    generateMilestones
-  } = useMilestoneGenerationOperations({ processAIRequest });
+  // Milestone operations
+  const milestoneOperations = useMilestoneGenerationOperations(baseOperations);
   
-  // Get document analysis operations
-  const {
-    analyzeDocument
-  } = useDocumentAnalysisOperations({ processAIRequest });
+  // Deal insights operations
+  const insightOperations = useDealInsightOperations(baseOperations);
   
-  // Get deal chat operations
-  const {
-    dealChatQuery
-  } = useDealChatOperations({ processAIRequest });
+  // Smart contract operations
+  const contractOperations = useSmartContractOperations(baseOperations);
   
-  // Get deal health prediction operations
-  const {
-    predictDealHealth
-  } = useDealHealthPredictions({ processAIRequest });
-  
-  // Get smart contract operations
-  const {
-    summarizeContract,
-    explainContractClause
-  } = useSmartContractOperations({ processAIRequest });
-
+  // Return combined operations
   return {
-    // Base properties
-    loading,
-    error,
-    result,
-    clearResult,
+    // Base operations
+    ...baseOperations,
+    
+    // Analysis operations
+    ...analysisOperations,
+    
+    // Generation operations
+    ...generationOperations,
     
     // Explanation operations
-    explainClause,
-    explainMilestone,
+    ...explanationOperations,
     
-    // Document generation operations
-    generateTemplate,
-    generateSmartTemplate,
-    summarizeDocument,
-    summarizeVersionChanges,
+    // Milestone operations
+    ...milestoneOperations,
     
-    // Deal insight operations
-    suggestNextAction,
-    summarizeDeal,
-    getDealInsights,
-    
-    // Milestone generation operations
-    generateMilestones,
-    
-    // Document analysis operations
-    analyzeDocument,
-    
-    // Deal chat operations
-    dealChatQuery,
-    
-    // Deal health prediction operations
-    predictDealHealth,
+    // Deal insights operations
+    ...insightOperations,
     
     // Smart contract operations
-    summarizeContract,
-    explainContractClause,
+    ...contractOperations
   };
 };

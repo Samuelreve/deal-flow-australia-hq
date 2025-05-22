@@ -1,79 +1,71 @@
 
-import { AIRequestOptions, AIResponse } from './useDocumentAIBase';
-
-interface UseSmartContractOperationsProps {
-  processAIRequest: (
-    operation: 'analyze_document',
-    options: AIRequestOptions
-  ) => Promise<AIResponse | null>;
+interface UseDocumentAIBaseOperations {
+  processAIRequest: (operation: any, options: any) => Promise<any>;
 }
 
 /**
  * Hook for smart contract operations
  */
-export const useSmartContractOperations = ({ processAIRequest }: UseSmartContractOperationsProps) => {
+export const useSmartContractOperations = ({
+  processAIRequest
+}: UseDocumentAIBaseOperations) => {
   
   /**
-   * Summarize a contract
+   * Analyze a contract document and provide insights
+   */
+  const analyzeSmartContract = async (
+    documentId: string,
+    documentVersionId: string,
+    analysisType: string
+  ) => {
+    return processAIRequest(
+      'analyze_document',
+      {
+        documentId,
+        documentVersionId,
+        content: analysisType
+      }
+    );
+  };
+  
+  /**
+   * Explain a specific clause in a contract
+   */
+  const explainContractClause = async (
+    documentId: string,
+    documentVersionId: string,
+    clause: string
+  ) => {
+    return processAIRequest(
+      'explain_clause',
+      {
+        documentId,
+        documentVersionId,
+        content: clause
+      }
+    );
+  };
+  
+  /**
+   * Summarize an entire contract document
    */
   const summarizeContract = async (
     documentId: string,
-    documentVersionId: string,
-    autoSave: boolean = true
-  ) => {
-    const response = await processAIRequest('analyze_document', {
-      documentId,
-      documentVersionId,
-      content: '',
-      context: { 
-        analysisType: 'contract_summary',
-        saveAnalysis: autoSave 
-      }
-    });
-    
-    if (response && response.analysis && response.analysis.content) {
-      return {
-        summary: response.analysis.content.summary || '',
-        disclaimer: response.disclaimer || ''
-      };
-    }
-    
-    return null;
-  };
-  
-  /**
-   * Explain a contract clause
-   */
-  const explainContractClause = async (
-    clause: string,
-    documentId: string,
     documentVersionId: string
   ) => {
-    const response = await processAIRequest('analyze_document', {
-      documentId,
-      documentVersionId,
-      content: clause,
-      context: { 
-        analysisType: 'explain_contract_clause',
-        clause 
+    return processAIRequest(
+      'summarize_document',
+      {
+        documentId,
+        documentVersionId,
+        content: 'Full contract summary'
       }
-    });
-    
-    if (response) {
-      return {
-        explanation: response.explanation || 
-          (response.analysis?.content?.explanation ?? ''),
-        isAmbiguous: response.isAmbiguous || false,
-        ambiguityExplanation: response.ambiguityExplanation || '',
-        disclaimer: response.disclaimer || ''
-      };
-    }
-    
-    return null;
+    );
   };
   
   return {
-    summarizeContract,
+    analyzeSmartContract,
     explainContractClause,
+    summarizeContract
   };
 };
