@@ -97,10 +97,10 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
               <Button 
                 size="lg" 
                 variant="outline" 
-                onClick={() => scrollToSection("how-it-works")}
+                onClick={() => navigate("/demo/contract")}
                 className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
               >
-                See How It Works
+                View Smart Contract Demo
               </Button>
             </motion.div>
           </div>
