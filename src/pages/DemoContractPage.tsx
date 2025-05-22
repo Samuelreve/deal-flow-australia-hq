@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileText, MessageSquare, AlertTriangle, Loader, Search } from 'lucide-react';
+import { FileText, MessageSquare, AlertTriangle, Loader, Search, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 
@@ -64,11 +63,11 @@ Title:                             Title:
 Date:                              Date:
 `;
 
-// Update document metadata to match the document shown in screenshots
-const documentMetadata = {
+// Initial document metadata
+const initialMetadata = {
   name: "Mutual NDA - Template.pdf",
   type: "Non-Disclosure Agreement",
-  uploadDate: new Date().toLocaleString(), // Use current date/time for accuracy
+  uploadDate: new Date().toLocaleString(),
   status: "Analyzed",
   version: "v1",
   versionDate: "Just now"
@@ -117,6 +116,11 @@ const DemoContractPage = () => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // New state variables for uploaded document handling
+  const [documentMetadata, setDocumentMetadata] = useState(initialMetadata);
+  const [contractText, setContractText] = useState(mockContractText);
+  const [customSummary, setCustomSummary] = useState<typeof mockSummary | null>(null);
   
   useEffect(() => {
     // Check URL parameters to see if we should auto-analyze
@@ -168,6 +172,123 @@ const DemoContractPage = () => {
     }, 1500);
   };
   
+  // New function to handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Update document metadata with the actual file information
+    setDocumentMetadata({
+      name: file.name,
+      type: determineDocumentType(file.name),
+      uploadDate: new Date().toLocaleString(),
+      status: "Processing",
+      version: "v1",
+      versionDate: "Just now"
+    });
+    
+    setActiveTab("document");
+    setIsAnalyzing(true);
+    
+    // Read file content if it's a text file for demo purposes
+    if (file.type === "text/plain") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string || "No content could be extracted";
+        setContractText(content);
+        // After text extraction, simulate AI processing
+        simulateAIProcessing(content);
+      };
+      reader.readAsText(file);
+    } else {
+      // For non-text files (PDF, DOCX), just simulate processing
+      // In a real implementation, we would call an Edge Function for text extraction
+      simulateAIProcessing();
+    }
+  };
+  
+  // Helper function to determine document type from filename
+  const determineDocumentType = (filename: string): string => {
+    filename = filename.toLowerCase();
+    if (filename.includes("nda") || filename.includes("disclosure")) {
+      return "Non-Disclosure Agreement";
+    } else if (filename.includes("agreement") || filename.includes("contract")) {
+      return "Business Agreement";
+    } else if (filename.includes("lease")) {
+      return "Lease Agreement";
+    } else {
+      return "Contract Document";
+    }
+  };
+  
+  // Simulate AI processing with optional content
+  const simulateAIProcessing = (content?: string) => {
+    // Wait 3 seconds to simulate processing
+    setTimeout(() => {
+      // Update status to analyzed
+      setDocumentMetadata(prev => ({
+        ...prev,
+        status: "Analyzed"
+      }));
+      
+      setIsAnalyzing(false);
+      
+      // Generate a simple custom summary if we have content
+      if (content && content.length > 50) {
+        const parties = extractParties(content);
+        
+        // Create a simplified custom summary based on extracted text
+        setCustomSummary({
+          summary: [
+            {
+              title: "What is this contract about?",
+              content: `This appears to be a document with ${content.length} characters.`
+            },
+            {
+              title: "Who are the parties involved?",
+              content: parties || "Could not identify specific parties."
+            },
+            {
+              title: "Key terms and obligations",
+              content: "Document processing detected text content but detailed analysis requires AI processing."
+            },
+            {
+              title: "Termination conditions",
+              content: "Not identified in basic text processing."
+            },
+            {
+              title: "Potential risks or red flags",
+              content: "Full AI analysis required for risk assessment."
+            }
+          ],
+          disclaimer: "This is a simplified analysis for demonstration purposes. In a production environment, the document would be analyzed by a more sophisticated AI model."
+        });
+      }
+      
+      // Switch to summary tab to show results
+      setActiveTab("summary");
+      
+      toast.success("Contract processed successfully", {
+        description: "Document processed and ready for review"
+      });
+    }, 3000);
+  };
+  
+  // Simple function to try to extract party names from text
+  const extractParties = (text: string): string => {
+    // This is a very simple implementation for demo purposes
+    // Real implementation would use more sophisticated NLP
+    const lines = text.split('\n').slice(0, 20); // Check first 20 lines
+    const partiesLine = lines.find(line => 
+      line.toLowerCase().includes("between") || 
+      line.toLowerCase().includes("party") ||
+      line.toLowerCase().includes("agreement") && 
+      (line.toLowerCase().includes("by") || line.toLowerCase().includes("and"))
+    );
+    
+    return partiesLine || "";
+  };
+  
   return (
     <AppLayout>
       <div className="container py-6 max-w-5xl">
@@ -179,8 +300,9 @@ const DemoContractPage = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Document Info - Updated to match screenshot */}
+          {/* Left Column - Document Info and Upload button */}
           <div className="space-y-6">
+            {/* Document Details Card */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -207,6 +329,27 @@ const DemoContractPage = () => {
                     <span className="h-2 w-2 rounded-full bg-green-500"></span>
                     <span className="text-sm">{documentMetadata.status}</span>
                   </div>
+                </div>
+                
+                {/* Add upload button */}
+                <div className="pt-2">
+                  <input 
+                    type="file" 
+                    id="document-upload" 
+                    className="hidden" 
+                    accept=".pdf,.docx,.doc,.txt" 
+                    onChange={handleFileUpload} 
+                    disabled={isAnalyzing}
+                  />
+                  <label 
+                    htmlFor="document-upload"
+                    className="flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md border-gray-300 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <Upload className="h-5 w-5 text-gray-400 mb-1" />
+                      <p className="text-xs text-gray-600">Upload new document</p>
+                    </div>
+                  </label>
                 </div>
               </CardContent>
             </Card>
@@ -260,7 +403,7 @@ const DemoContractPage = () => {
                       <CardTitle className="text-xl">Contract Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {mockSummary.summary.map((item, index) => (
+                      {(customSummary || mockSummary).summary.map((item, index) => (
                         <div key={index} className="space-y-1">
                           <h3 className="text-base font-medium">{item.title}</h3>
                           <p className="text-sm text-muted-foreground">{item.content}</p>
@@ -270,7 +413,7 @@ const DemoContractPage = () => {
                       <Alert className="bg-amber-50 border-amber-200 mt-6">
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                         <AlertDescription className="text-sm text-amber-700">
-                          {mockSummary.disclaimer}
+                          {(customSummary || mockSummary).disclaimer}
                         </AlertDescription>
                       </Alert>
                     </CardContent>
@@ -343,7 +486,7 @@ const DemoContractPage = () => {
                     <CardContent>
                       <div className="bg-muted p-4 rounded-md overflow-auto max-h-[600px]">
                         <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
-                          {mockContractText}
+                          {contractText}
                         </pre>
                       </div>
                     </CardContent>
