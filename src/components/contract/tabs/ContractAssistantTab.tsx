@@ -16,6 +16,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
   const [answer, setAnswer] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [history, setHistory] = useState<Array<{question: string, answer: string}>>([]);
 
   const handleAskQuestion = async () => {
     if (!question.trim()) {
@@ -33,14 +34,17 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
       // Handle different response formats
       if (typeof response === 'string') {
         setAnswer(response);
+        setHistory(prev => [...prev, { question, answer: response }]);
       } else {
         setAnswer(response.answer);
+        setHistory(prev => [...prev, { question, answer: response.answer }]);
         if (response.sources) {
           setSources(response.sources);
         }
       }
     } catch (error) {
       toast.error("Failed to process your question");
+      console.error("Error processing question:", error);
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +69,9 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
               placeholder="e.g., What is the duration of this agreement?"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
+              onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleAskQuestion()}
               disabled={isLoading}
+              className="flex-1"
             />
             <Button onClick={handleAskQuestion} disabled={isLoading}>
               {isLoading ? (
@@ -102,9 +107,23 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
               )}
             </div>
           )}
+
+          {history.length > 0 && !answer && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium mb-2">Previous Questions</h3>
+              <div className="space-y-3">
+                {history.map((item, index) => (
+                  <div key={index} className="bg-muted/50 p-3 rounded-md">
+                    <p className="text-sm font-medium">{item.question}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{item.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <div className="text-xs text-muted-foreground pt-2">
-            Try questions like "What happens if confidentiality is breached?" or "What is the duration of this agreement?"
+            Try questions like "What is the termination period?" or "What is the duration of this agreement?"
           </div>
         </CardContent>
       </Card>
