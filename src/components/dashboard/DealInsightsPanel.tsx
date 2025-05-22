@@ -9,7 +9,6 @@ import InsightsHeader from './insights/InsightsHeader';
 import InsightsLoading from './insights/InsightsLoading';
 import InsightsError from './insights/InsightsError';
 import InsightsContent from './insights/InsightsContent';
-import { formatInsightsToText } from './insights/utils/insightsFormatter';
 
 /**
  * Component for displaying AI-generated insights about a user's deal portfolio
@@ -20,6 +19,7 @@ const DealInsightsPanel = () => {
   
   const { 
     getDealInsights,
+    formatInsightsToText,
     loading,
     error
   } = useDocumentAI({ dealId: "" }); // Empty dealId as we're focusing on all deals
@@ -38,7 +38,7 @@ const DealInsightsPanel = () => {
     try {
       const result = await getDealInsights();
       if (result) {
-        // Convert the insights array to a formatted text for display
+        // Convert the insights data to a formatted text for display
         const formattedText = formatInsightsToText(result);
         setInsightsText(formattedText);
       } else {

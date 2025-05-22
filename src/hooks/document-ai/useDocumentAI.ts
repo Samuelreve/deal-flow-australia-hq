@@ -3,6 +3,7 @@ import { useDocumentAIBase, UseDocumentAIBaseProps } from './useDocumentAIBase';
 import { useCombinedDocumentAIOperations } from './useCombinedDocumentAIOperations';
 import { useEnhancedDocumentOperations } from './useEnhancedDocumentOperations';
 import { useAnalysisResultManagement } from './useAnalysisResultManagement';
+import { formatInsightsToText } from '../dashboard/insights/utils/insightsFormatter';
 
 /**
  * Main hook for document AI operations, combining all specialized operations
@@ -32,6 +33,9 @@ export const useDocumentAI = (props: UseDocumentAIBaseProps) => {
     summarizeContract: enhancedSummarizeContract,
     
     // Analysis result saving
-    saveAnalysisResult
+    saveAnalysisResult,
+    
+    // Additional utility functions
+    formatInsightsToText
   };
 };

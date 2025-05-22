@@ -72,6 +72,7 @@ export interface DealInsightsResponse {
   metrics: Record<string, any>;
   recommendations: string[];
   disclaimer?: string;
+  insightsText?: string; // Optional backward compatibility
 }
 
 export interface MilestoneGenerationResponse {
