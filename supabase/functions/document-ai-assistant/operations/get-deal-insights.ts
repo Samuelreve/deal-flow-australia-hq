@@ -1,4 +1,5 @@
 
+
 import { buildDealInsightsPrompt } from "./utils/openai-prompt-builder.ts";
 import { fetchUserDealPortfolio } from "./utils/portfolio-data-fetcher.ts";
 import { formatDealPortfolioForPrompt } from "./utils/portfolio-formatter.ts";
@@ -31,9 +32,9 @@ export async function handleGetDealInsights(userId: string, openai: any) {
     // Prepare the OpenAI prompt
     const prompt = buildDealInsightsPrompt(formattedDealsData);
 
-    // Call OpenAI for insights - using gpt-3.5-turbo instead of gpt-4o-mini which is causing errors
+    // Call OpenAI for insights - using gpt-4o-mini which is available in the project
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Changed from gpt-4o-mini to a model that's available
+      model: "gpt-4o-mini", // Using a model that's available in the project
       messages: [
         {
           role: "system",
@@ -83,3 +84,4 @@ export async function handleGetDealInsights(userId: string, openai: any) {
     throw new Error(`Failed to generate deal insights: ${error.message}`);
   }
 }
+
