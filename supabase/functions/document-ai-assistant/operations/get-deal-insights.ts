@@ -17,6 +17,9 @@ export async function handleGetDealInsights(userId: string, openai: any) {
     
     if (!deals || deals.length === 0) {
       return {
+        insights: [],
+        recommendations: ["Start your first deal to get personalized insights"],
+        metrics: {},
         insightsText: "You don't have any active deals in your portfolio. Start a new deal to get AI-powered insights.",
         disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
       };
@@ -45,10 +48,36 @@ export async function handleGetDealInsights(userId: string, openai: any) {
       max_tokens: 800  // Adjust based on desired response length
     });
 
-    return {
-      insightsText: response.choices[0].message.content,
-      disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
-    };
+    // Parse the AI response
+    const aiResponse = response.choices[0].message.content;
+    
+    try {
+      // Try to parse as JSON first
+      const parsedResponse = JSON.parse(aiResponse);
+      return {
+        ...parsedResponse,
+        disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
+      };
+    } catch (parseError) {
+      // If not valid JSON, return as text
+      return {
+        insights: [
+          { 
+            title: "Portfolio Analysis", 
+            description: aiResponse, 
+            type: "general",
+            priority: "medium" 
+          }
+        ],
+        recommendations: ["Review your deal portfolio regularly"],
+        metrics: {
+          dealCount: deals.length,
+          averageHealth: deals.reduce((sum, deal) => sum + (deal.health_score || 0), 0) / deals.length,
+        },
+        insightsText: aiResponse,
+        disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
+      };
+    }
   } catch (error) {
     console.error("Error generating deal insights:", error);
     throw new Error(`Failed to generate deal insights: ${error.message}`);

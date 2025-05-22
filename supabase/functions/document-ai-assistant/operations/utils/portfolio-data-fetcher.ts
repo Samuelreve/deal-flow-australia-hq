@@ -4,7 +4,7 @@
  */
 export async function fetchUserDealPortfolio(userId: string) {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''

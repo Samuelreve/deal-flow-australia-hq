@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import OpenAI from "https://esm.sh/openai@4.0.0";
@@ -14,6 +15,7 @@ import { handleGenerateMilestones } from "./operations/generate-milestones.ts";
 import { handleDealChatQuery } from "./operations/deal-chat-query.ts";
 import { handlePredictDealHealth } from "./operations/predict-deal-health.ts";
 import { handleSummarizeVersionChanges } from "./operations/summarize-version-changes.ts";
+import { handleGetDealInsights } from "./operations/get-deal-insights.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -169,6 +171,10 @@ serve(async (req) => {
           throw new Error("Missing required parameters for summarize_version_changes: dealId, documentId, currentVersionId, previousVersionId");
         }
         result = await handleSummarizeVersionChanges(dealId, documentId, currentVersionId, previousVersionId, openai, supabase);
+        break;
+
+      case 'get_deal_insights':
+        result = await handleGetDealInsights(userId, openai);
         break;
         
       default:

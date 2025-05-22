@@ -1,28 +1,36 @@
 
 /**
- * Build prompt for deal insights analysis
+ * Builds a prompt for OpenAI to generate deal portfolio insights
  */
-export function buildDealInsightsPrompt(formattedDeals: any[]) {
+export function buildDealInsightsPrompt(formattedDealsData: string): string {
   return `
-  Analyze the following deal portfolio and provide actionable insights:
-  
-  # Deal Portfolio Data
-  ${JSON.stringify(formattedDeals, null, 2)}
-  
-  Based on this data, please provide:
-  
-  1. An assessment of the overall health of the deal portfolio
-  2. Identification of deals that need immediate attention and why
-  3. Deals that are progressing well
-  4. Key trends or patterns you observe
-  5. Specific actionable recommendations
-  
-  Focus on:
-  - Deal progress (milestone completion rates)
-  - Deal health scores
-  - Time-based metrics (stale deals, time in current status)
-  - Potential bottlenecks or blockers
-  
-  Format your response with clear sections and bullet points for readability.
-  `;
+You are a business analyst specialized in deal analysis. I need you to analyze the following deal portfolio data and provide insights.
+
+Here's the deal data:
+${formattedDealsData}
+
+Analyze this data and provide the following:
+1. Generate key insights about the portfolio's health, progress, and potential issues.
+2. Identify deals that need immediate attention.
+3. Provide recommendations for improving deal outcomes.
+
+Format your response as a JSON object with these fields:
+{
+  "insights": [
+    {
+      "title": "Short title for the insight",
+      "description": "Detailed explanation of the insight",
+      "type": "positive|negative|neutral|general",
+      "priority": "high|medium|low"
+    }
+  ],
+  "recommendations": [
+    "Recommendation 1",
+    "Recommendation 2"
+  ],
+  "metrics": {
+    "keyMetricName": numericValue
+  }
+}
+`;
 }
