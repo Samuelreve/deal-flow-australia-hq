@@ -1,86 +1,70 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-
 /**
- * Get the Supabase admin client
- */
-export function getSupabaseAdmin() {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-}
-
-/**
- * Fetch all deals where the user is a participant along with their milestone and participant information
+ * Fetches deal portfolio data for a user
  */
 export async function fetchUserDealPortfolio(userId: string) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
     
-    // First get all deals where user is a participant
-    const { data: participantDeals, error: participantError } = await supabaseAdmin
+    // Get all deals where the user is a participant
+    const { data: participatedDeals, error: participantError } = await supabase
       .from('deal_participants')
       .select('deal_id')
       .eq('user_id', userId);
+      
+    if (participantError) throw participantError;
     
-    if (participantError || !participantDeals || participantDeals.length === 0) {
+    if (!participatedDeals || participatedDeals.length === 0) {
       return { deals: [] };
     }
     
-    const dealIds = participantDeals.map(d => d.deal_id);
+    const dealIds = participatedDeals.map(p => p.deal_id);
     
-    // Then get full deal data with related milestones and participants
-    const { data: deals, error: dealsError } = await supabaseAdmin
+    // Get detailed deal information
+    const { data: deals, error: dealsError } = await supabase
       .from('deals')
       .select(`
         id, 
-        title,
-        business_legal_name,
-        status,
+        title, 
+        status, 
         health_score,
+        description,
+        created_at,
+        updated_at,
         deal_type,
         asking_price,
-        created_at,
-        target_completion_date,
-        updated_at,
-        reason_for_selling,
-        seller:profiles!seller_id(name),
-        buyer:profiles!buyer_id(name),
-        milestones(
+        milestones:milestones(
           id,
           title,
           status,
-          due_date,
-          completed_at
+          completed_at,
+          order_index
+        ),
+        participants:deal_participants(
+          id,
+          user_id,
+          role,
+          profiles:profiles(name, email)
+        ),
+        documents:documents(
+          id,
+          name,
+          status,
+          created_at
         )
       `)
-      .in('id', dealIds);
+      .in('id', dealIds)
+      .order('updated_at', { ascending: false });
       
-    if (dealsError) {
-      console.error("Error fetching deals:", dealsError);
-      return { deals: [] };
-    }
+    if (dealsError) throw dealsError;
     
-    // For each deal, get the participants
-    const enrichedDeals = await Promise.all(deals.map(async (deal) => {
-      const { data: participants } = await supabaseAdmin
-        .from('deal_participants')
-        .select(`
-          role,
-          profile:profiles(name)
-        `)
-        .eq('deal_id', deal.id);
-        
-      return {
-        ...deal,
-        participants: participants || []
-      };
-    }));
-    
-    return { deals: enrichedDeals };
+    return { deals: deals || [] };
   } catch (error) {
     console.error("Error fetching user deal portfolio:", error);
-    return { deals: [], error: error.message };
+    return { error: error.message, deals: [] };
   }
 }

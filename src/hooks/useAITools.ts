@@ -66,10 +66,8 @@ export function useAITools({ dealId, documentId }: UseAIToolsProps) {
     } catch (error: any) {
       console.error(`Error executing AI operation ${operation}:`, error);
       setError(error.message || 'An unexpected error occurred');
-      toast({
-        title: 'AI Operation Failed',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive'
+      toast.error('AI Operation Failed', {
+        description: error.message || 'An unexpected error occurred'
       });
     } finally {
       setLoading(false);

@@ -1,71 +1,49 @@
 
-import { formatDate } from "../utils.ts";
-
 /**
- * Format deal data for the AI prompt
+ * Format deal portfolio data for use in AI prompts
  */
 export function formatDealPortfolioForPrompt(deals: any[]) {
-  if (!deals || deals.length === 0) {
-    return "No active deals found in the user's portfolio.";
-  }
-  
-  let formattedData = "";
-  
-  deals.forEach(deal => {
-    // Calculate milestone counts
-    const milestoneCounts = {
-      completed: 0,
-      in_progress: 0,
-      blocked: 0,
-      not_started: 0
+  return deals.map(deal => {
+    // Calculate milestone statistics
+    const totalMilestones = deal.milestones?.length || 0;
+    const completedMilestones = deal.milestones?.filter((m: any) => m.status === 'completed').length || 0;
+    const blockedMilestones = deal.milestones?.filter((m: any) => m.status === 'blocked').length || 0;
+    
+    // Calculate time metrics
+    const createdDate = new Date(deal.created_at);
+    const updatedDate = new Date(deal.updated_at);
+    const daysSinceCreation = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Organize participants by role
+    const participantsByRole: Record<string, number> = {};
+    deal.participants?.forEach((p: any) => {
+      const role = p.role || 'unknown';
+      participantsByRole[role] = (participantsByRole[role] || 0) + 1;
+    });
+    
+    // Format for prompt
+    return {
+      id: deal.id,
+      title: deal.title,
+      status: deal.status,
+      type: deal.deal_type,
+      health_score: deal.health_score,
+      asking_price: deal.asking_price,
+      description: deal.description?.substring(0, 100) + (deal.description?.length > 100 ? '...' : '') || 'No description',
+      progress: {
+        total_milestones: totalMilestones,
+        completed_milestones: completedMilestones,
+        blocked_milestones: blockedMilestones,
+        completion_percentage: totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0
+      },
+      documents_count: deal.documents?.length || 0,
+      participants: participantsByRole,
+      time_metrics: {
+        days_since_creation: daysSinceCreation,
+        days_since_update: daysSinceUpdate,
+        is_stale: daysSinceUpdate > 14
+      }
     };
-    
-    let overdueMilestones = 0;
-    const now = new Date();
-    
-    if (deal.milestones && deal.milestones.length > 0) {
-      deal.milestones.forEach((m: any) => {
-        milestoneCounts[m.status] = (milestoneCounts[m.status] || 0) + 1;
-        
-        if (m.status !== 'completed' && m.due_date && new Date(m.due_date) < now) {
-          overdueMilestones++;
-        }
-      });
-    }
-    
-    const totalMilestones = deal.milestones ? deal.milestones.length : 0;
-    const milestoneProgress = totalMilestones > 0 
-      ? Math.round((milestoneCounts.completed / totalMilestones) * 100) 
-      : 0;
-    
-    // Format participant roles
-    const participantRoles = deal.participants 
-      ? deal.participants.map((p: any) => p.role).join(', ')
-      : 'Unknown';
-    
-    // Format dates
-    const createdDate = formatDate(deal.created_at);
-    const targetDate = formatDate(deal.target_completion_date);
-    const lastUpdated = formatDate(deal.updated_at);
-    
-    // Calculate deal age in days
-    const ageInDays = Math.round((now.getTime() - new Date(deal.created_at).getTime()) / (1000 * 60 * 60 * 24));
-    
-    formattedData += `
-Deal: ${deal.title} (ID: ${deal.id})
-Business: ${deal.business_legal_name || 'Unnamed'}
-Status: ${deal.status} (Health Score: ${deal.health_score}%)
-Type: ${deal.deal_type || 'Unspecified'} | Asking Price: $${deal.asking_price || 'Unspecified'}
-Milestone Progress: ${milestoneCounts.completed}/${totalMilestones} completed (${milestoneProgress}%)
-  - Details: Completed: ${milestoneCounts.completed}, In Progress: ${milestoneCounts.in_progress}, 
-    Blocked: ${milestoneCounts.blocked}, Not Started: ${milestoneCounts.not_started}, Overdue: ${overdueMilestones}
-Participants: ${participantRoles}
-Seller: ${deal.seller ? deal.seller.name : 'Unassigned'} 
-Buyer: ${deal.buyer ? deal.buyer.name : 'Unassigned'}
-Timeline: Created ${createdDate} (${ageInDays} days ago) | Target Completion: ${targetDate} | Last Updated: ${lastUpdated}
----
-`;
   });
-  
-  return formattedData;
 }

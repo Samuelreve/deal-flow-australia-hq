@@ -73,3 +73,12 @@ export interface DealInsightsResponse {
   recommendations: string[];
   disclaimer?: string;
 }
+
+export interface MilestoneGenerationResponse {
+  milestones: Array<{
+    name: string;
+    description: string;
+    order: number;
+  }>;
+  disclaimer: string;
+}
