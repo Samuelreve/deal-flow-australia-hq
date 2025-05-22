@@ -54,7 +54,7 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
           </div>
         </div>
         
-        {/* Improved upload section */}
+        {/* Add upload button */}
         <div className="pt-4">
           <input 
             type="file" 
@@ -66,20 +66,18 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
           />
           <label 
             htmlFor="document-upload"
-            className={`flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md cursor-pointer transition-colors ${isAnalyzing 
-              ? 'border-gray-300 bg-gray-50' 
-              : 'border-blue-300 bg-blue-50 hover:bg-blue-100'}`}
+            className="flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md border-gray-300 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
           >
-            <div className="flex flex-col items-center justify-center py-3">
-              <Upload className={`h-5 w-5 ${isAnalyzing ? 'text-gray-300' : 'text-blue-500'} mb-2`} />
-              <p className={`text-sm font-medium ${isAnalyzing ? 'text-gray-400' : 'text-blue-600'}`}>
+            <div className="flex flex-col items-center justify-center py-2">
+              <Upload className={`h-5 w-5 ${isAnalyzing ? 'text-gray-300' : 'text-blue-500'} mb-1`} />
+              <p className={`text-sm ${isAnalyzing ? 'text-gray-400' : 'text-blue-600'}`}>
                 {isAnalyzing ? 'Processing...' : 'Upload new document'}
-              </p>
-              <p className="text-xs text-center mt-1 text-muted-foreground">
-                Supports PDF, DOCX, and TXT files
               </p>
             </div>
           </label>
+          <p className="text-xs text-center mt-2 text-muted-foreground">
+            Upload any document to see how our AI analyzes its content
+          </p>
         </div>
       </CardContent>
     </Card>

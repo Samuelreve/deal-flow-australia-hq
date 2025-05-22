@@ -72,56 +72,49 @@ export function useContractAnalysis() {
       setAnalysisProgress(30);
       setAnalysisStage("Extracting text...");
 
-      // Handle text files directly
+      // For text files, we can read them directly
       if (file.type === 'text/plain') {
-        try {
-          const text = await file.text();
-          console.log("Text file content extracted, length:", text.length);
-          setContractText(text);
-          setAnalysisProgress(50);
-          setAnalysisStage("Creating summary...");
-          
-          // Create a basic summary for text files based on actual content
-          const basicSummary = {
-            summary: [
-              { title: "Document Type", content: "Text Document" },
-              { title: "Content Length", content: `${text.length} characters` },
-              { title: "Key Points", content: analyzeTextForKeyPoints(text) }
-            ],
-            disclaimer: "This is an automated analysis of your document. For comprehensive legal analysis, consider consulting a legal professional."
-          };
-          
-          setCustomSummary(basicSummary);
-          setAnalysisProgress(100);
-        } catch (error) {
-          console.error("Error reading text file:", error);
-          toast.error("Could not read text file");
-          throw error;
-        }
+        const text = await file.text();
+        setContractText(text);
+        setAnalysisProgress(50);
+        setAnalysisStage("Creating summary...");
+        
+        // Create a basic summary for text files based on actual content
+        const basicSummary = {
+          summary: [
+            { title: "Document Type", content: "Text Document" },
+            { title: "Content Length", content: `${text.length} characters` },
+            { title: "Key Points", content: analyzeTextForKeyPoints(text) }
+          ],
+          disclaimer: "This is an automated analysis of your document. For comprehensive legal analysis, consider consulting a legal professional."
+        };
+        
+        setCustomSummary(basicSummary);
+        setAnalysisProgress(100);
       } else {
         try {
-          // Extract text immediately for display
-          let initialExtractedText = `Processing ${file.name}...\n\nExtracting text from ${newMetadata.type}...`;
-          setContractText(initialExtractedText);
-          
           setAnalysisStage("Analyzing with AI...");
-          setAnalysisProgress(40);
           
-          // Try to call the public analyzer API
-          console.log("Sending document for analysis:", file.name);
+          // First try to extract text content locally for immediate display
+          let extractedText = "";
           
-          // First attempt to get just the text content directly from the file
-          try {
-            if (file.type === 'text/plain') {
-              const text = await file.text();
-              setContractText(text);
-            }
-          } catch (textError) {
-            console.error("Failed to read text directly:", textError);
-            // Continue with API call - don't throw error here
+          if (file.type === 'text/plain') {
+            extractedText = await file.text();
+          } else if (file.type.includes('docx')) {
+            extractedText = "Microsoft Word document content. Processing content...";
+          } else if (file.type.includes('pdf')) {
+            extractedText = "PDF document content. Processing content...";
+          } else {
+            extractedText = `Document content (${file.type}). Processing...`;
           }
           
-          // Now try the API call
+          // Set the extracted text immediately for display
+          setContractText(extractedText);
+          setAnalysisProgress(40);
+          
+          // Attempt to send to API for proper analysis
+          console.log("Sending document for analysis:", file.name);
+          
           try {
             const response = await fetch('/api/public-ai-analyzer', {
               method: 'POST',
@@ -129,54 +122,31 @@ export function useContractAnalysis() {
             });
             
             if (!response.ok) {
-              throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+              console.error("Failed to process document, status:", response.status);
+              // Still continue with local analysis instead of throwing
+              throw new Error(`Failed to process document: ${response.status}`);
             }
             
             const data = await response.json();
             console.log("Analysis response received:", data);
             
-            // Update contract text from API response
-            if (data.text && data.text.length > 0) {
+            if (data.text) {
               setContractText(data.text);
               console.log("Contract text set, length:", data.text.length);
             }
             
-            // Process analysis data
             if (data.analysis) {
-              console.log("Processing analysis data from API");
-              processAnalysisData(data.analysis, data.text || initialExtractedText);
+              processAnalysisData(data.analysis, data.text || extractedText);
             } else {
-              console.log("No analysis data, generating local summary");
-              // Fallback to local analysis
-              const localSummary = generateLocalSummary(contractText || initialExtractedText, file.name);
+              // Fallback to local analysis if no analysis was provided
+              const localSummary = generateLocalSummary(extractedText, file.name);
               setCustomSummary(localSummary);
             }
-            
           } catch (apiError) {
-            console.error("API error:", apiError);
-            // If API call fails, still extract text from file if possible
-            if (file.type === 'text/plain') {
-              try {
-                const text = await file.text();
-                setContractText(text);
-              } catch (directReadError) {
-                console.error("Failed direct file read after API error:", directReadError);
-              }
-            } else if (file.type.includes('pdf')) {
-              setContractText(`PDF content from ${file.name}\n\nAPI processing failed. Please try again or use a different file format.`);
-            } else {
-              setContractText(`Document content from ${file.name}\n\nAPI processing failed. Please try again or use a different file format.`);
-            }
-            
-            // Generate local summary as fallback
-            const extractedText = contractText || initialExtractedText;
+            console.error("Error analyzing document:", apiError);
+            // Generate local fallback summary
             const localSummary = generateLocalSummary(extractedText, file.name);
             setCustomSummary(localSummary);
-            
-            // Still show toast for API error
-            toast.error("Analysis API call failed", {
-              description: "Using local analysis as fallback"
-            });
           }
           
           setAnalysisProgress(100);
@@ -189,14 +159,10 @@ export function useContractAnalysis() {
               { title: "File Name", content: file.name },
               { title: "File Size", content: formatFileSize(file.size) },
               { title: "Upload Date", content: new Date().toLocaleDateString() },
-              { title: "Content Preview", content: "Content preview unavailable." }
             ],
             disclaimer: "This is basic file information. Advanced analysis could not be performed on this document."
           };
           setCustomSummary(fallbackSummary);
-          
-          // Set some basic content when all else fails
-          setContractText(`Failed to extract content from ${file.name}.\n\nPlease try a different file format.`);
         }
       }
     } catch (error) {
@@ -225,7 +191,7 @@ export function useContractAnalysis() {
         });
       }, 1500);
     }
-  }, [contractText]);
+  }, []);
 
   // Helper function to format file size
   const formatFileSize = (bytes: number): string => {
@@ -302,20 +268,11 @@ export function useContractAnalysis() {
       parties = nameMatches[0];
     }
 
-    // Extract first paragraph to use as preview
-    let contentPreview = text.substring(0, 200);
-    if (contentPreview) {
-      contentPreview = contentPreview.trim() + "...";
-    } else {
-      contentPreview = "Content preview unavailable";
-    }
-
     return {
       summary: [
         { title: "Document Type", content: documentType },
         { title: "Apparent Purpose", content: determineDocumentPurpose(text) },
         { title: "Possible Parties", content: parties },
-        { title: "Content Preview", content: contentPreview },
         { title: "Content Analysis", content: analyzeTextForKeyPoints(text) },
         { title: "Key Terms", content: extractKeyTerms(text) }
       ],
@@ -335,7 +292,7 @@ export function useContractAnalysis() {
       return "Property rental or leasing";
     if (/purchase|buy|acqui|sale/i.test(text))
       return "Purchase or acquisition";
-    return "Purpose not clearly identified from content";
+    return "Not clearly identified from content";
   };
 
   // Helper to extract key terms from text
@@ -354,99 +311,11 @@ export function useContractAnalysis() {
   // Process analysis data from API
   const processAnalysisData = (analysisText: string, documentText: string) => {
     try {
-      console.log("Processing analysis data, length:", analysisText.length);
-      
-      // First check if the analysis is already in JSON format
-      try {
-        // Try to parse as JSON first
-        const jsonAnalysis = JSON.parse(analysisText);
-        
-        if (jsonAnalysis && typeof jsonAnalysis === 'object') {
-          console.log("Analysis is in JSON format");
-          
-          // If it's a contract_summary structure like from our OpenAI prompt
-          if (jsonAnalysis.contract_summary || 
-              jsonAnalysis.key_parties || 
-              jsonAnalysis.contract_type) {
-            
-            // Transform the JSON structure to our expected format
-            const summaryItems = [];
-            
-            // Map the JSON keys to our summary items
-            if (jsonAnalysis.contract_summary) {
-              summaryItems.push({ 
-                title: jsonAnalysis.contract_summary.title || "Contract Summary", 
-                content: jsonAnalysis.contract_summary.content 
-              });
-            }
-            
-            if (jsonAnalysis.contract_type) {
-              summaryItems.push({ 
-                title: jsonAnalysis.contract_type.title || "Contract Type", 
-                content: jsonAnalysis.contract_type.content 
-              });
-            }
-            
-            if (jsonAnalysis.key_parties) {
-              summaryItems.push({ 
-                title: jsonAnalysis.key_parties.title || "Key Parties", 
-                content: jsonAnalysis.key_parties.content 
-              });
-            }
-            
-            // Add other sections in a logical order
-            const sections = [
-              'key_obligations', 'financial_terms', 'timelines_and_dates',
-              'termination_rules', 'liabilities_and_indemnities', 
-              'governing_law', 'potential_risks_flags', 'next_steps_suggestions'
-            ];
-            
-            for (const key of sections) {
-              if (jsonAnalysis[key]) {
-                summaryItems.push({ 
-                  title: jsonAnalysis[key].title || key.split('_').map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1)).join(' '), 
-                  content: jsonAnalysis[key].content 
-                });
-              }
-            }
-            
-            // Set the custom summary
-            setCustomSummary({
-              summary: summaryItems,
-              disclaimer: "This analysis is provided for informational purposes only and should not be considered legal advice."
-            });
-            
-            return;
-          } 
-          
-          // For simple JSON structure without nested title/content
-          else if (Object.keys(jsonAnalysis).length > 0) {
-            // Transform flat JSON to our structure
-            const summaryItems = Object.entries(jsonAnalysis).map(([key, value]) => ({
-              title: key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-              content: String(value)
-            }));
-            
-            setCustomSummary({
-              summary: summaryItems,
-              disclaimer: "This analysis is provided for informational purposes only and should not be considered legal advice."
-            });
-            
-            return;
-          }
-        }
-      } catch (jsonError) {
-        console.log("Not valid JSON, processing as text");
-        // Continue with text processing since it's not valid JSON
-      }
-      
       // Structured approach to extract sections from analysis text
       let summaryItems = [];
       
       // Try to identify document type
-      const typeMatch = analysisText.match(/document type:?\s*([^.]+)/i) || 
-                       analysisText.match(/contract type:?\s*([^.]+)/i);
+      const typeMatch = analysisText.match(/document type:?\s*([^.]+)/i);
       if (typeMatch) {
         summaryItems.push({ title: "Document Type", content: typeMatch[1].trim() });
       } else {
@@ -455,17 +324,19 @@ export function useContractAnalysis() {
       
       // Try to identify parties
       const partiesMatch = analysisText.match(/parties:?\s*([^.]+)/i) || 
-                         analysisText.match(/key parties:?\s*([^.]+)/i);
+                           analysisText.match(/key parties:?\s*([^.]+)/i);
       if (partiesMatch) {
         summaryItems.push({ title: "Parties Involved", content: partiesMatch[1].trim() });
       } else {
         const extractedParties = extractPartiesFromText(documentText);
-        summaryItems.push({ title: "Parties Involved", content: extractedParties });
+        if (extractedParties) {
+          summaryItems.push({ title: "Parties Involved", content: extractedParties });
+        }
       }
       
       // Try to identify purpose
       const purposeMatch = analysisText.match(/purpose:?\s*([^.]+)/i) || 
-                         analysisText.match(/main purpose:?\s*([^.]+)/i);
+                           analysisText.match(/main purpose:?\s*([^.]+)/i);
       if (purposeMatch) {
         summaryItems.push({ title: "Purpose", content: purposeMatch[1].trim() });
       } else {
@@ -482,8 +353,8 @@ export function useContractAnalysis() {
       
       // Try to identify dates
       const datesMatch = analysisText.match(/dates?:?\s*([^.]+)/i) || 
-                       analysisText.match(/important dates?:?\s*([^.]+)/i) || 
-                       analysisText.match(/duration:?\s*([^.]+)/i);
+                         analysisText.match(/important dates?:?\s*([^.]+)/i) || 
+                         analysisText.match(/duration:?\s*([^.]+)/i);
       if (datesMatch) {
         summaryItems.push({ title: "Important Dates", content: datesMatch[1].trim() });
       }
@@ -495,16 +366,10 @@ export function useContractAnalysis() {
         disclaimer = disclaimerMatch[1].trim();
       }
       
-      // If we couldn't extract enough items from the analysis text,
-      // include content preview and analysis
+      // If we couldn't extract enough items, add more based on document content
       if (summaryItems.length < 3) {
         if (!summaryItems.some(item => item.title === "Content Overview")) {
-          // Add content preview
-          let contentPreview = documentText.substring(0, 200).trim() + "...";
-          summaryItems.push({ title: "Content Preview", content: contentPreview });
-          
-          // Add content analysis
-          summaryItems.push({ title: "Content Analysis", content: analyzeTextForKeyPoints(documentText) });
+          summaryItems.push({ title: "Content Overview", content: analyzeTextForKeyPoints(documentText) });
         }
       }
       

@@ -79,10 +79,7 @@ const DemoContractPage: React.FC = () => {
                 
                 {/* Summary Tab */}
                 <TabsContent value="summary">
-                  <ContractSummaryTab 
-                    summaryData={customSummary || mockSummary} 
-                    isLoading={isAnalyzing} 
-                  />
+                  <ContractSummaryTab summaryData={customSummary || mockSummary} />
                 </TabsContent>
                 
                 {/* Assistant Tab */}
