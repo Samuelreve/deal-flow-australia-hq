@@ -1,122 +1,68 @@
 
+import React from 'react';
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import StatsCard from "./StatsCard";
+import WaitlistForm from './WaitlistForm';
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
-  scrollToSection: (sectionId: string) => void;
+  scrollToSection?: (sectionId: string) => void;
 }
 
 const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
-
+  
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
+  };
+  
   return (
-    <header className="relative bg-gradient-to-b from-background to-background/80">
-      {/* Background pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      
-      <div className="h-16 px-4 md:px-6 flex items-center justify-between border-b backdrop-blur-sm z-10 relative">
-        <div className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            DealPilot
-          </motion.div>
-        </div>
-        <div className="flex items-center gap-4">
-          {isAuthenticated ? (
+    <div className="relative bg-gradient-to-br from-slate-100 to-blue-50 py-16 md:py-24">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-800">
+              Smart Contract Analysis Made Simple
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
+            Upload any contract and get instant AI-powered summaries, insights, and answers to your legal questions in plain English.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button 
-              onClick={() => navigate("/dashboard")}
-              className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
+              size="lg"
+              onClick={handleGetStarted}
+              className="text-md bg-blue-600 hover:bg-blue-700 px-8"
             >
-              Dashboard
+              Get Started <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          ) : (
-            <>
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate("/login")}
-                className="hover:text-primary transition-colors"
-              >
-                Log in
-              </Button>
-              <Button 
-                onClick={() => navigate("/signup")}
-                className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
-              >
-                Get Started
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-      
-      <div className="py-16 md:py-28 lg:py-32 px-4 md:px-6 relative">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="container mx-auto max-w-5xl relative z-10"
-        >
-          <div className="text-center">
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-blue-600"
-            >
-              Revolutionizing Business Transactions
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10"
-            >
-              DealPilot reduces the typical business sale timeline from months to weeks through AI-powered workflows, secure document management, and intelligent collaboration.
-            </motion.p>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={() => scrollToSection?.('features')}
+              className="text-md px-8"
             >
-              <Button 
-                size="lg" 
-                onClick={() => navigate("/signup")} 
-                className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0 shadow-md hover:shadow-lg transition-all"
-              >
-                Start For Free <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                onClick={() => scrollToSection("how-it-works")}
-                className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
-              >
-                See How It Works
-              </Button>
-            </motion.div>
+              See How It Works
+            </Button>
           </div>
           
-          {/* Stats Section */}
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <StatsCard value="40%" label="Faster Deal Completion" />
-            <StatsCard value="90%" label="Reduced Documentation Errors" />
-            <StatsCard value="60%" label="Less Legal Back-and-Forth" />
+          {/* Waitlist Form */}
+          <div className="mt-12 bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto border border-blue-100">
+            <h2 className="text-2xl font-bold mb-2">Join the Waitlist</h2>
+            <p className="text-gray-600 mb-6">Be the first to access our full suite of legal document AI tools when we launch.</p>
+            <WaitlistForm />
           </div>
-        </motion.div>
-
-        {/* Decorative elements */}
-        <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-muted/30 to-transparent"></div>
+        </div>
       </div>
-    </header>
+    </div>
   );
 };
 
