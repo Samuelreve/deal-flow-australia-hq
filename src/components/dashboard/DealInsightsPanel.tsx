@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useDocumentAI } from "@/hooks/document-ai";
 import { useAuth } from "@/contexts/AuthContext";
@@ -81,12 +81,8 @@ const DealInsightsPanel = () => {
     }
   }, [user?.id, getDealInsights, formatInsightsToText, retryCount, clearError]);
 
-  useEffect(() => {
-    // Generate insights on component mount
-    if (user?.id && !insightsText && !insightsData && !loading) {
-      generateInsights();
-    }
-  }, [user?.id, insightsText, insightsData, loading, generateInsights]);
+  // Removed the automatic generation on component mount
+  // Now insights will only be generated when the user clicks the Refresh button
 
   return (
     <Card className="mb-8">
