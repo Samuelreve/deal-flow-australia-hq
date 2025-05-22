@@ -12,22 +12,34 @@ interface DealInsightOperationsProps {
  */
 export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperationsProps) => {
   const [latestError, setLatestError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /**
+   * Error handler for insight operations
+   */
+  const handleError = (error: any, defaultMessage: string) => {
+    const errorMessage = error.message || defaultMessage;
+    setLatestError(errorMessage);
+    console.error(`Deal insight error: ${defaultMessage}`, error);
+    throw new Error(errorMessage);
+  };
 
   /**
    * Suggest next action for a deal
    */
   const suggestNextAction = async (dealId: string) => {
     try {
+      setIsLoading(true);
       setLatestError(null);
       return await processAIRequest('suggest_next_action', {
         content: '',
         context: { dealId }
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to suggest next action';
-      setLatestError(errorMessage);
-      console.error('Error suggesting next action:', error);
-      throw new Error(errorMessage);
+      handleError(error, 'Failed to suggest next action');
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -36,16 +48,17 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
    */
   const summarizeDeal = async (dealId: string): Promise<DealSummaryResponse | null> => {
     try {
+      setIsLoading(true);
       setLatestError(null);
       return await processAIRequest('summarize_deal', {
         content: '',
         context: { dealId }
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to summarize deal';
-      setLatestError(errorMessage);
-      console.error('Error summarizing deal:', error);
-      throw new Error(errorMessage);
+      handleError(error, 'Failed to summarize deal');
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -54,16 +67,17 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
    */
   const getDealInsights = async (): Promise<DealInsightsResponse | null> => {
     try {
+      setIsLoading(true);
       setLatestError(null);
       return await processAIRequest('get_deal_insights', {
         content: '',
         context: { }
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to get deal insights';
-      setLatestError(errorMessage);
-      console.error('Error getting deal insights:', error);
-      throw new Error(errorMessage);
+      handleError(error, 'Failed to get deal insights');
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -78,21 +92,21 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
     let text = "**Overall Portfolio Health:** Your deal portfolio is being analyzed\n\n";
     
     // Add high priority insights first
-    const highPriorityInsights = insightsData.insights.filter((i: any) => i.priority === "high");
+    const highPriorityInsights = insightsData.insights.filter(i => i.priority === "high");
     if (highPriorityInsights.length > 0) {
       text += "**Deals Needing Attention:**\n";
-      highPriorityInsights.forEach((insight: any) => {
+      highPriorityInsights.forEach(insight => {
         text += `• ${insight.title}: ${insight.description}\n`;
       });
       text += "\n";
     }
   
     // Add medium/low priority positive insights
-    const positiveInsights = insightsData.insights.filter((i: any) => 
+    const positiveInsights = insightsData.insights.filter(i => 
       i.priority !== "high" && i.type === "positive");
     if (positiveInsights.length > 0) {
       text += "**Deals Progressing Well:**\n";
-      positiveInsights.forEach((insight: any) => {
+      positiveInsights.forEach(insight => {
         text += `• ${insight.title}: ${insight.description}\n`;
       });
       text += "\n";
@@ -101,7 +115,7 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
     // Add recommendations
     if (insightsData.recommendations && insightsData.recommendations.length > 0) {
       text += "**Recommendations:**\n";
-      insightsData.recommendations.forEach((rec: string) => {
+      insightsData.recommendations.forEach(rec => {
         text += `• ${rec}\n`;
       });
     }
@@ -115,6 +129,7 @@ export const useDealInsightOperations = ({ processAIRequest }: DealInsightOperat
     getDealInsights,
     formatInsightsToText,
     error: latestError,
-    clearError: () => setLatestError(null)
+    clearError: () => setLatestError(null),
+    isLoading
   };
 };

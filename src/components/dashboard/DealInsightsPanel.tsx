@@ -9,6 +9,7 @@ import InsightsHeader from './insights/InsightsHeader';
 import InsightsLoading from './insights/InsightsLoading';
 import InsightsError from './insights/InsightsError';
 import InsightsContent from './insights/InsightsContent';
+import { DealInsightsResponse } from '@/hooks/document-ai/types';
 
 /**
  * Component for displaying AI-generated insights about a user's deal portfolio
@@ -16,6 +17,7 @@ import InsightsContent from './insights/InsightsContent';
 const DealInsightsPanel = () => {
   const { user } = useAuth();
   const [insightsText, setInsightsText] = useState<string>("");
+  const [insightsData, setInsightsData] = useState<DealInsightsResponse | null>(null);
   
   const { 
     getDealInsights,
@@ -38,7 +40,10 @@ const DealInsightsPanel = () => {
     try {
       const result = await getDealInsights();
       if (result) {
-        // Convert the insights data to a formatted text for display
+        // Store the raw insights data
+        setInsightsData(result);
+        
+        // Also convert to text for backward compatibility
         const formattedText = formatInsightsToText(result);
         setInsightsText(formattedText);
       } else {
@@ -60,7 +65,7 @@ const DealInsightsPanel = () => {
 
   useEffect(() => {
     // Generate insights on component mount
-    if (user?.id && !insightsText) {
+    if (user?.id && !insightsText && !insightsData) {
       generateInsights();
     }
   }, [user?.id]);
@@ -74,7 +79,10 @@ const DealInsightsPanel = () => {
         ) : error ? (
           <InsightsError error={error} />
         ) : (
-          <InsightsContent insightsText={insightsText} />
+          <InsightsContent 
+            insightsText={insightsText} 
+            insightsData={insightsData} 
+          />
         )}
       </CardContent>
     </Card>
