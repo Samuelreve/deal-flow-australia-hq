@@ -64,7 +64,17 @@ Title:                             Title:
 Date:                              Date:
 `;
 
-// Mock AI response for contract summary
+// Update document metadata to match the document shown in screenshots
+const documentMetadata = {
+  name: "Mutual NDA - Template.pdf",
+  type: "Non-Disclosure Agreement",
+  uploadDate: new Date().toLocaleString(), // Use current date/time for accuracy
+  status: "Analyzed",
+  version: "v1",
+  versionDate: "Just now"
+};
+
+// Mock AI response for contract summary - this already looks good
 const mockSummary = {
   summary: [
     {
@@ -169,7 +179,7 @@ const DemoContractPage = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Document Info */}
+          {/* Left Column - Document Info - Updated to match screenshot */}
           <div className="space-y-6">
             <Card>
               <CardHeader className="pb-2">
@@ -181,21 +191,21 @@ const DemoContractPage = () => {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium">Name</h3>
-                  <p className="text-sm text-muted-foreground">Mutual NDA - Template.pdf</p>
+                  <p className="text-sm text-muted-foreground">{documentMetadata.name}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Type</h3>
-                  <p className="text-sm text-muted-foreground">Non-Disclosure Agreement</p>
+                  <p className="text-sm text-muted-foreground">{documentMetadata.type}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Uploaded</h3>
-                  <p className="text-sm text-muted-foreground">Today at 2:30 PM</p>
+                  <p className="text-sm text-muted-foreground">{documentMetadata.uploadDate}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Status</h3>
                   <div className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                    <span className="text-sm">Analyzed</span>
+                    <span className="text-sm">{documentMetadata.status}</span>
                   </div>
                 </div>
               </CardContent>
@@ -210,10 +220,10 @@ const DemoContractPage = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-2 bg-primary/5 rounded-md">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium bg-primary text-primary-foreground px-1.5 py-0.5 rounded">v1</span>
+                      <span className="text-xs font-medium bg-primary text-primary-foreground px-1.5 py-0.5 rounded">{documentMetadata.version}</span>
                       <span className="text-sm">Current Version</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Just now</span>
+                    <span className="text-xs text-muted-foreground">{documentMetadata.versionDate}</span>
                   </div>
                 </div>
               </CardContent>
@@ -238,7 +248,7 @@ const DemoContractPage = () => {
             ) : (
               <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">
-                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="summary">Contract Summary</TabsTrigger>
                   <TabsTrigger value="assistant">Ask Questions</TabsTrigger>
                   <TabsTrigger value="document">Full Document</TabsTrigger>
                 </TabsList>
