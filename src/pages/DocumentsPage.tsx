@@ -28,36 +28,7 @@ const DocumentsPage = () => {
     const fetchDeal = async () => {
       setLoading(true);
       try {
-        // For demo-deal, always return a valid demo deal
-        if (dealId === 'demo-deal') {
-          const demoDeal = {
-            id: 'demo-deal',
-            title: 'Demo Contract Analysis',
-            description: 'This is a demo deal for testing contract analysis features',
-            status: 'active',
-            sellerId: user?.id || 'demo-seller',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            milestones: [],
-            documents: [],
-            healthScore: 85,
-            comments: [],
-            participants: [
-              {
-                id: 'demo-participant',
-                role: 'admin',
-                joined: new Date()
-              }
-            ]
-          };
-          setDeal(demoDeal);
-          setIsParticipant(true);
-          setUserDealRole("admin");
-          setLoading(false);
-          return;
-        }
-        
-        // For non-demo deals, use the regular mock data
+        // Simulate fetching the deal
         const dealData = getMockDeal(dealId);
         
         if (dealData) {
