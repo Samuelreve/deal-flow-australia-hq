@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, AlertCircle, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle, FileText, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DocumentTabProps {
@@ -11,7 +11,21 @@ interface DocumentTabProps {
 
 const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
   const [expanded, setExpanded] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const maxHeight = expanded ? '100%' : '600px';
+  
+  // Process large text content with a slight delay to improve UI responsiveness
+  useEffect(() => {
+    if (contractText && contractText.length > 10000) {
+      setProcessing(true);
+      const timer = setTimeout(() => {
+        setProcessing(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [contractText]);
+  
+  const hasContent = contractText && contractText.trim().length > 0;
   
   return (
     <Card>
@@ -22,7 +36,12 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {contractText ? (
+        {processing ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <Loader className="h-6 w-6 animate-spin text-primary mb-2" />
+            <p className="text-sm text-muted-foreground">Processing document content...</p>
+          </div>
+        ) : hasContent ? (
           <>
             <div className="bg-muted p-4 rounded-md overflow-auto transition-all" style={{ maxHeight }}>
               <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
