@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, InfoIcon } from 'lucide-react';
+import { AlertTriangle, InfoIcon, FileText } from 'lucide-react';
 
 export interface SummaryItem {
   title: string;
@@ -23,7 +23,10 @@ const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Contract Summary</CardTitle>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Contract Summary
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert className="bg-blue-50 border-blue-200">
@@ -40,12 +43,15 @@ const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Contract Summary</CardTitle>
+        <CardTitle className="text-xl flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Contract Summary
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {summaryData.summary.map((item, index) => (
-          <div key={index} className="space-y-1">
-            <h3 className="text-base font-medium">{item.title}</h3>
+          <div key={index} className="space-y-1 border-b pb-4 last:border-b-0">
+            <h3 className="text-base font-medium text-gray-800">{item.title}</h3>
             <p className="text-sm text-muted-foreground">{item.content}</p>
           </div>
         ))}

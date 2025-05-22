@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { FileText, Upload } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 interface DocumentMetadata {
   name: string;
@@ -47,13 +48,14 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
         <div>
           <h3 className="text-sm font-medium">Status</h3>
           <div className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-            <span className="text-sm">{documentMetadata.status}</span>
+            <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+              {documentMetadata.status}
+            </Badge>
           </div>
         </div>
         
         {/* Add upload button */}
-        <div className="pt-2">
+        <div className="pt-4">
           <input 
             type="file" 
             id="document-upload" 
@@ -74,7 +76,7 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
             </div>
           </label>
           <p className="text-xs text-center mt-2 text-muted-foreground">
-            Supported formats: PDF, DOCX, TXT
+            Upload any document to see how our AI analyzes its content
           </p>
         </div>
       </CardContent>

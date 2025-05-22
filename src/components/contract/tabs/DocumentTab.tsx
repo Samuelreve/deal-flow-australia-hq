@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DocumentTabProps {
@@ -16,7 +16,10 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Full Document</CardTitle>
+        <CardTitle className="text-xl flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Full Document
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {contractText ? (
