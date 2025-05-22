@@ -8,12 +8,13 @@ import { MessageSquare, Search, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ContractAssistantTabProps {
-  onAskQuestion: (question: string) => Promise<string | null>;
+  onAskQuestion: (question: string) => Promise<{ answer: string; sources?: string[] } | string>;
 }
 
 const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuestion }) => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
+  const [sources, setSources] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAskQuestion = async () => {
@@ -24,10 +25,20 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
     
     setIsLoading(true);
     setAnswer(null);
+    setSources([]);
     
     try {
       const response = await onAskQuestion(question);
-      setAnswer(response);
+      
+      // Handle different response formats
+      if (typeof response === 'string') {
+        setAnswer(response);
+      } else {
+        setAnswer(response.answer);
+        if (response.sources) {
+          setSources(response.sources);
+        }
+      }
     } catch (error) {
       toast.error("Failed to process your question");
     } finally {
@@ -76,6 +87,19 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuesti
             <div className="bg-muted p-4 rounded-md mt-4">
               <h3 className="font-medium mb-2">Answer:</h3>
               <p className="text-sm">{answer}</p>
+              
+              {sources && sources.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs font-medium">Sources:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {sources.map((source, index) => (
+                      <span key={index} className="bg-secondary text-xs px-2 py-0.5 rounded">
+                        {source}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
