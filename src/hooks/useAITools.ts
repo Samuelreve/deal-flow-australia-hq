@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ContractSummaryResponse, ContractClauseExplanationResponse, DealHealthPredictionResponse, DealSummaryResponse } from '@/hooks/document-ai/types';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface UseAIToolsProps {
   dealId: string;
@@ -53,7 +53,7 @@ export function useAITools({ dealId, documentId }: UseAIToolsProps) {
           result = await explainClause(params.clauseText);
           break;
         case 'explain_contract_clause':
-          result = await explainContractClause(params.clauseText, params.documentId, params.versionId);
+          result = await explainContractClause(params.documentId, params.versionId, params.clauseText);
           break;
         default:
           throw new Error('Unknown AI operation');

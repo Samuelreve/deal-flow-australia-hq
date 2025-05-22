@@ -4,7 +4,7 @@ import { DocumentAnalysisResponse } from './types';
 
 interface UseDocumentAnalysisOperationsProps {
   processAIRequest: (
-    operation: 'analyze_document',
+    operation: string,
     options: AIRequestOptions
   ) => Promise<AIResponse | null>;
 }
@@ -45,7 +45,22 @@ export const useDocumentAnalysisOperations = ({ processAIRequest }: UseDocumentA
     return null;
   };
   
+  /**
+   * Generate a summary of the document
+   */
+  const summarizeDocument = async (
+    documentId: string,
+    documentVersionId: string
+  ): Promise<any> => {
+    return processAIRequest('summarize_document', {
+      documentId,
+      documentVersionId,
+      content: 'Full document summary'
+    });
+  };
+  
   return {
     analyzeDocument,
+    summarizeDocument
   };
 };

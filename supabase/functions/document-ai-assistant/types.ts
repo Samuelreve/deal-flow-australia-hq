@@ -31,6 +31,7 @@ export type AIOperation =
   | 'explain_contract_clause'
   | 'analyze_smart_contract'
   | 'explain_smart_contract_clause'
+  | 'summarize_contract'
   | 'summarize_smart_contract';
 
 // Response for AI operations

@@ -1,86 +1,44 @@
 
-// Types for Document AI operations
-
-// Text explanation response
-export interface ContractClauseExplanationResponse {
-  explanation: string;
-  isAmbiguous?: boolean;
-  ambiguityExplanation?: string;
-  disclaimer: string;
-}
-
-// Contract summary response
-export interface ContractSummaryResponse {
-  summary: string;
-  analysisId?: string;
-  disclaimer: string;
-  parties?: string[];
-  contractType?: string;
-  keyObligations?: string[];
-  timelines?: string[];
-  terminationRules?: string[];
-  liabilities?: string[];
-}
-
-// Message for chat history
+// Add any missing types needed for our hooks
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
 }
 
-// Response from deal chat query
 export interface DealChatResponse {
   answer: string;
-  sources?: Array<{
-    content: string;
-    reference: string;
-  }>;
-  disclaimer: string;
+  sources?: string[];
+  confidence?: number;
 }
 
-// Deal Health Prediction Response
 export interface DealHealthPredictionResponse {
   probability_of_success_percentage: number;
-  confidence_level: "High" | "Medium" | "Low";
+  confidence_level: string;
   prediction_reasoning: string;
   suggested_improvements: Array<{
     area: string;
     recommendation: string;
-    impact: "High" | "Medium" | "Low";
+    impact: string;
   }>;
   disclaimer: string;
-  success?: boolean;
-  error?: string;
 }
 
-// Deal Summary Response
-export interface DealSummaryResponse {
+export interface ContractSummaryResponse {
   summary: string;
-  disclaimer: string;
+  key_points: string[];
+  disclaimer?: string;
 }
 
-// Deal Insights Response
-export interface DealInsightsResponse {
-  insightsText: string;
-  portfolioHealth?: string;
-  dealsNeedingAttention?: Array<{
-    id: string;
-    name: string;
-    reason: string;
-  }>;
-  dealsProgressingWell?: Array<{
-    id: string;
-    name: string;
-    reason: string;
-  }>;
-  keyTrends?: string[];
-  recommendations?: string[];
-  disclaimer: string;
+export interface ContractClauseExplanationResponse {
+  explanation: string;
+  implications: string[];
+  isAmbiguous?: boolean;
+  ambiguityExplanation?: string;
+  disclaimer?: string;
 }
 
-// Document Analysis Response
 export interface DocumentAnalysisResponse {
   analysis: {
     type: string;
@@ -89,12 +47,29 @@ export interface DocumentAnalysisResponse {
   disclaimer: string;
 }
 
-// Milestone Generation Response
-export interface MilestoneGenerationResponse {
-  milestones: {
-    name: string;
+export interface DealSummaryResponse {
+  summary: string;
+  key_details: Record<string, any>;
+  progress: {
+    percentage: number;
+    completed_milestones: number;
+    total_milestones: number;
+  };
+  participants: Array<{
+    role: string;
+    count: number;
+  }>;
+  disclaimer?: string;
+}
+
+export interface DealInsightsResponse {
+  insights: Array<{
+    title: string;
     description: string;
-    order: number;
-  }[];
-  disclaimer: string;
+    type: string;
+    priority: string;
+  }>;
+  metrics: Record<string, any>;
+  recommendations: string[];
+  disclaimer?: string;
 }

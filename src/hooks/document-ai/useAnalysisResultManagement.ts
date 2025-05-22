@@ -29,12 +29,12 @@ export const useAnalysisResultManagement = () => {
       
       // Save the analysis result to the database
       const { error } = await supabase
-        .from('document_analysis_history')
+        .from('document_analyses')
         .insert({
           document_id: documentId,
           document_version_id: versionId,
           analysis_type: analysisType,
-          result: result,
+          analysis_content: result,
           created_by: user.id
         });
       

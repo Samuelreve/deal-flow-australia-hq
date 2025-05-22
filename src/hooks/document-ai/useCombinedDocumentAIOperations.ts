@@ -6,6 +6,8 @@ import { useExplanationOperations } from './useExplanationOperations';
 import { useMilestoneGenerationOperations } from './useMilestoneGenerationOperations';
 import { useDealInsightOperations } from './useDealInsightOperations';
 import { useSmartContractOperations } from './useSmartContractOperations';
+import { useDealChatOperations } from './useDealChatOperations';
+import { useDealHealthPredictions } from './useDealHealthPredictions';
 
 /**
  * Combines all document AI operations into a single hook
@@ -31,6 +33,12 @@ export const useCombinedDocumentAIOperations = (props: UseDocumentAIBaseProps) =
   // Smart contract operations
   const contractOperations = useSmartContractOperations(baseOperations);
   
+  // Deal chat operations
+  const chatOperations = useDealChatOperations(baseOperations);
+  
+  // Deal health prediction operations
+  const healthPredictionOperations = useDealHealthPredictions(baseOperations);
+  
   // Return combined operations
   return {
     // Base operations
@@ -52,6 +60,12 @@ export const useCombinedDocumentAIOperations = (props: UseDocumentAIBaseProps) =
     ...insightOperations,
     
     // Smart contract operations
-    ...contractOperations
+    ...contractOperations,
+    
+    // Deal chat operations
+    ...chatOperations,
+    
+    // Deal health prediction operations
+    ...healthPredictionOperations
   };
 };
