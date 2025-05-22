@@ -31,9 +31,9 @@ export async function handleGetDealInsights(userId: string, openai: any) {
     // Prepare the OpenAI prompt
     const prompt = buildDealInsightsPrompt(formattedDealsData);
 
-    // Call OpenAI for insights
+    // Call OpenAI for insights - using gpt-3.5-turbo instead of gpt-4o-mini which is causing errors
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Using a more efficient model for insights
+      model: "gpt-3.5-turbo", // Changed from gpt-4o-mini to a model that's available
       messages: [
         {
           role: "system",
