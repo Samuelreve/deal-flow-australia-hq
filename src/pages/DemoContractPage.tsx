@@ -24,6 +24,7 @@ const DemoContractPage: React.FC = () => {
     isAnalyzing,
     analysisStage,
     analysisProgress,
+    questionHistory,
     handleFileUpload,
     handleAskQuestion
   } = useContractAnalysis();
@@ -84,7 +85,10 @@ const DemoContractPage: React.FC = () => {
                 
                 {/* Assistant Tab */}
                 <TabsContent value="assistant">
-                  <ContractAssistantTab onAskQuestion={handleAskQuestion} />
+                  <ContractAssistantTab 
+                    onAskQuestion={handleAskQuestion}
+                    questionHistory={questionHistory} 
+                  />
                 </TabsContent>
                 
                 {/* Document Tab */}

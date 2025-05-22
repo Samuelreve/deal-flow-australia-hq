@@ -128,15 +128,9 @@ export const useContractAnalysis = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        // For text files, we can directly use the content
-        if (file.type === 'text/plain') {
-          const fileContent = event.target.result.toString();
-          setContractText(fileContent);
-        } else {
-          // For other files, we'll use our sample text in this demo
-          // In a real app, you'd extract text from PDFs, DOCs, etc.
-          setContractText(sampleContractText);
-        }
+        // Always use the actual file content when available
+        const fileContent = event.target.result.toString();
+        setContractText(fileContent);
         
         // Simulate processing stages with delays
         simulateAnalysisStages();

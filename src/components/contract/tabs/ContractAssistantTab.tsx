@@ -9,14 +9,18 @@ import { toast } from 'sonner';
 
 interface ContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<{ answer: string; sources?: string[] } | string>;
+  questionHistory?: Array<{question: string, answer: string}>;
 }
 
-const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ onAskQuestion }) => {
+const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({ 
+  onAskQuestion,
+  questionHistory = []
+}) => {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<Array<{question: string, answer: string}>>([]);
+  const [history, setHistory] = useState<Array<{question: string, answer: string}>>(questionHistory);
 
   const handleAskQuestion = async () => {
     if (!question.trim()) {
