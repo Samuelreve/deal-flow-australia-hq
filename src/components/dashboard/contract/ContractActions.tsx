@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, ArrowRight } from "lucide-react";
+import { Upload, ArrowRight, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,8 +15,11 @@ const ContractActions: React.FC<ContractActionsProps> = ({ isUploading, handleFi
   const { user } = useAuth();
   
   const navigateToDeals = () => {
-    // Navigate to deals page so user can select a deal
     navigate('/deals');
+  };
+  
+  const navigateToNewDeal = () => {
+    navigate('/deals/new');
   };
 
   return (
@@ -52,6 +55,15 @@ const ContractActions: React.FC<ContractActionsProps> = ({ isUploading, handleFi
       >
         Go to My Deals
         <ArrowRight className="h-4 w-4 ml-2" />
+      </Button>
+      
+      <Button 
+        variant="secondary" 
+        onClick={navigateToNewDeal}
+        className="w-full"
+      >
+        Create New Deal
+        <PlusCircle className="h-4 w-4 ml-2" />
       </Button>
     </div>
   );

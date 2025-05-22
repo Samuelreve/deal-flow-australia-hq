@@ -1,61 +1,73 @@
 
-import { AIRequestOptions } from './useDocumentAIBase';
+import { AIOperation, AIRequestOptions, AIResponse } from '../document-ai/useDocumentAIBase';
 
-interface UseDocumentGenerationOperationsProps {
-  processAIRequest: (operation: string, options: AIRequestOptions) => Promise<any>;
+interface DocumentGenerationOperationsProps {
+  processAIRequest: (operation: AIOperation, options: AIRequestOptions) => Promise<AIResponse | null>;
 }
 
 /**
- * Hook for document generation AI operations
+ * Hook for document generation operations
  */
-export const useDocumentGenerationOperations = ({ processAIRequest }: UseDocumentGenerationOperationsProps) => {
+export const useDocumentGenerationOperations = ({ processAIRequest }: DocumentGenerationOperationsProps) => {
   /**
-   * Generate a document template based on provided requirements
+   * Generate a document template
    */
-  const generateTemplate = async (requirements: string) => {
-    return await processAIRequest('generate_template', {
-      content: requirements
+  const generateTemplate = async (
+    documentType: string,
+    context: Record<string, any>
+  ): Promise<AIResponse | null> => {
+    return processAIRequest('generate_template', {
+      content: documentType,
+      context
     });
   };
-
+  
   /**
-   * Generate a smart contract template based on deal data
-   * This is an alias for generateTemplate with a specific context
+   * Generate a smart template with AI customization
    */
-  const generateSmartTemplate = async () => {
-    return await processAIRequest('generate_template', {
-      content: 'Generate smart contract template based on deal data',
-      context: { isSmartTemplate: true }
+  const generateSmartTemplate = async (
+    documentType: string,
+    customization: string,
+    context: Record<string, any>
+  ): Promise<AIResponse | null> => {
+    return processAIRequest('generate_smart_template', {
+      content: `${documentType}:${customization}`,
+      context
     });
   };
-
+  
   /**
-   * Summarize a document
+   * Summarize a document's content
    */
-  const summarizeDocument = async (documentId: string, documentVersionId: string) => {
-    return await processAIRequest('summarize_document', {
-      content: '',
+  const summarizeDocument = async (
+    documentId: string,
+    documentVersionId: string
+  ): Promise<AIResponse | null> => {
+    return processAIRequest('summarize_document', {
       documentId,
-      documentVersionId
+      documentVersionId,
+      content: ''
     });
   };
-
+  
   /**
    * Summarize changes between document versions
    */
   const summarizeVersionChanges = async (
-    documentId: string, 
-    currentVersionId: string, 
+    documentId: string,
+    currentVersionId: string,
     previousVersionId: string
-  ) => {
-    return await processAIRequest('summarize_version_changes', {
-      content: '',
+  ): Promise<AIResponse | null> => {
+    console.log(`Requesting version change summary: doc=${documentId}, current=${currentVersionId}, prev=${previousVersionId}`);
+    
+    return processAIRequest('summarize_version_changes', {
       documentId,
       currentVersionId,
-      previousVersionId
+      previousVersionId,
+      content: ''
     });
   };
-
+  
   return {
     generateTemplate,
     generateSmartTemplate,

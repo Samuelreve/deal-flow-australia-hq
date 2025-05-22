@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { DocumentVersion, VersionComparisonResult } from "@/types/documentVersion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { versionComparisonService } from "@/services/documents/version-management";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DocumentVersionComparisonProps {
   versions: DocumentVersion[];
@@ -27,6 +28,7 @@ const DocumentVersionComparison = ({
   open,
   onOpenChange
 }: DocumentVersionComparisonProps) => {
+  const { toast } = useToast();
   const [compareVersionId, setCompareVersionId] = useState<string>("");
   const [comparisonResult, setComparisonResult] = useState<VersionComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +69,7 @@ const DocumentVersionComparison = ({
         setLoading(true);
         setError(null);
         try {
+          console.log(`Fetching comparison for deal ${dealId}: ${selectedVersionId} vs ${compareVersionId}`);
           const result = await versionComparisonService.compareVersions(
             selectedVersionId,
             compareVersionId,
@@ -74,7 +77,13 @@ const DocumentVersionComparison = ({
           );
           setComparisonResult(result);
         } catch (err: any) {
+          console.error("Version comparison error:", err);
           setError(err.message || "Failed to compare versions");
+          toast({
+            title: "Comparison Error",
+            description: err.message || "Failed to compare versions",
+            variant: "destructive",
+          });
         } finally {
           setLoading(false);
         }
@@ -84,10 +93,14 @@ const DocumentVersionComparison = ({
     if (open && selectedVersionId && compareVersionId) {
       fetchComparison();
     }
-  }, [selectedVersionId, compareVersionId, dealId, open]);
+  }, [selectedVersionId, compareVersionId, dealId, open, toast]);
 
   const handleCompareVersionChange = (versionId: string) => {
     setCompareVersionId(versionId);
+    // Reset previous results
+    setComparisonResult(null);
+    setComparisonSummary(null);
+    setSummaryError(null);
   };
 
   const getCurrentVersionName = () => {
@@ -106,6 +119,7 @@ const DocumentVersionComparison = ({
       setSummaryError(null);
       
       try {
+        console.log(`Requesting AI summary for deal ${dealId}: ${selectedVersionId} vs ${compareVersionId}`);
         const summary = await versionComparisonService.getVersionComparisonSummary(
           selectedVersionId,
           compareVersionId,
@@ -113,10 +127,29 @@ const DocumentVersionComparison = ({
         );
         setComparisonSummary(summary);
       } catch (err: any) {
+        console.error("AI summary error:", err);
         setSummaryError(err.message || "Failed to generate AI summary");
+        toast({
+          title: "AI Summary Error",
+          description: err.message || "Failed to generate AI summary",
+          variant: "destructive", 
+        });
       } finally {
         setLoadingSummary(false);
       }
+    }
+  };
+  
+  const handleRetry = () => {
+    if (activeTab === "differences") {
+      setComparisonResult(null);
+      setError(null);
+      // This will trigger the useEffect that fetches the comparison
+      const tempVersionId = compareVersionId;
+      setCompareVersionId("");
+      setTimeout(() => setCompareVersionId(tempVersionId), 50);
+    } else {
+      getAISummary();
     }
   };
 
@@ -154,6 +187,18 @@ const DocumentVersionComparison = ({
               </SelectContent>
             </Select>
           </div>
+          
+          {(error || summaryError) && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRetry}
+              className="ml-auto"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -171,7 +216,10 @@ const DocumentVersionComparison = ({
             ) : error ? (
               <Alert variant="destructive" className="my-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="space-y-2">
+                  <p>{error}</p>
+                  <p className="text-sm text-muted-foreground">There was a problem comparing these versions. Please try again or select different versions.</p>
+                </AlertDescription>
               </Alert>
             ) : comparisonResult ? (
               <ScrollArea className="flex-1">
@@ -275,15 +323,10 @@ const DocumentVersionComparison = ({
             {summaryError && (
               <Alert variant="destructive" className="my-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{summaryError}</AlertDescription>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2" 
-                  onClick={getAISummary}
-                >
-                  Try Again
-                </Button>
+                <AlertDescription className="space-y-2">
+                  <p>{summaryError}</p>
+                  <p className="text-sm">Something went wrong while creating the AI summary. This might be due to authorization issues or temporary AI service problems.</p>
+                </AlertDescription>
               </Alert>
             )}
 

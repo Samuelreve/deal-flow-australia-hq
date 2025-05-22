@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { VersionComparisonResult } from "@/types/documentVersion";
 
@@ -14,8 +15,7 @@ export const versionComparisonService = {
     dealId: string
   ): Promise<VersionComparisonResult> {
     try {
-      // Basic comparison for text differences
-      // This is a simple implementation and could be enhanced
+      console.log(`Comparing versions: ${currentVersionId} vs ${previousVersionId} for deal ${dealId}`);
       
       // Get text content of current version
       const currentVersionResponse = await supabase.functions.invoke('document-content-retrieval', {
@@ -89,6 +89,8 @@ export const versionComparisonService = {
     dealId: string
   ): Promise<{ summary: string; disclaimer: string }> {
     try {
+      console.log(`Getting AI summary for versions: ${currentVersionId} vs ${previousVersionId} for deal ${dealId}`);
+      
       // Get the authenticated user ID
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -109,10 +111,12 @@ export const versionComparisonService = {
       });
       
       if (error) {
+        console.error("Function invocation error:", error);
         throw new Error(`Failed to generate summary: ${error.message}`);
       }
       
       if (!data.success) {
+        console.error("Function success failure:", data);
         throw new Error(data.error || "Failed to generate summary");
       }
       

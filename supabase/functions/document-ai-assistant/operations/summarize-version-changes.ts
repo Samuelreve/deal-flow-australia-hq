@@ -21,6 +21,25 @@ export async function handleSummarizeVersionChanges(
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
     );
 
+    console.log(`Starting version comparison for deal ${dealId}, document ${documentId}, versions ${currentVersionId} and ${previousVersionId}`);
+    
+    // If documentId is "auto", look it up from the version
+    if (documentId === "auto") {
+      const { data: versionData, error: versionError } = await supabaseClient
+        .from('document_versions')
+        .select('document_id')
+        .eq('id', currentVersionId)
+        .single();
+      
+      if (versionError || !versionData) {
+        console.error("Failed to auto-resolve document ID:", versionError?.message || "Version not found");
+        throw new Error("Could not determine document ID from version");
+      }
+      
+      documentId = versionData.document_id;
+      console.log(`Auto-resolved document ID: ${documentId} from version ${currentVersionId}`);
+    }
+    
     // Verify document exists and belongs to this deal
     const { data: document, error: docError } = await supabaseClient
       .from('documents')
@@ -41,12 +60,17 @@ export async function handleSummarizeVersionChanges(
       .eq('document_id', documentId)
       .in('id', [currentVersionId, previousVersionId]);
     
-    if (versionError || !versions || versions.length !== 2) {
-      console.error("Version verification error:", versionError?.message || `Expected 2 versions, found ${versions?.length || 0}`);
+    if (versionError) {
+      console.error("Version query error:", versionError?.message);
+      throw new Error("Error querying document versions");
+    }
+    
+    if (!versions || versions.length !== 2) {
+      console.error(`Expected 2 versions, found ${versions?.length || 0}`);
       throw new Error("One or both document versions not found");
     }
     
-    console.log(`Starting version comparison for document ${documentId} between versions ${currentVersionId} and ${previousVersionId}`);
+    console.log(`Starting version content retrieval for document ${documentId}`);
 
     // Get the content for both versions
     const currentContent = await fetchDocumentContent(dealId, documentId, currentVersionId);
