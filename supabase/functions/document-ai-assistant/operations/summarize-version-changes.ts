@@ -15,13 +15,52 @@ export async function handleSummarizeVersionChanges(
   supabase?: ReturnType<typeof createClient>
 ) {
   try {
+    // First verify the document belongs to the specified deal
+    const supabaseClient = supabase || createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    );
+
+    // Verify document exists and belongs to this deal
+    const { data: document, error: docError } = await supabaseClient
+      .from('documents')
+      .select('id')
+      .eq('id', documentId)
+      .eq('deal_id', dealId)
+      .single();
+    
+    if (docError || !document) {
+      console.error("Document verification error:", docError?.message || "Document not found");
+      throw new Error("Document not found or does not belong to this deal");
+    }
+
+    // Verify both versions exist and belong to this document
+    const { data: versions, error: versionError } = await supabaseClient
+      .from('document_versions')
+      .select('id')
+      .eq('document_id', documentId)
+      .in('id', [currentVersionId, previousVersionId]);
+    
+    if (versionError || !versions || versions.length !== 2) {
+      console.error("Version verification error:", versionError?.message || `Expected 2 versions, found ${versions?.length || 0}`);
+      throw new Error("One or both document versions not found");
+    }
+    
+    console.log(`Starting version comparison for document ${documentId} between versions ${currentVersionId} and ${previousVersionId}`);
+
     // Get the content for both versions
     const currentContent = await fetchDocumentContent(dealId, documentId, currentVersionId);
     const previousContent = await fetchDocumentContent(dealId, documentId, previousVersionId);
     
     if (!currentContent || !previousContent) {
+      console.error("Failed to retrieve document content", { 
+        hasCurrentContent: !!currentContent, 
+        hasPreviousContent: !!previousContent 
+      });
       throw new Error("Failed to retrieve document versions content");
     }
+    
+    console.log("Successfully fetched content for both versions");
     
     // Truncate content if too large to fit OpenAI's context window
     const maxContentLength = 10000;
@@ -33,6 +72,16 @@ export async function handleSummarizeVersionChanges(
     const truncatedPreviousContent = previousContent.length > maxContentLength 
       ? previousContent.substring(0, maxContentLength) + "... [CONTENT TRUNCATED]" 
       : previousContent;
+    
+    console.log(`Current content length: ${currentContent.length}, Previous content length: ${previousContent.length}`);
+    
+    // If content is identical, return early
+    if (currentContent === previousContent) {
+      return {
+        summary: "No changes detected. The document versions appear to be identical.",
+        disclaimer: "This is an AI-generated assessment. The document versions appear to have the same text content."
+      };
+    }
     
     // Create prompt for AI to analyze changes
     const prompt = `You are a document version comparison assistant. Your task is to identify and summarize the key changes between two versions of a document.
@@ -50,18 +99,64 @@ Please provide:
 
 Be factual and focused on the actual changes. If the changes are minimal or primarily formatting, indicate that as well.`;
 
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are an AI document version comparison specialist." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 1000
-    });
+    console.log("Sending version comparison request to OpenAI");
 
-    const summary = response.choices[0]?.message?.content || 'Failed to generate version comparison summary';
+    // Call OpenAI API with retries
+    let attempts = 0;
+    const maxAttempts = 3;
+    let response;
+    
+    while (attempts < maxAttempts) {
+      try {
+        response = await openai.chat.completions.create({
+          model: "gpt-4o-mini", // Using smaller model for faster response
+          messages: [
+            { role: "system", content: "You are an AI document version comparison specialist." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 1000
+        });
+        break; // Break the loop if successful
+      } catch (openaiError) {
+        attempts++;
+        console.error(`OpenAI API error (attempt ${attempts}/${maxAttempts}):`, openaiError);
+        
+        if (attempts >= maxAttempts) {
+          throw new Error(`Failed to generate version comparison after ${maxAttempts} attempts: ${openaiError.message}`);
+        }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts)));
+      }
+    }
+
+    if (!response || !response.choices[0]?.message?.content) {
+      throw new Error("Failed to generate version comparison summary");
+    }
+
+    const summary = response.choices[0].message.content;
+    console.log("Successfully generated version comparison summary");
+    
+    // Store the analysis result in document_analyses table for future reference
+    try {
+      await supabaseClient
+        .from('document_analyses')
+        .insert({
+          document_id: documentId,
+          document_version_id: currentVersionId,
+          analysis_type: 'version_comparison',
+          analysis_content: {
+            current_version_id: currentVersionId,
+            previous_version_id: previousVersionId,
+            summary: summary
+          }
+        });
+      console.log("Successfully saved version comparison analysis to database");
+    } catch (saveError) {
+      console.warn("Failed to save version comparison analysis:", saveError);
+      // Continue anyway as this is non-critical
+    }
     
     return {
       summary,
