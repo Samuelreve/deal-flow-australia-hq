@@ -9,7 +9,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { useDocumentUpload } from "@/hooks/documents/useDocumentUpload";
 import { FileText } from "lucide-react";
 
-const SmartContractPanel: React.FC = () => {
+interface SmartContractPanelProps {
+  dealId?: string;
+}
+
+const SmartContractPanel: React.FC<SmartContractPanelProps> = ({ dealId }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -24,7 +28,7 @@ const SmartContractPanel: React.FC = () => {
       
       // Get the current user (should be handled by useDocumentUpload)
       // This is just a check for the demo
-      const defaultDealId = "demo-deal";
+      const defaultDealId = dealId || "demo-deal";
       
       // Upload the document (in a real scenario, we would create a deal first if none exists)
       await uploadDocument({

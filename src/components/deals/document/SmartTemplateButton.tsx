@@ -20,7 +20,14 @@ const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: 
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await generateSmartTemplate();
+      // Call generateSmartTemplate with the required arguments
+      // documentType, customization, and context object
+      await generateSmartTemplate(
+        "Contract", // Document type
+        "Standard agreement", // Customization
+        { dealId } // Context object
+      );
+      
       toast({
         title: "Contract template generated",
         description: "A new contract has been created based on deal data",
