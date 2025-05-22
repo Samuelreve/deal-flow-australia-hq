@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, InfoIcon } from 'lucide-react';
 
 export interface SummaryItem {
   title: string;
@@ -19,6 +19,24 @@ interface ContractSummaryTabProps {
 }
 
 const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) => {
+  if (!summaryData || !summaryData.summary || summaryData.summary.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Contract Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert className="bg-blue-50 border-blue-200">
+            <InfoIcon className="h-4 w-4 text-blue-500" />
+            <AlertDescription className="text-sm text-blue-700">
+              No summary is available for this contract. Try uploading a document to generate a summary.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

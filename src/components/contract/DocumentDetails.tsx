@@ -67,10 +67,15 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
             className="flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md border-gray-300 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
           >
             <div className="flex flex-col items-center justify-center py-2">
-              <Upload className="h-5 w-5 text-gray-400 mb-1" />
-              <p className="text-xs text-gray-600">Upload new document</p>
+              <Upload className={`h-5 w-5 ${isAnalyzing ? 'text-gray-300' : 'text-blue-500'} mb-1`} />
+              <p className={`text-sm ${isAnalyzing ? 'text-gray-400' : 'text-blue-600'}`}>
+                {isAnalyzing ? 'Processing...' : 'Upload new document'}
+              </p>
             </div>
           </label>
+          <p className="text-xs text-center mt-2 text-muted-foreground">
+            Supported formats: PDF, DOCX, TXT
+          </p>
         </div>
       </CardContent>
     </Card>

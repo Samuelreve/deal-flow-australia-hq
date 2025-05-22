@@ -77,10 +77,27 @@ export function useContractAnalysis() {
         const text = await file.text();
         setContractText(text);
         setAnalysisProgress(50);
+        setAnalysisStage("Creating summary...");
+        
+        // Create a basic summary for text files
+        const basicSummary = {
+          summary: [
+            { title: "Document Type", content: "Text Document" },
+            { title: "Content Length", content: `${text.length} characters` },
+            { title: "Key Points", content: "Text document uploaded successfully. AI analysis may be limited for plain text." }
+          ],
+          disclaimer: "This is a basic analysis of a text document. For more detailed analysis, consider uploading a structured document like a PDF or DOCX file."
+        };
+        
+        setCustomSummary(basicSummary);
+        setAnalysisProgress(100);
       } else {
         // For other file types, we need to send to the public-ai-analyzer edge function
         try {
           setAnalysisStage("Analyzing with AI...");
+          
+          // Log the request for debugging
+          console.log("Sending document for analysis:", file.name);
           
           const response = await fetch('/api/public-ai-analyzer', {
             method: 'POST',
@@ -88,46 +105,67 @@ export function useContractAnalysis() {
           });
           
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to process document');
+            console.error("Failed to process document, status:", response.status);
+            throw new Error(`Failed to process document: ${response.status}`);
           }
           
           const data = await response.json();
+          console.log("Analysis response received:", data);
           
           if (data.text) {
             setContractText(data.text);
+            console.log("Contract text set, length:", data.text.length);
+          } else {
+            console.warn("No text content in response");
           }
           
           if (data.analysis) {
-            // Parse the analysis text into structured data
-            const sections = data.analysis.split('\n\n');
-            const summaryItems = [];
-            
-            // Process each section to create structured data
-            for (const section of sections) {
-              if (section.startsWith('1. Document Type')) {
-                summaryItems.push({ title: "Document Type", content: section.replace('1. Document Type', '').trim() });
-              } else if (section.startsWith('2. Key Parties')) {
-                summaryItems.push({ title: "Parties Involved", content: section.replace('2. Key Parties', '').trim() });
-              } else if (section.startsWith('3. Main Purpose')) {
-                summaryItems.push({ title: "Purpose", content: section.replace('3. Main Purpose', '').trim() });
-              } else if (section.startsWith('4. Key Terms')) {
-                summaryItems.push({ title: "Key Terms", content: section.replace('4. Key Terms', '').trim() });
-              } else if (section.startsWith('5. Important Dates')) {
-                summaryItems.push({ title: "Important Dates", content: section.replace('5. Important Dates', '').trim() });
+            // Fallback to ensure we have valid analysis content
+            if (typeof data.analysis !== 'string' || data.analysis.trim() === '') {
+              console.warn("Empty analysis received, using mock data");
+              setCustomSummary(mockSummary);
+            } else {
+              console.log("Processing analysis text:", data.analysis.substring(0, 100) + "...");
+              // Parse the analysis text into structured data
+              const sections = data.analysis.split('\n\n');
+              const summaryItems = [];
+              
+              // Process each section to create structured data
+              for (const section of sections) {
+                if (section.includes('Document Type')) {
+                  summaryItems.push({ title: "Document Type", content: section.replace(/^1\.\s*Document Type:?\s*/i, '').trim() });
+                } else if (section.includes('Key Parties')) {
+                  summaryItems.push({ title: "Parties Involved", content: section.replace(/^2\.\s*Key Parties:?\s*/i, '').trim() });
+                } else if (section.includes('Main Purpose')) {
+                  summaryItems.push({ title: "Purpose", content: section.replace(/^3\.\s*Main Purpose:?\s*/i, '').trim() });
+                } else if (section.includes('Key Terms')) {
+                  summaryItems.push({ title: "Key Terms", content: section.replace(/^4\.\s*Key Terms:?\s*/i, '').trim() });
+                } else if (section.includes('Important Dates')) {
+                  summaryItems.push({ title: "Important Dates", content: section.replace(/^5\.\s*Important Dates:?\s*/i, '').trim() });
+                }
+              }
+              
+              // Add a disclaimer from the end of the analysis
+              const disclaimer = data.analysis.includes("Disclaimer:") 
+                ? data.analysis.substring(data.analysis.indexOf("Disclaimer:")) 
+                : "This analysis is provided for informational purposes only and should not be considered legal advice.";
+              
+              // Set the custom summary or fallback to mock if no items were extracted
+              if (summaryItems.length > 0) {
+                setCustomSummary({
+                  summary: summaryItems,
+                  disclaimer
+                });
+                console.log("Custom summary set with", summaryItems.length, "items");
+              } else {
+                console.warn("Failed to extract structured data, using mock data");
+                setCustomSummary(mockSummary);
               }
             }
-            
-            // Add a disclaimer from the end of the analysis
-            const disclaimer = data.analysis.includes("Disclaimer:") 
-              ? data.analysis.substring(data.analysis.indexOf("Disclaimer:")) 
-              : "This analysis is provided for informational purposes only and should not be considered legal advice.";
-            
-            // Set the custom summary
-            setCustomSummary({
-              summary: summaryItems.length > 0 ? summaryItems : mockSummary.summary,
-              disclaimer
-            });
+          } else {
+            // Fallback to mock data if no analysis is provided
+            console.warn("No analysis in response, using mock data");
+            setCustomSummary(mockSummary);
           }
           
           setAnalysisProgress(100);
@@ -147,8 +185,10 @@ export function useContractAnalysis() {
       toast.error("Error processing file", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });
+      // Use mock data as a fallback
+      setCustomSummary(mockSummary);
     } finally {
-      // Simulate delay to show the loading state
+      // Complete the loading state
       setTimeout(() => {
         setIsAnalyzing(false);
         setAnalysisProgress(100);
@@ -162,11 +202,10 @@ export function useContractAnalysis() {
 
   // Handle asking questions about the contract
   const handleAskQuestion = useCallback(async (question: string) => {
-    toast.info(`Question received: ${question}`, {
-      description: "In a real application, this would query the AI with your question about the contract."
-    });
+    console.log("Question received:", question);
     
-    // Mock response - in a real app, this would call an API
+    // In a real app, this would call an API
+    // For demo purposes, we'll return a simulated response
     return {
       answer: "This is a simulated response to your question. In a production environment, this would be an actual AI-generated response based on the contract content.",
       sources: ["Section 3.2", "Clause 4(b)"]
