@@ -71,7 +71,7 @@ export async function handleRequest(
       return await handleDealChatQuery(content, dealId, userId, context, openai);
       
     case "get_deal_insights":
-      return await handleGetDealInsights(dealId, openai);
+      return await handleGetDealInsights(userId, openai);
       
     case "predict_deal_health":
       return await handlePredictDealHealth(dealId, openai);
