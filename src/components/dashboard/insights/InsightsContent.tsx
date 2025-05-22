@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InsightsSectionFormatter } from './InsightsSectionFormatter';
@@ -16,6 +16,18 @@ interface InsightsContentProps {
 
 const InsightsContent = ({ insightsText, insightsData }: InsightsContentProps) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [hasContent, setHasContent] = useState<boolean>(false);
+  
+  // Check if we have any content to display
+  useEffect(() => {
+    const hasTextContent = !!insightsText && insightsText.length > 0;
+    const hasDataContent = !!insightsData && 
+      ((insightsData.insights && insightsData.insights.length > 0) || 
+       (insightsData.metrics && Object.keys(insightsData.metrics).length > 0) ||
+       (insightsData.recommendations && insightsData.recommendations.length > 0));
+    
+    setHasContent(hasTextContent || hasDataContent);
+  }, [insightsText, insightsData]);
   
   // Handle applying a recommendation
   const handleApplyRecommendation = (recommendation: string) => {
@@ -35,6 +47,14 @@ const InsightsContent = ({ insightsText, insightsData }: InsightsContentProps) =
       }))
     : [];
   
+  if (!hasContent) {
+    return (
+      <div className="text-center p-8">
+        <p>No insights available at this time. Click "Refresh Insights" to generate new insights.</p>
+      </div>
+    );
+  }
+  
   return (
     <div className={`${isExpanded ? '' : 'max-h-[450px] overflow-hidden relative'}`}>
       {insightsData ? (
@@ -49,6 +69,7 @@ const InsightsContent = ({ insightsText, insightsData }: InsightsContentProps) =
           
           <InsightsCategories 
             insights={insightsData.insights || []} 
+            showEmpty={false}
           />
           
           <InsightsRecommendations 
@@ -60,11 +81,11 @@ const InsightsContent = ({ insightsText, insightsData }: InsightsContentProps) =
         // Fallback to text formatting if we only have text
         <InsightsSectionFormatter text={insightsText} />
       ) : (
-        <p>No insights available at this time.</p>
+        <p className="text-center p-4">Click "Refresh Insights" to analyze your deal portfolio.</p>
       )}
       
       {/* Disclaimer */}
-      {(insightsText || insightsData) && (
+      {hasContent && (
         <>
           <div className="h-4"></div>
           <Alert className="mt-4 bg-muted/50 border-muted">
@@ -77,7 +98,7 @@ const InsightsContent = ({ insightsText, insightsData }: InsightsContentProps) =
       )}
       
       {/* Expand/collapse gradient and button */}
-      {!isExpanded && (insightsText?.length > 500 || insightsData?.insights?.length > 3) && (
+      {!isExpanded && hasContent && (insightsText?.length > 500 || insightsData?.insights?.length > 3) && (
         <>
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent"></div>
           <div className="absolute bottom-0 left-0 right-0 flex justify-center">

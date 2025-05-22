@@ -15,20 +15,23 @@ interface InsightsCategoriesProps {
   showEmpty?: boolean;
 }
 
-const InsightsCategories = ({ insights, showEmpty = true }: InsightsCategoriesProps) => {
+const InsightsCategories = ({ insights = [], showEmpty = true }: InsightsCategoriesProps) => {
+  // Ensure insights is always an array even if we get null/undefined
+  const safeInsights = Array.isArray(insights) ? insights : [];
+  
   // Group insights by type for better organization
-  const highPriority = insights.filter(i => i.priority === 'high');
-  const positiveInsights = insights.filter(i => i.type === 'positive' && i.priority !== 'high');
-  const upcomingDeadlines = insights.filter(i => i.type === 'deadline');
+  const highPriority = safeInsights.filter(i => i.priority === 'high');
+  const positiveInsights = safeInsights.filter(i => i.type === 'positive' && i.priority !== 'high');
+  const upcomingDeadlines = safeInsights.filter(i => i.type === 'deadline');
   
   // If no insights and showEmpty is false, don't render
-  if (insights.length === 0 && !showEmpty) {
+  if (safeInsights.length === 0 && !showEmpty) {
     return null;
   }
   
   return (
     <div className="space-y-6 my-4">
-      {insights.length === 0 ? (
+      {safeInsights.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-muted-foreground">No insights available at this time.</p>
         </div>

@@ -19,15 +19,24 @@ interface InsightsMetricsChartProps {
 const InsightsMetricsChart = ({ 
   title, 
   description, 
-  metrics, 
+  metrics = [], 
   height = 250 
 }: InsightsMetricsChartProps) => {
-  // Don't render chart if no metrics
-  if (!metrics || metrics.length === 0) {
+  // Ensure metrics is always an array and contains valid data
+  const safeMetrics = Array.isArray(metrics) ? metrics.filter(m => 
+    typeof m === 'object' && 
+    m !== null && 
+    typeof m.name === 'string' && 
+    typeof m.value === 'number'
+  ) : [];
+  
+  // Don't render chart if no valid metrics
+  if (safeMetrics.length === 0) {
     return (
       <Card className="mb-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">{title}</CardTitle>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32 bg-muted/30 rounded-md">
@@ -54,8 +63,8 @@ const InsightsMetricsChart = ({
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={metrics} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+        <ResponsiveContainer width="100%" height={height} className="overflow-visible">
+          <BarChart data={safeMetrics} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
             <XAxis 
               dataKey="name" 
               axisLine={false}
@@ -78,7 +87,7 @@ const InsightsMetricsChart = ({
               }}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {metrics.map((entry, index) => (
+              {safeMetrics.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={entry.color || defaultColors[index % defaultColors.length]} 

@@ -10,10 +10,13 @@ interface InsightsRecommendationsProps {
 }
 
 const InsightsRecommendations = ({ 
-  recommendations, 
+  recommendations = [], 
   onApplyRecommendation 
 }: InsightsRecommendationsProps) => {
-  if (!recommendations || recommendations.length === 0) {
+  // Ensure we have an array even if null/undefined is passed
+  const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
+  
+  if (safeRecommendations.length === 0) {
     return null;
   }
 
@@ -27,7 +30,7 @@ const InsightsRecommendations = ({
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
-          {recommendations.map((rec, index) => (
+          {safeRecommendations.map((rec, index) => (
             <li key={index} className="flex items-start gap-3">
               <span className="text-amber-500 mt-0.5">•</span>
               <div className="flex-1">

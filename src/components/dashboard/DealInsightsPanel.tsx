@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useDocumentAI } from "@/hooks/document-ai";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,16 +18,18 @@ const DealInsightsPanel = () => {
   const { user } = useAuth();
   const [insightsText, setInsightsText] = useState<string>("");
   const [insightsData, setInsightsData] = useState<DealInsightsResponse | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
   
   const { 
     getDealInsights,
     formatInsightsToText,
     loading,
-    error
+    error,
+    clearError
   } = useDocumentAI({ dealId: "" }); // Empty dealId as we're focusing on all deals
   
-  // Function to generate insights
-  const generateInsights = async () => {
+  // Function to generate insights with retry logic
+  const generateInsights = useCallback(async (isRetry: boolean = false) => {
     if (!user?.id) {
       toast({
         title: "Authentication required",
@@ -38,6 +40,9 @@ const DealInsightsPanel = () => {
     }
     
     try {
+      // Clear any previous errors
+      clearError?.();
+      
       const result = await getDealInsights();
       if (result) {
         // Store the raw insights data
@@ -46,33 +51,46 @@ const DealInsightsPanel = () => {
         // Also convert to text for backward compatibility
         const formattedText = formatInsightsToText(result);
         setInsightsText(formattedText);
+        
+        // Reset retry count on success
+        setRetryCount(0);
       } else {
-        toast({
-          title: "Insights generation failed",
-          description: "No insights data received from AI assistant.",
-          variant: "destructive"
-        });
+        if (!isRetry && retryCount < 2) {
+          // Try once more
+          setRetryCount(prev => prev + 1);
+          toast({
+            title: "Retrying insights generation",
+            description: "First attempt didn't return data, trying again...",
+          });
+          setTimeout(() => generateInsights(true), 1000);
+        } else {
+          toast({
+            title: "Insights generation failed",
+            description: "No insights data received from AI assistant.",
+            variant: "destructive"
+          });
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to generate insights:", err);
       toast({
         title: "Insights generation failed",
-        description: error?.toString() || "Failed to generate deal insights.",
+        description: err?.toString() || "Failed to generate deal insights.",
         variant: "destructive"
       });
     }
-  };
+  }, [user?.id, getDealInsights, formatInsightsToText, retryCount, clearError]);
 
   useEffect(() => {
     // Generate insights on component mount
-    if (user?.id && !insightsText && !insightsData) {
+    if (user?.id && !insightsText && !insightsData && !loading) {
       generateInsights();
     }
-  }, [user?.id]);
+  }, [user?.id, insightsText, insightsData, loading, generateInsights]);
 
   return (
     <Card className="mb-8">
-      <InsightsHeader onRefresh={generateInsights} loading={loading} />
+      <InsightsHeader onRefresh={() => generateInsights()} loading={loading} />
       <CardContent>
         {loading ? (
           <InsightsLoading />
