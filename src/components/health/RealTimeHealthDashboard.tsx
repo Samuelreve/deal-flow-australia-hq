@@ -3,235 +3,153 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Wifi, 
+  Activity, 
   WifiOff, 
-  Bell, 
+  Wifi, 
+  Clock, 
   TrendingUp, 
-  TrendingDown, 
-  AlertCircle, 
-  RefreshCw,
-  Trash2,
-  CheckCircle
+  TrendingDown,
+  RefreshCw
 } from "lucide-react";
-import { useRealTimeHealthMonitoring } from "@/hooks/useRealTimeHealthMonitoring";
 import { DealSummary } from "@/types/deal";
-import { format } from 'date-fns';
+import { useRealTimeHealthMonitoring } from "@/hooks/useRealTimeHealthMonitoring";
 
 interface RealTimeHealthDashboardProps {
   deals: DealSummary[];
   userId?: string;
-  onHealthScoreUpdate?: (dealId: string, newScore: number) => void;
+  onHealthScoreUpdate: (dealId: string, newScore: number) => void;
 }
 
-const RealTimeHealthDashboard: React.FC<RealTimeHealthDashboardProps> = ({
-  deals,
-  userId,
-  onHealthScoreUpdate
+const RealTimeHealthDashboard: React.FC<RealTimeHealthDashboardProps> = ({ 
+  deals, 
+  userId, 
+  onHealthScoreUpdate 
 }) => {
-  const {
-    isConnected,
-    realtimeUpdates,
-    healthAlerts,
-    connectionRetries,
-    markAlertAsRead,
-    clearOldUpdates
+  const { 
+    isConnected, 
+    realtimeUpdates, 
+    connectionRetries, 
+    clearOldUpdates 
   } = useRealTimeHealthMonitoring({
     deals,
     userId,
     onHealthScoreUpdate
   });
 
-  const getScoreChangeIcon = (changeType: string) => {
+  const getChangeIcon = (changeType: string) => {
     switch (changeType) {
-      case 'improvement': return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case 'decline': return <TrendingDown className="h-4 w-4 text-red-600" />;
-      default: return <AlertCircle className="h-4 w-4 text-gray-500" />;
+      case 'improvement':
+        return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case 'decline':
+        return <TrendingDown className="h-4 w-4 text-red-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getScoreChangeBadge = (oldScore: number, newScore: number) => {
-    const diff = newScore - oldScore;
-    if (diff > 0) return <Badge className="bg-green-100 text-green-800">+{diff}%</Badge>;
-    if (diff < 0) return <Badge className="bg-red-100 text-red-800">{diff}%</Badge>;
-    return <Badge variant="outline">No change</Badge>;
+  const getChangeColor = (changeType: string) => {
+    switch (changeType) {
+      case 'improvement':
+        return 'text-green-600';
+      case 'decline':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
   };
-
-  const getAlertSeverityColor = (alertType: string, currentScore: number) => {
-    if (alertType === 'threshold_breach' && currentScore <= 30) return 'text-red-600 bg-red-50';
-    if (alertType === 'score_drop') return 'text-orange-600 bg-orange-50';
-    return 'text-yellow-600 bg-yellow-50';
-  };
-
-  const unreadAlerts = healthAlerts.filter(alert => !alert.is_read);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Connection Status & Live Updates */}
+    <div className="space-y-6">
+      {/* Connection Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Real-Time Updates
-            </div>
-            <div className="flex items-center gap-2">
-              {isConnected ? (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Wifi className="h-4 w-4" />
-                  <span className="text-sm">Connected</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-red-600">
-                  <WifiOff className="h-4 w-4" />
-                  <span className="text-sm">
-                    {connectionRetries > 0 ? `Retrying (${connectionRetries})` : 'Disconnected'}
-                  </span>
-                </div>
-              )}
-            </div>
+          <CardTitle className="flex items-center gap-2">
+            {isConnected ? (
+              <Wifi className="h-5 w-5 text-green-500" />
+            ) : (
+              <WifiOff className="h-5 w-5 text-red-500" />
+            )}
+            Real-Time Connection
           </CardTitle>
           <CardDescription>
-            Live health score changes and system status
+            {isConnected ? 'Connected to real-time updates' : 'Disconnected from real-time updates'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-sm text-muted-foreground">
-              {realtimeUpdates.length} recent updates
-            </span>
-            {realtimeUpdates.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearOldUpdates}
-                className="text-xs"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
-
-          <ScrollArea className="h-[300px]">
-            {realtimeUpdates.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Monitoring for live updates...</p>
-                <p className="text-sm">Changes will appear here instantly</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {realtimeUpdates.map((update) => (
-                  <div key={update.id} className="border rounded-lg p-3 bg-muted/30">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="font-medium text-sm">{update.dealTitle}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(update.timestamp, 'HH:mm:ss')}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getScoreChangeIcon(update.changeType)}
-                        <span className="text-sm">
-                          {update.oldScore}% → {update.newScore}%
-                        </span>
-                        {getScoreChangeBadge(update.oldScore, update.newScore)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-
-          <div className="mt-4 text-xs text-muted-foreground text-center">
-            {isConnected 
-              ? "🟢 Real-time monitoring active"
-              : "🔴 Connection lost • Attempting to reconnect..."
-            }
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Badge variant={isConnected ? 'default' : 'destructive'}>
+                {isConnected ? 'CONNECTED' : 'DISCONNECTED'}
+              </Badge>
+              {connectionRetries > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  Retries: {connectionRetries}
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Monitoring {deals.length} deals
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Health Alerts */}
+      {/* Real-Time Updates */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Health Alerts
-              {unreadAlerts.length > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  {unreadAlerts.length}
-                </Badge>
-              )}
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Recent Updates
+              </CardTitle>
+              <CardDescription>
+                Live health score changes across your deals
+              </CardDescription>
             </div>
-          </CardTitle>
-          <CardDescription>
-            Threshold breaches and critical health changes
-          </CardDescription>
+            {realtimeUpdates.length > 0 && (
+              <Button variant="outline" size="sm" onClick={clearOldUpdates}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[300px]">
-            {healthAlerts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No recent health alerts</p>
-                <p className="text-sm">All deals are performing well</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {healthAlerts.map((alert) => {
-                  const deal = deals.find(d => d.id === alert.deal_id);
-                  if (!deal) return null;
-
-                  return (
-                    <div 
-                      key={alert.id} 
-                      className={`border rounded-lg p-3 ${getAlertSeverityColor(alert.alert_type, alert.current_score)}`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="font-medium text-sm">{deal.title}</div>
-                        <div className="flex items-center gap-2">
-                          {!alert.is_read && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => markAlertAsRead(alert.id)}
-                              className="text-xs h-6 px-2"
-                            >
-                              Mark Read
-                            </Button>
-                          )}
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(alert.created_at), 'MMM dd, HH:mm')}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm mb-2">{alert.message}</div>
-                      
-                      {alert.recommendations.length > 0 && (
-                        <div className="text-xs">
-                          <Separator className="my-2" />
-                          <div className="font-medium mb-1">Recommendations:</div>
-                          {alert.recommendations.slice(0, 2).map((rec, index) => (
-                            <div key={index} className="mb-1">
-                              • {rec.recommendation}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+          {realtimeUpdates.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No recent updates</p>
+              <p className="text-sm">Real-time changes will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {realtimeUpdates.map((update) => (
+                <div key={update.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {getChangeIcon(update.changeType)}
+                    <div>
+                      <p className="font-medium">{update.dealTitle}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {update.oldScore}% → {update.newScore}%
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </ScrollArea>
+                  </div>
+                  <div className="text-right">
+                    <div className={`font-medium ${getChangeColor(update.changeType)}`}>
+                      {update.newScore > update.oldScore ? '+' : ''}
+                      {update.newScore - update.oldScore}%
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {update.timestamp.toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

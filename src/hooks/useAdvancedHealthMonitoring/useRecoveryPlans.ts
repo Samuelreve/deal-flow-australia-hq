@@ -1,112 +1,53 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { HealthRecoveryPlan } from '@/types/advancedHealthMonitoring';
 
 export const useRecoveryPlans = (userId?: string) => {
   const [recoveryPlans, setRecoveryPlans] = useState<HealthRecoveryPlan[]>([]);
 
-  const fetchRecoveryPlans = async () => {
+  const fetchRecoveryPlans = useCallback(async () => {
     if (!userId) return;
     
     try {
-      // Direct query instead of RPC until types are updated
       const { data, error } = await supabase
         .from('health_recovery_plans')
-        .select(`
-          *,
-          deals!inner(
-            deal_participants!inner(user_id)
-          )
-        `)
-        .eq('deals.deal_participants.user_id', userId);
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      const formattedPlans: HealthRecoveryPlan[] = (data || []).map((plan: any) => ({
-        id: plan.id,
-        deal_id: plan.deal_id,
-        user_id: plan.user_id,
-        current_score: plan.current_score,
-        target_score: plan.target_score,
-        estimated_timeline_days: plan.estimated_timeline_days,
-        action_items: Array.isArray(plan.action_items) 
-          ? plan.action_items as Array<{
-              id: string;
-              title: string;
-              description: string;
-              priority: 'low' | 'medium' | 'high';
-              estimated_impact: number;
-              due_date?: string;
-              completed: boolean;
-            }>
-          : [],
-        status: (plan.status as 'active' | 'completed' | 'cancelled') || 'active',
-        created_at: plan.created_at,
-        updated_at: plan.updated_at
-      }));
-      
-      setRecoveryPlans(formattedPlans);
+      setRecoveryPlans(data || []);
     } catch (error) {
       console.error('Error fetching recovery plans:', error);
-      toast.error('Failed to load recovery plans');
-      setRecoveryPlans([]);
     }
-  };
+  }, [userId]);
 
-  const createRecoveryPlan = async (plan: Omit<HealthRecoveryPlan, 'id' | 'created_at' | 'updated_at'>) => {
+  const createRecoveryPlan = useCallback(async (
+    plan: Omit<HealthRecoveryPlan, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<HealthRecoveryPlan | null> => {
     if (!userId) return null;
     
     try {
       const { data, error } = await supabase
         .from('health_recovery_plans')
         .insert({
-          deal_id: plan.deal_id,
-          user_id: userId,
-          current_score: plan.current_score,
-          target_score: plan.target_score,
-          estimated_timeline_days: plan.estimated_timeline_days,
-          action_items: plan.action_items,
-          status: plan.status
+          ...plan,
+          user_id: userId
         })
         .select()
         .single();
 
       if (error) throw error;
       
-      const newPlan: HealthRecoveryPlan = {
-        id: data.id,
-        deal_id: data.deal_id,
-        user_id: data.user_id,
-        current_score: data.current_score,
-        target_score: data.target_score,
-        estimated_timeline_days: data.estimated_timeline_days,
-        action_items: Array.isArray(data.action_items) 
-          ? data.action_items as Array<{
-              id: string;
-              title: string;
-              description: string;
-              priority: 'low' | 'medium' | 'high';
-              estimated_impact: number;
-              due_date?: string;
-              completed: boolean;
-            }>
-          : [],
-        status: (data.status as 'active' | 'completed' | 'cancelled') || 'active',
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      };
-      
+      const newPlan = data as HealthRecoveryPlan;
       setRecoveryPlans(prev => [newPlan, ...prev]);
-      toast.success('Recovery plan created successfully');
       return newPlan;
     } catch (error) {
       console.error('Error creating recovery plan:', error);
-      toast.error('Failed to create recovery plan');
       return null;
     }
-  };
+  }, [userId]);
 
   return {
     recoveryPlans,

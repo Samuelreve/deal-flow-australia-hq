@@ -32,13 +32,11 @@ export const useRealTimeHealthMonitoring = ({
   const [connectionRetries, setConnectionRetries] = useState(0);
 
   const addRealtimeUpdate = useCallback((update: RealTimeUpdate) => {
-    setRealtimeUpdates(prev => [update, ...prev.slice(0, 9)]); // Keep last 10 updates
+    setRealtimeUpdates(prev => [update, ...prev.slice(0, 9)]);
     
-    // Show toast notification
     const changeText = update.newScore > update.oldScore ? 'improved' : 'declined';
     toast.info(`${update.dealTitle} health score ${changeText} to ${update.newScore}%`);
     
-    // Call callback if provided
     if (onHealthScoreUpdate) {
       onHealthScoreUpdate(update.dealId, update.newScore);
     }
@@ -65,7 +63,7 @@ export const useRealTimeHealthMonitoring = ({
     setRealtimeUpdates([]);
   }, []);
 
-  // Fetch initial health alerts
+  // Fetch initial health alerts from actual database
   useEffect(() => {
     const fetchHealthAlerts = async () => {
       if (!userId) return;
@@ -99,7 +97,7 @@ export const useRealTimeHealthMonitoring = ({
     fetchHealthAlerts();
   }, [userId]);
 
-  // Set up real-time subscription for deal health changes
+  // Set up real-time subscription for actual deal health changes
   useEffect(() => {
     if (!userId || deals.length === 0) return;
 
@@ -173,7 +171,7 @@ export const useRealTimeHealthMonitoring = ({
           setConnectionRetries(prev => prev + 1);
           setTimeout(() => {
             channel.subscribe();
-          }, 1000 * Math.pow(2, connectionRetries)); // Exponential backoff
+          }, 1000 * Math.pow(2, connectionRetries));
         } else if (status === 'SUBSCRIBED') {
           setConnectionRetries(0);
         }
