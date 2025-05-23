@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile, UserRole, User, AuthContextType } from '@/types/auth';
-import { Session } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -30,9 +29,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
-          // Create a mock Session object with all required properties
+          // Create a mock Session object with a mock Supabase user
+          const mockSupabaseUser: SupabaseUser = {
+            id: parsedUser.id,
+            email: parsedUser.email,
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: new Date().toISOString()
+          };
+          
           setSession({
-            user: parsedUser,
+            user: mockSupabaseUser,
             access_token: 'mock-access-token',
             refresh_token: 'mock-refresh-token',
             expires_in: 3600,
@@ -86,9 +94,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      // Create a complete Session object
+      // Create a mock Session object with a mock Supabase user
+      const mockSupabaseUser: SupabaseUser = {
+        id: demoUser.id,
+        email: demoUser.email,
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString()
+      };
+      
       setSession({
-        user: demoUser,
+        user: mockSupabaseUser,
         access_token: 'mock-access-token',
         refresh_token: 'mock-refresh-token',
         expires_in: 3600,
@@ -141,9 +158,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      // Create a complete Session object
+      // Create a mock Session object with a mock Supabase user
+      const mockSupabaseUser: SupabaseUser = {
+        id: demoUser.id,
+        email: demoUser.email,
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString()
+      };
+      
       setSession({
-        user: demoUser,
+        user: mockSupabaseUser,
         access_token: 'mock-access-token',
         refresh_token: 'mock-refresh-token',
         expires_in: 3600,
