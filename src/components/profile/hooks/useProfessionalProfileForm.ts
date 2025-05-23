@@ -30,7 +30,7 @@ export const useProfessionalProfileForm = ({
     try {
       const specializations = parseSpecializations(values.specializations);
       
-      const profileUpdates = {
+      const profileUpdates: Partial<UserProfile> = {
         is_professional: values.is_professional,
         professional_headline: values.professional_headline || null,
         professional_bio: values.professional_bio || null,
