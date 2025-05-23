@@ -9,7 +9,7 @@ interface ContractSidebarProps {
   documentMetadata: any;
   isAnalyzing: boolean;
   documentHighlights: any[];
-  onFileUpload: (file: File) => void;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExportHighlights: () => void;
 }
 

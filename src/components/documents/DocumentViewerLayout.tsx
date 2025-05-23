@@ -14,7 +14,7 @@ interface DocumentViewerLayoutProps {
   
   // State from DocumentViewerState
   selectedText: string | null;
-  buttonPosition: { x: number; y: number } | null;
+  buttonPosition: { top: number; left: number } | null;
   documentContainerRef: React.RefObject<HTMLDivElement>;
   showExplanation: boolean;
   showCommentInput: boolean;

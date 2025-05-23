@@ -17,7 +17,7 @@ interface ContractMainContentProps {
   questionHistory: any[];
   isProcessing: boolean;
   onTabChange: (tab: string) => void;
-  onAskQuestion: (question: string) => void;
+  onAskQuestion: (question: string) => Promise<string | { answer: string; sources?: string[] }>;
 }
 
 const ContractMainContent: React.FC<ContractMainContentProps> = ({
