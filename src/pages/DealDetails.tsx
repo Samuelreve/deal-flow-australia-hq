@@ -14,6 +14,8 @@ import DealTabs from "@/components/deals/DealTabs";
 import DealSidebar from "@/components/deals/DealSidebar";
 import DealMessaging from "@/components/deals/messages/DealMessaging";
 import DealHealthPredictionPanel from "@/components/deals/health/DealHealthPredictionPanel";
+import HealthThresholdSettings from "@/components/deals/health/HealthThresholdSettings";
+import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
 
 const DealDetails = () => {
   const { id } = useParams();
@@ -122,6 +124,14 @@ const DealDetails = () => {
               effectiveUserRole={effectiveUserRole}
               isParticipant={isParticipant}
             />
+            
+            {/* Add Health Monitoring Section for participants */}
+            {isParticipant && id && (
+              <div className="mt-6 space-y-6">
+                <HealthAlertsList dealId={id} maxItems={5} showMarkAllRead={false} />
+                <HealthThresholdSettings dealId={id} />
+              </div>
+            )}
           </div>
           
           <div>

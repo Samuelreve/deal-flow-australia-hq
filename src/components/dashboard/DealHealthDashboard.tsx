@@ -1,14 +1,15 @@
-
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, AlertTriangle, Search, Filter } from "lucide-react";
 import { useDeals } from "@/hooks/useDeals";
 import { DealSummary } from "@/types/deal";
 import { useNavigate } from "react-router-dom";
+import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
 
 interface DealHealthItem extends DealSummary {
   healthTrend?: 'up' | 'down' | 'stable';
@@ -94,107 +95,140 @@ const DealHealthDashboard = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />
-          Deal Health Dashboard
-        </CardTitle>
-        <CardDescription>
-          Monitor and analyze the health of all your deals
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search deals..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="health">Health Score</SelectItem>
-              <SelectItem value="title">Deal Title</SelectItem>
-              <SelectItem value="date">Last Updated</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={filterRisk} onValueChange={(value: any) => setFilterRisk(value)}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by risk" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Risk Levels</SelectItem>
-              <SelectItem value="high">High Risk</SelectItem>
-              <SelectItem value="medium">Medium Risk</SelectItem>
-              <SelectItem value="low">Low Risk</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="alerts">Health Alerts</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Deal Health Overview
+              </CardTitle>
+              <CardDescription>
+                Monitor and analyze the health of all your deals
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              {/* Filters and Search */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search deals..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="health">Health Score</SelectItem>
+                    <SelectItem value="title">Deal Title</SelectItem>
+                    <SelectItem value="date">Last Updated</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={filterRisk} onValueChange={(value: any) => setFilterRisk(value)}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by risk" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Risk Levels</SelectItem>
+                    <SelectItem value="high">High Risk</SelectItem>
+                    <SelectItem value="medium">Medium Risk</SelectItem>
+                    <SelectItem value="low">Low Risk</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        {/* Deal Health List */}
-        <div className="space-y-4">
-          {filteredAndSortedDeals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No deals found matching your criteria
-            </div>
-          ) : (
-            filteredAndSortedDeals.map((deal) => (
-              <Card key={deal.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/deals/${deal.id}`)}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold">{deal.title}</h3>
-                        {deal.businessName && (
-                          <span className="text-sm text-muted-foreground">
-                            ({deal.businessName})
-                          </span>
-                        )}
-                        <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')}>
-                          {deal.riskLevel?.toUpperCase()} RISK
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Status: {deal.status}</span>
-                        <span>Updated: {deal.updatedAt.toLocaleDateString()}</span>
-                        {deal.sellerName && <span>Seller: {deal.sellerName}</span>}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold ${getHealthColor(deal.healthScore)}`}>
-                          {deal.healthScore}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">Health Score</div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        {getTrendIcon(deal.healthTrend)}
-                      </div>
-                    </div>
+              {/* Deal Health List */}
+              <div className="space-y-4">
+                {filteredAndSortedDeals.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No deals found matching your criteria
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                ) : (
+                  filteredAndSortedDeals.map((deal) => (
+                    <Card key={deal.id} className="cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => navigate(`/deals/${deal.id}`)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold">{deal.title}</h3>
+                              {deal.businessName && (
+                                <span className="text-sm text-muted-foreground">
+                                  ({deal.businessName})
+                                </span>
+                              )}
+                              <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')}>
+                                {deal.riskLevel?.toUpperCase()} RISK
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Status: {deal.status}</span>
+                              <span>Updated: {deal.updatedAt.toLocaleDateString()}</span>
+                              {deal.sellerName && <span>Seller: {deal.sellerName}</span>}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-center">
+                              <div className={`text-2xl font-bold ${getHealthColor(deal.healthScore)}`}>
+                                {deal.healthScore}%
+                              </div>
+                              <div className="text-xs text-muted-foreground">Health Score</div>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              {getTrendIcon(deal.healthTrend)}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="alerts">
+          <HealthAlertsList showMarkAllRead={true} />
+        </TabsContent>
+        
+        <TabsContent value="trends">
+          <Card>
+            <CardHeader>
+              <CardTitle>Health Trends</CardTitle>
+              <CardDescription>
+                Coming soon: Historical health score trends and analytics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                <p>Health trends and analytics will be available soon</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

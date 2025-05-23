@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2, Clock } from 'lucide-react';
+import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2, Clock, TrendingDown, TrendingUp } from 'lucide-react';
 
 // Define the interface for a single notification
 export interface Notification {
@@ -40,6 +39,19 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     // First check if it's a progress nudging type
     if (type === 'deal_inactive' || type === 'milestone_overdue') {
       return <Clock className="h-5 w-5 text-yellow-500" />;
+    }
+    
+    // Check for health alert types
+    if (type === 'deal_health_critical' || type === 'deal_health_warning') {
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
+    }
+    
+    if (type === 'deal_health_improvement') {
+      return <TrendingUp className="h-5 w-5 text-green-500" />;
+    }
+    
+    if (type === 'deal_health_decline') {
+      return <TrendingDown className="h-5 w-5 text-orange-500" />;
     }
     
     // Then check standard types

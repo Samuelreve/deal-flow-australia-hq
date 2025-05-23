@@ -183,6 +183,91 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_health_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          current_score: number
+          deal_id: string
+          id: string
+          is_read: boolean
+          message: string
+          previous_score: number | null
+          recommendations: Json | null
+          threshold_value: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          current_score: number
+          deal_id: string
+          id?: string
+          is_read?: boolean
+          message: string
+          previous_score?: number | null
+          recommendations?: Json | null
+          threshold_value?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          current_score?: number
+          deal_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          previous_score?: number | null
+          recommendations?: Json | null
+          threshold_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_health_alerts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_health_history: {
+        Row: {
+          change_reason: string | null
+          created_at: string
+          deal_id: string
+          health_score: number
+          id: string
+          previous_score: number | null
+        }
+        Insert: {
+          change_reason?: string | null
+          created_at?: string
+          deal_id: string
+          health_score: number
+          id?: string
+          previous_score?: number | null
+        }
+        Update: {
+          change_reason?: string | null
+          created_at?: string
+          deal_id?: string
+          health_score?: number
+          id?: string
+          previous_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_health_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_health_predictions: {
         Row: {
           confidence_level: string
@@ -220,6 +305,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deal_health_predictions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_health_thresholds: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          is_enabled: boolean
+          threshold_type: string
+          threshold_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          is_enabled?: boolean
+          threshold_type: string
+          threshold_value: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          is_enabled?: boolean
+          threshold_type?: string
+          threshold_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_health_thresholds_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
