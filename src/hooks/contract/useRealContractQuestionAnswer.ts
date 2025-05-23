@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { QuestionAnswerState, QuestionHistoryItem } from '@/types/contract';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,12 +40,11 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     setState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      // Call our Supabase Edge Function with the contract ID
       const { data, error } = await supabase.functions.invoke('contract-assistant', {
         body: { 
           question, 
           contractText,
-          contractId // Pass the contract ID for proper saving
+          contractId
         }
       });
 
@@ -54,13 +52,11 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
         throw new Error(error.message || 'Failed to process question');
       }
 
-      // Format the answer
       const result = {
         answer: data.answer,
         sources: data.sources
       };
 
-      // Create a new history item
       const newHistoryItem: QuestionHistoryItem = {
         id: `q-${Date.now()}`,
         question,
@@ -68,7 +64,6 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
         timestamp: new Date()
       };
 
-      // Update state with the new history item
       setState(prev => ({
         ...prev,
         questionHistory: [newHistoryItem, ...prev.questionHistory],
@@ -79,6 +74,44 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to process question';
+      
+      toast.error(errorMessage);
+      
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
+        error: errorMessage
+      }));
+
+      throw new Error(errorMessage);
+    }
+  }, [contractId]);
+
+  const handleAnalyzeContract = useCallback(async (analysisType: string, contractText: string): Promise<{ answer: string; analysisType: string }> => {
+    if (!contractId) {
+      throw new Error('No contract selected');
+    }
+
+    setState(prev => ({ ...prev, isProcessing: true, error: null }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke('enhanced-contract-assistant', {
+        body: { 
+          analysisType,
+          contractText,
+          contractId
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to perform analysis');
+      }
+
+      setState(prev => ({ ...prev, isProcessing: false, error: null }));
+
+      return data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to perform analysis';
       
       toast.error(errorMessage);
       
@@ -111,6 +144,7 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
   return {
     ...state,
     handleAskQuestion,
+    handleAnalyzeContract,
     clearHistory,
     removeQuestion,
     refreshHistory: loadQuestionHistory

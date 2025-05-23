@@ -5,11 +5,13 @@ import AppLayout from '@/components/layout/AppLayout';
 import ContractPageHeader from '@/components/contract/ContractPageHeader';
 import ContractMainContent from '@/components/contract/ContractMainContent';
 import RealContractUpload from '@/components/contract/RealContractUpload';
+import EnhancedContractAssistantTab from '@/components/contract/tabs/EnhancedContractAssistantTab';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useRealContracts } from '@/hooks/contract/useRealContracts';
 import { useRealContractQuestionAnswer } from '@/hooks/contract/useRealContractQuestionAnswer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -38,7 +40,21 @@ const RealContractPage: React.FC = () => {
 
   const handleContractSelect = (contractId: string) => {
     selectContract(contractId);
-    setActiveTab('summary');
+    setActiveTab('assistant');
+  };
+
+  const handleAskQuestion = async (question: string) => {
+    if (!selectedContract?.content) {
+      throw new Error('No contract content available');
+    }
+    return await questionAnswerState.handleAskQuestion(question, selectedContract.content);
+  };
+
+  const handleAnalyzeContract = async (analysisType: string) => {
+    if (!selectedContract?.content) {
+      throw new Error('No contract content available');
+    }
+    return await questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
   };
 
   if (!user) {
@@ -111,34 +127,60 @@ const RealContractPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             <ErrorBoundary>
               {selectedContract ? (
-                <ContractMainContent
-                  isAnalyzing={selectedContract.analysis_status === 'processing'}
-                  analysisStage={
-                    selectedContract.analysis_status === 'processing' ? 'Processing document...' :
-                    selectedContract.analysis_status === 'error' ? 'Analysis failed' :
-                    selectedContract.analysis_status === 'completed' ? 'Analysis complete' :
-                    'Pending analysis'
-                  }
-                  analysisProgress={
-                    selectedContract.analysis_status === 'completed' ? 100 :
-                    selectedContract.analysis_status === 'processing' ? 50 :
-                    0
-                  }
-                  activeTab={activeTab}
-                  customSummary={null}
-                  mockSummary={{
-                    title: selectedContract.name,
-                    documentType: 'Contract',
-                    lastModified: selectedContract.updated_at,
-                    keyTerms: ['Terms based on document analysis'],
-                    overview: selectedContract.content || 'Document content is being processed...'
-                  }}
-                  contractText={selectedContract.content || ''}
-                  questionHistory={questionAnswerState.questionHistory}
-                  isProcessing={questionAnswerState.isProcessing}
-                  onTabChange={setActiveTab}
-                  onAskQuestion={questionAnswerState.handleAskQuestion}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Contract Analysis: {selectedContract.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedContract.analysis_status === 'completed' ? (
+                      <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList>
+                          <TabsTrigger value="summary">Summary</TabsTrigger>
+                          <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="summary" className="space-y-4">
+                          <div className="bg-muted p-4 rounded-md">
+                            <h3 className="font-medium mb-2">Document Information</h3>
+                            <p className="text-sm text-muted-foreground">
+                              File: {selectedContract.name}<br/>
+                              Size: {(selectedContract.file_size / 1024).toFixed(1)} KB<br/>
+                              Uploaded: {new Date(selectedContract.upload_date).toLocaleDateString()}<br/>
+                              Status: {selectedContract.analysis_status}
+                            </p>
+                          </div>
+                          {selectedContract.content && (
+                            <div className="bg-muted p-4 rounded-md max-h-60 overflow-y-auto">
+                              <h3 className="font-medium mb-2">Content Preview</h3>
+                              <p className="text-sm">{selectedContract.content.substring(0, 500)}...</p>
+                            </div>
+                          )}
+                        </TabsContent>
+                        
+                        <TabsContent value="assistant">
+                          <EnhancedContractAssistantTab
+                            onAskQuestion={handleAskQuestion}
+                            onAnalyzeContract={handleAnalyzeContract}
+                            questionHistory={questionAnswerState.questionHistory}
+                            isProcessing={questionAnswerState.isProcessing}
+                            contractText={selectedContract.content || ''}
+                          />
+                        </TabsContent>
+                      </Tabs>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="text-muted-foreground">
+                          {selectedContract.analysis_status === 'processing' 
+                            ? 'Processing document...' 
+                            : selectedContract.analysis_status === 'error'
+                            ? 'Error processing document'
+                            : 'Document analysis pending'
+                          }
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               ) : (
                 <Card>
                   <CardContent className="p-8 text-center">
