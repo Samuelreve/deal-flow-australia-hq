@@ -9,42 +9,52 @@ export const processUserSession = async (session: Session): Promise<{ user: User
     return { user: null, isAuthenticated: false } as any;
   }
 
+  console.log("Processing session for user:", session.user.id);
+  
+  // Create a minimal fallback profile first
+  const createFallbackProfile = (): UserProfile => ({
+    id: session.user.id,
+    email: session.user.email || '',
+    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+    role: 'seller' as UserRole,
+    onboarding_complete: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+
   try {
-    console.log("Processing session for user:", session.user.id);
+    // Try to fetch existing profile with timeout
+    const fetchPromise = fetchUserProfile(session.user.id);
+    const timeoutPromise = new Promise<UserProfile | null>((_, reject) => 
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+    );
     
-    // Try to fetch existing profile first
-    let profile = await fetchUserProfile(session.user.id);
+    let profile = await Promise.race([fetchPromise, timeoutPromise]);
     
-    // If no profile exists, create one
+    // If no profile exists, try to create one
     if (!profile) {
-      console.log("No profile found, creating new profile");
-      profile = await createUserProfile(session.user);
-      
-      // If profile creation also fails, create a minimal profile
-      if (!profile) {
-        console.warn("Profile creation failed, creating minimal profile object");
-        const basicProfile: UserProfile = {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-          role: 'seller' as UserRole,
-          onboarding_complete: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+      console.log("No profile found, attempting to create new profile");
+      try {
+        const createPromise = createUserProfile(session.user);
+        const createTimeoutPromise = new Promise<UserProfile | null>((_, reject) => 
+          setTimeout(() => reject(new Error('Profile creation timeout')), 5000)
+        );
         
-        const user = {
-          ...session.user,
-          profile: basicProfile,
-          role: 'seller' as UserRole
-        } as User;
-        
-        console.log("Using minimal profile for user session");
-        return { user, isAuthenticated: true };
+        profile = await Promise.race([createPromise, createTimeoutPromise]);
+      } catch (createError) {
+        console.warn("Profile creation failed:", createError);
+        // Use fallback profile if creation fails
+        profile = createFallbackProfile();
       }
     }
     
-    // Ensure profile has all required fields with proper defaults
+    // If we still don't have a profile, use fallback
+    if (!profile) {
+      console.warn("Using fallback profile");
+      profile = createFallbackProfile();
+    }
+    
+    // Ensure profile has all required fields
     const completeProfile: UserProfile = {
       id: profile.id,
       email: profile.email,
@@ -63,16 +73,15 @@ export const processUserSession = async (session: Session): Promise<{ user: User
       professional_location: profile.professional_location,
       professional_specializations: profile.professional_specializations || [],
       onboarding_complete: profile.onboarding_complete || false,
-      created_at: profile.created_at,
-      updated_at: profile.updated_at
+      created_at: profile.created_at || new Date().toISOString(),
+      updated_at: profile.updated_at || new Date().toISOString()
     };
     
-    const userRole = completeProfile.role as UserRole;
-    
     const user = {
-      ...session.user,
+      id: session.user.id,
+      email: session.user.email || '',
       profile: completeProfile,
-      role: userRole
+      role: completeProfile.role
     } as User;
     
     console.log("User session processed successfully:", {
@@ -86,24 +95,16 @@ export const processUserSession = async (session: Session): Promise<{ user: User
   } catch (error) {
     console.error("Error processing user session:", error);
     
-    // Return basic user without profile if there's an error
-    const basicProfile: UserProfile = {
+    // Always return a valid user with fallback profile
+    const fallbackProfile = createFallbackProfile();
+    const user = {
       id: session.user.id,
       email: session.user.email || '',
-      name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-      role: 'seller' as UserRole,
-      onboarding_complete: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    const user = {
-      ...session.user,
-      profile: basicProfile,
-      role: 'seller' as UserRole
+      profile: fallbackProfile,
+      role: fallbackProfile.role
     } as User;
     
-    console.log("Error in session processing, using fallback profile");
+    console.log("Using fallback user due to processing error");
     return { user, isAuthenticated: true };
   }
 };

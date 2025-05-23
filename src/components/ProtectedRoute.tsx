@@ -26,16 +26,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     hasUser: !!user,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
-    currentPath: location.pathname
+    currentPath: location.pathname,
+    requireAuth
   });
 
+  // Show loading only when actually loading, with timeout
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground animate-pulse">
-            Verifying authentication...
+            Checking authentication...
           </p>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -12,15 +13,75 @@ export const useAuthSession = () => {
 
   useEffect(() => {
     let mounted = true;
+    let processingSession = false;
     
-    // Set up auth state listener FIRST to avoid missing auth events
+    console.log('Setting up auth session hook');
+    
+    // Helper function to process session with timeout and error handling
+    const safeProcessSession = async (currentSession: Session | null) => {
+      if (!mounted || processingSession) return;
+      if (!currentSession) {
+        if (mounted) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
+        return;
+      }
+
+      processingSession = true;
+      console.log('Processing session for user:', currentSession.user.id);
+      
+      try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session processing timeout')), 10000)
+        );
+        
+        const sessionPromise = processUserSession(currentSession);
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        const { user: processedUser, isAuthenticated: authStatus } = result as any;
+        
+        if (mounted) {
+          setUser(processedUser);
+          setIsAuthenticated(authStatus);
+          console.log('Session processed successfully:', processedUser?.profile?.onboarding_complete);
+        }
+      } catch (error) {
+        console.error("Session processing failed:", error);
+        if (mounted) {
+          // Create minimal user object on error
+          setUser({
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+            profile: {
+              id: currentSession.user.id,
+              email: currentSession.user.email || '',
+              name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User',
+              role: 'seller',
+              onboarding_complete: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          } as User);
+          setIsAuthenticated(true);
+        }
+      } finally {
+        processingSession = false;
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
         
         if (!mounted) return;
         
-        // Update session immediately
         setSession(currentSession);
         
         if (event === 'SIGNED_OUT') {
@@ -28,40 +89,16 @@ export const useAuthSession = () => {
           setUser(null);
           setIsAuthenticated(false);
           setLoading(false);
-        } 
-        else if (currentSession) {
-          // Process the session to get user profile
-          try {
-            const { user: processedUser, isAuthenticated: authStatus } = await processUserSession(currentSession);
-            if (mounted) {
-              setUser(processedUser);
-              setIsAuthenticated(authStatus);
-              console.log('User profile loaded from auth state change:', processedUser?.profile?.onboarding_complete);
-            }
-          } catch (error) {
-            console.error("Failed to process session in auth state change:", error);
-            if (mounted) {
-              setIsAuthenticated(!!currentSession);
-              setUser({
-                ...currentSession.user,
-                profile: null,
-                role: undefined
-              } as User);
-            }
-          } finally {
-            if (mounted) {
-              setLoading(false);
-            }
-          }
         } else {
-          if (mounted) {
-            setLoading(false);
-          }
+          // Use setTimeout to avoid blocking the auth state change callback
+          setTimeout(() => {
+            safeProcessSession(currentSession);
+          }, 0);
         }
       }
     );
     
-    // THEN check for existing session
+    // Check for existing session
     const checkSession = async () => {
       try {
         console.log("Checking for existing session...");
@@ -77,31 +114,17 @@ export const useAuthSession = () => {
         
         if (!mounted) return;
         
+        setSession(existingSession);
+        
         if (existingSession) {
           console.log("Found existing session for user", existingSession.user.id);
-          setSession(existingSession);
-          
-          try {
-            const { user: processedUser, isAuthenticated: authStatus } = await processUserSession(existingSession);
-            setUser(processedUser);
-            setIsAuthenticated(authStatus);
-            console.log('Initial user profile loaded:', processedUser?.profile?.onboarding_complete);
-          } catch (error) {
-            console.error("Failed to process initial session:", error);
-            // Keep the session active even if profile fetch fails
-            setIsAuthenticated(!!existingSession);
-            setUser({
-              ...existingSession.user,
-              profile: null,
-              role: undefined
-            } as User);
-          }
+          await safeProcessSession(existingSession);
         } else {
           console.log("No existing session found");
+          setLoading(false);
         }
       } catch (error) {
         console.error("Session check error:", error);
-      } finally {
         if (mounted) {
           setLoading(false);
         }
@@ -110,7 +133,6 @@ export const useAuthSession = () => {
     
     checkSession();
     
-    // Clean up 
     return () => {
       mounted = false;
       subscription.unsubscribe();

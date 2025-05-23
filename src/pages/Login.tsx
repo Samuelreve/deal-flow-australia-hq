@@ -1,29 +1,43 @@
 
 import { useEffect } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginInfoPanel from "@/components/auth/LoginInfoPanel";
 
 const Login = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
   
-  // If already authenticated, redirect to dashboard or accept invite page
+  console.log('Login page - Auth state:', {
+    isAuthenticated,
+    authLoading,
+    hasUser: !!user,
+    hasProfile: !!user?.profile,
+    onboardingComplete: user?.profile?.onboarding_complete,
+    inviteToken
+  });
+  
+  // Handle redirects for authenticated users
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !authLoading && user) {
+      console.log('User is authenticated, checking redirect logic');
+      
       if (inviteToken) {
-        console.log("User is authenticated, redirecting to accept invitation");
+        console.log("Redirecting to accept invitation");
         navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
+      } else if (!user.profile || !user.profile.onboarding_complete) {
+        console.log("Redirecting to onboarding");
+        navigate("/onboarding/intent", { replace: true });
       } else {
-        console.log("User is authenticated, redirecting to dashboard");
+        console.log("Redirecting to dashboard");
         navigate("/dashboard", { replace: true });
       }
     }
-  }, [isAuthenticated, authLoading, navigate, inviteToken]);
+  }, [isAuthenticated, authLoading, user, navigate, inviteToken]);
   
   const handleSignUp = () => {
     if (inviteToken) {
@@ -33,6 +47,7 @@ const Login = () => {
     }
   };
   
+  // Show loading only while auth is loading, not after authentication is confirmed
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -44,7 +59,7 @@ const Login = () => {
     );
   }
   
-  // If already authenticated, show loading while redirecting
+  // If authenticated but still on login page, show redirect loading
   if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -53,7 +68,7 @@ const Login = () => {
           <p className="text-sm text-muted-foreground">
             {inviteToken 
               ? "Redirecting to accept invitation..." 
-              : "Redirecting to dashboard..."}
+              : "Redirecting..."}
           </p>
         </div>
       </div>

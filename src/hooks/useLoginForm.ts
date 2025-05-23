@@ -35,16 +35,13 @@ export const useLoginForm = () => {
     setErrorMsg("");
     setIsLoading(true);
     
-    // Show loading toast
-    toast({
-      title: "Signing in...",
-      description: "Please wait while we verify your credentials.",
-    });
+    console.log('Starting login process for:', email);
     
     try {
       const success = await login(email, password);
       
       if (success) {
+        console.log('Login successful, showing success state');
         setShowSuccess(true);
         toast({
           title: "Welcome back!",
@@ -54,10 +51,8 @@ export const useLoginForm = () => {
         // Get the intended destination from location state or default to dashboard
         const from = location.state?.from?.pathname || AUTH_ROUTES.DASHBOARD;
         
-        // Small delay to show success state
-        setTimeout(() => {
-          navigate(from, { replace: true });
-        }, 1000);
+        // Navigate immediately without delay
+        navigate(from, { replace: true });
         
         return true;
       } else {
@@ -93,7 +88,6 @@ export const useLoginForm = () => {
   };
 
   const handleVerify2faCode = async (code: string) => {
-    // Placeholder for 2FA verification
     setNeeds2fa(false);
     return true;
   };
