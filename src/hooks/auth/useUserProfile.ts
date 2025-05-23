@@ -21,7 +21,6 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
   try {
     console.log("Fetching profile for user:", userId);
     
-    // Query the profiles table directly
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -72,45 +71,14 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
   try {
     console.log("Creating profile for user:", supabaseUser.id);
     
-    // First check if profile already exists
-    const { data: existingProfile, error: checkError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', supabaseUser.id)
-      .maybeSingle();
-    
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
-      console.error("Error checking for existing profile:", checkError);
-      return null;
-    }
-    
-    // If profile already exists, return it
+    // Check if profile already exists first
+    const existingProfile = await fetchUserProfile(supabaseUser.id);
     if (existingProfile) {
-      console.log("Profile already exists for user, returning existing profile");
-      return {
-        id: existingProfile.id,
-        email: existingProfile.email,
-        name: existingProfile.name,
-        role: existingProfile.role,
-        avatar_url: existingProfile.avatar_url,
-        company: existingProfile.company,
-        phone: existingProfile.phone,
-        is_professional: existingProfile.is_professional || false,
-        professional_headline: existingProfile.professional_headline,
-        professional_bio: existingProfile.professional_bio,
-        professional_firm_name: existingProfile.professional_firm_name,
-        professional_contact_email: existingProfile.professional_contact_email,
-        professional_phone: existingProfile.professional_phone,
-        professional_website: existingProfile.professional_website,
-        professional_location: existingProfile.professional_location,
-        professional_specializations: jsonToStringArray(existingProfile.professional_specializations),
-        onboarding_complete: existingProfile.onboarding_complete || false,
-        created_at: existingProfile.created_at,
-        updated_at: existingProfile.updated_at
-      };
+      console.log("Profile already exists, returning existing profile");
+      return existingProfile;
     }
     
-    // Profile doesn't exist, create a new one
+    // Create new profile
     const newProfileData = {
       id: supabaseUser.id,
       email: supabaseUser.email || "",
@@ -129,7 +97,6 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
       
     if (insertError) {
       console.error("Profile creation error:", insertError);
-      toast.error(`Profile creation failed: ${insertError.message}`);
       return null;
     }
     

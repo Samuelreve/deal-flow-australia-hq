@@ -23,7 +23,6 @@ export const useProfileHandler = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      // Check if profile exists
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -78,21 +77,11 @@ export const useProfileHandler = () => {
         error: error.message,
         retryCount: prev.retryCount + 1
       }));
-      
-      if (state.retryCount < 3) {
-        toast.error('Profile error - retrying...', {
-          description: error.message
-        });
-      } else {
-        toast.error('Failed to handle profile', {
-          description: 'Please refresh the page or contact support'
-        });
-      }
       return null;
     } finally {
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [state.retryCount]);
+  }, []);
 
   const validateProfile = useCallback((profile: UserProfile): boolean => {
     const requiredFields = ['id', 'email', 'name', 'role'];
@@ -128,14 +117,12 @@ export const useProfileHandler = () => {
       // Build the update object with only the fields we want to update
       const updateData: Record<string, any> = {};
       
-      // Only include fields that are present in the updates
       Object.keys(updates).forEach(key => {
         if (updates[key as keyof UserProfile] !== undefined) {
           updateData[key] = updates[key as keyof UserProfile];
         }
       });
 
-      // Always update the timestamp
       updateData.updated_at = new Date().toISOString();
 
       const { error: updateError } = await supabase
@@ -153,7 +140,7 @@ export const useProfileHandler = () => {
         toast.success('Profile updated successfully');
         setState(prev => ({ ...prev, retryCount: 0 }));
       } else {
-        throw new Error('Failed to update profile');
+        throw new Error('Failed to update profile in context');
       }
       
       return success;

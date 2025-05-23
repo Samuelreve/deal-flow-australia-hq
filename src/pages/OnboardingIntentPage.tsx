@@ -17,7 +17,7 @@ import AppErrorBoundary from "@/components/common/AppErrorBoundary";
 type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
 
 const OnboardingIntentPage: React.FC = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { updateProfile, loading: profileLoading, error: profileError } = useProfileHandler();
   const [intent, setIntent] = useState<UserIntent | null>(null);
@@ -50,13 +50,15 @@ const OnboardingIntentPage: React.FC = () => {
     setLoading(true);
 
     try {
+      const shouldCompleteOnboarding = !isProfessional || !['advisor', 'lawyer'].includes(intent!);
+      
       const updatedProfile = {
-        ...user!.profile!,
         role: intent as UserRole,
         is_professional: isProfessional,
-        onboarding_complete: !isProfessional || !['advisor', 'lawyer'].includes(intent!)
+        onboarding_complete: shouldCompleteOnboarding
       };
 
+      console.log('Updating profile with:', updatedProfile);
       const success = await updateProfile(updatedProfile);
 
       if (success) {
@@ -74,8 +76,9 @@ const OnboardingIntentPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      setError(error.message || "Failed to complete onboarding. Please try again.");
-      toast.error(`Failed to complete onboarding: ${error.message}`);
+      const errorMessage = error.message || "Failed to complete onboarding. Please try again.";
+      setError(errorMessage);
+      toast.error(`Failed to complete onboarding: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
