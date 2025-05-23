@@ -55,7 +55,13 @@ export const useProfileHandler = () => {
 
       const { data: createdProfile, error: createError } = await supabase
         .from('profiles')
-        .insert(newProfile)
+        .insert({
+          id: newProfile.id!,
+          email: newProfile.email!,
+          name: newProfile.name!,
+          role: newProfile.role!,
+          onboarding_complete: newProfile.onboarding_complete!
+        })
         .select()
         .single();
 
