@@ -41,6 +41,57 @@ export const mockSummaryData: MockSummary = {
   disclaimer: "This is an AI-generated summary and may not cover all legal details. Always consult with a legal professional before making decisions based on this information."
 };
 
+// Mock document metadata
+export const mockDocumentMetadata = {
+  id: "mock-contract-1",
+  name: "Sample_NDA_Contract.pdf",
+  size: 156789,
+  type: "application/pdf",
+  uploadedAt: new Date().toISOString(),
+  version: "v1.0",
+  versionDate: new Date().toLocaleDateString(),
+  status: "analyzed" as const
+};
+
+// Sample contract text
+export const sampleContractText = `
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement (the "Agreement") is entered into as of June 1, 2023 (the "Effective Date") by and between Company A, located at 123 Business Ave, City, State ("Company A"), and Company B, located at 456 Corporate Blvd, Town, State ("Company B").
+
+1. PURPOSE
+The parties wish to explore a potential business opportunity of mutual interest and in connection with this opportunity, each party may disclose to the other certain confidential technical and business information that the disclosing party desires the receiving party to treat as confidential.
+
+2. CONFIDENTIAL INFORMATION
+"Confidential Information" means any information disclosed by either party to the other party, either directly or indirectly, in writing, orally or by inspection of tangible objects, which is designated as "Confidential," "Proprietary" or some similar designation, or information which by its nature would be understood by a reasonable person to be confidential or proprietary.
+
+3. TERM
+This Agreement shall remain in effect for a period of 3 years from the Effective Date. The confidentiality obligations set forth in this Agreement shall survive termination of this Agreement for a period of 5 years.
+
+4. TERMINATION
+Either party may terminate this Agreement upon thirty (30) days prior written notice to the other party. All sections of this Agreement relating to the rights and obligations of the parties concerning Confidential Information disclosed during the term of the Agreement shall survive any such termination.
+
+5. GOVERNING LAW
+This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of law principles. Any disputes arising out of or related to this Agreement shall be resolved in the courts of New York County, New York.
+
+6. REMEDIES
+The receiving party agrees that any violation or threatened violation of this Agreement may cause irreparable injury to the disclosing party, entitling the disclosing party to seek injunctive relief in addition to all legal remedies.
+
+7. AMENDMENTS
+This Agreement may not be amended except by a written agreement signed by authorized representatives of both parties.
+
+8. INTELLECTUAL PROPERTY RIGHTS
+Nothing in this Agreement is intended to grant any rights to either party under any patent, copyright, trade secret or other intellectual property right of the other party.
+
+IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the Effective Date.
+
+COMPANY A                             COMPANY B
+By: _________________                By: _________________
+Name: John Smith                      Name: Jane Doe
+Title: CEO                            Title: CTO
+Date: June 1, 2023                    Date: June 1, 2023
+`;
+
 // Mock contract analysis responses for different analysis types
 export const mockAnalysisResponses = {
   summary: {
