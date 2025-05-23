@@ -11,10 +11,16 @@ export const useRecoveryPlans = (userId?: string) => {
     if (!userId) return;
     
     try {
-      // Use the updated function that properly checks deal access
-      const { data, error } = await supabase.rpc('get_recovery_plans', {
-        p_user_id: userId
-      });
+      // Direct query instead of RPC until types are updated
+      const { data, error } = await supabase
+        .from('health_recovery_plans')
+        .select(`
+          *,
+          deals!inner(
+            deal_participants!inner(user_id)
+          )
+        `)
+        .eq('deals.deal_participants.user_id', userId);
 
       if (error) throw error;
       

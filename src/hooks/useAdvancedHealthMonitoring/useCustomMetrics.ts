@@ -11,10 +11,17 @@ export const useCustomMetrics = (userId?: string) => {
     if (!userId) return;
     
     try {
-      // Use the updated function that properly checks deal access
-      const { data, error } = await supabase.rpc('get_custom_health_metrics', {
-        p_user_id: userId
-      });
+      // Direct query instead of RPC until types are updated
+      const { data, error } = await supabase
+        .from('custom_health_metrics')
+        .select(`
+          *,
+          deals!inner(
+            deal_participants!inner(user_id)
+          )
+        `)
+        .eq('deals.deal_participants.user_id', userId)
+        .eq('is_active', true);
 
       if (error) throw error;
       

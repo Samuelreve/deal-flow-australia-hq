@@ -11,10 +11,16 @@ export const usePredictions = (userId?: string) => {
     if (!userId) return;
     
     try {
-      // Use the updated function that properly checks deal access
-      const { data, error } = await supabase.rpc('get_health_predictions', {
-        p_user_id: userId
-      });
+      // Direct query instead of RPC until types are updated
+      const { data, error } = await supabase
+        .from('deal_health_predictions')
+        .select(`
+          *,
+          deals!inner(
+            deal_participants!inner(user_id)
+          )
+        `)
+        .eq('deals.deal_participants.user_id', userId);
 
       if (error) throw error;
       
