@@ -28,9 +28,12 @@ export interface UserProfile {
 export type UserRole = "seller" | "buyer" | "lawyer" | "admin" | "advisor" | "browsing";
 
 // Combined user type with Supabase user and profile data
-export interface User extends SupabaseUser {
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role?: UserRole;
   profile: UserProfile | null;
-  role?: UserRole; // Add role directly to User for easier access
 }
 
 // Auth context type definition

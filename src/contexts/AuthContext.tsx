@@ -1,26 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { UserProfile, UserRole } from '@/types/auth';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role?: UserRole;
-  profile?: UserProfile;
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: any | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  signup: (email: string, password: string, name?: string) => Promise<boolean>;
-  updateUserProfile: (profile: UserProfile) => Promise<boolean>;
-  setUser: (user: User | null) => void;
-}
+import { UserProfile, UserRole, User, AuthContextType } from '@/types/auth';
+import { Session } from '@supabase/supabase-js';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,7 +15,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
-          setSession({ user: parsedUser });
+          setSession({ user: parsedUser } as Session);
         }
       } catch (error) {
         console.error('Session check failed:', error);
@@ -98,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      setSession({ user: demoUser });
+      setSession({ user: demoUser } as Session);
       localStorage.setItem('demo-user', JSON.stringify(demoUser));
       return true;
     } catch (error) {
@@ -146,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      setSession({ user: demoUser });
+      setSession({ user: demoUser } as Session);
       localStorage.setItem('demo-user', JSON.stringify(demoUser));
       return true;
     } catch (error) {
@@ -192,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('demo-user');
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     isAuthenticated: !!user,
