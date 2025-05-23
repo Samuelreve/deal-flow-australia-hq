@@ -4,10 +4,9 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Activity, Zap, LayoutDashboard, FileText, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Activity, Zap } from "lucide-react";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -59,6 +58,7 @@ const Sidebar = () => {
                 }`
               }
             >
+              <LayoutDashboard className="mr-2 h-5 w-5" />
               Dashboard
             </NavLink>
           </li>
@@ -73,39 +73,10 @@ const Sidebar = () => {
                 }`
               }
             >
+              <FileText className="mr-2 h-5 w-5" />
               Deals
             </NavLink>
           </li>
-          <li>
-            <NavLink
-              to="/deal-health"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              Deal Health Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              Settings
-            </NavLink>
-          </li>
-          
-          {/* Add Health Monitoring link */}
           <li>
             <NavLink
               to="/health-monitoring"
@@ -118,11 +89,9 @@ const Sidebar = () => {
               }
             >
               <Activity className="mr-2 h-5 w-5" />
-              Deal Health
+              Health Monitoring
             </NavLink>
           </li>
-          
-          {/* Add Advanced Health Monitoring link */}
           <li>
             <NavLink
               to="/advanced-health-monitoring"
@@ -136,6 +105,21 @@ const Sidebar = () => {
             >
               <Zap className="mr-2 h-5 w-5" />
               Advanced Health
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              <Settings className="mr-2 h-5 w-5" />
+              Settings
             </NavLink>
           </li>
         </ul>

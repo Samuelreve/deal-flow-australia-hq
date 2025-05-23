@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,12 @@ const DealHealthDashboard = () => {
   const [sortBy, setSortBy] = useState<'health' | 'title' | 'date'>('health');
   const [filterRisk, setFilterRisk] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
-  // Transform deals with health analysis
+  // Transform deals with health analysis (removed mock trend)
   const healthDeals: DealHealthItem[] = useMemo(() => {
     return deals.map(deal => ({
       ...deal,
       riskLevel: deal.health_score >= 75 ? 'low' : deal.health_score >= 50 ? 'medium' : 'high',
-      healthTrend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable' // Mock trend
+      healthTrend: 'stable' // Default to stable since we don't have historical data yet
     }));
   }, [deals]);
 
@@ -36,7 +37,7 @@ const DealHealthDashboard = () => {
   const filteredAndSortedDeals = useMemo(() => {
     let filtered = healthDeals.filter(deal => {
       const matchesSearch = deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           deal.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                           deal.business_legal_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRisk = filterRisk === 'all' || deal.riskLevel === filterRisk;
       return matchesSearch && matchesRisk;
     });
@@ -168,9 +169,9 @@ const DealHealthDashboard = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold">{deal.title}</h3>
-                              {deal.business_name && (
+                              {deal.business_legal_name && (
                                 <span className="text-sm text-muted-foreground">
-                                  ({deal.business_name})
+                                  ({deal.business_legal_name})
                                 </span>
                               )}
                               <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')}>
@@ -181,7 +182,6 @@ const DealHealthDashboard = () => {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <span>Status: {deal.status}</span>
                               <span>Updated: {new Date(deal.updated_at).toLocaleDateString()}</span>
-                              {deal.seller?.name && <span>Seller: {deal.seller.name}</span>}
                             </div>
                           </div>
                           

@@ -8,6 +8,8 @@ import {
   LogOut,
   User,
   ArrowRight,
+  Activity,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -96,6 +98,32 @@ const NavBar = () => {
                 <div className="flex items-center gap-1">
                   <FileText className="h-4 w-4" />
                   <span>Deals</span>
+                </div>
+              </Link>
+              <Link
+                to="/health-monitoring"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/health-monitoring")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Health</span>
+                </div>
+              </Link>
+              <Link
+                to="/advanced-health-monitoring"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/advanced-health-monitoring")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  <span>Advanced</span>
                 </div>
               </Link>
             </>
