@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ const DealHealthDashboard = () => {
   const filteredAndSortedDeals = useMemo(() => {
     let filtered = healthDeals.filter(deal => {
       const matchesSearch = deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           deal.business_legal_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                           deal.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRisk = filterRisk === 'all' || deal.riskLevel === filterRisk;
       return matchesSearch && matchesRisk;
     });
@@ -169,9 +168,9 @@ const DealHealthDashboard = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold">{deal.title}</h3>
-                              {deal.business_legal_name && (
+                              {deal.business_name && (
                                 <span className="text-sm text-muted-foreground">
-                                  ({deal.business_legal_name})
+                                  ({deal.business_name})
                                 </span>
                               )}
                               <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')}>
