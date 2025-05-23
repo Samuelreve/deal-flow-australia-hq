@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfile } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ProfileHandlerState {
   loading: boolean;

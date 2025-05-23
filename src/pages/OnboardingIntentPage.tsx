@@ -19,7 +19,7 @@ type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
 const OnboardingIntentPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { updateProfile, loading: profileLoading, error: profileError } = useProfileHandler();
+  const { updateProfile, loading: profileLoading, error: profileError, resetError } = useProfileHandler();
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [isProfessional, setIsProfessional] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,6 @@ const OnboardingIntentPage: React.FC = () => {
       return false;
     }
 
-    // Check if user has a profile
     if (!user.profile) {
       setError("User profile not found. Please try logging in again.");
       return false;
@@ -48,6 +47,7 @@ const OnboardingIntentPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    resetError();
     
     console.log('Form submission started', {
       intent,
