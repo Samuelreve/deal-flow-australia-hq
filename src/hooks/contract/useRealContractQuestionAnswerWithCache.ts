@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useCachedAnalysis } from '@/hooks/contract/useCachedAnalysis';
 
 interface QuestionHistoryItem {
@@ -47,12 +48,18 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
     setIsProcessing(true);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'explain_clause',
+          content: question,
+          documentId: contractId,
+          context: { contractContent }
+        }
+      });
       
-      // Mock response - in a real app, this would call an AI service
-      const answer = `This is a simulated answer to your question: "${question}"`;
+      if (error) throw error;
       
+      const answer = data.explanation || 'No response received';
       const result = { question, answer };
       
       // Store in cache
@@ -101,12 +108,18 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
     setIsProcessing(true);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'analyze_document',
+          documentId: contractId,
+          content: contractContent,
+          context: { analysisType }
+        }
+      });
       
-      // Mock response - in a real app, this would call an AI service
-      const analysis = `This is a simulated ${analysisType} analysis of your contract.`;
+      if (error) throw error;
       
+      const analysis = data.analysis?.content || `Analysis of type ${analysisType} completed`;
       const result = { analysisType, analysis };
       
       // Store in cache

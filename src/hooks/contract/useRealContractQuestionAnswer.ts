@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuestionHistoryItem {
   question: string;
@@ -25,11 +26,18 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     setIsProcessing(true);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'explain_clause',
+          content: question,
+          documentId: contractId,
+          context: { contractContent }
+        }
+      });
       
-      // Mock response - in a real app, this would call an AI service
-      const answer = `This is a simulated answer to your question: "${question}"`;
+      if (error) throw error;
+      
+      const answer = data.explanation || 'No response received';
       
       setQuestionHistory(prev => [
         ...prev,
@@ -57,11 +65,18 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     setIsProcessing(true);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'analyze_document',
+          documentId: contractId,
+          content: contractContent,
+          context: { analysisType }
+        }
+      });
       
-      // Mock response - in a real app, this would call an AI service
-      const analysis = `This is a simulated ${analysisType} analysis of your contract.`;
+      if (error) throw error;
+      
+      const analysis = data.analysis?.content || `Analysis of type ${analysisType} completed`;
       
       setQuestionHistory(prev => [
         ...prev,
@@ -88,35 +103,29 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     setIsProcessing(true);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'predict_deal_health',
+          dealId,
+          content: ''
+        }
+      });
       
-      // Mock response for deal health prediction
-      const prediction = {
-        probability_of_success_percentage: Math.floor(Math.random() * 40) + 60, // 60-100%
-        confidence_level: "High",
-        prediction_reasoning: "Based on historical data and current deal metrics, this deal shows strong indicators for success including active engagement, consistent communication, and positive momentum in negotiations.",
-        suggested_improvements: [
-          {
-            area: "Communication",
-            impact: "High",
-            recommendation: "Schedule weekly check-ins with all stakeholders to maintain momentum and address any concerns early."
-          },
+      if (error) throw error;
+      
+      return {
+        probability_of_success_percentage: data.predicted_score || 75,
+        confidence_level: data.confidence_level || "Medium",
+        prediction_reasoning: data.reasoning || "Analysis based on current deal metrics and historical data.",
+        suggested_improvements: data.suggested_improvements || [
           {
             area: "Documentation",
-            impact: "Medium", 
-            recommendation: "Ensure all terms are clearly documented and agreed upon to avoid last-minute complications."
-          },
-          {
-            area: "Timeline",
-            impact: "Low",
-            recommendation: "Consider setting interim milestones to track progress and maintain engagement."
+            impact: "Medium",
+            recommendation: "Ensure all required documents are complete and up-to-date."
           }
         ],
-        disclaimer: "This prediction is based on AI analysis of available deal data and should be used as guidance alongside professional judgment."
+        disclaimer: data.disclaimer || "This prediction is based on AI analysis and should be used as guidance alongside professional judgment."
       };
-      
-      return prediction;
     } catch (error) {
       console.error('Error generating deal health prediction:', error);
       toast.error('Failed to generate deal health prediction');

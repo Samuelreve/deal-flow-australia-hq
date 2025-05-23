@@ -7,12 +7,12 @@ interface UseDealHealthPredictionsProps {
 }
 
 /**
- * Custom hook for deal health prediction operations
+ * Custom hook for deal health prediction operations - now using real AI
  */
 export const useDealHealthPredictions = ({ processAIRequest }: UseDealHealthPredictionsProps) => {
   
   /**
-   * Get AI-generated prediction about deal health and suggestions for improvement
+   * Get AI-generated prediction about deal health using real AI service
    */
   const predictDealHealth = async (dealId: string): Promise<DealHealthPredictionResponse | null> => {
     return await processAIRequest('predict_deal_health', {

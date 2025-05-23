@@ -7,11 +7,11 @@ interface UseDealChatOperationsProps {
 }
 
 /**
- * Hook for deal chat operations
+ * Hook for deal chat operations - now using real AI
  */
 export const useDealChatOperations = ({ processAIRequest }: UseDealChatOperationsProps) => {
   /**
-   * Send a chat query to the AI and get a response
+   * Send a chat query to the AI and get a real response
    */
   const dealChatQuery = async (
     dealId: string,
@@ -21,7 +21,7 @@ export const useDealChatOperations = ({ processAIRequest }: UseDealChatOperation
     return processAIRequest('deal_chat_query', {
       content: userQuery,
       dealId,
-      context: {},
+      context: { chatHistory },
       chatHistory
     });
   };

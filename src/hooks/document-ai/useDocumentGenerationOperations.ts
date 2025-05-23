@@ -4,14 +4,14 @@ interface UseDocumentAIBaseOperations {
 }
 
 /**
- * Hook for document generation operations
+ * Hook for document generation operations - now using real AI
  */
 export const useDocumentGenerationOperations = ({
   processAIRequest
 }: UseDocumentAIBaseOperations) => {
   
   /**
-   * Generate a document template based on deal data
+   * Generate a document template based on deal data using real AI
    */
   const generateTemplate = async (
     documentType: string,
@@ -22,13 +22,13 @@ export const useDocumentGenerationOperations = ({
       'generate_template',
       {
         content: customization || 'Standard template',
-        context: context || {}
+        context: { ...context, documentType }
       }
     );
   };
   
   /**
-   * Generate a smart template with AI-powered insights
+   * Generate a smart template with AI-powered insights using real AI
    */
   const generateSmartTemplate = async (
     documentType: string,
@@ -39,7 +39,7 @@ export const useDocumentGenerationOperations = ({
       'generate_smart_template',
       {
         content: `Generate ${documentType} with ${customization}`,
-        context: context || {}
+        context: { ...context, documentType }
       }
     );
   };
