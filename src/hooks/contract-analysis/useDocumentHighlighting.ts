@@ -2,13 +2,19 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Highlight, HighlightCategory } from './types';
-
-const DEFAULT_CATEGORIES: HighlightCategory[] = [
-  { id: 'risk', name: 'Risk', color: '#F44336', description: 'Potential legal or business risks' },
-  { id: 'obligation', name: 'Obligation', color: '#2196F3', description: 'Legal obligations or requirements' },
-  { id: 'key-term', name: 'Key Term', color: '#4CAF50', description: 'Important terms and definitions' },
-  { id: 'custom', name: 'Custom', color: '#FFEB3B', description: 'Other highlighted content' }
-];
+import { DEFAULT_CATEGORIES } from './constants';
+import { 
+  generateHighlightId,
+  renderHighlightedText,
+  getHighlightStats,
+  createHighlightFromSelection
+} from './highlightUtils';
+import {
+  saveHighlights,
+  loadHighlights,
+  saveCategories,
+  loadCategories
+} from './highlightStorage';
 
 export const useDocumentHighlighting = (contractText: string) => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
@@ -21,46 +27,27 @@ export const useDocumentHighlighting = (contractText: string) => {
   const [showNoteEditor, setShowNoteEditor] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Generate a unique ID for each highlight
-  const generateId = useCallback(() => {
-    return Math.random().toString(36).substring(2, 11);
-  }, []);
-  
   // Load highlights from local storage on initial load
   useEffect(() => {
-    try {
-      const savedHighlights = localStorage.getItem('contract-highlights');
-      if (savedHighlights) {
-        setHighlights(JSON.parse(savedHighlights));
-      }
-      
-      const savedCategories = localStorage.getItem('highlight-categories');
-      if (savedCategories) {
-        setCategories(JSON.parse(savedCategories));
-      }
-    } catch (error) {
-      console.error('Error loading highlights from local storage:', error);
+    const loadedHighlights = loadHighlights();
+    if (loadedHighlights.length > 0) {
+      setHighlights(loadedHighlights);
+    }
+    
+    const loadedCategories = loadCategories();
+    if (loadedCategories) {
+      setCategories(loadedCategories);
     }
   }, []);
   
   // Save highlights to local storage when they change
   useEffect(() => {
-    if (highlights.length > 0) {
-      try {
-        localStorage.setItem('contract-highlights', JSON.stringify(highlights));
-      } catch (error) {
-        console.error('Error saving highlights to local storage:', error);
-      }
-    }
+    saveHighlights(highlights);
   }, [highlights]);
   
   // Save categories to local storage when they change
   useEffect(() => {
-    try {
-      localStorage.setItem('highlight-categories', JSON.stringify(categories));
-    } catch (error) {
-      console.error('Error saving categories to local storage:', error);
-    }
+    saveCategories(categories);
   }, [categories]);
   
   // Update active color when category changes
@@ -73,45 +60,28 @@ export const useDocumentHighlighting = (contractText: string) => {
   
   // Add a new highlight
   const addHighlight = useCallback((selection: Selection) => {
-    try {
-      // Get the selected text
-      const text = selection.toString();
-      if (!text || text.length === 0) return;
-      
-      // We need to find where in the document this text appears
-      const range = selection.getRangeAt(0);
-      const preSelectionRange = range.cloneRange();
-      preSelectionRange.selectNodeContents(containerRef.current as Node);
-      preSelectionRange.setEnd(range.startContainer, range.startOffset);
-      const startIndex = preSelectionRange.toString().length;
-      
-      const newHighlight: Highlight = {
-        id: generateId(),
-        text,
-        startIndex,
-        endIndex: startIndex + text.length,
-        color: activeColor,
-        category: activeCategory as 'risk' | 'obligation' | 'key term' | 'custom',
-        note: '',
-        createdAt: new Date().toISOString()
-      };
-      
+    const newHighlight = createHighlightFromSelection(
+      selection,
+      containerRef,
+      activeCategory,
+      activeColor,
+      generateHighlightId
+    );
+    
+    if (newHighlight) {
       setHighlights(prev => [...prev, newHighlight]);
       setSelectedHighlight(newHighlight);
       setHighlightNote('');
       setShowNoteEditor(true);
       
       toast.success('Text highlighted', {
-        description: `"${text.length > 30 ? text.substring(0, 30) + '...' : text}"`
+        description: `"${newHighlight.text.length > 30 ? newHighlight.text.substring(0, 30) + '...' : newHighlight.text}"`
       });
       
       // Clear the selection
       window.getSelection()?.removeAllRanges();
-    } catch (error) {
-      console.error('Error creating highlight:', error);
-      toast.error('Failed to highlight text');
     }
-  }, [activeColor, activeCategory, generateId]);
+  }, [activeColor, activeCategory]);
   
   // Process text selection when in highlight mode
   const handleTextSelection = useCallback(() => {
@@ -188,51 +158,6 @@ export const useDocumentHighlighting = (contractText: string) => {
     }
   }, [highlights]);
   
-  // Get highlights by category
-  const getHighlightsByCategory = useCallback((categoryId: string) => {
-    return highlights.filter(h => h.category === categoryId);
-  }, [highlights]);
-  
-  // Sort highlights by position in document
-  const getSortedHighlights = useCallback(() => {
-    return [...highlights].sort((a, b) => a.startIndex - b.startIndex);
-  }, [highlights]);
-  
-  // Get highlight statistics
-  const getHighlightStats = useCallback(() => {
-    const stats = categories.map(category => ({
-      ...category,
-      count: highlights.filter(h => h.category === category.id).length
-    }));
-    
-    return stats;
-  }, [highlights, categories]);
-  
-  // Render highlighted text with proper markup
-  const renderHighlightedText = useCallback(() => {
-    if (!contractText) return "";
-    
-    // Sort highlights by start index (descending) to process from end to start
-    // This ensures we don't mess up indices as we insert highlight markup
-    const sortedHighlights = [...highlights].sort((a, b) => b.startIndex - a.startIndex);
-    
-    let result = contractText;
-    
-    sortedHighlights.forEach(highlight => {
-      const { startIndex, endIndex, color, id, category } = highlight;
-      
-      if (startIndex >= 0 && endIndex <= result.length) {
-        const before = result.substring(0, startIndex);
-        const highlighted = result.substring(startIndex, endIndex);
-        const after = result.substring(endIndex);
-        
-        result = `${before}<span data-highlight-id="${id}" data-category="${category}" class="highlighted-text" style="background-color: ${color}; padding: 0 2px; border-radius: 2px; cursor: pointer;">${highlighted}</span>${after}`;
-      }
-    });
-    
-    return result;
-  }, [contractText, highlights]);
-  
   return {
     highlights,
     containerRef,
@@ -249,13 +174,19 @@ export const useDocumentHighlighting = (contractText: string) => {
     addCategory,
     removeHighlight,
     clearHighlights,
-    renderHighlightedText,
+    renderHighlightedText: () => renderHighlightedText(contractText, highlights),
     selectHighlight,
     setHighlightNote,
     updateHighlightNote,
-    getHighlightsByCategory,
-    getSortedHighlights,
-    getHighlightStats,
+    getHighlightsByCategory: useCallback((categoryId: string) => {
+      return highlights.filter(h => h.category === categoryId);
+    }, [highlights]),
+    getSortedHighlights: useCallback(() => {
+      return [...highlights].sort((a, b) => a.startIndex - b.startIndex);
+    }, [highlights]),
+    getHighlightStats: useCallback(() => {
+      return getHighlightStats(highlights, categories);
+    }, [highlights, categories]),
     setShowNoteEditor
   };
 };
