@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +20,7 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
     loading,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
+    isProfessional: user?.profile?.is_professional,
     currentPath: location.pathname,
     userId: user?.id
   });
@@ -60,7 +60,15 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
   
   // If user has profile but hasn't completed onboarding and is not on onboarding route
   if (user.profile && !user.profile.onboarding_complete && !isOnboardingRoute) {
-    console.log('Redirecting to onboarding - incomplete onboarding');
+    console.log('OnboardingCheck: Incomplete onboarding, redirecting');
+    
+    // Special case: if user is a professional but trying to access non-profile pages,
+    // redirect them to complete their professional profile
+    if (user.profile.is_professional && location.pathname !== "/profile") {
+      console.log('OnboardingCheck: Professional user needs to complete profile');
+      return <Navigate to="/profile" state={{ returnTo: location.pathname }} replace />;
+    }
+    
     const returnTo = location.pathname !== "/" ? location.pathname : "/dashboard";
     return <Navigate to="/onboarding/intent" state={{ returnTo }} replace />;
   }

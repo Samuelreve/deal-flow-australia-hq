@@ -50,12 +50,14 @@ const OnboardingIntentPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const shouldCompleteOnboarding = !isProfessional || !['advisor', 'lawyer'].includes(intent!);
+      // For professionals, they need to complete their professional profile
+      // For non-professionals, onboarding is complete after this step
+      const isSelectingProfessionalRole = isProfessional && ['advisor'].includes(intent!);
       
       const updatedProfile = {
         role: intent as UserRole,
         is_professional: isProfessional,
-        onboarding_complete: shouldCompleteOnboarding
+        onboarding_complete: !isSelectingProfessionalRole // Complete onboarding unless they're a professional
       };
 
       console.log('Updating profile with:', updatedProfile);
@@ -65,9 +67,9 @@ const OnboardingIntentPage: React.FC = () => {
         toast.success("Welcome to DealPilot!");
         
         // Redirect based on intent and professional status
-        if (isProfessional && ['advisor', 'lawyer'].includes(intent!)) {
+        if (isSelectingProfessionalRole) {
           navigate("/profile");
-          toast.info("Please complete your professional profile to be listed in the directory");
+          toast.info("Please complete your professional profile to finish setup");
         } else {
           navigate("/dashboard");
         }

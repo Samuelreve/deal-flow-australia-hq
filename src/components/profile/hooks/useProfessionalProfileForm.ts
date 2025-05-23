@@ -1,10 +1,11 @@
 
-import { useState } from "react";
-import { UseFormReturn } from "react-hook-form";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { UserProfile } from "@/types/auth";
-import { ProfessionalProfileFormValues } from "../validation/professionalProfileSchema";
+import { useState } from 'react';
+import { UseFormReturn } from 'react-hook-form';
+import { useProfileHandler } from '@/hooks/auth/useProfileHandler';
+import { UserProfile } from '@/types/auth';
+import { toast } from 'sonner';
+import { parseSpecializations, ProfessionalProfileFormValues } from '../validation/professionalProfileSchema';
+import { useNavigate } from 'react-router-dom';
 
 interface UseProfessionalProfileFormProps {
   profile: UserProfile;
@@ -17,57 +18,58 @@ export const useProfessionalProfileForm = ({
   profile,
   form,
   onUpdate,
-  onSaveSuccess,
+  onSaveSuccess
 }: UseProfessionalProfileFormProps) => {
   const [savingProfile, setSavingProfile] = useState(false);
-  const { updateUserProfile } = useAuth();
-  const { toast } = useToast();
+  const { updateProfile } = useProfileHandler();
+  const navigate = useNavigate();
 
-  const onSubmit = async (data: ProfessionalProfileFormValues) => {
+  const onSubmit = async (values: ProfessionalProfileFormValues) => {
     setSavingProfile(true);
     
     try {
-      // Convert comma-separated specializations to array
-      const specializations = data.specializations
-        ? data.specializations.split(',').map(s => s.trim()).filter(Boolean)
-        : [];
-
-      // Prepare updated profile data
-      const updatedProfile: UserProfile = {
-        ...profile,
-        is_professional: data.is_professional,
-        professional_headline: data.professional_headline,
-        professional_bio: data.professional_bio,
-        professional_firm_name: data.professional_firm_name,
-        professional_contact_email: data.professional_contact_email,
-        professional_phone: data.professional_phone,
-        professional_website: data.professional_website,
-        professional_location: data.professional_location,
-        professional_specializations: specializations
+      const specializations = parseSpecializations(values.specializations);
+      
+      const profileUpdates = {
+        is_professional: values.is_professional,
+        professional_headline: values.professional_headline || null,
+        professional_bio: values.professional_bio || null,
+        professional_firm_name: values.professional_firm_name || null,
+        professional_contact_email: values.professional_contact_email || null,
+        professional_phone: values.professional_phone || null,
+        professional_website: values.professional_website || null,
+        professional_location: values.professional_location || null,
+        professional_specializations: specializations.length > 0 ? specializations : null,
       };
 
-      // Use the new updateUserProfile function
-      const success = await updateUserProfile(updatedProfile);
+      // If this is a professional completing their profile for the first time, mark onboarding as complete
+      if (values.is_professional && !profile.onboarding_complete && values.professional_headline) {
+        profileUpdates.onboarding_complete = true;
+      }
+
+      console.log('Updating professional profile:', profileUpdates);
+      
+      const success = await updateProfile(profileUpdates);
       
       if (success) {
-        toast({
-          title: "Profile updated",
-          description: "Your professional profile has been updated successfully",
-        });
-        
-        // Pass the updated profile back to the parent
+        const updatedProfile = { ...profile, ...profileUpdates };
         onUpdate(updatedProfile);
         
-        // Call optional success callback
-        onSaveSuccess?.();
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
+        
+        // If onboarding was just completed, redirect to dashboard
+        if (profileUpdates.onboarding_complete && !profile.onboarding_complete) {
+          toast.success('Professional profile completed! Welcome to DealPilot.');
+          navigate('/dashboard');
+        } else {
+          toast.success('Professional profile updated successfully');
+        }
       }
     } catch (error) {
-      console.error("Error saving professional profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update your professional profile. Please try again."
-      });
+      console.error('Error saving professional profile:', error);
+      toast.error('Failed to save professional profile');
     } finally {
       setSavingProfile(false);
     }

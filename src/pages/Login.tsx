@@ -11,7 +11,6 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
-  const forceRedirect = searchParams.get("redirect") === "true";
   
   console.log('Login page - Auth state:', {
     isAuthenticated,
@@ -19,27 +18,32 @@ const Login = () => {
     hasUser: !!user,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
-    inviteToken,
-    forceRedirect
+    inviteToken
   });
   
-  // Only redirect if explicitly requested or there's an invite token
+  // Handle redirects for authenticated users
   useEffect(() => {
-    if (isAuthenticated && !authLoading && user && (forceRedirect || inviteToken)) {
+    if (isAuthenticated && !authLoading && user) {
       console.log('User is authenticated, checking redirect logic');
       
       if (inviteToken) {
         console.log("Redirecting to accept invitation");
         navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
-      } else if (!user.profile || !user.profile.onboarding_complete) {
+        return;
+      }
+      
+      // Check if user needs onboarding
+      if (!user.profile || !user.profile.onboarding_complete) {
         console.log("Redirecting to onboarding");
         navigate("/onboarding/intent", { replace: true });
-      } else {
-        console.log("Redirecting to dashboard");
-        navigate("/dashboard", { replace: true });
+        return;
       }
+      
+      // User has completed onboarding, go to dashboard
+      console.log("Redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, authLoading, user, navigate, inviteToken, forceRedirect]);
+  }, [isAuthenticated, authLoading, user, navigate, inviteToken]);
   
   const handleSignUp = () => {
     if (inviteToken) {
@@ -49,13 +53,31 @@ const Login = () => {
     }
   };
   
-  // Show loading only while auth is loading
+  // Show loading while auth is loading
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading while redirecting authenticated users
+  if (isAuthenticated && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            {inviteToken 
+              ? "Redirecting to accept invitation..." 
+              : !user.profile || !user.profile.onboarding_complete
+                ? "Setting up your account..."
+                : "Redirecting to dashboard..."}
+          </p>
         </div>
       </div>
     );
