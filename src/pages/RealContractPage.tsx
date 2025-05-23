@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -8,24 +9,28 @@ import OptimizedContractMainContent from '@/components/contract/layout/Optimized
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ContractSkipLinks, useContractKeyboardNavigation, useContractFocusManagement, useKeyboardHelp, ContractKeyboardHelp } from '@/components/contract/accessibility/EnhancedAccessibility';
 import { useRealContracts } from '@/hooks/contract/useRealContracts';
-import { useRealContractQuestionAnswer } from '@/hooks/contract/useRealContractQuestionAnswer';
+import { useRealContractQuestionAnswerWithCache } from '@/hooks/contract/useRealContractQuestionAnswerWithCache';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Spinner } from '@/components/ui/spinner';
 
 const RealContractPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("summary");
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const {
     contracts,
     selectedContract,
     loading,
     uploading,
+    uploadProgress,
     error,
     uploadContract,
     selectContract
   } = useRealContracts();
 
-  const questionAnswerState = useRealContractQuestionAnswer(selectedContract?.id || null);
+  const questionAnswerState = useRealContractQuestionAnswerWithCache(selectedContract?.id || null);
   const { announceToScreenReader } = useContractFocusManagement();
   const { isOpen: isKeyboardHelpOpen, setIsOpen: setKeyboardHelpOpen } = useKeyboardHelp();
 
@@ -68,6 +73,8 @@ const RealContractPage: React.FC = () => {
 
   const handleRetryAnalysis = () => {
     if (selectedContract) {
+      // Invalidate cache for this contract before retrying
+      questionAnswerState.invalidateCache();
       selectContract(selectedContract.id);
       announceToScreenReader('Retrying contract analysis');
     }
@@ -108,12 +115,26 @@ const RealContractPage: React.FC = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-center">
+            <Spinner size="lg" className="mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading contracts...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   const sidebarContent = (
     <ContractSidebarContent
       contracts={contracts}
       selectedContract={selectedContract}
       loading={loading}
       uploading={uploading}
+      uploadProgress={uploadProgress}
       onFileUpload={handleFileUpload}
       onContractSelect={handleContractSelect}
     />
@@ -161,6 +182,7 @@ const RealContractPage: React.FC = () => {
                 isProcessing={questionAnswerState.isProcessing}
                 error={error}
                 onRetryAnalysis={handleRetryAnalysis}
+                isMobile={isMobile}
               />
             </ErrorBoundary>
           </div>

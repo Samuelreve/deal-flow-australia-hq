@@ -1,226 +1,210 @@
 
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Search, Loader, Sparkles, Shield, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { QuestionHistoryItem } from '@/types/contract';
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Send, Brain, AlertCircle } from "lucide-react";
+import { MinimalLoadingSpinner } from '../loading/EnhancedLoadingStates';
 
-interface EnhancedContractAssistantTabProps {
-  onAskQuestion: (question: string, contractText?: string) => Promise<{ answer: string; sources?: string[] } | string>;
-  onAnalyzeContract?: (analysisType: string) => Promise<{ answer: string; sources?: string[] } | string>;
-  questionHistory?: QuestionHistoryItem[];
-  isProcessing?: boolean;
-  contractText?: string;
+interface HistoryItem {
+  question: string;
+  answer: string;
+  type: 'question' | 'analysis';
+  analysisType?: string;
 }
 
-const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> = ({ 
+interface EnhancedContractAssistantTabProps {
+  onAskQuestion: (question: string) => Promise<any>;
+  onAnalyzeContract: (analysisType: string) => Promise<any>;
+  questionHistory: HistoryItem[];
+  isProcessing: boolean;
+  contractText: string;
+  isMobile?: boolean;
+}
+
+const analysisOptions = [
+  { id: 'summary', label: 'Summary', description: 'Get a concise summary of the entire contract' },
+  { id: 'key_clauses', label: 'Key Clauses', description: 'Identify important clauses and terms' },
+  { id: 'obligations', label: 'Obligations', description: 'List all obligations for each party' },
+  { id: 'risks', label: 'Risks', description: 'Highlight potential risks and liabilities' }
+];
+
+const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> = ({
   onAskQuestion,
   onAnalyzeContract,
-  questionHistory = [],
-  isProcessing = false,
-  contractText = ""
+  questionHistory,
+  isProcessing,
+  contractText,
+  isMobile = false
 }) => {
-  const [question, setQuestion] = useState("");
-  const [analysisTab, setAnalysisTab] = useState("ask");
-  const [loading, setLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<string | { answer: string; sources?: string[] } | null>(null);
+  const [question, setQuestion] = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Scroll to bottom when history updates
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [questionHistory]);
 
   const handleAskQuestion = async () => {
-    if (!question.trim()) {
-      toast.error("Please enter a question");
-      return;
-    }
-    
-    setLoading(true);
-    setAnalysisResult(null);
+    if (!question.trim()) return;
     
     try {
-      const response = await onAskQuestion(question, contractText);
-      setAnalysisResult(response);
+      await onAskQuestion(question);
+      setQuestion('');
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
     } catch (error) {
-      toast.error("Failed to process your question");
-      console.error("Error processing question:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleAnalyzeContract = async (analysisType: string) => {
-    if (!onAnalyzeContract) return;
-    
-    setLoading(true);
-    setAnalysisResult(null);
-    
-    try {
-      const response = await onAnalyzeContract(analysisType);
-      setAnalysisResult(response);
-    } catch (error) {
-      toast.error(`Failed to analyze contract: ${analysisType}`);
-      console.error("Error analyzing contract:", error);
-    } finally {
-      setLoading(false);
+      console.error('Error asking question:', error);
     }
   };
 
-  // Function to extract answer text from different answer formats
-  const getAnswerText = (answer: string | { answer: string; sources?: string[] }): string => {
-    if (typeof answer === 'string') {
-      return answer;
+  const handleAnalysisSelect = async (analysisType: string) => {
+    try {
+      await onAnalyzeContract(analysisType);
+    } catch (error) {
+      console.error('Error analyzing contract:', error);
     }
-    return answer.answer;
   };
 
-  // Function to extract sources from different answer formats
-  const getAnswerSources = (answer: string | { answer: string; sources?: string[] }): string[] => {
-    if (typeof answer === 'string' || !answer.sources) {
-      return [];
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAskQuestion();
     }
-    return answer.sources;
   };
-  
-  // Analysis types for quick access
-  const analysisTypes = [
-    { id: "summary", label: "Generate Summary", icon: <Sparkles className="h-4 w-4" /> },
-    { id: "risks", label: "Identify Risks", icon: <AlertTriangle className="h-4 w-4" /> },
-    { id: "keyTerms", label: "Key Terms", icon: <Shield className="h-4 w-4" /> },
-    { id: "suggestions", label: "Improvement Suggestions", icon: <Sparkles className="h-4 w-4" /> },
-  ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Contract Assistant
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Tabs value={analysisTab} onValueChange={setAnalysisTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ask">Ask Questions</TabsTrigger>
-            <TabsTrigger value="analyze">Analyze Contract</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="ask" className="space-y-4 pt-4">
-            <p className="text-muted-foreground text-sm">
-              Ask specific questions about the contract to get instant answers.
+    <div className="flex flex-col h-full">
+      {/* Analysis Options */}
+      <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'flex flex-wrap gap-2'} mb-4`}>
+        {analysisOptions.map((option) => (
+          <Button
+            key={option.id}
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            className={`${isMobile ? 'justify-start' : ''} flex items-center gap-2`}
+            onClick={() => handleAnalysisSelect(option.id)}
+            disabled={isProcessing}
+            title={option.description}
+            aria-label={`Analyze contract: ${option.label}`}
+          >
+            <Brain className="h-4 w-4" />
+            <span>{option.label}</span>
+          </Button>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {questionHistory.length === 0 && !isProcessing && (
+        <Card className="mb-4">
+          <CardContent className="p-6 text-center">
+            <Brain className="h-10 w-10 mx-auto text-primary/70 mb-3" />
+            <h3 className="text-lg font-medium mb-2">Ask about this contract</h3>
+            <p className="text-muted-foreground mb-4">
+              Ask questions or select an analysis type to get insights about this contract.
             </p>
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+              <p className="font-medium">Example questions:</p>
+              <ul className="mt-1 space-y-1">
+                <li>• What are the key terms in this contract?</li>
+                <li>• What are my obligations as a party?</li>
+                <li>• Is there a termination clause?</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Q&A History */}
+      <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+        {questionHistory.map((item, index) => (
+          <div key={index} className="space-y-2">
+            {/* Question */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="font-semibold text-sm text-primary">You</span>
+              </div>
+              <div className="bg-muted p-3 rounded-lg rounded-tl-none flex-1">
+                <p className="text-sm whitespace-pre-wrap">{item.question}</p>
+              </div>
+            </div>
             
-            <div className="flex gap-2">
-              <Input 
-                placeholder="e.g., What is the duration of this agreement?"
+            {/* Answer */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                <Brain className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="bg-card border p-3 rounded-lg rounded-tl-none flex-1">
+                <p className="text-sm whitespace-pre-wrap">{item.answer}</p>
+                {item.type === 'analysis' && (
+                  <div className="mt-2 pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Analysis type: {item.analysisType}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {/* Processing state */}
+        {isProcessing && (
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+            </div>
+            <div className="bg-card border p-3 rounded-lg rounded-tl-none flex-1">
+              <p className="text-sm text-muted-foreground">
+                <MinimalLoadingSpinner size="sm" text="Processing your request..." />
+              </p>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Question Input */}
+      <div className="mt-auto">
+        {contractText ? (
+          <div className="flex flex-col">
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !loading && !isProcessing && handleAskQuestion()}
-                disabled={loading || isProcessing}
-                className="flex-1"
+                onKeyDown={handleKeyDown}
+                placeholder="Ask a question about this contract..."
+                className="pr-12 min-h-[80px] resize-none"
+                disabled={isProcessing}
+                aria-label="Ask a question about this contract"
               />
-              <Button onClick={handleAskQuestion} disabled={loading || isProcessing}>
-                {(loading || isProcessing) ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing
-                  </>
-                ) : (
-                  <>
-                    <Search className="mr-2 h-4 w-4" />
-                    Ask
-                  </>
-                )}
+              <Button
+                size="icon"
+                onClick={handleAskQuestion}
+                disabled={!question.trim() || isProcessing}
+                className="absolute right-2 bottom-2 h-8 w-8"
+                aria-label="Submit question"
+              >
+                <Send className="h-4 w-4" />
               </Button>
             </div>
-            
-            <div className="text-xs text-muted-foreground">
-              Try questions like "What happens in case of breach?" or "What is the governing law?"
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="analyze" className="space-y-4 pt-4">
-            <p className="text-muted-foreground text-sm">
-              Choose an analysis type to get insights about this contract.
+            <p className="text-xs text-muted-foreground mt-1">Press Enter to submit, Shift+Enter for new line</p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-dashed">
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              Contract content is not available. Try selecting a different contract.
             </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {analysisTypes.map((type) => (
-                <Button
-                  key={type.id}
-                  variant="outline"
-                  className="justify-start"
-                  disabled={loading || isProcessing}
-                  onClick={() => handleAnalyzeContract(type.id)}
-                >
-                  {loading && type.id === analysisTab ? (
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <span className="mr-2">{type.icon}</span>
-                  )}
-                  {type.label}
-                </Button>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Display analysis results */}
-        {analysisResult && (
-          <div className="bg-muted p-4 rounded-md mt-4">
-            <h3 className="font-medium mb-2">Result:</h3>
-            <p className="text-sm whitespace-pre-line">{getAnswerText(analysisResult)}</p>
-            
-            {getAnswerSources(analysisResult).length > 0 && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-xs font-medium">Sources:</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {getAnswerSources(analysisResult).map((source, index) => (
-                    <span key={index} className="bg-secondary text-xs px-2 py-0.5 rounded">
-                      {source}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
-
-        {/* Show question history */}
-        {questionHistory.length > 0 && !analysisResult && analysisTab === "ask" && (
-          <div className="mt-6">
-            <h3 className="text-sm font-medium mb-2">Previous Questions</h3>
-            <div className="space-y-3">
-              {questionHistory.map((item, index) => (
-                <div key={index} className="bg-muted/50 p-3 rounded-md">
-                  <p className="text-sm font-medium">{item.question}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{getAnswerText(item.answer)}</p>
-                  
-                  {getAnswerSources(item.answer).length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-border/30">
-                      <p className="text-xs text-muted-foreground">Sources:</p>
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {getAnswerSources(item.answer).map((source, sIndex) => (
-                          <span key={sIndex} className="bg-secondary/50 text-xs px-2 py-0.5 rounded">
-                            {source}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <Alert className="bg-blue-50 border-blue-200">
-          <AlertDescription className="text-sm text-blue-700">
-            The AI analyzes the exact contents of your contract to provide accurate answers based solely on the document.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

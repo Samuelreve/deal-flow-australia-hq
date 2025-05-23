@@ -39,6 +39,7 @@ interface OptimizedContractMainContentProps {
   isProcessing: boolean;
   error?: string | null;
   onRetryAnalysis?: () => void;
+  isMobile?: boolean;
 }
 
 // Memoized empty state component
@@ -102,7 +103,8 @@ const OptimizedContractMainContent: React.FC<OptimizedContractMainContentProps> 
   questionHistory,
   isProcessing,
   error,
-  onRetryAnalysis
+  onRetryAnalysis,
+  isMobile = false
 }) => {
   // Memoize tabs configuration
   const tabs = useMemo(() => [
@@ -134,7 +136,9 @@ const OptimizedContractMainContent: React.FC<OptimizedContractMainContentProps> 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Contract Analysis: {selectedContract.name}
+          <span className="truncate">
+            Contract Analysis: {selectedContract.name}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -145,7 +149,7 @@ const OptimizedContractMainContent: React.FC<OptimizedContractMainContentProps> 
             className="w-full"
           >
             <TabsList 
-              className="grid w-full grid-cols-2"
+              className={`grid w-full ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2'}`}
               role="tablist"
               aria-label="Contract analysis options"
             >
@@ -185,6 +189,7 @@ const OptimizedContractMainContent: React.FC<OptimizedContractMainContentProps> 
                   questionHistory={questionHistory}
                   isProcessing={isProcessing}
                   contractText={selectedContract.content || ''}
+                  isMobile={isMobile}
                 />
               </Suspense>
             </TabsContent>

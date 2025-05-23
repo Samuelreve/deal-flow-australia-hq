@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { ContractListSkeletonEnhanced } from '../loading/EnhancedLoadingStates';
 import { contractAriaLabelsEnhanced } from '../accessibility/EnhancedAccessibility';
+import { ContractUploadingState } from '../loading/EnhancedLoadingStates';
 
 interface Contract {
   id: string;
@@ -18,6 +19,7 @@ interface ContractSidebarContentProps {
   selectedContract: Contract | null;
   loading: boolean;
   uploading: boolean;
+  uploadProgress?: number;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onContractSelect: (contractId: string) => void;
 }
@@ -53,6 +55,7 @@ const ContractSidebarContent: React.FC<ContractSidebarContentProps> = ({
   selectedContract,
   loading,
   uploading,
+  uploadProgress = 0,
   onFileUpload,
   onContractSelect
 }) => {
@@ -62,6 +65,13 @@ const ContractSidebarContent: React.FC<ContractSidebarContentProps> = ({
         onFileUpload={onFileUpload}
         uploading={uploading}
       />
+      
+      {uploading && (
+        <ContractUploadingState
+          fileName={selectedContract?.name}
+          progress={uploadProgress}
+        />
+      )}
       
       <Card>
         <CardHeader>
