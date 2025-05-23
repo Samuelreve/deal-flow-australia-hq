@@ -183,6 +183,50 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_health_predictions: {
+        Row: {
+          confidence_level: string
+          created_at: string
+          deal_id: string
+          id: string
+          probability_percentage: number
+          reasoning: string
+          suggested_improvements: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_level: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          probability_percentage: number
+          reasoning: string
+          suggested_improvements?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_level?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          probability_percentage?: number
+          reasoning?: string
+          suggested_improvements?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_health_predictions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_invitations: {
         Row: {
           accepted_at: string | null
