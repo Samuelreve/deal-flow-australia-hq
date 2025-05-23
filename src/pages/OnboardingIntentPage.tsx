@@ -16,7 +16,7 @@ type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
 type UserProfessional = boolean;
 
 const OnboardingIntentPage: React.FC = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [isProfessional, setIsProfessional] = useState<UserProfessional>(false);
@@ -30,7 +30,7 @@ const OnboardingIntentPage: React.FC = () => {
       return;
     }
 
-    if (!user?.id) {
+    if (!user?.id || !user.profile) {
       toast.error("You must be logged in to complete onboarding");
       navigate("/login");
       return;
@@ -40,41 +40,27 @@ const OnboardingIntentPage: React.FC = () => {
 
     try {
       // Update user profile with intent and onboarding completion
-      // We now know that intent is a valid UserRole because we added 'advisor' and 'browsing' to the enum
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          role: intent as UserRole,
-          is_professional: isProfessional,
-          onboarding_complete: true
-        })
-        .eq('id', user.id);
+      const updatedProfile = {
+        ...user.profile,
+        role: intent as UserRole,
+        is_professional: isProfessional,
+        onboarding_complete: true
+      };
 
-      if (error) {
-        throw error;
-      }
+      const success = await updateUserProfile(updatedProfile);
 
-      // Update local user state
-      if (user.profile) {
-        setUser({
-          ...user,
-          profile: {
-            ...user.profile,
-            role: intent as UserRole,
-            is_professional: isProfessional,
-            onboarding_complete: true
-          }
-        });
-      }
-
-      toast.success("Welcome to DealPilot!");
-      
-      // Redirect based on intent
-      if (isProfessional) {
-        navigate("/profile");
-        toast.info("Please complete your professional profile to be listed in the directory");
+      if (success) {
+        toast.success("Welcome to DealPilot!");
+        
+        // Redirect based on intent
+        if (isProfessional) {
+          navigate("/profile");
+          toast.info("Please complete your professional profile to be listed in the directory");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
-        navigate("/dashboard");
+        throw new Error("Failed to update profile");
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);

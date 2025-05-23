@@ -1,20 +1,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { UserProfile } from '@/types/auth';
+import { UserProfile, UserRole } from '@/types/auth';
 
 interface User {
   id: string;
   email: string;
   name?: string;
-  role?: string;
-  profile?: {
-    name?: string;
-    avatar_url?: string;
-    role?: string;
-    email?: string;
-    id?: string;
-    onboarding_complete?: boolean;
-  };
+  role?: UserRole;
+  profile?: UserProfile;
 }
 
 interface AuthContextType {
@@ -25,7 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
-  updateUserProfile?: (profile: UserProfile) => Promise<boolean>;
+  updateUserProfile: (profile: UserProfile) => Promise<boolean>;
   setUser: (user: User | null) => void;
 }
 
@@ -74,18 +67,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate login API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      const demoProfile: UserProfile = {
+        id: '1',
+        email: email,
+        name: email.split('@')[0],
+        role: 'buyer' as UserRole,
+        avatar_url: undefined,
+        company: undefined,
+        phone: undefined,
+        is_professional: false,
+        professional_headline: undefined,
+        professional_bio: undefined,
+        professional_firm_name: undefined,
+        professional_contact_email: undefined,
+        professional_phone: undefined,
+        professional_website: undefined,
+        professional_location: undefined,
+        professional_specializations: undefined,
+        onboarding_complete: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const demoUser: User = {
         id: '1',
         email,
         name: email.split('@')[0],
-        role: 'user',
-        profile: {
-          name: email.split('@')[0],
-          role: 'user',
-          email: email,
-          id: '1',
-          onboarding_complete: true
-        }
+        role: 'buyer' as UserRole,
+        profile: demoProfile
       };
       
       setUser(demoUser);
@@ -106,18 +115,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate signup API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      const demoProfile: UserProfile = {
+        id: '1',
+        email: email,
+        name: name || email.split('@')[0],
+        role: 'buyer' as UserRole,
+        avatar_url: undefined,
+        company: undefined,
+        phone: undefined,
+        is_professional: false,
+        professional_headline: undefined,
+        professional_bio: undefined,
+        professional_firm_name: undefined,
+        professional_contact_email: undefined,
+        professional_phone: undefined,
+        professional_website: undefined,
+        professional_location: undefined,
+        professional_specializations: undefined,
+        onboarding_complete: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const demoUser: User = {
         id: '1',
         email,
         name: name || email.split('@')[0],
-        role: 'user',
-        profile: {
-          name: name || email.split('@')[0],
-          role: 'user',
-          email: email,
-          id: '1',
-          onboarding_complete: false
-        }
+        role: 'buyer' as UserRole,
+        profile: demoProfile
       };
       
       setUser(demoUser);
@@ -145,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile: {
           ...user.profile,
           ...profile,
-          onboarding_complete: profile.onboarding_complete || user.profile?.onboarding_complete
+          updated_at: new Date().toISOString()
         }
       };
       
