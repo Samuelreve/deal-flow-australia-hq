@@ -31,10 +31,15 @@ export function useDocumentInteractions({
     comments,
     loading: commentsLoading,
     submitting,
-    commentCount,
-    handleSubmitComment,
-    handleDeleteComment
+    fetchComments,
+    addComment,
+    deleteComment: handleDeleteComment,
+    editComment,
+    toggleResolved
   } = useDocumentComments(versionId);
+  
+  // Calculate comment count from comments array
+  const commentCount = comments ? comments.length : 0;
   
   // Get explanation functionality
   const {
@@ -72,30 +77,35 @@ export function useDocumentInteractions({
   ]);
   
   // Handle submitting a new comment
-  const handleSubmitCommentWrapper = useCallback(async () => {
+  const handleSubmitComment = useCallback(async () => {
     if (!commentContent.trim() || !versionId) return false;
     
-    const success = await handleSubmitComment(
-      commentContent,
-      currentPage,
-      locationData,
-      selectedText
-    );
+    const commentData = {
+      content: commentContent,
+      page_number: currentPage,
+      location_data: locationData,
+      selected_text: selectedText
+    };
     
-    if (success) {
+    try {
+      await addComment(commentData);
+      
       // Reset UI state after successful comment
       setCommentContent('');
       setShowCommentInput(false);
       
       // Show the comment sidebar after posting
       setShowCommentSidebar(true);
+      
+      return true;
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      return false;
     }
-    
-    return success;
   }, [
     commentContent, 
     versionId, 
-    handleSubmitComment, 
+    addComment, 
     currentPage, 
     locationData, 
     selectedText
@@ -121,14 +131,18 @@ export function useDocumentInteractions({
     commentCount,
     aiLoading,
     explanationResult,
+    comments,
     
     // Actions
     handleExplainClick,
     handleAddComment,
-    handleSubmitComment: handleSubmitCommentWrapper,
+    handleSubmitComment,
     handleCloseCommentInput: () => setShowCommentInput(false),
     handleCloseExplanation,
     handleToggleCommentSidebar,
-    handleDeleteComment
+    handleDeleteComment,
+    editComment,
+    toggleResolved,
+    fetchComments
   };
 }
