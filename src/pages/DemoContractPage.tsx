@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -9,7 +8,7 @@ import ContractMainContent from '@/components/contract/ContractMainContent';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisState';
 import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
-import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
+import { useContractQuestionAnswer, QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
 import { mockSummaryData, mockQuestionHistory } from '@/hooks/contract-analysis/mockData';
 import { DocumentMetadata } from '@/types/contract';
 
@@ -108,9 +107,24 @@ const DemoContractPage: React.FC = () => {
     }
   };
   
-  // Create a wrapper function that matches the expected signature
-  const handleAskQuestion = async (question: string, contractText: string) => {
-    return questionAnswerState.handleAskQuestion(question, contractText);
+  // Wrap the handleAskQuestion to match the expected interface
+  const handleAskQuestion = async (question: string) => {
+    return questionAnswerState.handleAskQuestion(question);
+  };
+  
+  // Add a mock analyze contract function to match ContractMainContent props
+  const handleAnalyzeContract = async (analysisType: string) => {
+    const answer = `This is a simulated ${analysisType} analysis of the contract.`;
+    const newItem: QuestionHistoryItem = {
+      question: `Analyze contract: ${analysisType}`,
+      answer,
+      timestamp: Date.now(),
+      type: 'analysis',
+      analysisType
+    };
+    
+    questionAnswerState.setQuestionHistory(prev => [...prev, newItem]);
+    return { analysisType, analysis: answer };
   };
   
   useEffect(() => {
@@ -168,6 +182,7 @@ const DemoContractPage: React.FC = () => {
                 isProcessing={questionAnswerState.isProcessing}
                 onTabChange={setActiveTab}
                 onAskQuestion={handleAskQuestion}
+                onAnalyzeContract={handleAnalyzeContract}
               />
             </ErrorBoundary>
           </div>

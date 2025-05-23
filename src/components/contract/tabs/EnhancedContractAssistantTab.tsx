@@ -3,12 +3,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Send, Brain, AlertCircle } from "lucide-react";
-import { MinimalLoadingSpinner } from '../loading/EnhancedLoadingStates';
+import { Loader2, Send, Brain } from "lucide-react";
+import { MinimalLoadingSpinner } from "../loading/ContractLoadingStates";
 
 interface HistoryItem {
   question: string;
   answer: string;
+  timestamp: number;
   type: 'question' | 'analysis';
   analysisType?: string;
 }
@@ -19,14 +20,13 @@ interface EnhancedContractAssistantTabProps {
   questionHistory: HistoryItem[];
   isProcessing: boolean;
   contractText: string;
-  isMobile?: boolean;
 }
 
 const analysisOptions = [
-  { id: 'summary', label: 'Summary', description: 'Get a concise summary of the entire contract' },
-  { id: 'key_clauses', label: 'Key Clauses', description: 'Identify important clauses and terms' },
-  { id: 'obligations', label: 'Obligations', description: 'List all obligations for each party' },
-  { id: 'risks', label: 'Risks', description: 'Highlight potential risks and liabilities' }
+  { id: 'summary', label: 'Summary', description: 'Get a concise summary of the contract' },
+  { id: 'key_clauses', label: 'Key Clauses', description: 'Identify important clauses' },
+  { id: 'obligations', label: 'Obligations', description: 'List all obligations' },
+  { id: 'risks', label: 'Risks', description: 'Identify potential risks' }
 ];
 
 const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> = ({
@@ -34,8 +34,7 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
   onAnalyzeContract,
   questionHistory,
   isProcessing,
-  contractText,
-  isMobile = false
+  contractText
 }) => {
   const [question, setQuestion] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -80,17 +79,15 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
   return (
     <div className="flex flex-col h-full">
       {/* Analysis Options */}
-      <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'flex flex-wrap gap-2'} mb-4`}>
+      <div className="flex flex-wrap gap-2 mb-4">
         {analysisOptions.map((option) => (
           <Button
             key={option.id}
             variant="outline"
-            size={isMobile ? "sm" : "default"}
-            className={`${isMobile ? 'justify-start' : ''} flex items-center gap-2`}
+            className="flex items-center gap-2"
             onClick={() => handleAnalysisSelect(option.id)}
             disabled={isProcessing}
             title={option.description}
-            aria-label={`Analyze contract: ${option.label}`}
           >
             <Brain className="h-4 w-4" />
             <span>{option.label}</span>
@@ -105,13 +102,13 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
             <Brain className="h-10 w-10 mx-auto text-primary/70 mb-3" />
             <h3 className="text-lg font-medium mb-2">Ask about this contract</h3>
             <p className="text-muted-foreground mb-4">
-              Ask questions or select an analysis type to get insights about this contract.
+              Ask questions or select an analysis type to get insights.
             </p>
             <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
               <p className="font-medium">Example questions:</p>
               <ul className="mt-1 space-y-1">
-                <li>• What are the key terms in this contract?</li>
-                <li>• What are my obligations as a party?</li>
+                <li>• What are the key terms?</li>
+                <li>• What are my obligations?</li>
                 <li>• Is there a termination clause?</li>
               </ul>
             </div>
@@ -181,23 +178,20 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
                 placeholder="Ask a question about this contract..."
                 className="pr-12 min-h-[80px] resize-none"
                 disabled={isProcessing}
-                aria-label="Ask a question about this contract"
               />
               <Button
                 size="icon"
                 onClick={handleAskQuestion}
                 disabled={!question.trim() || isProcessing}
                 className="absolute right-2 bottom-2 h-8 w-8"
-                aria-label="Submit question"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Press Enter to submit, Shift+Enter for new line</p>
+            <p className="text-xs text-muted-foreground mt-1">Press Enter to submit</p>
           </div>
         ) : (
           <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border border-dashed">
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               Contract content is not available. Try selecting a different contract.
             </p>
