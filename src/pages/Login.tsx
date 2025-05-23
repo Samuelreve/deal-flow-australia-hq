@@ -11,6 +11,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
+  const forceRedirect = searchParams.get("redirect") === "true";
   
   console.log('Login page - Auth state:', {
     isAuthenticated,
@@ -18,12 +19,13 @@ const Login = () => {
     hasUser: !!user,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
-    inviteToken
+    inviteToken,
+    forceRedirect
   });
   
-  // Handle redirects for authenticated users
+  // Only redirect if explicitly requested or there's an invite token
   useEffect(() => {
-    if (isAuthenticated && !authLoading && user) {
+    if (isAuthenticated && !authLoading && user && (forceRedirect || inviteToken)) {
       console.log('User is authenticated, checking redirect logic');
       
       if (inviteToken) {
@@ -37,7 +39,7 @@ const Login = () => {
         navigate("/dashboard", { replace: true });
       }
     }
-  }, [isAuthenticated, authLoading, user, navigate, inviteToken]);
+  }, [isAuthenticated, authLoading, user, navigate, inviteToken, forceRedirect]);
   
   const handleSignUp = () => {
     if (inviteToken) {
@@ -47,29 +49,13 @@ const Login = () => {
     }
   };
   
-  // Show loading only while auth is loading, not after authentication is confirmed
+  // Show loading only while auth is loading
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // If authenticated but still on login page, show redirect loading
-  if (isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
-            {inviteToken 
-              ? "Redirecting to accept invitation..." 
-              : "Redirecting..."}
-          </p>
         </div>
       </div>
     );

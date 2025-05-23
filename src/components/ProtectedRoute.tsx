@@ -50,17 +50,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // If user is authenticated but trying to access auth pages, redirect appropriately
-  if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/signup")) {
-    // Check if user needs onboarding
-    if (!user?.profile || !user.profile.onboarding_complete) {
-      console.log('ProtectedRoute: Redirecting to onboarding from auth page');
-      return <Navigate to="/onboarding/intent" replace />;
-    }
-    console.log('ProtectedRoute: Redirecting to dashboard from auth page');
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  // Don't redirect authenticated users away from login/signup pages
+  // Let them access these pages if they want to (e.g., to logout or switch accounts)
+  
   return <>{children}</>;
 };
 

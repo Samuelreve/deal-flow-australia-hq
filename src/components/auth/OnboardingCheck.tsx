@@ -1,3 +1,4 @@
+
 import React, { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +42,14 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
   
   // Check if we're on an onboarding route first
   const isOnboardingRoute = location.pathname.startsWith("/onboarding");
+  
+  // Skip onboarding check for auth pages (login/signup)
+  const isAuthRoute = location.pathname === "/login" || location.pathname === "/signup";
+  
+  if (isAuthRoute) {
+    console.log('OnboardingCheck: On auth route, skipping onboarding check');
+    return <>{children}</>;
+  }
   
   // If user doesn't have a profile and is not on onboarding route
   if (!user.profile && !isOnboardingRoute) {
