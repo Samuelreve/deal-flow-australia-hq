@@ -1,3 +1,4 @@
+
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Activity } from "lucide-react";
+import { Activity, Zap } from "lucide-react";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -118,6 +119,23 @@ const Sidebar = () => {
             >
               <Activity className="mr-2 h-5 w-5" />
               Deal Health
+            </NavLink>
+          </li>
+          
+          {/* Add Advanced Health Monitoring link */}
+          <li>
+            <NavLink
+              to="/advanced-health-monitoring"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              <Zap className="mr-2 h-5 w-5" />
+              Advanced Health
             </NavLink>
           </li>
         </ul>

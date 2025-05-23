@@ -1,208 +1,111 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Dashboard from "@/pages/Dashboard";
+import DealsPage from "@/pages/DealsPage";
+import DealDetailsPage from "@/pages/DealDetailsPage";
+import SettingsPage from "@/pages/SettingsPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import OnboardingCheck from "@/components/auth/OnboardingCheck";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import CreateDealPage from "./pages/CreateDealPage";
-import DealsPage from "./pages/DealsPage";
-import DealDetails from "./pages/DealDetails";
-import DealHealthPage from "./pages/DealHealthPage";
-import DocumentsPage from "./pages/DocumentsPage";
-import ProfilePage from "./pages/ProfilePage";
-import ProfessionalsDirectoryPage from "./pages/ProfessionalsDirectoryPage";
-import ProfessionalProfilePage from "./pages/ProfessionalProfilePage";
-import SettingsPage from "./pages/SettingsPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import OnboardingIntentPage from "./pages/OnboardingIntentPage";
-import IntentCapturePage from "./pages/IntentCapturePage";
-import AcceptInvitePage from "./pages/AcceptInvitePage";
-import NotFound from "./pages/NotFound";
-import Unauthorized from "./pages/Unauthorized";
-import DemoContractPage from "./pages/DemoContractPage";
-import RealContractPage from "./pages/RealContractPage";
-import SharePage from "./pages/SharePage";
+import { Toaster } from "@/components/ui/toaster";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import DealHealthPage from "@/pages/DealHealthPage";
 import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
-
-const queryClient = new QueryClient();
+import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <Router>
+      <div className="min-h-screen bg-background">
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/onboarding/intent" element={<OnboardingIntentPage />} />
-              <Route path="/intent" element={<IntentCapturePage />} />
-              <Route path="/accept-invitation" element={<AcceptInvitePage />} />
-              <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="/share/:token" element={<SharePage />} />
-              
-              {/* Demo routes */}
-              <Route path="/demo/contract" element={<DemoContractPage />} />
-              
-              {/* Protected routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <Dashboard />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/deals" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <DealsPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/deals/health" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <DealHealthPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/deals/create" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <CreateDealPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/deals/:id" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <DealDetails />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/deals/:id/documents" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <DocumentsPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/contracts" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <RealContractPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <ProfilePage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/professionals" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <ProfessionalsDirectoryPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/professionals/:id" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <ProfessionalProfilePage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <SettingsPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/notifications" 
-                element={
-                  <ProtectedRoute>
-                    <OnboardingCheck>
-                      <NotificationsPage />
-                    </OnboardingCheck>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route
-                path="/health-monitoring"
-                element={
-                  <ProtectedRoute>
-                    <DealHealthMonitoring />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals" 
+              element={
+                <ProtectedRoute>
+                  <DealsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals/:dealId" 
+              element={
+                <ProtectedRoute>
+                  <DealDetailsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deal-health" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Add the new advanced health monitoring route */}
+            <Route 
+              path="/advanced-health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <AdvancedHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </AuthProvider>
+      </div>
+    </Router>
   );
 }
 
