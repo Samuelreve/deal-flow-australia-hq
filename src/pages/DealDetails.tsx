@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
@@ -99,38 +98,40 @@ const DealDetails = () => {
   
   return (
     <AppLayout>
-      <DealHeader 
-        deal={deal} 
-        userRole={effectiveUserRole} 
-        isParticipant={isParticipant}
-        onStatusUpdated={handleStatusUpdated}
-      />
-      
-      {/* Add Deal Health Prediction Panel */}
-      {isParticipant && id && (
-        <div className="container mx-auto px-4 mb-6">
-          <DealHealthPredictionPanel dealId={id} />
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <DealTabs 
-            deal={deal}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            effectiveUserRole={effectiveUserRole}
-            isParticipant={isParticipant}
-          />
-        </div>
+      <div className="container mx-auto px-4">
+        <DealHeader 
+          deal={deal} 
+          userRole={effectiveUserRole} 
+          isParticipant={isParticipant}
+          onStatusUpdated={handleStatusUpdated}
+        />
         
-        <div>
-          <DealSidebar 
-            deal={deal} 
-            onParticipantsLoaded={handleParticipantsLoaded}
-            currentUserDealRole={currentUserDealRole as 'seller' | 'buyer' | 'lawyer' | 'admin' | null}
-            isParticipant={isParticipant}
-          />
+        {/* Add Deal Health Prediction Panel for participants */}
+        {isParticipant && id && (
+          <div className="mb-6">
+            <DealHealthPredictionPanel dealId={id} />
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <DealTabs 
+              deal={deal}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              effectiveUserRole={effectiveUserRole}
+              isParticipant={isParticipant}
+            />
+          </div>
+          
+          <div>
+            <DealSidebar 
+              deal={deal} 
+              onParticipantsLoaded={handleParticipantsLoaded}
+              currentUserDealRole={currentUserDealRole as 'seller' | 'buyer' | 'lawyer' | 'admin' | null}
+              isParticipant={isParticipant}
+            />
+          </div>
         </div>
       </div>
     </AppLayout>
