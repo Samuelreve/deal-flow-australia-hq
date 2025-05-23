@@ -20,6 +20,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
+  console.log('ProtectedRoute check:', {
+    isAuthenticated,
+    loading,
+    hasProfile: !!user?.profile,
+    onboardingComplete: user?.profile?.onboarding_complete,
+    currentPath: location.pathname
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -35,20 +43,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If authentication is required but user is not authenticated
   if (requireAuth && !isAuthenticated) {
+    console.log('Redirecting to login - not authenticated');
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // If user is authenticated but trying to access auth pages, redirect to dashboard
+  // If user is authenticated but trying to access auth pages, redirect to appropriate page
   if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/signup")) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // If user is authenticated but has incomplete profile (for certain routes)
-  if (isAuthenticated && user && !user.profile?.onboarding_complete) {
-    const protectedRoutes = ["/dashboard", "/deals", "/profile", "/settings"];
-    if (protectedRoutes.includes(location.pathname)) {
+    // Check if user needs onboarding
+    if (user?.profile && !user.profile.onboarding_complete) {
+      console.log('Redirecting to onboarding from auth page');
       return <Navigate to="/onboarding/intent" replace />;
     }
+    console.log('Redirecting to dashboard from auth page');
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

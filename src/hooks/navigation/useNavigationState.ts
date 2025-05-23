@@ -19,7 +19,7 @@ interface NavigationState {
 export const useNavigationState = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [navState, setNavState] = useState<NavigationState>({
     currentPath: location.pathname,
     isHealthMonitoring: false,
@@ -37,7 +37,19 @@ export const useNavigationState = () => {
     const path = location.pathname;
     
     const breadcrumbs = generateBreadcrumbs(path);
-    const canNavigate = isAuthenticated && user?.profile?.onboarding_complete;
+    
+    // User can navigate if they are authenticated and have completed onboarding
+    // OR if they are on onboarding routes
+    const canNavigate = isAuthenticated && 
+      (user?.profile?.onboarding_complete || path.startsWith('/onboarding'));
+    
+    console.log('Navigation state update:', {
+      isAuthenticated,
+      hasProfile: !!user?.profile,
+      onboardingComplete: user?.profile?.onboarding_complete,
+      canNavigate,
+      path
+    });
     
     setNavState({
       currentPath: path,
@@ -51,7 +63,7 @@ export const useNavigationState = () => {
       canNavigate,
       breadcrumbs
     });
-  }, [location.pathname, isAuthenticated, user?.profile?.onboarding_complete]);
+  }, [location.pathname, isAuthenticated, user?.profile?.onboarding_complete, loading]);
 
   const generateBreadcrumbs = (path: string) => {
     const segments = path.split('/').filter(Boolean);
@@ -85,7 +97,9 @@ export const useNavigationState = () => {
   };
 
   const navigateWithCheck = (path: string) => {
+    // Allow navigation to onboarding routes even if onboarding is incomplete
     if (!navState.canNavigate && !path.startsWith('/onboarding')) {
+      console.log('Navigation blocked, redirecting to onboarding');
       navigate('/onboarding/intent');
       return;
     }

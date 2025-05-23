@@ -28,24 +28,38 @@ export const useAuthSession = () => {
           console.log("User signed out, clearing state");
           setUser(null);
           setIsAuthenticated(false);
+          setLoading(false);
         } 
         else if (currentSession) {
-          // Defer profile fetch to avoid recursion issues
-          setTimeout(() => {
+          // Process the session to get user profile
+          try {
+            const { user, isAuthenticated } = await processUserSession(currentSession);
             if (mounted) {
-              processUserSession(currentSession)
-                .then(({ user, isAuthenticated }) => {
-                  setUser(user);
-                  setIsAuthenticated(isAuthenticated);
-                })
-                .catch(error => {
-                  console.error("Failed to process session:", error);
-                  // Don't sign out on profile fetch errors
-                  // Just keep the basic session active
-                  setIsAuthenticated(!!currentSession);
-                });
+              setUser(user);
+              setIsAuthenticated(isAuthenticated);
+              console.log('User profile loaded:', user?.profile?.onboarding_complete);
             }
-          }, 0);
+          } catch (error) {
+            console.error("Failed to process session:", error);
+            if (mounted) {
+              // Keep the session active even if profile fetch fails
+              setIsAuthenticated(!!currentSession);
+              // Create basic user object without profile
+              setUser({
+                ...currentSession.user,
+                profile: null,
+                role: undefined
+              } as User);
+            }
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        } else {
+          if (mounted) {
+            setLoading(false);
+          }
         }
       }
     );
@@ -58,7 +72,9 @@ export const useAuthSession = () => {
         
         if (error) {
           console.error("Session check error:", error);
-          setLoading(false);
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
         
@@ -72,10 +88,16 @@ export const useAuthSession = () => {
             const { user, isAuthenticated } = await processUserSession(existingSession);
             setUser(user);
             setIsAuthenticated(isAuthenticated);
+            console.log('Initial user profile loaded:', user?.profile?.onboarding_complete);
           } catch (error) {
             console.error("Failed to process initial session:", error);
             // Keep the session active even if profile fetch fails
             setIsAuthenticated(!!existingSession);
+            setUser({
+              ...existingSession.user,
+              profile: null,
+              role: undefined
+            } as User);
           }
         } else {
           console.log("No existing session found");
