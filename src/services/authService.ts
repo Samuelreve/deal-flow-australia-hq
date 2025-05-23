@@ -42,6 +42,11 @@ export const authService = {
   },
 
   async updateProfile(profile: UserProfile): Promise<UserProfile | null> {
+    // Ensure specializations is properly formatted as a string array
+    const specializations = Array.isArray(profile.professional_specializations) 
+      ? profile.professional_specializations 
+      : (profile.professional_specializations ? [profile.professional_specializations.toString()] : []);
+    
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -56,7 +61,7 @@ export const authService = {
         professional_phone: profile.professional_phone,
         professional_website: profile.professional_website,
         professional_location: profile.professional_location,
-        professional_specializations: profile.professional_specializations,
+        professional_specializations: specializations,
         onboarding_complete: profile.onboarding_complete,
         role: profile.role
       })
@@ -68,6 +73,24 @@ export const authService = {
       throw error;
     }
 
-    return data;
+    // Ensure the returned profile has specializations as a string array
+    if (data) {
+      const formattedProfile: UserProfile = {
+        ...data,
+        professional_specializations: Array.isArray(data.professional_specializations)
+          ? data.professional_specializations
+          : data.professional_specializations 
+              ? (typeof data.professional_specializations === 'string' 
+                  ? [data.professional_specializations]
+                  : Array.isArray(JSON.parse(JSON.stringify(data.professional_specializations)))
+                    ? JSON.parse(JSON.stringify(data.professional_specializations))
+                    : [])
+              : []
+      };
+      
+      return formattedProfile;
+    }
+    
+    return null;
   }
 };

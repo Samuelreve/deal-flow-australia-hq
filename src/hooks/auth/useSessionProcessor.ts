@@ -1,6 +1,6 @@
 
 import { Session } from '@supabase/supabase-js';
-import { User, UserProfile } from "@/types/auth";
+import { User, UserProfile, UserRole } from "@/types/auth";
 import { fetchUserProfile, createUserProfile } from "./useUserProfile";
 
 export const processUserSession = async (session: Session): Promise<{ user: User; isAuthenticated: boolean }> => {
@@ -17,11 +17,13 @@ export const processUserSession = async (session: Session): Promise<{ user: User
       profile = await createUserProfile(session.user);
     }
     
-    // Create combined user object
+    // Create combined user object with proper type casting
+    const userRole = profile?.role as UserRole;
+    
     const user: User = {
       ...session.user,
       profile,
-      role: profile?.role
+      role: userRole
     };
     
     return { user, isAuthenticated: true };
@@ -31,7 +33,8 @@ export const processUserSession = async (session: Session): Promise<{ user: User
     // Return basic user without profile if there's an error
     const user: User = {
       ...session.user,
-      profile: null
+      profile: null,
+      role: undefined
     };
     
     return { user, isAuthenticated: true };
