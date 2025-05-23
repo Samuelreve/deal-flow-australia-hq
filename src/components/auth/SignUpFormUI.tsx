@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
-import { useSignUp } from "@/hooks/auth/useSignUp";
+import { useSignUpForm } from "@/hooks/auth/useSignUpForm";
 
 interface SignUpFormUIProps {
   inviteToken?: string | null;
@@ -19,7 +19,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
     name, setName,
     isLoading, error, showSuccess,
     handleSubmit
-  } = useSignUp(inviteToken);
+  } = useSignUpForm(inviteToken);
   
   const navigate = useNavigate();
 
@@ -52,7 +52,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
               <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <AlertDescription>
-                  Account created successfully! Please check your email to verify your account before logging in.
+                  Account created successfully! Redirecting to your dashboard...
                 </AlertDescription>
               </Alert>
             )}
@@ -67,6 +67,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="border-input/50"
+                  disabled={isLoading}
                 />
               </div>
               
@@ -80,6 +81,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="border-input/50"
+                  disabled={isLoading}
                 />
               </div>
               
@@ -93,6 +95,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
                   required
                   className="border-input/50"
                   minLength={6}
+                  disabled={isLoading}
                 />
                 <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
               </div>
@@ -105,7 +108,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing up...
+                    Creating account...
                   </>
                 ) : "Sign Up"}
               </Button>
@@ -118,6 +121,7 @@ const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
                 variant="link" 
                 className="p-0 h-auto text-primary" 
                 onClick={() => navigate("/login")}
+                disabled={isLoading}
               >
                 Log in
               </Button>

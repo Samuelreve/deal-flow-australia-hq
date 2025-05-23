@@ -1,13 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
 import { UserProfile } from "@/types/auth";
-import { Loader2, User, Building, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2, User, Building, Phone, CheckCircle } from "lucide-react";
+import { useProfileManagement } from "@/hooks/profile/useProfileManagement";
 
 interface AccountInformationFormProps {
   profile: UserProfile;
@@ -15,53 +14,55 @@ interface AccountInformationFormProps {
 }
 
 const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile, onProfileUpdate }) => {
-  const { updateUserProfile } = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isUpdating, updateAccountInformation } = useProfileManagement();
   const [formData, setFormData] = useState({
     name: profile.name || '',
     email: profile.email || '',
     company: profile.company || '',
     phone: profile.phone || '',
   });
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+
+  // Track changes
+  useEffect(() => {
+    const hasUnsavedChanges = 
+      formData.name !== (profile.name || '') ||
+      formData.company !== (profile.company || '') ||
+      formData.phone !== (profile.phone || '');
+    
+    setHasChanges(hasUnsavedChanges);
+  }, [formData, profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setShowSaved(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    try {
+    const success = await updateAccountInformation({
+      name: formData.name,
+      company: formData.company,
+      phone: formData.phone,
+    });
+    
+    if (success) {
       const updatedProfile = {
         ...profile,
         name: formData.name,
         company: formData.company,
         phone: formData.phone,
       };
+      onProfileUpdate(updatedProfile);
+      setShowSaved(true);
       
-      const success = await updateUserProfile(updatedProfile);
-      
-      if (success) {
-        toast({
-          title: "Profile updated",
-          description: "Your account information has been updated successfully",
-        });
-        onProfileUpdate(updatedProfile);
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Update failed",
-        description: "There was a problem updating your profile"
-      });
-    } finally {
-      setIsSubmitting(false);
+      // Hide saved indicator after 3 seconds
+      setTimeout(() => setShowSaved(false), 3000);
     }
   };
 
@@ -71,7 +72,7 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-medium">Full Name</Label>
+              <Label htmlFor="name" className="font-medium">Full Name *</Label>
               <div className="relative">
                 <div className="absolute left-3 top-3 text-gray-400">
                   <User className="h-4 w-4" />
@@ -83,6 +84,7 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
                   onChange={handleChange}
                   className="pl-9"
                   required
+                  disabled={isUpdating}
                 />
               </div>
             </div>
@@ -115,6 +117,7 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
                   onChange={handleChange}
                   className="pl-9"
                   placeholder="Your company name"
+                  disabled={isUpdating}
                 />
               </div>
             </div>
@@ -132,18 +135,26 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
                   onChange={handleChange}
                   className="pl-9"
                   placeholder="Your phone number"
+                  disabled={isUpdating}
                 />
               </div>
             </div>
           </div>
           
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
+            {showSaved && (
+              <div className="flex items-center text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Changes saved successfully
+              </div>
+            )}
+            <div className="flex-1" />
             <Button 
               type="submit" 
               className="min-w-[150px]" 
-              disabled={isSubmitting}
+              disabled={isUpdating || !hasChanges}
             >
-              {isSubmitting ? (
+              {isUpdating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
