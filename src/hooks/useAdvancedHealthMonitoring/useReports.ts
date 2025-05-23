@@ -12,7 +12,7 @@ export const useReports = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_reports_new')
+        .from('health_reports')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -49,7 +49,7 @@ export const useReports = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_reports_new')
+        .from('health_reports')
         .insert({
           user_id: userId,
           report_name: reportConfig.report_name,
@@ -86,7 +86,7 @@ export const useReports = (userId?: string) => {
       // Simulate report generation (in a real app, this would be a background job)
       setTimeout(async () => {
         const { data: updatedData, error: updateError } = await supabase
-          .from('health_reports_new')
+          .from('health_reports')
           .update({
             status: 'completed',
             report_data: {

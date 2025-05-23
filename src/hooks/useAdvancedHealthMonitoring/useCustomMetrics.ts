@@ -12,7 +12,7 @@ export const useCustomMetrics = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('custom_health_metrics_new')
+        .from('custom_health_metrics')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -44,7 +44,7 @@ export const useCustomMetrics = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('custom_health_metrics_new')
+        .from('custom_health_metrics')
         .insert({
           deal_id: metric.deal_id,
           user_id: userId,

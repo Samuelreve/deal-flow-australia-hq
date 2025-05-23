@@ -12,7 +12,7 @@ export const usePredictions = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('deal_health_predictions_new')
+        .from('deal_health_predictions')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -43,7 +43,7 @@ export const usePredictions = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('deal_health_predictions_new')
+        .from('deal_health_predictions')
         .insert({
           deal_id: dealId,
           user_id: userId,

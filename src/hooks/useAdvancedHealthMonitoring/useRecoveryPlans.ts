@@ -12,7 +12,7 @@ export const useRecoveryPlans = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_recovery_plans_new')
+        .from('health_recovery_plans')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -54,7 +54,7 @@ export const useRecoveryPlans = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_recovery_plans_new')
+        .from('health_recovery_plans')
         .insert({
           deal_id: plan.deal_id,
           user_id: userId,

@@ -12,7 +12,7 @@ export const useComparisons = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_score_comparisons_new')
+        .from('health_score_comparisons')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -45,7 +45,7 @@ export const useComparisons = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('health_score_comparisons_new')
+        .from('health_score_comparisons')
         .insert({
           user_id: userId,
           comparison_name: comparison.comparison_name,
