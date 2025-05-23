@@ -5,20 +5,24 @@ import AccountInformationForm from "@/components/profile/AccountInformationForm"
 import AccountHeader from './account/AccountHeader';
 
 const AccountInformation: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
 
   if (!user?.profile) {
     return null;
   }
+
+  const handleProfileUpdate = async (updatedProfile: any) => {
+    if (updateUserProfile) {
+      await updateUserProfile(updatedProfile);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <AccountHeader />
       <AccountInformationForm 
         profile={user.profile} 
-        onProfileUpdate={(updatedProfile) => {
-          // Profile update is handled by the form
-        }} 
+        onProfileUpdate={handleProfileUpdate} 
       />
     </div>
   );

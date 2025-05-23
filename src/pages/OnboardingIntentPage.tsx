@@ -1,8 +1,6 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +11,12 @@ import { Loader2 } from "lucide-react";
 import { UserRole } from "@/types/auth";
 
 type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
-type UserProfessional = boolean;
 
 const OnboardingIntentPage: React.FC = () => {
-  const { user, setUser, updateUserProfile } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   const [intent, setIntent] = useState<UserIntent | null>(null);
-  const [isProfessional, setIsProfessional] = useState<UserProfessional>(false);
+  const [isProfessional, setIsProfessional] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
