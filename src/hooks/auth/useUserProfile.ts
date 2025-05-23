@@ -24,14 +24,23 @@ export const useUserProfile = () => {
 
       if (profile) {
         // Convert Json type to string[] for professional_specializations
+        let specializations: string[] | undefined = undefined;
+        
+        if (profile.professional_specializations) {
+          if (Array.isArray(profile.professional_specializations)) {
+            // Filter and map to ensure we only get strings
+            specializations = profile.professional_specializations
+              .filter((item): item is string => typeof item === 'string');
+          } else if (typeof profile.professional_specializations === 'string') {
+            specializations = [profile.professional_specializations];
+          }
+        }
+
         const convertedProfile: UserProfile = {
           ...profile,
-          professional_specializations: Array.isArray(profile.professional_specializations) 
-            ? profile.professional_specializations 
-            : profile.professional_specializations 
-              ? [profile.professional_specializations as string]
-              : undefined
+          professional_specializations: specializations
         };
+        
         console.log('Profile fetched successfully:', convertedProfile);
         return convertedProfile;
       }
@@ -89,14 +98,23 @@ export const useUserProfile = () => {
 
       if (profile) {
         // Convert Json type to string[] for professional_specializations
+        let specializations: string[] | undefined = undefined;
+        
+        if (profile.professional_specializations) {
+          if (Array.isArray(profile.professional_specializations)) {
+            // Filter and map to ensure we only get strings
+            specializations = profile.professional_specializations
+              .filter((item): item is string => typeof item === 'string');
+          } else if (typeof profile.professional_specializations === 'string') {
+            specializations = [profile.professional_specializations];
+          }
+        }
+
         const convertedProfile: UserProfile = {
           ...profile,
-          professional_specializations: Array.isArray(profile.professional_specializations) 
-            ? profile.professional_specializations 
-            : profile.professional_specializations 
-              ? [profile.professional_specializations as string]
-              : undefined
+          professional_specializations: specializations
         };
+        
         console.log('Profile created successfully:', convertedProfile);
         return convertedProfile;
       }
