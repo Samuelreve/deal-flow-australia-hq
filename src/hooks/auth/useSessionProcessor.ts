@@ -5,49 +5,43 @@ import { fetchUserProfile, createUserProfile } from "./useUserProfile";
 
 export const processUserSession = async (session: Session): Promise<{ user: User; isAuthenticated: boolean }> => {
   if (!session?.user) {
+    console.log("No session or user found");
     return { user: null, isAuthenticated: false } as any;
   }
 
   try {
     console.log("Processing session for user:", session.user.id);
     
-    // Try to fetch existing profile with retry logic
+    // Try to fetch existing profile first
     let profile = await fetchUserProfile(session.user.id);
-    let retryCount = 0;
-    const maxRetries = 2;
     
-    // If no profile exists, create one with retry logic
-    while (!profile && retryCount < maxRetries) {
-      console.log(`No profile found, creating new profile (attempt ${retryCount + 1})`);
+    // If no profile exists, create one
+    if (!profile) {
+      console.log("No profile found, creating new profile");
       profile = await createUserProfile(session.user);
       
+      // If profile creation also fails, create a minimal profile
       if (!profile) {
-        retryCount++;
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.warn("Profile creation failed, creating minimal profile object");
+        const basicProfile: UserProfile = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          role: 'seller' as UserRole,
+          onboarding_complete: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const user = {
+          ...session.user,
+          profile: basicProfile,
+          role: 'seller' as UserRole
+        } as User;
+        
+        console.log("Using minimal profile for user session");
+        return { user, isAuthenticated: true };
       }
-    }
-    
-    if (!profile) {
-      console.error("Failed to create profile after retries, continuing with basic user");
-      // Create a minimal profile object for the user
-      const basicProfile: UserProfile = {
-        id: session.user.id,
-        email: session.user.email || '',
-        name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-        role: 'seller' as UserRole,
-        onboarding_complete: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      const user = {
-        ...session.user,
-        profile: basicProfile,
-        role: 'seller' as UserRole
-      } as User;
-      
-      return { user, isAuthenticated: true };
     }
     
     // Ensure profile has all required fields with proper defaults
@@ -93,12 +87,23 @@ export const processUserSession = async (session: Session): Promise<{ user: User
     console.error("Error processing user session:", error);
     
     // Return basic user without profile if there's an error
+    const basicProfile: UserProfile = {
+      id: session.user.id,
+      email: session.user.email || '',
+      name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+      role: 'seller' as UserRole,
+      onboarding_complete: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
     const user = {
       ...session.user,
-      profile: null,
-      role: undefined
+      profile: basicProfile,
+      role: 'seller' as UserRole
     } as User;
     
+    console.log("Error in session processing, using fallback profile");
     return { user, isAuthenticated: true };
   }
 };

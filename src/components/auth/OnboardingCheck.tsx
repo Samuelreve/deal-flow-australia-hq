@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,21 +39,19 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
     return <>{children}</>;
   }
   
-  // If user doesn't have a profile, they need to go through onboarding
-  if (!user.profile) {
+  // Check if we're on an onboarding route first
+  const isOnboardingRoute = location.pathname.startsWith("/onboarding");
+  
+  // If user doesn't have a profile and is not on onboarding route
+  if (!user.profile && !isOnboardingRoute) {
     console.log('OnboardingCheck: No profile found, redirecting to onboarding');
     const returnTo = location.pathname !== "/" ? location.pathname : "/dashboard";
     return <Navigate to="/onboarding/intent" state={{ returnTo }} replace />;
   }
   
-  // If user is authenticated but hasn't completed onboarding
-  // and is not already on an onboarding path, redirect to onboarding
-  const isOnboardingRoute = location.pathname.startsWith("/onboarding");
-  const needsOnboarding = !user.profile.onboarding_complete && !isOnboardingRoute;
-  
-  if (needsOnboarding) {
+  // If user has profile but hasn't completed onboarding and is not on onboarding route
+  if (user.profile && !user.profile.onboarding_complete && !isOnboardingRoute) {
     console.log('Redirecting to onboarding - incomplete onboarding');
-    // Store the intended destination to return after onboarding
     const returnTo = location.pathname !== "/" ? location.pathname : "/dashboard";
     return <Navigate to="/onboarding/intent" state={{ returnTo }} replace />;
   }

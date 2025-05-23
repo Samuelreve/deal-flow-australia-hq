@@ -3,7 +3,6 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types/auth";
 import { processUserSession } from "./useSessionProcessor";
-import { toast } from "sonner";
 
 export const useAuthSession = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -33,18 +32,16 @@ export const useAuthSession = () => {
         else if (currentSession) {
           // Process the session to get user profile
           try {
-            const { user, isAuthenticated } = await processUserSession(currentSession);
+            const { user: processedUser, isAuthenticated: authStatus } = await processUserSession(currentSession);
             if (mounted) {
-              setUser(user);
-              setIsAuthenticated(isAuthenticated);
-              console.log('User profile loaded:', user?.profile?.onboarding_complete);
+              setUser(processedUser);
+              setIsAuthenticated(authStatus);
+              console.log('User profile loaded from auth state change:', processedUser?.profile?.onboarding_complete);
             }
           } catch (error) {
-            console.error("Failed to process session:", error);
+            console.error("Failed to process session in auth state change:", error);
             if (mounted) {
-              // Keep the session active even if profile fetch fails
               setIsAuthenticated(!!currentSession);
-              // Create basic user object without profile
               setUser({
                 ...currentSession.user,
                 profile: null,
@@ -85,10 +82,10 @@ export const useAuthSession = () => {
           setSession(existingSession);
           
           try {
-            const { user, isAuthenticated } = await processUserSession(existingSession);
-            setUser(user);
-            setIsAuthenticated(isAuthenticated);
-            console.log('Initial user profile loaded:', user?.profile?.onboarding_complete);
+            const { user: processedUser, isAuthenticated: authStatus } = await processUserSession(existingSession);
+            setUser(processedUser);
+            setIsAuthenticated(authStatus);
+            console.log('Initial user profile loaded:', processedUser?.profile?.onboarding_complete);
           } catch (error) {
             console.error("Failed to process initial session:", error);
             // Keep the session active even if profile fetch fails
