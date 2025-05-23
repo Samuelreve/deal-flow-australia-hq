@@ -23,6 +23,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   console.log('ProtectedRoute check:', {
     isAuthenticated,
     loading,
+    hasUser: !!user,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
     currentPath: location.pathname
@@ -43,18 +44,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If authentication is required but user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    console.log('Redirecting to login - not authenticated');
+    console.log('ProtectedRoute: Redirecting to login - not authenticated');
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // If user is authenticated but trying to access auth pages, redirect to appropriate page
+  // If user is authenticated but trying to access auth pages, redirect appropriately
   if (isAuthenticated && (location.pathname === "/login" || location.pathname === "/signup")) {
     // Check if user needs onboarding
-    if (user?.profile && !user.profile.onboarding_complete) {
-      console.log('Redirecting to onboarding from auth page');
+    if (!user?.profile || !user.profile.onboarding_complete) {
+      console.log('ProtectedRoute: Redirecting to onboarding from auth page');
       return <Navigate to="/onboarding/intent" replace />;
     }
-    console.log('Redirecting to dashboard from auth page');
+    console.log('ProtectedRoute: Redirecting to dashboard from auth page');
     return <Navigate to="/dashboard" replace />;
   }
 

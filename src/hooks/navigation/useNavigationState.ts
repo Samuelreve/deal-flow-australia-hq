@@ -38,17 +38,25 @@ export const useNavigationState = () => {
     
     const breadcrumbs = generateBreadcrumbs(path);
     
-    // User can navigate if they are authenticated and have completed onboarding
-    // OR if they are on onboarding routes
-    const canNavigate = isAuthenticated && 
-      (user?.profile?.onboarding_complete || path.startsWith('/onboarding'));
+    // User can navigate if they are:
+    // 1. Authenticated and have completed onboarding
+    // 2. On onboarding routes (regardless of completion status)
+    // 3. Not loading and have a user profile
+    const hasProfile = !!user?.profile;
+    const onboardingComplete = user?.profile?.onboarding_complete || false;
+    const isOnboardingPath = path.startsWith('/onboarding');
+    
+    const canNavigate = isAuthenticated && hasProfile && 
+      (onboardingComplete || isOnboardingPath);
     
     console.log('Navigation state update:', {
       isAuthenticated,
-      hasProfile: !!user?.profile,
-      onboardingComplete: user?.profile?.onboarding_complete,
+      hasProfile,
+      onboardingComplete,
+      isOnboardingPath,
       canNavigate,
-      path
+      path,
+      loading
     });
     
     setNavState({
@@ -63,7 +71,7 @@ export const useNavigationState = () => {
       canNavigate,
       breadcrumbs
     });
-  }, [location.pathname, isAuthenticated, user?.profile?.onboarding_complete, loading]);
+  }, [location.pathname, isAuthenticated, user?.profile?.onboarding_complete, user?.profile, loading]);
 
   const generateBreadcrumbs = (path: string) => {
     const segments = path.split('/').filter(Boolean);

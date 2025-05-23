@@ -21,7 +21,8 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
     loading,
     hasProfile: !!user?.profile,
     onboardingComplete: user?.profile?.onboarding_complete,
-    currentPath: location.pathname
+    currentPath: location.pathname,
+    userId: user?.id
   });
   
   // If auth state is still loading, show a loading indicator
@@ -34,14 +35,22 @@ const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
   }
   
   // If not authenticated, let ProtectedRoute handle it
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
+    console.log('OnboardingCheck: User not authenticated, passing through');
     return <>{children}</>;
+  }
+  
+  // If user doesn't have a profile, they need to go through onboarding
+  if (!user.profile) {
+    console.log('OnboardingCheck: No profile found, redirecting to onboarding');
+    const returnTo = location.pathname !== "/" ? location.pathname : "/dashboard";
+    return <Navigate to="/onboarding/intent" state={{ returnTo }} replace />;
   }
   
   // If user is authenticated but hasn't completed onboarding
   // and is not already on an onboarding path, redirect to onboarding
   const isOnboardingRoute = location.pathname.startsWith("/onboarding");
-  const needsOnboarding = user && user.profile && !user.profile.onboarding_complete && !isOnboardingRoute;
+  const needsOnboarding = !user.profile.onboarding_complete && !isOnboardingRoute;
   
   if (needsOnboarding) {
     console.log('Redirecting to onboarding - incomplete onboarding');
