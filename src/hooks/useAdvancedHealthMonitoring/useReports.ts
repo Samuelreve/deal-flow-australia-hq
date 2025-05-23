@@ -17,7 +17,16 @@ export const useReports = (userId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReports(data || []);
+      
+      // Cast the data to match our TypeScript interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        report_type: item.report_type as 'pdf' | 'csv' | 'json',
+        status: item.status as 'generating' | 'completed' | 'failed',
+        deal_ids: Array.isArray(item.deal_ids) ? item.deal_ids as string[] : undefined
+      })) as HealthReport[];
+      
+      setReports(typedData);
     } catch (error) {
       console.error('Error fetching reports:', error);
     }
@@ -41,9 +50,15 @@ export const useReports = (userId?: string) => {
 
       if (error) throw error;
       
-      const newReport = data as HealthReport;
-      setReports(prev => [newReport, ...prev]);
-      return newReport;
+      const typedData = {
+        ...data,
+        report_type: data.report_type as 'pdf' | 'csv' | 'json',
+        status: data.status as 'generating' | 'completed' | 'failed',
+        deal_ids: Array.isArray(data.deal_ids) ? data.deal_ids as string[] : undefined
+      } as HealthReport;
+      
+      setReports(prev => [typedData, ...prev]);
+      return typedData;
     } catch (error) {
       console.error('Error generating report:', error);
       return null;

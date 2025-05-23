@@ -17,7 +17,16 @@ export const usePredictions = (userId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPredictions(data || []);
+      
+      // Cast the data to match our TypeScript interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        suggested_improvements: Array.isArray(item.suggested_improvements) 
+          ? item.suggested_improvements as Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>
+          : []
+      })) as HealthPrediction[];
+      
+      setPredictions(typedData);
     } catch (error) {
       console.error('Error fetching predictions:', error);
     }
@@ -48,9 +57,15 @@ export const usePredictions = (userId?: string) => {
 
       if (error) throw error;
       
-      const newPrediction = data as HealthPrediction;
-      setPredictions(prev => [newPrediction, ...prev]);
-      return newPrediction;
+      const typedData = {
+        ...data,
+        suggested_improvements: Array.isArray(data.suggested_improvements) 
+          ? data.suggested_improvements as Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>
+          : []
+      } as HealthPrediction;
+      
+      setPredictions(prev => [typedData, ...prev]);
+      return typedData;
     } catch (error) {
       console.error('Error creating prediction:', error);
       return null;

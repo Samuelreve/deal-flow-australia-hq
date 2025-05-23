@@ -17,7 +17,14 @@ export const useComparisons = (userId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setComparisons(data || []);
+      
+      // Cast the data to match our TypeScript interface
+      const typedData = (data || []).map(item => ({
+        ...item,
+        deal_ids: Array.isArray(item.deal_ids) ? item.deal_ids as string[] : []
+      })) as HealthScoreComparison[];
+      
+      setComparisons(typedData);
     } catch (error) {
       console.error('Error fetching comparisons:', error);
     }
@@ -40,9 +47,13 @@ export const useComparisons = (userId?: string) => {
 
       if (error) throw error;
       
-      const newComparison = data as HealthScoreComparison;
-      setComparisons(prev => [newComparison, ...prev]);
-      return newComparison;
+      const typedData = {
+        ...data,
+        deal_ids: Array.isArray(data.deal_ids) ? data.deal_ids as string[] : []
+      } as HealthScoreComparison;
+      
+      setComparisons(prev => [typedData, ...prev]);
+      return typedData;
     } catch (error) {
       console.error('Error creating comparison:', error);
       return null;
