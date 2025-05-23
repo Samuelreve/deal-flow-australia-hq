@@ -1,106 +1,135 @@
-
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { 
-  Home, 
-  FileText, 
-  Users, 
-  Settings, 
-  Bell,
-  Briefcase,
-  Plus,
-  User,
-  Activity,
-  TrendingUp
-} from "lucide-react";
+import React from "react";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
+import { Activity } from "lucide-react";
 
 const Sidebar = () => {
-  const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Deals", href: "/deals", icon: Briefcase },
-    { name: "Deal Health", href: "/deals/health", icon: TrendingUp },
-    { name: "Create Deal", href: "/deals/create", icon: Plus },
-    { name: "Contracts", href: "/contracts", icon: FileText },
-    { name: "Professionals", href: "/professionals", icon: Users },
-    { name: "Notifications", href: "/notifications", icon: Bell },
-    { name: "Activity", href: "/activity", icon: Activity },
-  ];
-
-  const bottomNavigation = [
-    { name: "Profile", href: "/profile", icon: User },
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      navigate("/login");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign out failed",
+        description: error.message,
+      });
+    }
+  };
 
   return (
-    <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-      <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-        <div className="flex h-16 shrink-0 items-center">
-          <Link to="/dashboard" className="text-xl font-bold text-primary">
-            DealsFlow
-          </Link>
+    <aside className="fixed left-0 top-0 z-20 flex h-full w-64 flex-col border-r bg-background pt-16 transition-transform lg:translate-x-0">
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex items-center justify-center mb-6">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={user?.profile?.avatar_url} alt={user?.profile?.name} />
+            <AvatarFallback>{user?.profile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
         </div>
-        <nav className="flex flex-1 flex-col">
-          <ul role="list" className="flex flex-1 flex-col gap-y-7">
-            <li>
-              <ul role="list" className="-mx-2 space-y-1">
-                {navigation.map((item) => (
-                  <li key={item.name}>
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        location.pathname === item.href
-                          ? "bg-gray-50 text-primary"
-                          : "text-gray-700 hover:text-primary hover:bg-gray-50",
-                        "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                      )}
-                    >
-                      <item.icon
-                        className={cn(
-                          location.pathname === item.href ? "text-primary" : "text-gray-400 group-hover:text-primary",
-                          "h-6 w-6 shrink-0"
-                        )}
-                        aria-hidden="true"
-                      />
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
-            <li className="mt-auto">
-              <ul role="list" className="-mx-2 space-y-1">
-                {bottomNavigation.map((item) => (
-                  <li key={item.name}>
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        location.pathname === item.href
-                          ? "bg-gray-50 text-primary"
-                          : "text-gray-700 hover:text-primary hover:bg-gray-50",
-                        "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                      )}
-                    >
-                      <item.icon
-                        className={cn(
-                          location.pathname === item.href ? "text-primary" : "text-gray-400 group-hover:text-primary",
-                          "h-6 w-6 shrink-0"
-                        )}
-                        aria-hidden="true"
-                      />
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
-        </nav>
+        <div className="text-center mb-4">
+          <h3 className="font-semibold">{user?.profile?.name}</h3>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
+        </div>
       </div>
-    </div>
+      
+      <nav className="flex-1 overflow-y-auto p-4">
+        <ul className="space-y-1">
+          <li>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              Dashboard
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/deals"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              Deals
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/deal-health"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              Deal Health Dashboard
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              Settings
+            </NavLink>
+          </li>
+          
+          {/* Add Health Monitoring link */}
+          <li>
+            <NavLink
+              to="/health-monitoring"
+              className={({ isActive }) =>
+                `flex items-center rounded-md px-3 py-2 ${
+                  isActive
+                    ? "bg-muted text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted"
+                }`
+              }
+            >
+              <Activity className="mr-2 h-5 w-5" />
+              Deal Health
+            </NavLink>
+          </li>
+        </ul>
+      </nav>
+
+      <div className="p-4">
+        <Button variant="outline" className="w-full" onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      </div>
+    </aside>
   );
 };
 

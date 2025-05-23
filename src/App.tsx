@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,6 +29,7 @@ import Unauthorized from "./pages/Unauthorized";
 import DemoContractPage from "./pages/DemoContractPage";
 import RealContractPage from "./pages/RealContractPage";
 import SharePage from "./pages/SharePage";
+import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
 
 const queryClient = new QueryClient();
 
@@ -186,6 +186,15 @@ function App() {
                     </OnboardingCheck>
                   </ProtectedRoute>
                 } 
+              />
+              
+              <Route
+                path="/health-monitoring"
+                element={
+                  <ProtectedRoute>
+                    <DealHealthMonitoring />
+                  </ProtectedRoute>
+                }
               />
               
               <Route path="*" element={<NotFound />} />
