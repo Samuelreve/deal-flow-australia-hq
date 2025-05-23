@@ -9,18 +9,22 @@ export const useRealContracts = () => {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const loadContracts = async () => {
     if (!user) return;
     
     setLoading(true);
+    setError(null);
     try {
       const userContracts = await realContractService.getUserContracts();
       setContracts(userContracts);
     } catch (error) {
       console.error('Error loading contracts:', error);
-      toast.error('Failed to load contracts');
+      const errorMessage = 'Failed to load contracts';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -33,6 +37,7 @@ export const useRealContracts = () => {
     }
 
     setUploading(true);
+    setError(null);
     try {
       const contract = await realContractService.uploadContract(file);
       if (contract) {
@@ -41,12 +46,19 @@ export const useRealContracts = () => {
         toast.success('Contract uploaded successfully');
       }
       return contract;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      const errorMessage = 'Failed to upload contract';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
     } finally {
       setUploading(false);
     }
   };
 
   const selectContract = async (contractId: string) => {
+    setError(null);
     try {
       const contract = await realContractService.getContract(contractId);
       if (contract) {
@@ -54,7 +66,9 @@ export const useRealContracts = () => {
       }
     } catch (error) {
       console.error('Error selecting contract:', error);
-      toast.error('Failed to load contract');
+      const errorMessage = 'Failed to load contract';
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -67,6 +81,7 @@ export const useRealContracts = () => {
     selectedContract,
     loading,
     uploading,
+    error,
     uploadContract,
     selectContract,
     refreshContracts: loadContracts

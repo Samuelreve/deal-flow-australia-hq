@@ -21,9 +21,9 @@ const RealContractPage: React.FC = () => {
     selectedContract,
     loading,
     uploading,
+    error,
     uploadContract,
-    selectContract,
-    error: contractError
+    selectContract
   } = useRealContracts();
 
   const questionAnswerState = useRealContractQuestionAnswer(selectedContract?.id || null);
@@ -135,7 +135,7 @@ const RealContractPage: React.FC = () => {
                 onAnalyzeContract={handleAnalyzeContract}
                 questionHistory={questionAnswerState.questionHistory}
                 isProcessing={questionAnswerState.isProcessing}
-                error={contractError}
+                error={error}
                 onRetryAnalysis={handleRetryAnalysis}
               />
             </ErrorBoundary>
