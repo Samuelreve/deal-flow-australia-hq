@@ -8,10 +8,10 @@ export const useContractQuestionAnswer = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = useCallback(async (question: string) => {
+  const handleAskQuestion = useCallback(async (question: string, contractText?: string): Promise<string | { answer: string; sources?: string[] }> => {
     if (!question.trim()) {
       setError("Please enter a question");
-      return;
+      return { answer: "Please enter a question" };
     }
 
     setError(null);
@@ -35,31 +35,48 @@ export const useContractQuestionAnswer = () => {
 
       // Mock response
       const mockResponse = `This is a sample answer to your question about "${question}". In a real implementation, this would come from an AI assistant with contract expertise.`;
+      
+      // Mock sources
+      const mockSources = ['Section 3.1', 'Section 5.2'];
+      
+      // Create the response object
+      const responseObject = {
+        answer: mockResponse,
+        sources: mockSources
+      };
 
       // Update the question in history with the answer
       setQuestionHistory(prev =>
         prev.map(q =>
           q.id === questionId
-            ? { ...q, answer: mockResponse, isProcessing: false }
+            ? { ...q, answer: responseObject, isProcessing: false }
             : q
         )
       );
+      
+      setIsProcessing(false);
+      return responseObject;
     } catch (err) {
       console.error('Error asking question:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to get answer';
+      
+      // Create an error response object
+      const errorResponse = { 
+        answer: `Error: ${errorMessage}`
+      };
       
       // Update the question in history with the error
       setQuestionHistory(prev =>
         prev.map(q =>
           q.id === questionId
-            ? { ...q, answer: `Error: ${errorMessage}`, isProcessing: false }
+            ? { ...q, answer: errorResponse, isProcessing: false }
             : q
         )
       );
       
       setError(errorMessage);
-    } finally {
       setIsProcessing(false);
+      return errorResponse;
     }
   }, []);
 

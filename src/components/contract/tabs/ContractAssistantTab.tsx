@@ -54,6 +54,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
     }
   };
 
+  // Function to extract answer text from different answer formats
   const getAnswerText = (answer: string | { answer: string; sources?: string[] }): string => {
     if (typeof answer === 'string') {
       return answer;
@@ -61,6 +62,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
     return answer.answer;
   };
 
+  // Function to extract sources from different answer formats
   const getAnswerSources = (answer: string | { answer: string; sources?: string[] }): string[] => {
     if (typeof answer === 'string' || !answer.sources) {
       return [];
@@ -135,11 +137,11 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
                     <p className="text-sm font-medium">{item.question}</p>
                     <p className="text-sm text-muted-foreground mt-1">{getAnswerText(item.answer)}</p>
                     
-                    {typeof item.answer !== 'string' && item.answer.sources && item.answer.sources.length > 0 && (
+                    {getAnswerSources(item.answer).length > 0 && (
                       <div className="mt-2 pt-2 border-t border-border/30">
                         <p className="text-xs text-muted-foreground">Sources:</p>
                         <div className="flex flex-wrap gap-1 mt-0.5">
-                          {item.answer.sources.map((source, sIndex) => (
+                          {getAnswerSources(item.answer).map((source, sIndex) => (
                             <span key={sIndex} className="bg-secondary/50 text-xs px-2 py-0.5 rounded">
                               {source}
                             </span>

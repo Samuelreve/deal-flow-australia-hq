@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -107,6 +108,11 @@ const DemoContractPage: React.FC = () => {
     }
   };
   
+  // Create a wrapper function that matches the expected signature
+  const handleAskQuestion = async (question: string, contractText: string) => {
+    return questionAnswerState.handleAskQuestion(question, contractText);
+  };
+  
   useEffect(() => {
     const shouldAnalyze = searchParams.get("analyze") === "true";
     
@@ -153,7 +159,7 @@ const DemoContractPage: React.FC = () => {
                 questionHistory={questionAnswerState.questionHistory}
                 isProcessing={questionAnswerState.isProcessing}
                 onTabChange={setActiveTab}
-                onAskQuestion={questionAnswerState.handleAskQuestion}
+                onAskQuestion={handleAskQuestion}
               />
             </ErrorBoundary>
           </div>
