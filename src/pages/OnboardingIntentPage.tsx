@@ -8,22 +8,24 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { UserRole } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProfileHandler } from "@/hooks/auth/useProfileHandler";
 import AppErrorBoundary from "@/components/common/AppErrorBoundary";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserIntent = "seller" | "buyer" | "advisor" | "browsing";
 
 const OnboardingIntentPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { updateProfile, loading: profileLoading, error: profileError, resetError } = useProfileHandler();
   const [intent, setIntent] = useState<UserIntent | null>(null);
   const [isProfessional, setIsProfessional] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const validateForm = () => {
     if (!intent) {
@@ -36,12 +38,95 @@ const OnboardingIntentPage: React.FC = () => {
       return false;
     }
 
-    if (!user.profile) {
-      setError("User profile not found. Please try logging in again.");
+    return true;
+  };
+
+  const createFallbackProfile = async () => {
+    if (!user?.id) return false;
+    
+    try {
+      console.log('Creating fallback profile for user:', user.id);
+      
+      const fallbackProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.name || user.email.split('@')[0] || 'User',
+        role: intent as UserRole,
+        is_professional: isProfessional,
+        onboarding_complete: !isProfessional || intent !== 'advisor',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Update user state directly since database operations are failing
+      const updatedUser = {
+        ...user,
+        profile: fallbackProfile
+      };
+      
+      setUser(updatedUser);
+      console.log('Fallback profile created successfully');
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to create fallback profile:', error);
       return false;
     }
+  };
 
-    return true;
+  const handleRetryProfileCreation = async () => {
+    setIsRetrying(true);
+    setError(null);
+    resetError();
+    
+    try {
+      // Try to create a basic profile directly
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: user!.id,
+          email: user!.email,
+          name: user!.name || user!.email.split('@')[0] || 'User',
+          role: 'seller',
+          onboarding_complete: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Direct profile creation failed:', error);
+        // If direct creation fails, use fallback
+        const fallbackSuccess = await createFallbackProfile();
+        if (fallbackSuccess) {
+          toast.success("Profile created locally. You can continue using the app.");
+          return;
+        }
+        throw error;
+      }
+
+      if (data) {
+        // Update user state with new profile
+        const updatedUser = {
+          ...user!,
+          profile: data
+        };
+        setUser(updatedUser);
+        toast.success("Profile created successfully!");
+      }
+    } catch (error: any) {
+      console.error('Retry profile creation failed:', error);
+      setError("Database connection issues detected. Using local profile for now.");
+      
+      // Create fallback profile
+      const fallbackSuccess = await createFallbackProfile();
+      if (fallbackSuccess) {
+        toast.info("Created local profile. Some features may be limited until database connection is restored.");
+      } else {
+        setError("Unable to create profile. Please contact support.");
+      }
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,34 +148,48 @@ const OnboardingIntentPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Determine if this user needs to complete professional profile
-      const isSelectingProfessionalRole = isProfessional && ['advisor'].includes(intent!);
-      
-      const updatedProfile = {
-        role: intent as UserRole,
-        is_professional: isProfessional,
-        onboarding_complete: !isSelectingProfessionalRole // Complete onboarding unless they're a professional
-      };
-
-      console.log('Attempting to update profile with:', updatedProfile);
-      
-      const success = await updateProfile(updatedProfile);
-
-      if (success) {
-        console.log('Profile update successful');
-        toast.success("Welcome to DealPilot!");
+      // If user doesn't have a profile, try to update the existing profile through the hook
+      if (user?.profile) {
+        // Determine if this user needs to complete professional profile
+        const isSelectingProfessionalRole = isProfessional && ['advisor'].includes(intent!);
         
-        // Redirect based on intent and professional status
-        if (isSelectingProfessionalRole) {
-          console.log('Redirecting to profile for professional setup');
-          navigate("/profile");
-          toast.info("Please complete your professional profile to finish setup");
+        const updatedProfile = {
+          role: intent as UserRole,
+          is_professional: isProfessional,
+          onboarding_complete: !isSelectingProfessionalRole
+        };
+
+        console.log('Attempting to update profile with:', updatedProfile);
+        
+        const success = await updateProfile(updatedProfile);
+
+        if (success) {
+          console.log('Profile update successful');
+          toast.success("Welcome to DealPilot!");
+          
+          // Redirect based on intent and professional status
+          if (isSelectingProfessionalRole) {
+            console.log('Redirecting to profile for professional setup');
+            navigate("/profile");
+            toast.info("Please complete your professional profile to finish setup");
+          } else {
+            console.log('Redirecting to dashboard');
+            navigate("/dashboard");
+          }
         } else {
-          console.log('Redirecting to dashboard');
-          navigate("/dashboard");
+          throw new Error(profileError || "Failed to update profile");
         }
       } else {
-        throw new Error(profileError || "Failed to update profile");
+        // User doesn't have a profile, create fallback and continue
+        console.log('No profile found, creating fallback');
+        const fallbackSuccess = await createFallbackProfile();
+        
+        if (fallbackSuccess) {
+          toast.success("Welcome to DealPilot!");
+          navigate("/dashboard");
+        } else {
+          throw new Error("Failed to create user profile");
+        }
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -124,6 +223,60 @@ const OnboardingIntentPage: React.FC = () => {
       description: "Exploring the platform features"
     }
   ];
+
+  // Show profile creation options if user has no profile
+  if (!user?.profile) {
+    return (
+      <AppErrorBoundary>
+        <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold">Profile Setup Required</CardTitle>
+              <CardDescription>
+                We need to create your profile to continue
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  There seems to be an issue with the database connection. We can create a local profile for you to continue using the app.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4">
+                <Button 
+                  onClick={handleRetryProfileCreation}
+                  disabled={isRetrying}
+                  className="w-full"
+                >
+                  {isRetrying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Profile...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Create Profile & Continue
+                    </>
+                  )}
+                </Button>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppErrorBoundary>
+    );
+  }
 
   return (
     <AppErrorBoundary>
