@@ -11,6 +11,7 @@ import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisSt
 import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
 import { mockSummaryData } from '@/hooks/contract-analysis/mockData';
+import { DocumentMetadata } from '@/types/contract';
 
 // Sample contract text for demo purposes
 const SAMPLE_CONTRACT_TEXT = `
@@ -61,7 +62,20 @@ const DemoContractPage: React.FC = () => {
   
   const uploadHandler = useContractDocumentUpload({
     onUploadSuccess: (metadata, text, summary) => {
-      analysisState.setDocumentMetadata(metadata);
+      // Ensure metadata is correctly typed
+      const typedMetadata: DocumentMetadata = {
+        id: metadata?.id || '',
+        name: metadata?.name || 'Untitled Document',
+        type: metadata?.type || 'contract',
+        uploadDate: metadata?.uploadDate || new Date().toISOString(),
+        status: (metadata?.status as 'pending' | 'analyzing' | 'completed' | 'error') || 'pending',
+        version: metadata?.version || '1.0',
+        versionDate: metadata?.versionDate || new Date().toISOString(),
+        size: metadata?.size || 0,
+        category: metadata?.category || 'legal'
+      };
+      
+      analysisState.setDocumentMetadata(typedMetadata);
       analysisState.setContractText(text || SAMPLE_CONTRACT_TEXT);
       analysisState.setCustomSummary(summary);
     },
