@@ -5,12 +5,12 @@ import AppLayout from '@/components/layout/AppLayout';
 import ContractPageHeader from '@/components/contract/ContractPageHeader';
 import ContractMobileHeader from '@/components/contract/mobile/ContractMobileHeader';
 import ContractSidebarContent from '@/components/contract/layout/ContractSidebarContent';
-import ContractMainContent from '@/components/contract/layout/ContractMainContent';
+import OptimizedContractMainContent from '@/components/contract/layout/OptimizedContractMainContent';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { ContractSkipLinks, useContractKeyboardNavigation, useContractFocusManagement, useKeyboardHelp, ContractKeyboardHelp } from '@/components/contract/accessibility/EnhancedAccessibility';
 import { useRealContracts } from '@/hooks/contract/useRealContracts';
 import { useRealContractQuestionAnswer } from '@/hooks/contract/useRealContractQuestionAnswer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useContractKeyboardNavigation, useContractFocusManagement } from '@/components/contract/accessibility/ContractAccessibility';
 
 const RealContractPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("summary");
@@ -28,15 +28,16 @@ const RealContractPage: React.FC = () => {
 
   const questionAnswerState = useRealContractQuestionAnswer(selectedContract?.id || null);
   const { announceLiveRegion } = useContractFocusManagement();
+  const { isOpen: isKeyboardHelpOpen, setIsOpen: setKeyboardHelpOpen } = useKeyboardHelp();
 
-  // Handle file upload with better UX
+  // Handle file upload with enhanced UX
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
         await uploadContract(file);
         toast.success('Contract uploaded successfully');
-        announceLiveRegion('Contract uploaded and analysis started');
+        announceLiveRegion(`Contract ${file.name} uploaded and analysis started`);
         setActiveTab('assistant');
       } catch (error) {
         console.error('Upload failed:', error);
@@ -49,7 +50,7 @@ const RealContractPage: React.FC = () => {
   const handleContractSelect = (contractId: string) => {
     selectContract(contractId);
     setActiveTab('assistant');
-    announceLiveRegion('Contract selected');
+    announceLiveRegion('Contract selected and ready for analysis');
   };
 
   const handleAskQuestion = async (question: string) => {
@@ -69,19 +70,33 @@ const RealContractPage: React.FC = () => {
   const handleRetryAnalysis = () => {
     if (selectedContract) {
       selectContract(selectedContract.id);
+      announceLiveRegion('Retrying contract analysis');
     }
   };
 
-  // Keyboard navigation
+  // Enhanced keyboard navigation
   useContractKeyboardNavigation(
-    () => document.getElementById('contract-upload-input')?.click(),
-    () => {/* TODO: Save functionality */},
-    () => {/* TODO: Search functionality */}
+    () => {
+      document.getElementById('contract-upload-input')?.click();
+      announceLiveRegion('Opening file upload dialog');
+    },
+    () => {
+      // TODO: Save functionality
+      announceLiveRegion('Save function not yet implemented');
+    },
+    () => {
+      // TODO: Search functionality
+      announceLiveRegion('Search function not yet implemented');
+    },
+    () => {
+      setKeyboardHelpOpen(false);
+    }
   );
 
   if (!user) {
     return (
       <AppLayout>
+        <ContractSkipLinks />
         <div className="container py-6 max-w-5xl">
           <ContractPageHeader />
           <div className="text-center mt-8">
@@ -107,6 +122,8 @@ const RealContractPage: React.FC = () => {
 
   return (
     <AppLayout>
+      <ContractSkipLinks />
+      
       <div className="container py-6 max-w-7xl">
         <div className="hidden lg:block">
           <ContractPageHeader />
@@ -118,16 +135,24 @@ const RealContractPage: React.FC = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
+          <div 
+            id="contract-sidebar"
+            className="hidden lg:block"
+            tabIndex={-1}
+          >
             <ErrorBoundary>
               {sidebarContent}
             </ErrorBoundary>
           </div>
           
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div 
+            id="main-content"
+            className="lg:col-span-2"
+            tabIndex={-1}
+          >
             <ErrorBoundary>
-              <ContractMainContent
+              <OptimizedContractMainContent
                 selectedContract={selectedContract}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
@@ -150,6 +175,12 @@ const RealContractPage: React.FC = () => {
           className="sr-only"
         />
       </div>
+
+      {/* Keyboard help overlay */}
+      <ContractKeyboardHelp 
+        isOpen={isKeyboardHelpOpen}
+        onClose={() => setKeyboardHelpOpen(false)}
+      />
     </AppLayout>
   );
 };
