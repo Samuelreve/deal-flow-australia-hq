@@ -1,19 +1,21 @@
 
 import { toast } from "sonner";
-import { useToast } from "@/components/ui/use-toast";
-import { AUTH_ROUTES } from "./constants";
 
-// Helper function to handle auth errors
-export const handleAuthError = (error: any, toastFunction: ReturnType<typeof useToast>["toast"]) => {
-  console.error("Authentication error:", error);
-  toastFunction({
-    title: "Authentication failed",
-    description: error.message || "An error occurred during authentication",
-    variant: "destructive",
-  });
+export const handleAuthError = (error: any, toastFn?: any) => {
+  console.error("Auth error:", error);
+  const message = error.message || "An authentication error occurred";
+  
+  if (toastFn) {
+    toastFn({
+      variant: "destructive",
+      title: "Authentication Error",
+      description: message,
+    });
+  } else {
+    toast.error(message);
+  }
 };
 
-// Helper function for success notifications
 export const showAuthSuccess = (message: string, title: string = "Success") => {
   toast.success(message);
 };

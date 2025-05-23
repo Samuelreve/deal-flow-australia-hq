@@ -28,6 +28,7 @@ export type UserRole = "seller" | "buyer" | "lawyer" | "admin" | "advisor" | "br
 // Combined user type with Supabase user and profile data
 export interface User extends SupabaseUser {
   profile: UserProfile | null;
+  role?: UserRole; // Add role directly to User for backward compatibility
 }
 
 // Auth context type definition

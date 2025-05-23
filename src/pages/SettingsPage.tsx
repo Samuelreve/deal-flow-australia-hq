@@ -1,71 +1,34 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from "@/contexts/AuthContext";
-import { UserProfile } from "@/types/auth";
-import SettingsLayout from "@/components/layout/SettingsLayout";
-import SettingsMobileTabs from "@/components/settings/navigation/SettingsMobileTabs";
-import SettingsSidebar from "@/components/settings/navigation/SettingsSidebar";
-import SettingsContent from "@/components/settings/content/SettingsContent";
+import React from 'react';
+import AppLayout from '@/components/layout/AppLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AccountInformation from '@/components/settings/AccountInformation';
 
 const SettingsPage: React.FC = () => {
-  const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("account");
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    if (user && user.profile) {
-      setUserProfile(user.profile);
-    }
-  }, [user]);
-
-  // Handle profile updates from forms
-  const handleProfileUpdate = (updatedProfile: UserProfile) => {
-    setUserProfile(updatedProfile);
-  };
-
-  if (loading) {
-    return (
-      <SettingsLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-pulse">Loading settings...</div>
-        </div>
-      </SettingsLayout>
-    );
-  }
-
-  if (!user) {
-    return (
-      <SettingsLayout>
-        <div className="flex items-center justify-center h-screen">
-          <p>Please log in to access settings</p>
-        </div>
-      </SettingsLayout>
-    );
-  }
-
   return (
-    <SettingsLayout>
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-        {/* Mobile tabs navigation */}
-        <SettingsMobileTabs 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-        />
-        
-        {/* Desktop sidebar navigation */}
-        <SettingsSidebar 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-        />
-        
-        {/* Content area */}
-        <SettingsContent 
-          activeTab={activeTab} 
-          userProfile={userProfile} 
-          handleProfileUpdate={handleProfileUpdate} 
-        />
+    <AppLayout>
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Settings</h1>
+            <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+          </div>
+          
+          <div className="grid gap-6">
+            <AccountInformation />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Other Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Additional settings will be available here.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-    </SettingsLayout>
+    </AppLayout>
   );
 };
 

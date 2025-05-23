@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { authService } from "@/services/authService";
-import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAuthSession } from "@/hooks/auth/useAuthSession";
 import { handleAuthError, showAuthSuccess } from "./authUtils";
 import { AUTH_ROUTES } from "./constants";
 import { User, UserProfile } from "@/types/auth";
@@ -82,7 +82,7 @@ export const useAuthOperations = () => {
       return false;
     } catch (error: any) {
       handleAuthError(error, toast);
-      throw error;
+      return false; // Return false instead of throwing
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export const useAuthOperations = () => {
       return false;
     } catch (error: any) {
       handleAuthError(error, toast);
-      throw error;
+      return false; // Return false instead of throwing
     } finally {
       setLoading(false);
     }
