@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Deal } from "@/types/deal";
+import { DealSummary } from "@/types/deal";
 import HealthPredictionPanel from "@/components/deals/health/HealthPredictionPanel";
 import CustomMetricsManager from "@/components/deals/health/CustomMetricsManager";
 import HealthRecoveryPlanGenerator from "@/components/deals/health/HealthRecoveryPlanGenerator";
@@ -11,8 +11,8 @@ import RealTimeHealthMonitor from "@/components/deals/health/RealTimeHealthMonit
 import { UseAdvancedHealthMonitoringReturn } from "@/hooks/useAdvancedHealthMonitoring/types";
 
 interface HealthMonitoringTabsProps {
-  deals: Deal[];
-  selectedDeal: Deal | null;
+  deals: DealSummary[];
+  selectedDeal: DealSummary | null;
   selectedDealId: string;
   healthData: UseAdvancedHealthMonitoringReturn;
   onHealthScoreUpdate: (dealId: string, newScore: number) => void;

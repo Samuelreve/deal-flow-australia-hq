@@ -10,7 +10,7 @@ import HealthMonitoringTabs from "@/components/advanced-health/HealthMonitoringT
 
 const AdvancedHealthMonitoring = () => {
   const { user } = useAuth();
-  const { deals, loading: dealsLoading } = useDeals(user?.id);
+  const { dealSummaries, loading: dealsLoading } = useDeals(user?.id);
   const [selectedDealId, setSelectedDealId] = useState<string>('');
   
   const healthData = useAdvancedHealthMonitoring(user?.id);
@@ -31,19 +31,19 @@ const AdvancedHealthMonitoring = () => {
     );
   }
 
-  const selectedDeal = selectedDealId ? deals.find(d => d.id === selectedDealId) : null;
+  const selectedDeal = selectedDealId ? dealSummaries.find(d => d.id === selectedDealId) : null;
 
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-6">
         <AdvancedHealthHeader />
         <DealSelector 
-          deals={deals}
+          deals={dealSummaries}
           selectedDealId={selectedDealId}
           onSelectionChange={setSelectedDealId}
         />
         <HealthMonitoringTabs
-          deals={deals}
+          deals={dealSummaries}
           selectedDeal={selectedDeal}
           selectedDealId={selectedDealId}
           healthData={healthData}

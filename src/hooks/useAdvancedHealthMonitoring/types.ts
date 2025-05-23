@@ -1,4 +1,6 @@
 
+import { HealthPrediction, CustomHealthMetric, HealthRecoveryPlan, HealthScoreComparison, HealthReport } from '@/types/advancedHealthMonitoring';
+
 export interface UseAdvancedHealthMonitoringReturn {
   predictions: HealthPrediction[];
   customMetrics: CustomHealthMetric[];

@@ -2,10 +2,10 @@
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Deal } from "@/types/deal";
+import { DealSummary } from "@/types/deal";
 
 interface DealSelectorProps {
-  deals: Deal[];
+  deals: DealSummary[];
   selectedDealId: string;
   onSelectionChange: (dealId: string) => void;
 }
