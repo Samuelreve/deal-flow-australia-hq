@@ -1,16 +1,16 @@
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Download } from 'lucide-react';
 import DocumentDetails from './DocumentDetails';
 import DocumentVersions from './DocumentVersions';
+import RealContractUpload from './RealContractUpload';
 import { DocumentMetadata, DocumentHighlight } from '@/types/contract';
+import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 
 interface ContractSidebarProps {
   documentMetadata: DocumentMetadata | null;
   isAnalyzing: boolean;
   documentHighlights: DocumentHighlight[];
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onExportHighlights: () => void;
 }
 
@@ -21,29 +21,28 @@ const ContractSidebar: React.FC<ContractSidebarProps> = ({
   onFileUpload,
   onExportHighlights
 }) => {
+  const { isUploading, uploadProgress, error } = useContractDocumentUpload();
+
   return (
     <div className="space-y-6">
-      {/* Document Details Card */}
-      <DocumentDetails 
-        documentMetadata={documentMetadata}
-        isAnalyzing={isAnalyzing}
+      <RealContractUpload 
         onFileUpload={onFileUpload}
+        isUploading={isUploading}
+        uploadProgress={uploadProgress}
+        error={error}
       />
       
-      {/* Document Versions */}
-      <DocumentVersions documentMetadata={documentMetadata} />
-      
-      {/* Export Highlights Button */}
-      {documentHighlights.length > 0 && (
-        <Button 
-          variant="outline" 
-          className="w-full flex items-center gap-2" 
-          onClick={onExportHighlights}
-        >
-          <Download className="h-4 w-4" />
-          Export Highlights ({documentHighlights.length})
-        </Button>
+      {documentMetadata && (
+        <DocumentDetails 
+          metadata={documentMetadata}
+          isAnalyzing={isAnalyzing}
+        />
       )}
+      
+      <DocumentVersions 
+        documentHighlights={documentHighlights}
+        onExportHighlights={onExportHighlights}
+      />
     </div>
   );
 };

@@ -2,35 +2,37 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileText, Loader } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Upload, FileText, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface RealContractUploadProps {
-  onFileUpload: (file: File) => Promise<void>;
-  uploading: boolean;
+  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  isUploading: boolean;
+  uploadProgress: number;
+  error: string | null;
 }
 
 const RealContractUpload: React.FC<RealContractUploadProps> = ({
   onFileUpload,
-  uploading
+  isUploading,
+  uploadProgress,
+  error
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    await onFileUpload(file);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const getProgressMessage = () => {
+    if (uploadProgress < 25) return "Uploading file...";
+    if (uploadProgress < 50) return "Processing document...";
+    if (uploadProgress < 75) return "Extracting text...";
+    if (uploadProgress < 95) return "Analyzing content...";
+    return "Finalizing...";
   };
 
   if (!user) {
@@ -43,10 +45,13 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Please log in to upload and analyze contracts.
-          </p>
-          <Button disabled className="w-full">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please log in to upload and analyze contracts.
+            </AlertDescription>
+          </Alert>
+          <Button disabled className="w-full mt-4">
             <Upload className="mr-2 h-4 w-4" />
             Login Required
           </Button>
@@ -63,29 +68,55 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           Upload Contract
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground mb-4">
+      <CardContent className="space-y-4">
+        <p className="text-muted-foreground text-sm">
           Upload your contract document to analyze it with AI assistance.
         </p>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {isUploading && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{getProgressMessage()}</span>
+              <span className="font-medium">{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} className="w-full" />
+          </div>
+        )}
+
+        {uploadProgress === 100 && !isUploading && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Contract uploaded and analyzed successfully!
+            </AlertDescription>
+          </Alert>
+        )}
         
         <input
           ref={fileInputRef}
           type="file"
-          onChange={handleFileChange}
+          onChange={onFileUpload}
           accept=".pdf,.doc,.docx,.txt"
           className="hidden"
-          disabled={uploading}
+          disabled={isUploading}
         />
         
         <Button 
           onClick={handleUploadClick}
-          disabled={uploading}
+          disabled={isUploading}
           className="w-full"
         >
-          {uploading ? (
+          {isUploading ? (
             <>
               <Loader className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
+              Processing...
             </>
           ) : (
             <>
@@ -95,9 +126,10 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           )}
         </Button>
         
-        <p className="text-xs text-muted-foreground mt-2">
-          Supported formats: PDF, Word documents, Text files
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>Supported formats: PDF, Word documents, Text files</p>
+          <p>Maximum file size: 10MB</p>
+        </div>
       </CardContent>
     </Card>
   );

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileText, List } from 'lucide-react';
+import { FileText, List, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useDocumentHighlighting } from '@/hooks/contract-analysis/useDocumentHighlighting';
 import DocumentViewer from './DocumentViewer';
 import HighlightControls from './HighlightControls';
@@ -48,10 +49,8 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
   const handleFilterChange = (categoryId: string) => {
     setActiveFilters(prev => {
       if (prev.includes(categoryId)) {
-        // Remove the filter
         return prev.filter(id => id !== categoryId);
       } else {
-        // Add the filter
         return [...prev, categoryId];
       }
     });
@@ -68,6 +67,28 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
       setActiveFilters(categories.map(c => c.id));
     }
   }, [activeTab, categories]);
+
+  // Show error if no contract text
+  if (!contractText || contractText.trim().length === 0) {
+    return (
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Contract Document
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No contract content available. Please upload a contract document to begin analysis.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card className="mb-6">
@@ -93,18 +114,16 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
         </div>
         
         <TabsContent value="document">
-          {contractText && (
-            <HighlightControls 
-              isHighlightMode={isHighlightMode}
-              toggleHighlightMode={toggleHighlightMode}
-              activeCategory={activeCategory}
-              changeCategory={changeCategory}
-              addCategory={addCategory}
-              categories={categories}
-              clearHighlights={clearHighlights}
-              highlightsCount={highlights.length}
-            />
-          )}
+          <HighlightControls 
+            isHighlightMode={isHighlightMode}
+            toggleHighlightMode={toggleHighlightMode}
+            activeCategory={activeCategory}
+            changeCategory={changeCategory}
+            addCategory={addCategory}
+            categories={categories}
+            clearHighlights={clearHighlights}
+            highlightsCount={highlights.length}
+          />
           
           <CardContent>
             <DocumentViewer
