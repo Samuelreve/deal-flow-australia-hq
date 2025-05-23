@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Download } from 'lucide-react';
 import DocumentDetails from './DocumentDetails';
 import DocumentVersions from './DocumentVersions';
+import { DocumentMetadata, DocumentHighlight } from '@/types/contract';
 
 interface ContractSidebarProps {
-  documentMetadata: any;
+  documentMetadata: DocumentMetadata | null;
   isAnalyzing: boolean;
-  documentHighlights: any[];
+  documentHighlights: DocumentHighlight[];
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExportHighlights: () => void;
 }

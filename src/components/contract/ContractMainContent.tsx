@@ -5,6 +5,8 @@ import ContractAnalyzingState from './ContractAnalyzingState';
 import ContractSummaryTab from './tabs/ContractSummaryTab';
 import ContractAssistantTab from './tabs/ContractAssistantTab';
 import DocumentTab from './tabs/DocumentTab';
+import { LoadingState } from '@/components/common/LoadingState';
+import { QuestionHistoryItem } from '@/types/contract';
 
 interface ContractMainContentProps {
   isAnalyzing: boolean;
@@ -14,7 +16,7 @@ interface ContractMainContentProps {
   customSummary: any;
   mockSummary: any;
   contractText: string;
-  questionHistory: any[];
+  questionHistory: QuestionHistoryItem[];
   isProcessing: boolean;
   onTabChange: (tab: string) => void;
   onAskQuestion: (question: string) => Promise<string | { answer: string; sources?: string[] }>;
@@ -34,7 +36,13 @@ const ContractMainContent: React.FC<ContractMainContentProps> = ({
   onAskQuestion
 }) => {
   if (isAnalyzing) {
-    return <ContractAnalyzingState stage={analysisStage} progress={analysisProgress} />;
+    return (
+      <LoadingState 
+        type="progress" 
+        message={analysisStage || "Analyzing contract..."} 
+        progress={analysisProgress}
+      />
+    );
   }
 
   return (
