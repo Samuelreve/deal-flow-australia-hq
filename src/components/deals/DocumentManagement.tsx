@@ -1,8 +1,9 @@
 
+import React from "react";
 import { Document } from "@/types/documentVersion";
-import DocumentViewerSection from "./document/DocumentViewerSection";
 import { useDocumentManagement } from "@/hooks/useDocumentManagement";
-import DocumentSidebar from "./document/DocumentSidebar";
+import DocumentManagementHeader from "./document/DocumentManagementHeader";
+import DocumentManagementGrid from "./document/DocumentManagementGrid";
 import DocumentDialogs from "./document/DocumentDialogs";
 
 // Define props for the DocumentManagement component
@@ -11,13 +12,15 @@ interface DocumentManagementProps {
   userRole?: string;
   initialDocuments?: Document[];
   isParticipant?: boolean;
+  dealTitle?: string;
 }
 
 const DocumentManagement = ({ 
   dealId, 
   userRole = "user", 
   initialDocuments = [],
-  isParticipant = false
+  isParticipant = false,
+  dealTitle
 }: DocumentManagementProps) => {
   const {
     // Document list state and handlers
@@ -74,41 +77,31 @@ const DocumentManagement = ({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Document sidebar with list and upload functionality */}
-        <DocumentSidebar
-          documents={documents}
-          isLoading={isLoading}
-          onDeleteDocument={openDeleteDialog}
-          userRole={userRole}
-          userId={user?.id}
-          isParticipant={isParticipant}
-          onSelectDocument={handleSelectDocument}
-          selectedDocument={selectedDocument}
-          documentVersions={documentVersions}
-          loadingVersions={loadingVersions}
-          onDeleteVersion={openVersionDeleteDialog}
-          onSelectVersion={handleSelectVersion}
-          selectedVersionId={selectedVersionId}
-          onShareVersion={handleShareVersion}
-          dealId={dealId}
-          onVersionsUpdated={handleVersionsUpdated}
-          uploading={uploading}
-          onUpload={handleUpload}
-          lastUploadedDocument={lastUploadedDocument}
-          onCloseAnalyzer={clearLastUploadedDocument}
-        />
-        
-        {/* Document Viewer Section */}
-        <DocumentViewerSection 
-          selectedVersionUrl={selectedVersionUrl}
-          documentVersions={documentVersions}
-          dealId={dealId}
-          selectedDocument={selectedDocument}
-          selectedVersionId={selectedVersionId}
-          onVersionsUpdated={handleVersionsUpdated}
-        />
-      </div>
+      <DocumentManagementHeader dealTitle={dealTitle} />
+      
+      <DocumentManagementGrid
+        documents={documents}
+        isLoading={isLoading}
+        selectedDocument={selectedDocument}
+        documentVersions={documentVersions}
+        loadingVersions={loadingVersions}
+        selectedVersionUrl={selectedVersionUrl}
+        selectedVersionId={selectedVersionId}
+        userRole={userRole}
+        userId={user?.id}
+        isParticipant={isParticipant}
+        dealId={dealId}
+        uploading={uploading}
+        lastUploadedDocument={lastUploadedDocument}
+        onSelectDocument={handleSelectDocument}
+        onDeleteDocument={openDeleteDialog}
+        onDeleteVersion={openVersionDeleteDialog}
+        onSelectVersion={handleSelectVersion}
+        onShareVersion={handleShareVersion}
+        onVersionsUpdated={handleVersionsUpdated}
+        onUpload={handleUpload}
+        onCloseAnalyzer={clearLastUploadedDocument}
+      />
       
       {/* All dialog components */}
       <DocumentDialogs

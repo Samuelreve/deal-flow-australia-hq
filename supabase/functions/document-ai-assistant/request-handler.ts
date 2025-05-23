@@ -1,97 +1,62 @@
 
-import {
-  handleExplainClause,
-  handleGenerateTemplate,
-  handleGenerateSmartTemplate,
-  handleSummarizeDocument,
-  handleExplainMilestone,
-  handleSuggestNextAction,
-  handleGenerateMilestones,
-  handleAnalyzeDocument,
-  handleSummarizeVersionChanges,
-  handleDealChatQuery,
-  handleGetDealInsights,
-  handlePredictDealHealth,
-  handleSummarizeDeal,
-  handleExplainContractClause,
-  analyzeSmartContract,
-  explainSmartContractClause,
-  summarizeSmartContract,
-  initializeOpenAI
-} from "./operations/index.ts";
+import OpenAI from "https://esm.sh/openai@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { RequestPayload } from "./types.ts";
+import { validateRequest, validateOperationSpecificFields } from "./utils/request-validator.ts";
+import { validateDealAccess } from "./utils/auth-validator.ts";
+import { createSuccessResponse, createErrorResponse } from "./utils/response-handler.ts";
+import { routeOperation } from "./utils/operation-router.ts";
+import { saveAnalysisResult } from "./utils/analysis-saver.ts";
 
-/**
- * Handle the AI assistant request based on the operation
- */
 export async function handleRequest(
-  operation: string, 
-  content: string,
-  dealId: string,
-  userId: string,
-  documentId?: string,
-  documentVersionId?: string,
-  currentVersionId?: string,
-  previousVersionId?: string,
-  milestoneId?: string,
-  context?: Record<string, any>
-) {
-  // Initialize OpenAI client
-  const openai = initializeOpenAI();
-  
-  // Route the request based on the operation
-  switch (operation) {
-    case "explain_clause":
-      return await handleExplainClause(content, documentId!, documentVersionId!, openai);
-      
-    case "generate_template":
-      return await handleGenerateTemplate(content, dealId, userId, context?.documentType || "contract", context, openai);
-      
-    case "generate_smart_template":
-      return await handleGenerateSmartTemplate(content, dealId, userId, context?.documentType || "contract", context, openai);
-      
-    case "summarize_document":
-      return await handleSummarizeDocument(documentId!, documentVersionId!, openai);
-      
-    case "explain_milestone":
-      return await handleExplainMilestone(milestoneId!, dealId, openai);
-      
-    case "suggest_next_action":
-      return await handleSuggestNextAction(dealId, openai);
-      
-    case "generate_milestones":
-      return await handleGenerateMilestones(dealId, content, userId, openai);
-      
-    case "analyze_document":
-      return await handleAnalyzeDocument(documentId!, documentVersionId!, content, openai);
-      
-    case "summarize_version_changes":
-      return await handleSummarizeVersionChanges(documentId!, currentVersionId!, previousVersionId!, openai);
-      
-    case "deal_chat_query":
-      return await handleDealChatQuery(content, dealId, userId, context, openai);
-      
-    case "get_deal_insights":
-      return await handleGetDealInsights(userId, openai);
-      
-    case "predict_deal_health":
-      return await handlePredictDealHealth(dealId, openai);
-      
-    case "summarize_deal":
-      return await handleSummarizeDeal(dealId, openai);
-      
-    case "explain_contract_clause":
-      return await handleExplainContractClause(content, documentId!, documentVersionId!, openai);
-      
-    case "analyze_smart_contract":
-      return await analyzeSmartContract(documentId!, documentVersionId!, content, openai);
-      
-    case "explain_smart_contract_clause":
-      return await explainSmartContractClause(documentId!, documentVersionId!, content, openai);
-      
-    case "summarize_smart_contract":
-      return await summarizeSmartContract(documentId!, documentVersionId!, openai);
-      
-    default:
-      throw new Error(`Unknown operation: ${operation}`);
+  req: Request,
+  openai: OpenAI,
+  supabaseUrl: string,
+  supabaseKey: string
+): Promise<Response> {
+  try {
+    // Parse request
+    const payload: RequestPayload = await req.json();
+    
+    // Validate basic request structure
+    const basicValidation = validateRequest(payload);
+    if (!basicValidation.isValid) {
+      return createErrorResponse(basicValidation.error!, 400);
+    }
+    
+    // Validate operation-specific fields
+    const operationValidation = validateOperationSpecificFields(payload);
+    if (!operationValidation.isValid) {
+      return createErrorResponse(operationValidation.error!, 400);
+    }
+    
+    // Validate user's access to the deal
+    try {
+      await validateDealAccess(payload.dealId!, payload.userId, supabaseUrl, supabaseKey);
+    } catch (error) {
+      return createErrorResponse(error.message, 403);
+    }
+    
+    // Route to appropriate operation handler
+    const result = await routeOperation(payload, openai);
+    
+    // Save analysis result if it's an analyze_document operation
+    if (payload.operation === 'analyze_document' && result && payload.context?.saveAnalysis !== false) {
+      await saveAnalysisResult(
+        payload.documentId!,
+        payload.documentVersionId!,
+        payload.context!.analysisType,
+        result.analysis?.content,
+        payload.userId,
+        supabaseUrl,
+        supabaseKey
+      );
+    }
+    
+    return createSuccessResponse(result);
+    
+  } catch (error) {
+    console.error("Error in document-ai-assistant function:", error);
+    return createErrorResponse(error.message || "An unexpected error occurred");
   }
 }

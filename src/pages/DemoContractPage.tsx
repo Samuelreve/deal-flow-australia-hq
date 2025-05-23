@@ -1,17 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
-import DocumentDetails from '@/components/contract/DocumentDetails';
-import DocumentVersions from '@/components/contract/DocumentVersions';
-import ContractAnalyzingState from '@/components/contract/ContractAnalyzingState';
-import ContractSummaryTab from '@/components/contract/tabs/ContractSummaryTab';
-import ContractAssistantTab from '@/components/contract/tabs/ContractAssistantTab';
-import DocumentTab from '@/components/contract/tabs/DocumentTab';
+import ContractPageHeader from '@/components/contract/ContractPageHeader';
+import ContractSidebar from '@/components/contract/ContractSidebar';
+import ContractMainContent from '@/components/contract/ContractMainContent';
 import { useContractAnalysis } from '@/hooks/contract-analysis/useContractAnalysis';
 
 const DemoContractPage: React.FC = () => {
@@ -50,72 +44,33 @@ const DemoContractPage: React.FC = () => {
   return (
     <AppLayout>
       <div className="container py-6 max-w-5xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Smart Contract Analysis</h1>
-          <p className="text-muted-foreground">
-            AI-powered analysis and insights for your legal documents
-          </p>
-        </div>
+        <ContractPageHeader />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Document Info and Upload button */}
-          <div className="space-y-6">
-            {/* Document Details Card */}
-            <DocumentDetails 
-              documentMetadata={documentMetadata}
-              isAnalyzing={isAnalyzing}
-              onFileUpload={handleFileUpload}
-            />
-            
-            {/* Document Versions */}
-            <DocumentVersions documentMetadata={documentMetadata} />
-            
-            {/* Export Highlights Button */}
-            {documentHighlights.length > 0 && (
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center gap-2" 
-                onClick={exportHighlightsToCSV}
-              >
-                <Download className="h-4 w-4" />
-                Export Highlights ({documentHighlights.length})
-              </Button>
-            )}
-          </div>
+          {/* Left Column - Document Info and Upload */}
+          <ContractSidebar
+            documentMetadata={documentMetadata}
+            isAnalyzing={isAnalyzing}
+            documentHighlights={documentHighlights}
+            onFileUpload={handleFileUpload}
+            onExportHighlights={exportHighlightsToCSV}
+          />
           
           {/* Main Column - Analysis */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Loading state */}
-            {isAnalyzing ? (
-              <ContractAnalyzingState stage={analysisStage} progress={analysisProgress} />
-            ) : (
-              <Tabs defaultValue="summary" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="summary">Contract Summary</TabsTrigger>
-                  <TabsTrigger value="assistant">Ask Questions</TabsTrigger>
-                  <TabsTrigger value="document">Full Document</TabsTrigger>
-                </TabsList>
-                
-                {/* Summary Tab */}
-                <TabsContent value="summary">
-                  <ContractSummaryTab summaryData={customSummary || mockSummary} />
-                </TabsContent>
-                
-                {/* Assistant Tab */}
-                <TabsContent value="assistant">
-                  <ContractAssistantTab 
-                    onAskQuestion={handleAskQuestion}
-                    questionHistory={questionHistory}
-                    isProcessing={isProcessing} 
-                  />
-                </TabsContent>
-                
-                {/* Document Tab */}
-                <TabsContent value="document">
-                  <DocumentTab contractText={contractText} />
-                </TabsContent>
-              </Tabs>
-            )}
+            <ContractMainContent
+              isAnalyzing={isAnalyzing}
+              analysisStage={analysisStage}
+              analysisProgress={analysisProgress}
+              activeTab={activeTab}
+              customSummary={customSummary}
+              mockSummary={mockSummary}
+              contractText={contractText}
+              questionHistory={questionHistory}
+              isProcessing={isProcessing}
+              onTabChange={setActiveTab}
+              onAskQuestion={handleAskQuestion}
+            />
           </div>
         </div>
       </div>
