@@ -32,6 +32,7 @@ export const useOnboardingFlow = () => {
         onboarding_complete: !isSelectingProfessionalRole
       };
 
+      console.log('Updating profile with:', updatedProfile);
       const success = await updateUserProfile(updatedProfile);
 
       if (success) {

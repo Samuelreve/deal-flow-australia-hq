@@ -34,11 +34,6 @@ const OnboardingIntentPage: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If user doesn't have a profile, redirect to login to recreate it
-  if (!user.profile) {
-    return <Navigate to="/login" replace />;
-  }
-
   return (
     <AppErrorBoundary>
       <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">

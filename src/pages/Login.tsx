@@ -23,8 +23,9 @@ const Login = () => {
   
   // Handle redirects for authenticated users
   useEffect(() => {
-    if (isAuthenticated && !authLoading && user) {
-      console.log('User is authenticated, checking redirect logic');
+    // Only redirect if we're fully loaded and authenticated
+    if (!authLoading && isAuthenticated && user) {
+      console.log('User is authenticated, determining redirect');
       
       if (inviteToken) {
         console.log("Redirecting to accept invitation");
@@ -32,18 +33,18 @@ const Login = () => {
         return;
       }
       
-      // Check if user needs onboarding
+      // If user has no profile or incomplete onboarding, go to onboarding
       if (!user.profile || !user.profile.onboarding_complete) {
         console.log("Redirecting to onboarding");
         navigate("/onboarding/intent", { replace: true });
         return;
       }
       
-      // User has completed onboarding, go to dashboard
+      // User has completed everything, go to dashboard
       console.log("Redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, authLoading, user, navigate, inviteToken]);
+  }, [authLoading, isAuthenticated, user, navigate, inviteToken]);
   
   const handleSignUp = () => {
     if (inviteToken) {
@@ -53,7 +54,7 @@ const Login = () => {
     }
   };
   
-  // Show loading while auth is loading
+  // Show loading only while auth is initially loading
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -65,19 +66,14 @@ const Login = () => {
     );
   }
   
-  // Show loading while redirecting authenticated users
+  // If user is authenticated but still here, don't show loading
+  // Let the useEffect handle the redirect
   if (isAuthenticated && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
-            {inviteToken 
-              ? "Redirecting to accept invitation..." 
-              : !user.profile || !user.profile.onboarding_complete
-                ? "Setting up your account..."
-                : "Redirecting to dashboard..."}
-          </p>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
         </div>
       </div>
     );
