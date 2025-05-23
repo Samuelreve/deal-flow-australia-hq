@@ -1,6 +1,8 @@
 
 import { useState, useCallback } from 'react';
 import { QuestionAnswerState, QuestionHistoryItem } from '@/types/contract';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const useContractQuestionAnswer = () => {
   const [state, setState] = useState<QuestionAnswerState>({
@@ -9,25 +11,34 @@ export const useContractQuestionAnswer = () => {
     error: null
   });
 
-  const handleAskQuestion = useCallback(async (question: string): Promise<string | { answer: string; sources?: string[] }> => {
+  const handleAskQuestion = useCallback(async (question: string, contractText: string): Promise<string | { answer: string; sources?: string[] }> => {
     setState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call our Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('contract-assistant', {
+        body: { question, contractText }
+      });
 
-      const mockAnswer = {
-        answer: `This is a mock response to: "${question}". In a real implementation, this would be processed by an AI service.`,
-        sources: ["Contract Section 2.1", "Clause 4.3"]
+      if (error) {
+        throw new Error(error.message || 'Failed to process question');
+      }
+
+      // Format the answer
+      const result = {
+        answer: data.answer,
+        sources: data.sources
       };
 
+      // Create a new history item
       const newHistoryItem: QuestionHistoryItem = {
         id: `q-${Date.now()}`,
         question,
-        answer: mockAnswer,
+        answer: result,
         timestamp: new Date()
       };
 
+      // Update state with the new history item
       setState(prev => ({
         ...prev,
         questionHistory: [newHistoryItem, ...prev.questionHistory],
@@ -35,9 +46,11 @@ export const useContractQuestionAnswer = () => {
         error: null
       }));
 
-      return mockAnswer;
+      return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to process question';
+      
+      toast.error(errorMessage);
       
       setState(prev => ({
         ...prev,

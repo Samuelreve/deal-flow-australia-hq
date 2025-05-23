@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ContractAnalyzingState from './ContractAnalyzingState';
 import ContractSummaryTab from './tabs/ContractSummaryTab';
 import ContractAssistantTab from './tabs/ContractAssistantTab';
 import DocumentTab from './tabs/DocumentTab';
@@ -19,7 +18,7 @@ interface ContractMainContentProps {
   questionHistory: QuestionHistoryItem[];
   isProcessing: boolean;
   onTabChange: (tab: string) => void;
-  onAskQuestion: (question: string) => Promise<string | { answer: string; sources?: string[] }>;
+  onAskQuestion: (question: string, contractText: string) => Promise<string | { answer: string; sources?: string[] }>;
 }
 
 const ContractMainContent: React.FC<ContractMainContentProps> = ({
@@ -45,6 +44,11 @@ const ContractMainContent: React.FC<ContractMainContentProps> = ({
     );
   }
 
+  // Create a wrapper function to pass the contract text automatically
+  const handleAskQuestion = async (question: string) => {
+    return onAskQuestion(question, contractText);
+  };
+
   return (
     <Tabs defaultValue="summary" value={activeTab} onValueChange={onTabChange}>
       <TabsList className="mb-4">
@@ -61,7 +65,7 @@ const ContractMainContent: React.FC<ContractMainContentProps> = ({
       {/* Assistant Tab */}
       <TabsContent value="assistant">
         <ContractAssistantTab 
-          onAskQuestion={onAskQuestion}
+          onAskQuestion={handleAskQuestion}
           questionHistory={questionHistory}
           isProcessing={isProcessing} 
         />
