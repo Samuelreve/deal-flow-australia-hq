@@ -152,7 +152,8 @@ const DemoContractPage: React.FC = () => {
         const mockHistoryWithType = mockQuestionHistory.map(item => ({
           ...item,
           type: 'question' as const,
-          answer: typeof item.answer === 'string' ? item.answer : item.answer.answer
+          answer: typeof item.answer === 'string' ? item.answer : item.answer.answer,
+          timestamp: item.timestamp instanceof Date ? item.timestamp.getTime() : item.timestamp
         }));
         questionAnswerState.setQuestionHistory(mockHistoryWithType);
       }

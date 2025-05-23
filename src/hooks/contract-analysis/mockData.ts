@@ -1,4 +1,3 @@
-
 import { SummaryItem } from '@/components/contract/tabs/ContractSummaryTab';
 
 // Mock data for contract summary
@@ -121,7 +120,7 @@ export const mockQuestionHistory = [
       answer: "The effective date of this contract is June 1, 2023, as specified in the opening paragraph.",
       sources: ["Paragraph 1"]
     },
-    timestamp: new Date(2023, 5, 15, 14, 30)
+    timestamp: Date.now() - 3600000 // Convert to number (1 hour ago)
   },
   {
     id: "q2",
@@ -130,6 +129,6 @@ export const mockQuestionHistory = [
       answer: "The confidentiality obligations survive for 5 years after termination of the agreement, which itself has a term of 3 years from the effective date.",
       sources: ["Section 3"]
     },
-    timestamp: new Date(2023, 5, 15, 14, 35)
+    timestamp: Date.now() - 1800000 // Convert to number (30 minutes ago)
   }
 ];
