@@ -37,7 +37,11 @@ export const useAdvancedHealthMonitoring = (userId?: string): UseAdvancedHealthM
       setLoading(false);
     };
 
-    fetchAllData();
+    if (userId) {
+      fetchAllData();
+    } else {
+      setLoading(false);
+    }
   }, [userId]);
 
   return {

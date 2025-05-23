@@ -12,24 +12,20 @@ export const usePredictions = (userId?: string) => {
     
     try {
       const { data, error } = await supabase
-        .from('deal_health_predictions')
+        .from('deal_health_predictions_new')
         .select('*')
-        .eq('user_id', userId);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       
       const formattedPredictions: HealthPrediction[] = (data || []).map(item => ({
         id: item.id,
         deal_id: item.deal_id,
-        predicted_score: item.probability_percentage,
-        prediction_date: item.created_at,
-        confidence_level: parseFloat(item.confidence_level) || 0.5,
-        factors: Array.isArray(item.suggested_improvements) 
-          ? (item.suggested_improvements as any[]).map((imp: any) => ({
-              factor: imp.area || 'Unknown factor',
-              impact: imp.impact === 'high' ? 15 : imp.impact === 'medium' ? 10 : 5,
-              description: imp.recommendation || 'No description'
-            }))
+        predicted_score: item.predicted_score,
+        prediction_date: item.prediction_date,
+        confidence_level: item.confidence_level,
+        factors: Array.isArray(item.factors) 
+          ? item.factors
           : [],
         created_at: item.created_at
       }));
@@ -41,8 +37,49 @@ export const usePredictions = (userId?: string) => {
     }
   };
 
+  // Function to create a new prediction
+  const createPrediction = async (dealId: string, predictedScore: number, confidenceLevel: number, factors: any[]) => {
+    if (!userId) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('deal_health_predictions_new')
+        .insert({
+          deal_id: dealId,
+          user_id: userId,
+          predicted_score: predictedScore,
+          confidence_level: confidenceLevel,
+          factors: factors,
+          prediction_date: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newPrediction: HealthPrediction = {
+        id: data.id,
+        deal_id: data.deal_id,
+        predicted_score: data.predicted_score,
+        prediction_date: data.prediction_date,
+        confidence_level: data.confidence_level,
+        factors: data.factors,
+        created_at: data.created_at
+      };
+      
+      setPredictions(prev => [newPrediction, ...prev]);
+      toast.success('Health prediction created');
+      return newPrediction;
+    } catch (error) {
+      console.error('Error creating prediction:', error);
+      toast.error('Failed to create prediction');
+      return null;
+    }
+  };
+
   return {
     predictions,
-    fetchPredictions
+    fetchPredictions,
+    createPrediction
   };
 };

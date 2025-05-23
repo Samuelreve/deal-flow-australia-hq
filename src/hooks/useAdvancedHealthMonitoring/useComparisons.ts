@@ -11,15 +11,12 @@ export const useComparisons = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase.rpc('get_health_comparisons', {
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('health_score_comparisons_new')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('RPC error:', error);
-        setComparisons([]);
-        return;
-      }
+      if (error) throw error;
       
       const formattedComparisons: HealthScoreComparison[] = (data || []).map((comparison: any) => ({
         id: comparison.id,
@@ -40,20 +37,36 @@ export const useComparisons = (userId?: string) => {
   };
 
   const createComparison = async (comparison: Omit<HealthScoreComparison, 'id' | 'created_at'>) => {
+    if (!userId) return null;
+    
     try {
-      const mockComparison: HealthScoreComparison = {
-        id: crypto.randomUUID(),
-        user_id: comparison.user_id,
-        comparison_name: comparison.comparison_name,
-        deal_ids: comparison.deal_ids,
-        date_range_start: comparison.date_range_start,
-        date_range_end: comparison.date_range_end,
-        created_at: new Date().toISOString()
+      const { data, error } = await supabase
+        .from('health_score_comparisons_new')
+        .insert({
+          user_id: userId,
+          comparison_name: comparison.comparison_name,
+          deal_ids: comparison.deal_ids,
+          date_range_start: comparison.date_range_start,
+          date_range_end: comparison.date_range_end
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newComparison: HealthScoreComparison = {
+        id: data.id,
+        user_id: data.user_id,
+        comparison_name: data.comparison_name,
+        deal_ids: data.deal_ids,
+        date_range_start: data.date_range_start,
+        date_range_end: data.date_range_end,
+        created_at: data.created_at
       };
       
-      setComparisons(prev => [mockComparison, ...prev]);
+      setComparisons(prev => [newComparison, ...prev]);
       toast.success('Comparison created successfully');
-      return mockComparison;
+      return newComparison;
     } catch (error) {
       console.error('Error creating comparison:', error);
       toast.error('Failed to create comparison');

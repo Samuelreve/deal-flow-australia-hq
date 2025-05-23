@@ -11,15 +11,12 @@ export const useReports = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase.rpc('get_health_reports', {
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('health_reports_new')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('RPC error:', error);
-        setReports([]);
-        return;
-      }
+      if (error) throw error;
       
       const formattedReports: HealthReport[] = (data || []).map((report: any) => ({
         id: report.id,
@@ -44,43 +41,75 @@ export const useReports = (userId?: string) => {
   };
 
   const generateReport = async (reportConfig: Omit<HealthReport, 'id' | 'created_at' | 'status' | 'report_data' | 'file_url'>) => {
+    if (!userId) return null;
+    
     try {
-      const mockReport: HealthReport = {
-        id: crypto.randomUUID(),
-        user_id: reportConfig.user_id,
-        report_name: reportConfig.report_name,
-        report_type: reportConfig.report_type,
-        deal_ids: reportConfig.deal_ids,
-        date_range_start: reportConfig.date_range_start,
-        date_range_end: reportConfig.date_range_end,
+      const { data, error } = await supabase
+        .from('health_reports_new')
+        .insert({
+          user_id: userId,
+          report_name: reportConfig.report_name,
+          report_type: reportConfig.report_type,
+          deal_ids: reportConfig.deal_ids,
+          date_range_start: reportConfig.date_range_start,
+          date_range_end: reportConfig.date_range_end,
+          status: 'generating'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newReport: HealthReport = {
+        id: data.id,
+        user_id: data.user_id,
+        report_name: data.report_name,
+        report_type: data.report_type,
+        deal_ids: data.deal_ids,
+        date_range_start: data.date_range_start,
+        date_range_end: data.date_range_end,
         status: 'generating',
-        created_at: new Date().toISOString()
+        created_at: data.created_at
       };
       
-      setReports(prev => [mockReport, ...prev]);
+      setReports(prev => [newReport, ...prev]);
       toast.success('Report generation started');
       
-      setTimeout(() => {
-        setReports(prev => 
-          prev.map(report => 
-            report.id === mockReport.id 
-              ? { 
-                  ...report, 
-                  status: 'completed' as const, 
-                  report_data: { 
-                    summary: 'Health report generated successfully',
-                    deal_count: reportConfig.deal_ids?.length || 0,
-                    generated_at: new Date().toISOString()
-                  },
-                  file_url: `/reports/${mockReport.id}.${reportConfig.report_type}` 
-                } 
-              : report
-          )
-        );
-        toast.success('Report generated successfully');
+      // Simulate report generation (in a real app, this would be a background job)
+      setTimeout(async () => {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('health_reports_new')
+          .update({
+            status: 'completed',
+            report_data: {
+              summary: 'Health report generated successfully',
+              deal_count: reportConfig.deal_ids?.length || 0,
+              generated_at: new Date().toISOString()
+            },
+            file_url: `/reports/${newReport.id}.${reportConfig.report_type}`
+          })
+          .eq('id', newReport.id)
+          .select()
+          .single();
+          
+        if (!updateError && updatedData) {
+          setReports(prev => 
+            prev.map(report => 
+              report.id === newReport.id 
+                ? {
+                    ...report,
+                    status: 'completed',
+                    report_data: updatedData.report_data,
+                    file_url: updatedData.file_url
+                  }
+                : report
+            )
+          );
+          toast.success('Report generated successfully');
+        }
       }, 3000);
       
-      return mockReport;
+      return newReport;
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error('Failed to generate report');

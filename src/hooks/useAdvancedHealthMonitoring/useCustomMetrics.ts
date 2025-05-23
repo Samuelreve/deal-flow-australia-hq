@@ -11,15 +11,12 @@ export const useCustomMetrics = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase.rpc('get_custom_health_metrics', {
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('custom_health_metrics_new')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('RPC error:', error);
-        setCustomMetrics([]);
-        return;
-      }
+      if (error) throw error;
       
       const formattedMetrics: CustomHealthMetric[] = (data || []).map((metric: any) => ({
         id: metric.id,
@@ -43,20 +40,26 @@ export const useCustomMetrics = (userId?: string) => {
   };
 
   const createCustomMetric = async (metric: Omit<CustomHealthMetric, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!userId) return null;
+    
     try {
-      const { data, error } = await supabase.rpc('create_custom_metric', {
-        p_deal_id: metric.deal_id,
-        p_user_id: metric.user_id,
-        p_metric_name: metric.metric_name,
-        p_metric_weight: metric.metric_weight,
-        p_current_value: metric.current_value,
-        p_target_value: metric.target_value,
-        p_is_active: metric.is_active
-      });
+      const { data, error } = await supabase
+        .from('custom_health_metrics_new')
+        .insert({
+          deal_id: metric.deal_id,
+          user_id: userId,
+          metric_name: metric.metric_name,
+          metric_weight: metric.metric_weight,
+          current_value: metric.current_value,
+          target_value: metric.target_value,
+          is_active: metric.is_active
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       
-      const formattedMetric: CustomHealthMetric = {
+      const newMetric: CustomHealthMetric = {
         id: data.id,
         deal_id: data.deal_id,
         user_id: data.user_id,
@@ -69,9 +72,9 @@ export const useCustomMetrics = (userId?: string) => {
         updated_at: data.updated_at
       };
       
-      setCustomMetrics(prev => [formattedMetric, ...prev]);
+      setCustomMetrics(prev => [newMetric, ...prev]);
       toast.success('Custom metric created successfully');
-      return formattedMetric;
+      return newMetric;
     } catch (error) {
       console.error('Error creating custom metric:', error);
       toast.error('Failed to create custom metric');

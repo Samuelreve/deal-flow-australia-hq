@@ -1,13 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Form, FormField, FormItem, FormControl, FormDescription, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationSettingsFormValues {
   email_deal_updates: boolean;
@@ -22,8 +21,8 @@ const NotificationSettings: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   
-  // In a real application, this would be fetched from a notifications_settings table
   const form = useForm<NotificationSettingsFormValues>({
     defaultValues: {
       email_deal_updates: true,
@@ -35,14 +34,63 @@ const NotificationSettings: React.FC = () => {
     }
   });
 
+  // Fetch user notification settings when component mounts
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          form.reset({
+            email_deal_updates: data.email_deal_updates,
+            email_messages: data.email_messages,
+            email_document_comments: data.email_document_comments,
+            inapp_deal_updates: data.inapp_deal_updates,
+            inapp_messages: data.inapp_messages,
+            inapp_document_comments: data.inapp_document_comments,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching notification settings:', error);
+        toast({
+          title: "Error loading settings",
+          description: "Failed to load your notification preferences.",
+          variant: "destructive",
+        });
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    fetchSettings();
+  }, [user, form, toast]);
+
   const onSubmit = async (data: NotificationSettingsFormValues) => {
+    if (!user) return;
+    
     setLoading(true);
     
     try {
-      // This would normally save to the database
-      // await saveNotificationSettings(user.id, data);
+      const { error } = await supabase.rpc('save_notification_settings', {
+        p_user_id: user.id,
+        p_email_deal_updates: data.email_deal_updates,
+        p_email_messages: data.email_messages,
+        p_email_document_comments: data.email_document_comments,
+        p_inapp_deal_updates: data.inapp_deal_updates,
+        p_inapp_messages: data.inapp_messages,
+        p_inapp_document_comments: data.inapp_document_comments
+      });
       
-      // For demo purposes, just show a success toast
+      if (error) throw error;
+      
       toast({
         title: "Settings saved",
         description: "Your notification preferences have been updated.",
@@ -57,6 +105,14 @@ const NotificationSettings: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <p className="text-muted-foreground">Loading notification settings...</p>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -133,8 +189,6 @@ const NotificationSettings: React.FC = () => {
             />
           </div>
         </div>
-
-        <Separator />
 
         {/* In-App Notifications Section */}
         <div>

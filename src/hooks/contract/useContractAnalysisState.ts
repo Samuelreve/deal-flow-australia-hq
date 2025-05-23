@@ -1,67 +1,76 @@
 
-import { useState, useCallback } from 'react';
-import { ContractAnalysisState, DocumentMetadata, DocumentHighlight, AnalysisProgress } from '@/types/contract';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface AnalysisState {
+  loading: boolean;
+  result: any;
+  error: string | null;
+}
+
+interface AnalysisRequest {
+  documentId: string;
+  analysisType: string;
+}
 
 export const useContractAnalysisState = () => {
-  const [state, setState] = useState<ContractAnalysisState>({
-    documentMetadata: null,
-    contractText: '',
-    customSummary: null,
-    isAnalyzing: false,
-    analysisProgress: { stage: '', progress: 0 },
-    documentHighlights: [],
-    error: null
-  });
+  const [analysisState, setAnalysisState] = useState<Record<string, AnalysisState>>({});
 
-  const setDocumentMetadata = useCallback((metadata: DocumentMetadata) => {
-    setState(prev => ({ ...prev, documentMetadata: metadata, error: null }));
-  }, []);
+  const requestAnalysis = async (request: AnalysisRequest) => {
+    const { documentId, analysisType } = request;
+    const analysisKey = `${documentId}-${analysisType}`;
+    
+    // Set loading state
+    setAnalysisState(prev => ({
+      ...prev,
+      [analysisKey]: { loading: true, result: null, error: null }
+    }));
+    
+    try {
+      // Call the document-analysis edge function
+      const { data, error } = await supabase.functions.invoke('document-analysis', {
+        body: { documentId, analysisType }
+      });
+      
+      if (error) throw error;
+      
+      // Update state with successful result
+      setAnalysisState(prev => ({
+        ...prev,
+        [analysisKey]: { loading: false, result: data, error: null }
+      }));
+      
+      toast.success(`${analysisType} analysis completed successfully`);
+      return data;
+    } catch (error) {
+      console.error('Analysis error:', error);
+      
+      // Update state with error
+      setAnalysisState(prev => ({
+        ...prev,
+        [analysisKey]: { 
+          loading: false, 
+          result: null, 
+          error: error.message || 'Failed to analyze document' 
+        }
+      }));
+      
+      toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
+      return null;
+    }
+  };
 
-  const setContractText = useCallback((text: string) => {
-    setState(prev => ({ ...prev, contractText: text }));
-  }, []);
-
-  const setCustomSummary = useCallback((summary: any) => {
-    setState(prev => ({ ...prev, customSummary: summary }));
-  }, []);
-
-  const setIsAnalyzing = useCallback((analyzing: boolean) => {
-    setState(prev => ({ ...prev, isAnalyzing: analyzing }));
-  }, []);
-
-  const setAnalysisProgress = useCallback((progress: AnalysisProgress) => {
-    setState(prev => ({ ...prev, analysisProgress: progress }));
-  }, []);
-
-  const setDocumentHighlights = useCallback((highlights: DocumentHighlight[]) => {
-    setState(prev => ({ ...prev, documentHighlights: highlights }));
-  }, []);
-
-  const setError = useCallback((error: string | null) => {
-    setState(prev => ({ ...prev, error }));
-  }, []);
-
-  const resetState = useCallback(() => {
-    setState({
-      documentMetadata: null,
-      contractText: '',
-      customSummary: null,
-      isAnalyzing: false,
-      analysisProgress: { stage: '', progress: 0 },
-      documentHighlights: [],
-      error: null
-    });
-  }, []);
+  const getAnalysisState = (documentId: string, analysisType: string) => {
+    const analysisKey = `${documentId}-${analysisType}`;
+    return analysisState[analysisKey] || { loading: false, result: null, error: null };
+  };
 
   return {
-    ...state,
-    setDocumentMetadata,
-    setContractText,
-    setCustomSummary,
-    setIsAnalyzing,
-    setAnalysisProgress,
-    setDocumentHighlights,
-    setError,
-    resetState
+    requestAnalysis,
+    getAnalysisState,
+    analysisState
   };
 };
+
+export default useContractAnalysisState;

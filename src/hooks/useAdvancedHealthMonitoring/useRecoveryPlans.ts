@@ -11,15 +11,12 @@ export const useRecoveryPlans = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase.rpc('get_recovery_plans', {
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('health_recovery_plans_new')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('RPC error:', error);
-        setRecoveryPlans([]);
-        return;
-      }
+      if (error) throw error;
       
       const formattedPlans: HealthRecoveryPlan[] = (data || []).map((plan: any) => ({
         id: plan.id,
@@ -28,7 +25,7 @@ export const useRecoveryPlans = (userId?: string) => {
         current_score: plan.current_score,
         target_score: plan.target_score,
         estimated_timeline_days: plan.estimated_timeline_days,
-        action_items: Array.isArray(plan.action_items) ? plan.action_items : [],
+        action_items: plan.action_items,
         status: plan.status as 'active' | 'completed' | 'cancelled',
         created_at: plan.created_at,
         updated_at: plan.updated_at
@@ -43,23 +40,41 @@ export const useRecoveryPlans = (userId?: string) => {
   };
 
   const createRecoveryPlan = async (plan: Omit<HealthRecoveryPlan, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!userId) return null;
+    
     try {
-      const mockPlan: HealthRecoveryPlan = {
-        id: crypto.randomUUID(),
-        deal_id: plan.deal_id,
-        user_id: plan.user_id,
-        current_score: plan.current_score,
-        target_score: plan.target_score,
-        estimated_timeline_days: plan.estimated_timeline_days,
-        action_items: plan.action_items,
-        status: plan.status,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const { data, error } = await supabase
+        .from('health_recovery_plans_new')
+        .insert({
+          deal_id: plan.deal_id,
+          user_id: userId,
+          current_score: plan.current_score,
+          target_score: plan.target_score,
+          estimated_timeline_days: plan.estimated_timeline_days,
+          action_items: plan.action_items,
+          status: plan.status
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      const newPlan: HealthRecoveryPlan = {
+        id: data.id,
+        deal_id: data.deal_id,
+        user_id: data.user_id,
+        current_score: data.current_score,
+        target_score: data.target_score,
+        estimated_timeline_days: data.estimated_timeline_days,
+        action_items: data.action_items,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at
       };
       
-      setRecoveryPlans(prev => [mockPlan, ...prev]);
+      setRecoveryPlans(prev => [newPlan, ...prev]);
       toast.success('Recovery plan created successfully');
-      return mockPlan;
+      return newPlan;
     } catch (error) {
       console.error('Error creating recovery plan:', error);
       toast.error('Failed to create recovery plan');
