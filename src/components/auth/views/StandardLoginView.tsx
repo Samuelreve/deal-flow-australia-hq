@@ -6,7 +6,7 @@ import StandardLoginForm from "../StandardLoginForm";
 
 interface StandardLoginViewProps {
   onSignUp: () => void;
-  handleLoginSubmit: (email: string, password: string) => Promise<void>;
+  handleLoginSubmit: (email: string, password: string) => Promise<boolean>;
   handleForgotPassword: () => void;
   error?: string;
   isLoading: boolean;
@@ -21,6 +21,10 @@ const StandardLoginView = ({
   isLoading,
   showSuccess
 }: StandardLoginViewProps) => {
+  const handleSubmit = async (email: string, password: string) => {
+    await handleLoginSubmit(email, password);
+  };
+
   return (
     <>
       {showSuccess && (
@@ -32,7 +36,7 @@ const StandardLoginView = ({
       )}
       
       <StandardLoginForm 
-        onSubmit={handleLoginSubmit}
+        onSubmit={handleSubmit}
         onForgotPassword={handleForgotPassword}
         error={error}
         isLoading={isLoading}

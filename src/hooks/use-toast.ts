@@ -24,6 +24,3 @@ export const useToast = () => {
     toasts: []
   };
 };
-
-// Re-export the sonner toast for direct use
-export { sonner as toast } from "sonner";

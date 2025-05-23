@@ -3,7 +3,7 @@ import TwoFactorVerification from "../TwoFactorVerification";
 
 interface TwoFactorViewProps {
   challengeId: string;
-  onVerify: (code: string) => Promise<void>;
+  onVerify: (code: string) => Promise<boolean>;
   onCancel: () => void;
   error?: string;
 }
@@ -14,10 +14,14 @@ const TwoFactorView = ({
   onCancel,
   error
 }: TwoFactorViewProps) => {
+  const handleVerify = async (code: string) => {
+    await onVerify(code);
+  };
+
   return (
     <TwoFactorVerification 
       challengeId={challengeId}
-      onVerify={onVerify}
+      onVerify={handleVerify}
       onCancel={onCancel}
       error={error}
     />
