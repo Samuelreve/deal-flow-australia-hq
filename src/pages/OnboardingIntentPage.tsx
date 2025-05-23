@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +54,18 @@ const OnboardingIntentPage: React.FC = () => {
         is_professional: isProfessional,
         onboarding_complete: !isProfessional || intent !== 'advisor',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        avatar_url: null,
+        company: null,
+        phone: null,
+        professional_headline: null,
+        professional_bio: null,
+        professional_firm_name: null,
+        professional_contact_email: null,
+        professional_phone: null,
+        professional_website: null,
+        professional_location: null,
+        professional_specializations: undefined
       };
 
       // Update user state directly since database operations are failing
@@ -105,10 +115,28 @@ const OnboardingIntentPage: React.FC = () => {
       }
 
       if (data) {
+        // Convert Json type to string[] for professional_specializations
+        let specializations: string[] | undefined = undefined;
+        
+        if (data.professional_specializations) {
+          if (Array.isArray(data.professional_specializations)) {
+            // Filter and map to ensure we only get strings
+            specializations = data.professional_specializations
+              .filter((item): item is string => typeof item === 'string');
+          } else if (typeof data.professional_specializations === 'string') {
+            specializations = [data.professional_specializations];
+          }
+        }
+
+        const convertedProfile = {
+          ...data,
+          professional_specializations: specializations
+        };
+
         // Update user state with new profile
         const updatedUser = {
           ...user!,
-          profile: data
+          profile: convertedProfile
         };
         setUser(updatedUser);
         toast.success("Profile created successfully!");
