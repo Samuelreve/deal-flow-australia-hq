@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { QuestionAnswerState, QuestionHistoryItem } from '@/types/contract';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,6 +126,39 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     }
   }, [contractId]);
 
+  // New function to handle deal health predictions
+  const handleDealHealthPrediction = useCallback(async (dealId: string): Promise<any> => {
+    setState(prev => ({ ...prev, isProcessing: true, error: null }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke('enhanced-contract-assistant', {
+        body: { 
+          analysisType: 'dealHealth',
+          dealId
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to perform deal health prediction');
+      }
+
+      setState(prev => ({ ...prev, isProcessing: false, error: null }));
+      return data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to perform deal health prediction';
+      
+      toast.error(errorMessage);
+      
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
+        error: errorMessage
+      }));
+
+      throw new Error(errorMessage);
+    }
+  }, []);
+
   const clearHistory = useCallback(() => {
     setState(prev => ({ ...prev, questionHistory: [] }));
   }, []);
@@ -145,6 +179,7 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     ...state,
     handleAskQuestion,
     handleAnalyzeContract,
+    handleDealHealthPrediction,
     clearHistory,
     removeQuestion,
     refreshHistory: loadQuestionHistory

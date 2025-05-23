@@ -1,23 +1,22 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDocumentAI } from "@/hooks/document-ai";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DealHealthPredictionResponse } from "@/hooks/document-ai/types";
 import { toast } from "sonner";
+import { useRealContractQuestionAnswer } from "@/hooks/contract/useRealContractQuestionAnswer";
 
 interface DealHealthPredictionPanelProps {
   dealId: string;
 }
 
 const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ dealId }) => {
-  const [prediction, setPrediction] = useState<DealHealthPredictionResponse | null>(null);
+  const [prediction, setPrediction] = useState<any>(null);
   const [isPredicting, setIsPredicting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { predictDealHealth } = useDocumentAI({ dealId });
+  const { handleDealHealthPrediction, isProcessing } = useRealContractQuestionAnswer(null);
   
   const handleGetPrediction = async () => {
     if (!dealId) return;
@@ -26,8 +25,7 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
     setError(null);
     
     try {
-      // Pass the dealId to the predictDealHealth function
-      const result = await predictDealHealth(dealId);
+      const result = await handleDealHealthPrediction(dealId);
       
       if (result) {
         setPrediction(result);
@@ -91,14 +89,14 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
           </div>
         )}
         
-        {isPredicting && (
+        {(isPredicting || isProcessing) && (
           <div className="flex flex-col items-center justify-center py-6">
             <Loader2 className="h-8 w-8 animate-spin text-primary/60 mb-2" />
             <p className="text-muted-foreground">Analyzing deal data...</p>
           </div>
         )}
         
-        {error && !isPredicting && (
+        {error && !isPredicting && !isProcessing && (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <TrendingDown size={32} className="mb-2 text-destructive/60" />
             <p className="text-muted-foreground">{error}</p>
@@ -112,7 +110,7 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
           </div>
         )}
         
-        {prediction && !isPredicting && (
+        {prediction && !isPredicting && !isProcessing && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -147,7 +145,7 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
             <div>
               <div className="text-sm font-medium mb-2">Suggested Improvements</div>
               <ul className="space-y-2">
-                {prediction.suggested_improvements.map((improvement, i) => (
+                {prediction.suggested_improvements.map((improvement: any, i: number) => (
                   <li key={i} className="flex items-start gap-2 text-sm border-l-2 border-primary/20 pl-3">
                     <div>
                       <div className="flex items-center gap-2">
@@ -171,7 +169,7 @@ const DealHealthPredictionPanel: React.FC<DealHealthPredictionPanelProps> = ({ d
       {prediction && (
         <CardFooter className="text-xs text-muted-foreground border-t pt-4">
           <p>
-            {prediction.disclaimer}
+            {prediction.disclaimer || "This health prediction is based on AI analysis and should be used as just one input for decision-making."}
           </p>
         </CardFooter>
       )}
