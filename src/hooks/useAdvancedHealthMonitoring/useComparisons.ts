@@ -22,7 +22,11 @@ export const useComparisons = (userId?: string) => {
         id: comparison.id,
         user_id: comparison.user_id,
         comparison_name: comparison.comparison_name,
-        deal_ids: Array.isArray(comparison.deal_ids) ? comparison.deal_ids : [],
+        deal_ids: Array.isArray(comparison.deal_ids) 
+          ? comparison.deal_ids as string[]
+          : typeof comparison.deal_ids === 'string' 
+            ? [comparison.deal_ids]
+            : [],
         date_range_start: comparison.date_range_start,
         date_range_end: comparison.date_range_end,
         created_at: comparison.created_at
@@ -58,7 +62,11 @@ export const useComparisons = (userId?: string) => {
         id: data.id,
         user_id: data.user_id,
         comparison_name: data.comparison_name,
-        deal_ids: data.deal_ids,
+        deal_ids: Array.isArray(data.deal_ids) 
+          ? data.deal_ids as string[]
+          : typeof data.deal_ids === 'string' 
+            ? [data.deal_ids]
+            : [],
         date_range_start: data.date_range_start,
         date_range_end: data.date_range_end,
         created_at: data.created_at

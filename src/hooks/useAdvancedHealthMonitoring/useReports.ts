@@ -22,13 +22,17 @@ export const useReports = (userId?: string) => {
         id: report.id,
         user_id: report.user_id,
         report_name: report.report_name,
-        report_type: report.report_type as 'pdf' | 'csv' | 'json',
-        deal_ids: Array.isArray(report.deal_ids) ? report.deal_ids : undefined,
+        report_type: (report.report_type as 'pdf' | 'csv' | 'json') || 'pdf',
+        deal_ids: Array.isArray(report.deal_ids) 
+          ? report.deal_ids as string[]
+          : typeof report.deal_ids === 'string' 
+            ? [report.deal_ids]
+            : undefined,
         date_range_start: report.date_range_start,
         date_range_end: report.date_range_end,
         report_data: report.report_data,
         file_url: report.file_url,
-        status: report.status as 'generating' | 'completed' | 'failed',
+        status: (report.status as 'generating' | 'completed' | 'failed') || 'generating',
         created_at: report.created_at
       }));
       
@@ -64,8 +68,12 @@ export const useReports = (userId?: string) => {
         id: data.id,
         user_id: data.user_id,
         report_name: data.report_name,
-        report_type: data.report_type,
-        deal_ids: data.deal_ids,
+        report_type: (data.report_type as 'pdf' | 'csv' | 'json') || 'pdf',
+        deal_ids: Array.isArray(data.deal_ids) 
+          ? data.deal_ids as string[]
+          : typeof data.deal_ids === 'string' 
+            ? [data.deal_ids]
+            : undefined,
         date_range_start: data.date_range_start,
         date_range_end: data.date_range_end,
         status: 'generating',

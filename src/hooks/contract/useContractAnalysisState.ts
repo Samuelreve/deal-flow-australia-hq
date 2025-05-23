@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DocumentMetadata } from '@/hooks/contract-analysis/types';
 
 interface AnalysisState {
   loading: boolean;
@@ -14,8 +15,27 @@ interface AnalysisRequest {
   analysisType: string;
 }
 
+interface AnalysisProgress {
+  stage: string;
+  progress: number;
+}
+
+interface DocumentHighlight {
+  id: string;
+  text: string;
+  category?: string;
+  note?: string;
+  createdAt: string;
+}
+
 export const useContractAnalysisState = () => {
   const [analysisState, setAnalysisState] = useState<Record<string, AnalysisState>>({});
+  const [documentMetadata, setDocumentMetadata] = useState<DocumentMetadata | null>(null);
+  const [contractText, setContractText] = useState<string>('');
+  const [customSummary, setCustomSummary] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [documentHighlights, setDocumentHighlights] = useState<DocumentHighlight[]>([]);
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>({ stage: '', progress: 0 });
 
   const requestAnalysis = async (request: AnalysisRequest) => {
     const { documentId, analysisType } = request;
@@ -26,6 +46,8 @@ export const useContractAnalysisState = () => {
       ...prev,
       [analysisKey]: { loading: true, result: null, error: null }
     }));
+    
+    setIsAnalyzing(true);
     
     try {
       // Call the document-analysis edge function
@@ -58,6 +80,8 @@ export const useContractAnalysisState = () => {
       
       toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
       return null;
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -69,7 +93,17 @@ export const useContractAnalysisState = () => {
   return {
     requestAnalysis,
     getAnalysisState,
-    analysisState
+    analysisState,
+    documentMetadata,
+    setDocumentMetadata,
+    contractText,
+    setContractText,
+    customSummary,
+    setCustomSummary,
+    isAnalyzing,
+    documentHighlights,
+    analysisProgress,
+    setError: (error: string) => console.error('Analysis error:', error)
   };
 };
 

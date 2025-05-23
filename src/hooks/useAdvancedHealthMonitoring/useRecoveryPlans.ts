@@ -25,8 +25,18 @@ export const useRecoveryPlans = (userId?: string) => {
         current_score: plan.current_score,
         target_score: plan.target_score,
         estimated_timeline_days: plan.estimated_timeline_days,
-        action_items: plan.action_items,
-        status: plan.status as 'active' | 'completed' | 'cancelled',
+        action_items: Array.isArray(plan.action_items) 
+          ? plan.action_items as Array<{
+              id: string;
+              title: string;
+              description: string;
+              priority: 'low' | 'medium' | 'high';
+              estimated_impact: number;
+              due_date?: string;
+              completed: boolean;
+            }>
+          : [],
+        status: (plan.status as 'active' | 'completed' | 'cancelled') || 'active',
         created_at: plan.created_at,
         updated_at: plan.updated_at
       }));
@@ -66,8 +76,18 @@ export const useRecoveryPlans = (userId?: string) => {
         current_score: data.current_score,
         target_score: data.target_score,
         estimated_timeline_days: data.estimated_timeline_days,
-        action_items: data.action_items,
-        status: data.status,
+        action_items: Array.isArray(data.action_items) 
+          ? data.action_items as Array<{
+              id: string;
+              title: string;
+              description: string;
+              priority: 'low' | 'medium' | 'high';
+              estimated_impact: number;
+              due_date?: string;
+              completed: boolean;
+            }>
+          : [],
+        status: (data.status as 'active' | 'completed' | 'cancelled') || 'active',
         created_at: data.created_at,
         updated_at: data.updated_at
       };

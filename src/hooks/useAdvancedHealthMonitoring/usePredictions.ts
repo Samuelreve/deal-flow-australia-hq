@@ -25,7 +25,7 @@ export const usePredictions = (userId?: string) => {
         prediction_date: item.prediction_date,
         confidence_level: item.confidence_level,
         factors: Array.isArray(item.factors) 
-          ? item.factors
+          ? item.factors as Array<{ factor: string; impact: number; description: string; }>
           : [],
         created_at: item.created_at
       }));
@@ -38,7 +38,7 @@ export const usePredictions = (userId?: string) => {
   };
 
   // Function to create a new prediction
-  const createPrediction = async (dealId: string, predictedScore: number, confidenceLevel: number, factors: any[]) => {
+  const createPrediction = async (dealId: string, predictedScore: number, confidenceLevel: number, factors: Array<{ factor: string; impact: number; description: string; }>) => {
     if (!userId) return null;
     
     try {
@@ -63,7 +63,9 @@ export const usePredictions = (userId?: string) => {
         predicted_score: data.predicted_score,
         prediction_date: data.prediction_date,
         confidence_level: data.confidence_level,
-        factors: data.factors,
+        factors: Array.isArray(data.factors) 
+          ? data.factors as Array<{ factor: string; impact: number; description: string; }>
+          : [],
         created_at: data.created_at
       };
       
