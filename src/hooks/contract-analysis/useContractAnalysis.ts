@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { DocumentMetadata, SummaryData } from './types';
+import { DocumentMetadata, SummaryData, Highlight } from './types';
 import { mockDocumentMetadata, mockSummaryData, sampleContractText } from './mockData';
 import { useAnalysisSimulation } from './useAnalysisSimulation';
 import { useQuestionAnswering } from './useQuestionAnswering';
@@ -21,7 +21,7 @@ export const useContractAnalysis = () => {
   const [customSummary, setCustomSummary] = useState<SummaryData | null>(null);
   
   // User highlight preferences state
-  const [documentHighlights, setDocumentHighlights] = useState<any[]>([]);
+  const [documentHighlights, setDocumentHighlights] = useState<Highlight[]>([]);
   
   // Get URL search params
   const [searchParams] = useSearchParams();
@@ -70,6 +70,46 @@ export const useContractAnalysis = () => {
     }
   }, []);
   
+  // Export highlights to CSV
+  const exportHighlightsToCSV = useCallback(() => {
+    if (documentHighlights.length === 0) {
+      toast.error('No highlights to export');
+      return;
+    }
+    
+    try {
+      // Create CSV content
+      const headers = ['Text', 'Category', 'Note', 'Created At'];
+      const csvContent = [
+        headers.join(','),
+        ...documentHighlights.map(highlight => {
+          return [
+            `"${highlight.text.replace(/"/g, '""')}"`,
+            highlight.category,
+            `"${(highlight.note || '').replace(/"/g, '""')}"`,
+            new Date(highlight.createdAt).toLocaleString()
+          ].join(',');
+        })
+      ].join('\n');
+      
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `contract-highlights-${Date.now()}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Highlights exported successfully');
+    } catch (error) {
+      console.error('Error exporting highlights:', error);
+      toast.error('Failed to export highlights');
+    }
+  }, [documentHighlights]);
+  
   useEffect(() => {
     // Check URL parameters to see if we should auto-analyze
     const shouldAnalyze = searchParams.get("analyze") === "true";
@@ -94,6 +134,7 @@ export const useContractAnalysis = () => {
     isProcessing,
     documentHighlights,
     setDocumentHighlights,
+    exportHighlightsToCSV,
     handleFileUpload,
     handleAskQuestion
   };

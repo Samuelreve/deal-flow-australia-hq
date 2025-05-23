@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import { Download } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import DocumentDetails from '@/components/contract/DocumentDetails';
 import DocumentVersions from '@/components/contract/DocumentVersions';
@@ -28,6 +30,7 @@ const DemoContractPage: React.FC = () => {
     isProcessing,
     documentHighlights,
     setDocumentHighlights,
+    exportHighlightsToCSV,
     handleFileUpload,
     handleAskQuestion
   } = useContractAnalysis();
@@ -66,6 +69,18 @@ const DemoContractPage: React.FC = () => {
             
             {/* Document Versions */}
             <DocumentVersions documentMetadata={documentMetadata} />
+            
+            {/* Export Highlights Button */}
+            {documentHighlights.length > 0 && (
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center gap-2" 
+                onClick={exportHighlightsToCSV}
+              >
+                <Download className="h-4 w-4" />
+                Export Highlights ({documentHighlights.length})
+              </Button>
+            )}
           </div>
           
           {/* Main Column - Analysis */}
