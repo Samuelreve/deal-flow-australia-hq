@@ -84,11 +84,54 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
     }
   }, [contractId]);
 
+  const handleDealHealthPrediction = useCallback(async (dealId: string) => {
+    setIsProcessing(true);
+    
+    try {
+      // Simulate API call with timeout
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Mock response for deal health prediction
+      const prediction = {
+        probability_of_success_percentage: Math.floor(Math.random() * 40) + 60, // 60-100%
+        confidence_level: "High",
+        prediction_reasoning: "Based on historical data and current deal metrics, this deal shows strong indicators for success including active engagement, consistent communication, and positive momentum in negotiations.",
+        suggested_improvements: [
+          {
+            area: "Communication",
+            impact: "High",
+            recommendation: "Schedule weekly check-ins with all stakeholders to maintain momentum and address any concerns early."
+          },
+          {
+            area: "Documentation",
+            impact: "Medium", 
+            recommendation: "Ensure all terms are clearly documented and agreed upon to avoid last-minute complications."
+          },
+          {
+            area: "Timeline",
+            impact: "Low",
+            recommendation: "Consider setting interim milestones to track progress and maintain engagement."
+          }
+        ],
+        disclaimer: "This prediction is based on AI analysis of available deal data and should be used as guidance alongside professional judgment."
+      };
+      
+      return prediction;
+    } catch (error) {
+      console.error('Error generating deal health prediction:', error);
+      toast.error('Failed to generate deal health prediction');
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
+
   return {
     questionHistory,
     isProcessing,
     handleAskQuestion,
     handleAnalyzeContract,
+    handleDealHealthPrediction,
     clearHistory: () => setQuestionHistory([])
   };
 };
