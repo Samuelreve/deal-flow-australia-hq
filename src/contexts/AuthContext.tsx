@@ -30,7 +30,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
-          setSession({ user: parsedUser } as Session);
+          // Create a mock Session object with all required properties
+          setSession({
+            user: parsedUser,
+            access_token: 'mock-access-token',
+            refresh_token: 'mock-refresh-token',
+            expires_in: 3600,
+            token_type: 'bearer'
+          } as Session);
         }
       } catch (error) {
         console.error('Session check failed:', error);
@@ -79,7 +86,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      setSession({ user: demoUser } as Session);
+      // Create a complete Session object
+      setSession({
+        user: demoUser,
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        expires_in: 3600,
+        token_type: 'bearer'
+      } as Session);
       localStorage.setItem('demo-user', JSON.stringify(demoUser));
       return true;
     } catch (error) {
@@ -127,7 +141,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       setUser(demoUser);
-      setSession({ user: demoUser } as Session);
+      // Create a complete Session object
+      setSession({
+        user: demoUser,
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        expires_in: 3600,
+        token_type: 'bearer'
+      } as Session);
       localStorage.setItem('demo-user', JSON.stringify(demoUser));
       return true;
     } catch (error) {
