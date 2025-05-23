@@ -1,58 +1,72 @@
 
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 
-// Update the QuestionHistoryItem to include the required 'type' property
 export interface QuestionHistoryItem {
   question: string;
   answer: string;
   timestamp: number;
-  type: 'question' | 'analysis'; // Adding the type property
+  type: 'question' | 'analysis';
   analysisType?: string;
 }
 
-export const useContractQuestionAnswer = () => {
+export function useContractQuestionAnswer() {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = useCallback(async (question: string) => {
+  const handleAskQuestion = async (question: string) => {
+    if (!question.trim()) return;
+    
     setIsProcessing(true);
+    setError(null);
     
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock response - in a real app, this would call an AI service
-      const answer = `This is a simulated answer to your question: "${question}"`;
+      // Generate a mock response
+      const answer = `This is a simulated answer to: "${question}". In a real implementation, this would be processed by an AI service.`;
       
       const newItem: QuestionHistoryItem = {
         question,
         answer,
         timestamp: Date.now(),
-        type: 'question' // Added the required type property
+        type: 'question'
       };
       
       setQuestionHistory(prev => [...prev, newItem]);
       
-      return { question, answer };
-    } catch (error) {
-      console.error('Error asking question:', error);
-      toast.error('Failed to process your question');
-      return null;
+      return { answer };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process question';
+      setError(errorMessage);
+      throw err;
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  };
 
-  // Adapter function to match the component's expected signature
-  const adaptedHandleAskQuestion = (question: string) => {
-    return handleAskQuestion(question);
+  const handleDealHealthPrediction = async (dealId: string) => {
+    // Mock implementation for deal health prediction
+    return {
+      prediction: "Good",
+      confidence: 85,
+      factors: ["Timeline on track", "All documents submitted"]
+    };
+  };
+
+  const clearHistory = () => {
+    setQuestionHistory([]);
+    setError(null);
   };
 
   return {
     questionHistory,
+    setQuestionHistory,
     isProcessing,
-    handleAskQuestion: adaptedHandleAskQuestion,
-    setQuestionHistory
+    error,
+    handleAskQuestion,
+    handleDealHealthPrediction,
+    clearHistory
   };
-};
+}

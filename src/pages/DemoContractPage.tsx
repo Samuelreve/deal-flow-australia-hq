@@ -151,7 +151,8 @@ const DemoContractPage: React.FC = () => {
       if (process.env.NODE_ENV !== 'production') {
         const mockHistoryWithType = mockQuestionHistory.map(item => ({
           ...item,
-          type: 'question' as const
+          type: 'question' as const,
+          answer: typeof item.answer === 'string' ? item.answer : item.answer.answer
         }));
         questionAnswerState.setQuestionHistory(mockHistoryWithType);
       }

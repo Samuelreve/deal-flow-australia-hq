@@ -19,6 +19,7 @@ interface EnhancedContractAssistantTabProps {
   questionHistory: HistoryItem[];
   isProcessing: boolean;
   contractText: string;
+  isMobile?: boolean;
 }
 
 const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> = ({
@@ -26,7 +27,8 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
   onAnalyzeContract,
   questionHistory,
   isProcessing,
-  contractText
+  contractText,
+  isMobile = false
 }) => {
   const [question, setQuestion] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
