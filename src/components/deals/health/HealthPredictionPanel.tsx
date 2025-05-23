@@ -17,19 +17,31 @@ const HealthPredictionPanel: React.FC<HealthPredictionPanelProps> = ({ predictio
     ? predictions.filter(p => p.deal_id === dealId)
     : predictions;
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600';
-    if (confidence >= 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+  const getConfidenceColor = (confidence: string) => {
+    const confidenceMap: Record<string, string> = {
+      'high': 'text-green-600',
+      'medium': 'text-yellow-600',
+      'low': 'text-red-600'
+    };
+    return confidenceMap[confidence.toLowerCase()] || 'text-gray-600';
   };
 
   const getPredictionTrend = (prediction: HealthPrediction, currentScore: number) => {
-    if (prediction.predicted_score > currentScore) {
+    if (prediction.probability_percentage > currentScore) {
       return <TrendingUp className="h-4 w-4 text-green-500" />;
-    } else if (prediction.predicted_score < currentScore) {
+    } else if (prediction.probability_percentage < currentScore) {
       return <TrendingDown className="h-4 w-4 text-red-500" />;
     }
     return <AlertCircle className="h-4 w-4 text-gray-500" />;
+  };
+
+  const getImpactVariant = (impact: string): "default" | "outline" | "secondary" | "destructive" => {
+    switch (impact.toLowerCase()) {
+      case "high": return "destructive";
+      case "medium": return "default";
+      case "low": return "secondary";
+      default: return "outline";
+    }
   };
 
   return (
@@ -56,31 +68,46 @@ const HealthPredictionPanel: React.FC<HealthPredictionPanelProps> = ({ predictio
                   <div className="flex items-center gap-2">
                     {getPredictionTrend(prediction, 75)} {/* Mock current score */}
                     <span className="font-medium">
-                      Predicted Score: {prediction.predicted_score}%
+                      Success Probability: {prediction.probability_percentage}%
                     </span>
                   </div>
                   <Badge 
                     variant="outline" 
                     className={getConfidenceColor(prediction.confidence_level)}
                   >
-                    {Math.round(prediction.confidence_level * 100)}% confidence
+                    {prediction.confidence_level} confidence
                   </Badge>
                 </div>
                 
                 <div className="mb-3">
-                  <Progress value={prediction.predicted_score} className="h-2" />
+                  <Progress value={prediction.probability_percentage} className="h-2" />
                 </div>
                 
                 <div className="text-sm text-muted-foreground mb-2">
-                  Prediction for: {format(new Date(prediction.prediction_date), 'MMM dd, yyyy')}
+                  Generated: {format(new Date(prediction.created_at), 'MMM dd, yyyy')}
                 </div>
+
+                {prediction.reasoning && (
+                  <div className="mb-3">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Reasoning:</div>
+                    <div className="text-sm bg-muted p-2 rounded">
+                      {prediction.reasoning}
+                    </div>
+                  </div>
+                )}
                 
-                {prediction.factors.length > 0 && (
+                {prediction.suggested_improvements.length > 0 && (
                   <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Key Factors:</div>
-                    {prediction.factors.slice(0, 3).map((factor, index) => (
+                    <div className="text-xs font-medium text-muted-foreground">Suggested Improvements:</div>
+                    {prediction.suggested_improvements.slice(0, 3).map((improvement, index) => (
                       <div key={index} className="text-xs bg-muted p-2 rounded">
-                        <span className="font-medium">{factor.factor}:</span> {factor.description}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{improvement.area}:</span>
+                          <Badge variant={getImpactVariant(improvement.impact)} className="text-[10px]">
+                            {improvement.impact} impact
+                          </Badge>
+                        </div>
+                        <p className="mt-1">{improvement.recommendation}</p>
                       </div>
                     ))}
                   </div>

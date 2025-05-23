@@ -12,5 +12,6 @@ export interface UseAdvancedHealthMonitoringReturn {
   createRecoveryPlan: (plan: Omit<HealthRecoveryPlan, 'id' | 'created_at' | 'updated_at'>) => Promise<HealthRecoveryPlan | null>;
   createComparison: (comparison: Omit<HealthScoreComparison, 'id' | 'created_at'>) => Promise<HealthScoreComparison | null>;
   generateReport: (reportConfig: Omit<HealthReport, 'id' | 'created_at' | 'status' | 'report_data' | 'file_url'>) => Promise<HealthReport | null>;
+  createPrediction: (dealId: string, probabilityPercentage: number, confidenceLevel: string, reasoning: string, suggestedImprovements: Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>) => Promise<HealthPrediction | null>;
   refetch: () => void;
 }

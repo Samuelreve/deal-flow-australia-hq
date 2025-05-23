@@ -10,7 +10,7 @@ import { UseAdvancedHealthMonitoringReturn } from './types';
 export const useAdvancedHealthMonitoring = (userId?: string): UseAdvancedHealthMonitoringReturn => {
   const [loading, setLoading] = useState(true);
 
-  const { predictions, fetchPredictions } = usePredictions(userId);
+  const { predictions, fetchPredictions, createPrediction } = usePredictions(userId);
   const { customMetrics, fetchCustomMetrics, createCustomMetric } = useCustomMetrics(userId);
   const { recoveryPlans, fetchRecoveryPlans, createRecoveryPlan } = useRecoveryPlans(userId);
   const { comparisons, fetchComparisons, createComparison } = useComparisons(userId);
@@ -55,6 +55,7 @@ export const useAdvancedHealthMonitoring = (userId?: string): UseAdvancedHealthM
     createRecoveryPlan,
     createComparison,
     generateReport,
+    createPrediction,
     refetch
   };
 };

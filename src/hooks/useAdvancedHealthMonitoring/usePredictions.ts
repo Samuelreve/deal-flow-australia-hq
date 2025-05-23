@@ -21,13 +21,15 @@ export const usePredictions = (userId?: string) => {
       const formattedPredictions: HealthPrediction[] = (data || []).map(item => ({
         id: item.id,
         deal_id: item.deal_id,
-        predicted_score: item.predicted_score,
-        prediction_date: item.prediction_date,
+        user_id: item.user_id,
+        probability_percentage: item.probability_percentage,
         confidence_level: item.confidence_level,
-        factors: Array.isArray(item.factors) 
-          ? item.factors as Array<{ factor: string; impact: number; description: string; }>
+        reasoning: item.reasoning || '',
+        suggested_improvements: Array.isArray(item.suggested_improvements) 
+          ? item.suggested_improvements as Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>
           : [],
-        created_at: item.created_at
+        created_at: item.created_at,
+        updated_at: item.updated_at
       }));
 
       setPredictions(formattedPredictions);
@@ -38,7 +40,13 @@ export const usePredictions = (userId?: string) => {
   };
 
   // Function to create a new prediction
-  const createPrediction = async (dealId: string, predictedScore: number, confidenceLevel: number, factors: Array<{ factor: string; impact: number; description: string; }>) => {
+  const createPrediction = async (
+    dealId: string, 
+    probabilityPercentage: number, 
+    confidenceLevel: string, 
+    reasoning: string,
+    suggestedImprovements: Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>
+  ) => {
     if (!userId) return null;
     
     try {
@@ -47,10 +55,10 @@ export const usePredictions = (userId?: string) => {
         .insert({
           deal_id: dealId,
           user_id: userId,
-          predicted_score: predictedScore,
+          probability_percentage: probabilityPercentage,
           confidence_level: confidenceLevel,
-          factors: factors,
-          prediction_date: new Date().toISOString()
+          reasoning: reasoning,
+          suggested_improvements: suggestedImprovements
         })
         .select()
         .single();
@@ -60,13 +68,15 @@ export const usePredictions = (userId?: string) => {
       const newPrediction: HealthPrediction = {
         id: data.id,
         deal_id: data.deal_id,
-        predicted_score: data.predicted_score,
-        prediction_date: data.prediction_date,
+        user_id: data.user_id,
+        probability_percentage: data.probability_percentage,
         confidence_level: data.confidence_level,
-        factors: Array.isArray(data.factors) 
-          ? data.factors as Array<{ factor: string; impact: number; description: string; }>
+        reasoning: data.reasoning || '',
+        suggested_improvements: Array.isArray(data.suggested_improvements) 
+          ? data.suggested_improvements as Array<{ area: string; recommendation: string; impact: 'low' | 'medium' | 'high'; }>
           : [],
-        created_at: data.created_at
+        created_at: data.created_at,
+        updated_at: data.updated_at
       };
       
       setPredictions(prev => [newPrediction, ...prev]);
