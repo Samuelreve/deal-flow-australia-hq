@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginInfoPanel from "@/components/auth/LoginInfoPanel";
@@ -14,7 +14,7 @@ const Login = () => {
   
   // If already authenticated, redirect to dashboard or accept invite page
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !authLoading) {
       if (inviteToken) {
         console.log("User is authenticated, redirecting to accept invitation");
         navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
@@ -23,7 +23,7 @@ const Login = () => {
         navigate("/dashboard", { replace: true });
       }
     }
-  }, [isAuthenticated, navigate, inviteToken]);
+  }, [isAuthenticated, authLoading, navigate, inviteToken]);
   
   const handleSignUp = () => {
     if (inviteToken) {
@@ -35,8 +35,11 @@ const Login = () => {
   
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -44,13 +47,15 @@ const Login = () => {
   // If already authenticated, show loading while redirecting
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">
-          {inviteToken 
-            ? "Redirecting to accept invitation..." 
-            : "Redirecting to dashboard..."}
-        </span>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            {inviteToken 
+              ? "Redirecting to accept invitation..." 
+              : "Redirecting to dashboard..."}
+          </p>
+        </div>
       </div>
     );
   }

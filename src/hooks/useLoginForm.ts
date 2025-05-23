@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { AUTH_ROUTES } from "@/contexts/auth/constants";
 import { handleAuthError } from "@/contexts/auth/authUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ export const useLoginForm = () => {
   const { login, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -37,16 +39,24 @@ export const useLoginForm = () => {
       const success = await login(email, password);
       
       if (success) {
-        // If login is successful, navigate to dashboard
-        navigate(AUTH_ROUTES.DASHBOARD);
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        });
+        
+        // Get the intended destination from location state or default to dashboard
+        const from = location.state?.from?.pathname || AUTH_ROUTES.DASHBOARD;
+        navigate(from, { replace: true });
         return true;
       } else {
-        setErrorMsg("Login failed. Please check your credentials.");
+        setErrorMsg("Invalid email or password. Please try again.");
         return false;
       }
     } catch (error: any) {
+      console.error("Login error:", error);
+      const errorMessage = error.message || "Login failed. Please try again.";
+      setErrorMsg(errorMessage);
       handleAuthError(error, toast);
-      setErrorMsg(error.message || "Login failed");
       return false;
     } finally {
       setIsLoading(false);

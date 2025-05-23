@@ -29,16 +29,31 @@ function App() {
         <Toaster />
         <AuthProvider>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route 
+              path="/login" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Login />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <SignUp />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             
             {/* Demo route - accessible to everyone */}
             <Route path="/demo/contract" element={<DemoContractPage />} />
             
-            {/* Onboarding routes - outside OnboardingCheck */}
+            {/* Onboarding routes - protected but outside OnboardingCheck */}
             <Route 
               path="/onboarding/intent" 
               element={

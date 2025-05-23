@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import StandardLoginForm from "../StandardLoginForm";
 
 interface StandardLoginViewProps {
@@ -29,9 +29,17 @@ const StandardLoginView = ({
     <>
       {showSuccess && (
         <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+          <CheckCircle className="h-4 w-4" />
           <AlertDescription>
             Account created successfully! Please check your email to verify your account before logging in.
           </AlertDescription>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
