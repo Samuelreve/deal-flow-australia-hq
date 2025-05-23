@@ -1,14 +1,17 @@
+
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import DealsPage from "@/pages/DealsPage";
 import DealDetailsPage from "@/pages/DealDetailsPage";
 import SettingsPage from "@/pages/SettingsPage";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
+import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotificationsPage from "@/pages/NotificationsPage";
+import DemoContractPage from "@/pages/DemoContractPage";
+import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -23,19 +26,15 @@ function App() {
         <Toaster />
         <AuthProvider>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
+            {/* Demo route - accessible to everyone */}
+            <Route path="/demo/contract" element={<DemoContractPage />} />
+            
             <Route 
               path="/dashboard" 
               element={
@@ -92,8 +91,6 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            
-            {/* Add the new advanced health monitoring route */}
             <Route 
               path="/advanced-health-monitoring" 
               element={

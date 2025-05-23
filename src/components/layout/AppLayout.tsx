@@ -1,13 +1,19 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  
+  const isActive = (path: string) => location.pathname === path;
+  
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -20,21 +26,73 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">
-              Dashboard
+            <Link 
+              to="/" 
+              className={`text-sm font-medium hover:text-primary transition-colors ${
+                isActive('/') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              Home
             </Link>
-            <Link to="/deals" className="text-sm font-medium hover:text-primary transition-colors">
-              Deals
-            </Link>
-            <Link to="/demo/contract" className="text-sm font-medium hover:text-primary transition-colors">
+            {user && (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className={`text-sm font-medium hover:text-primary transition-colors ${
+                    isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Dashboard
+                </Link>
+                <Link 
+                  to="/deals" 
+                  className={`text-sm font-medium hover:text-primary transition-colors ${
+                    isActive('/deals') ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Deals
+                </Link>
+                <Link 
+                  to="/health-monitoring" 
+                  className={`text-sm font-medium hover:text-primary transition-colors ${
+                    isActive('/health-monitoring') ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Health
+                </Link>
+              </>
+            )}
+            <Link 
+              to="/demo/contract" 
+              className={`text-sm font-medium hover:text-primary transition-colors ${
+                isActive('/demo/contract') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
               Demo
             </Link>
           </nav>
           
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">Sign In</Button>
-            <Button size="sm">Sign Up</Button>
+            {user ? (
+              <>
+                <Link to="/settings">
+                  <Button variant="ghost" size="sm">Settings</Button>
+                </Link>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">Sign In</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import SmartContractPanel from "@/components/dashboard/SmartContractPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -88,12 +89,21 @@ const Index = () => {
                     </li>
                   </ul>
                 </div>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-md font-medium"
-                >
-                  Sign in to get started
-                </button>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={() => navigate('/demo/contract')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Try Demo
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/login')}
+                    className="flex-1"
+                  >
+                    Sign in to get started
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
