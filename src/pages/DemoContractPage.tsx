@@ -10,7 +10,7 @@ import ContractAnalyzingState from '@/components/contract/ContractAnalyzingState
 import ContractSummaryTab from '@/components/contract/tabs/ContractSummaryTab';
 import ContractAssistantTab from '@/components/contract/tabs/ContractAssistantTab';
 import DocumentTab from '@/components/contract/tabs/DocumentTab';
-import { useContractAnalysis } from '@/hooks/useContractAnalysis';
+import { useContractAnalysis } from '@/hooks/contract-analysis/useContractAnalysis';
 
 const DemoContractPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -26,6 +26,8 @@ const DemoContractPage: React.FC = () => {
     analysisProgress,
     questionHistory,
     isProcessing,
+    documentHighlights,
+    setDocumentHighlights,
     handleFileUpload,
     handleAskQuestion
   } = useContractAnalysis();

@@ -20,6 +20,9 @@ export const useContractAnalysis = () => {
   // Summary state
   const [customSummary, setCustomSummary] = useState<SummaryData | null>(null);
   
+  // User highlight preferences state
+  const [documentHighlights, setDocumentHighlights] = useState<any[]>([]);
+  
   // Get URL search params
   const [searchParams] = useSearchParams();
   
@@ -44,6 +47,29 @@ export const useContractAnalysis = () => {
     isProcessing
   } = useQuestionAnswering();
   
+  // Save highlights to local storage when they change
+  useEffect(() => {
+    if (documentHighlights.length > 0) {
+      try {
+        localStorage.setItem('contract-highlights', JSON.stringify(documentHighlights));
+      } catch (error) {
+        console.error('Error saving highlights to local storage:', error);
+      }
+    }
+  }, [documentHighlights]);
+  
+  // Load highlights from local storage on initial load
+  useEffect(() => {
+    try {
+      const savedHighlights = localStorage.getItem('contract-highlights');
+      if (savedHighlights) {
+        setDocumentHighlights(JSON.parse(savedHighlights));
+      }
+    } catch (error) {
+      console.error('Error loading highlights from local storage:', error);
+    }
+  }, []);
+  
   useEffect(() => {
     // Check URL parameters to see if we should auto-analyze
     const shouldAnalyze = searchParams.get("analyze") === "true";
@@ -66,6 +92,8 @@ export const useContractAnalysis = () => {
     analysisProgress,
     questionHistory,
     isProcessing,
+    documentHighlights,
+    setDocumentHighlights,
     handleFileUpload,
     handleAskQuestion
   };
