@@ -3,13 +3,13 @@ import React, { Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText } from "lucide-react";
-import { ContractAnalysisLoading } from '../contract/loading/ContractLoadingStates';
-import { ContractAnalysisError } from '../contract/error/ContractErrorStates';
-import { contractAriaLabels } from '../contract/accessibility/ContractAccessibility';
+import { ContractAnalysisLoading } from './loading/ContractLoadingStates';
+import { ContractAnalysisError } from './error/ContractErrorStates';
+import { contractAriaLabels } from './accessibility/ContractAccessibility';
 
 // Lazy load heavy components
 const EnhancedContractAssistantTab = React.lazy(() => 
-  import('../contract/tabs/EnhancedContractAssistantTab')
+  import('./tabs/EnhancedContractAssistantTab')
 );
 
 interface Contract {

@@ -126,6 +126,16 @@ const DemoContractPage: React.FC = () => {
     questionAnswerState.setQuestionHistory(prev => [...prev, newItem]);
     return { analysisType, analysis: answer };
   };
+
+  // Create a mock contract for ContractMainContent
+  const mockContract = {
+    id: 'demo-contract',
+    name: 'Demo Mutual NDA',
+    content: analysisState.contractText,
+    file_size: analysisState.contractText.length,
+    upload_date: new Date().toISOString(),
+    analysis_status: 'completed'
+  };
   
   useEffect(() => {
     const shouldAnalyze = searchParams.get("analyze") === "true";
@@ -137,9 +147,13 @@ const DemoContractPage: React.FC = () => {
     
     // In demo mode, pre-populate with mock data if no real data exists
     if (!questionAnswerState.questionHistory || questionAnswerState.questionHistory.length === 0) {
-      // Only for demo purposes - use mock question history
+      // Only for demo purposes - use mock question history with correct type
       if (process.env.NODE_ENV !== 'production') {
-        questionAnswerState.setQuestionHistory(mockQuestionHistory);
+        const mockHistoryWithType = mockQuestionHistory.map(item => ({
+          ...item,
+          type: 'question' as const
+        }));
+        questionAnswerState.setQuestionHistory(mockHistoryWithType);
       }
     }
     
@@ -171,18 +185,15 @@ const DemoContractPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             <ErrorBoundary>
               <ContractMainContent
-                isAnalyzing={analysisState.isAnalyzing}
-                analysisStage={analysisState.analysisProgress.stage}
-                analysisProgress={analysisState.analysisProgress.progress}
+                selectedContract={mockContract}
                 activeTab={activeTab}
-                customSummary={analysisState.customSummary}
-                mockSummary={mockSummaryData}
-                contractText={analysisState.contractText}
-                questionHistory={questionAnswerState.questionHistory}
-                isProcessing={questionAnswerState.isProcessing}
                 onTabChange={setActiveTab}
                 onAskQuestion={handleAskQuestion}
                 onAnalyzeContract={handleAnalyzeContract}
+                questionHistory={questionAnswerState.questionHistory}
+                isProcessing={questionAnswerState.isProcessing}
+                error={analysisState.error}
+                onRetryAnalysis={() => analysisState.setError(null)}
               />
             </ErrorBoundary>
           </div>
