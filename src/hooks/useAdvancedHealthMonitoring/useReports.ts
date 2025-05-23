@@ -11,10 +11,10 @@ export const useReports = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('health_reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use the updated function that properly checks user access
+      const { data, error } = await supabase.rpc('get_health_reports', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       

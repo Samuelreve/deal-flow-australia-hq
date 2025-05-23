@@ -11,10 +11,10 @@ export const usePredictions = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('deal_health_predictions')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use the updated function that properly checks deal access
+      const { data, error } = await supabase.rpc('get_health_predictions', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       
@@ -39,7 +39,6 @@ export const usePredictions = (userId?: string) => {
     }
   };
 
-  // Function to create a new prediction
   const createPrediction = async (
     dealId: string, 
     probabilityPercentage: number, 

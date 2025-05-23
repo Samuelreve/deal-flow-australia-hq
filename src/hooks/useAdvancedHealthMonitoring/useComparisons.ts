@@ -11,10 +11,10 @@ export const useComparisons = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('health_score_comparisons')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use the updated function that properly checks user access
+      const { data, error } = await supabase.rpc('get_health_comparisons', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       

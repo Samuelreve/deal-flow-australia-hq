@@ -3,16 +3,24 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { HealthPrediction } from "@/types/advancedHealthMonitoring";
 import { format } from 'date-fns';
 
 interface HealthPredictionPanelProps {
   predictions: HealthPrediction[];
   dealId?: string;
+  onRefresh?: () => void;
+  loading?: boolean;
 }
 
-const HealthPredictionPanel: React.FC<HealthPredictionPanelProps> = ({ predictions, dealId }) => {
+const HealthPredictionPanel: React.FC<HealthPredictionPanelProps> = ({ 
+  predictions, 
+  dealId, 
+  onRefresh,
+  loading = false 
+}) => {
   const filteredPredictions = dealId 
     ? predictions.filter(p => p.deal_id === dealId)
     : predictions;
@@ -47,16 +55,36 @@ const HealthPredictionPanel: React.FC<HealthPredictionPanelProps> = ({ predictio
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Health Predictions
-        </CardTitle>
-        <CardDescription>
-          AI-powered predictions for future health scores
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Health Predictions
+            </CardTitle>
+            <CardDescription>
+              AI-powered predictions for future health scores
+            </CardDescription>
+          </div>
+          {onRefresh && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
-        {filteredPredictions.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+            Loading predictions...
+          </div>
+        ) : filteredPredictions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No predictions available yet
           </div>

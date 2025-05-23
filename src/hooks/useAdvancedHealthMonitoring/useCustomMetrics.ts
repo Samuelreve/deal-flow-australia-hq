@@ -11,10 +11,10 @@ export const useCustomMetrics = (userId?: string) => {
     if (!userId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('custom_health_metrics')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use the updated function that properly checks deal access
+      const { data, error } = await supabase.rpc('get_custom_health_metrics', {
+        p_user_id: userId
+      });
 
       if (error) throw error;
       
@@ -43,19 +43,16 @@ export const useCustomMetrics = (userId?: string) => {
     if (!userId) return null;
     
     try {
-      const { data, error } = await supabase
-        .from('custom_health_metrics')
-        .insert({
-          deal_id: metric.deal_id,
-          user_id: userId,
-          metric_name: metric.metric_name,
-          metric_weight: metric.metric_weight,
-          current_value: metric.current_value,
-          target_value: metric.target_value,
-          is_active: metric.is_active
-        })
-        .select()
-        .single();
+      // Use the database function for creating metrics
+      const { data, error } = await supabase.rpc('create_custom_metric', {
+        p_deal_id: metric.deal_id,
+        p_user_id: userId,
+        p_metric_name: metric.metric_name,
+        p_metric_weight: metric.metric_weight,
+        p_current_value: metric.current_value,
+        p_target_value: metric.target_value,
+        p_is_active: metric.is_active
+      });
 
       if (error) throw error;
       
