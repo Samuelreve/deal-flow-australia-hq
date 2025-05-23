@@ -1,25 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronDown, ChevronUp, AlertCircle, FileText, Highlighter, List } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileText, List } from 'lucide-react';
 import { useDocumentHighlighting } from '@/hooks/contract-analysis/useDocumentHighlighting';
-import HighlightCategorySelector from '../HighlightCategorySelector';
-import HighlightsSummaryPanel from '../HighlightsSummaryPanel';
-import HighlightNoteEditor from '../HighlightNoteEditor';
-import HighlightFilters from '../HighlightFilters';
+import DocumentViewer from './DocumentViewer';
+import HighlightControls from './HighlightControls';
+import HighlightsTabContent from './HighlightsTabContent';
 
 interface DocumentTabProps {
   contractText: string;
 }
 
 const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
-  const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("document");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const maxHeight = expanded ? '100%' : '600px';
   
   // Use our document highlighting hook
   const {
@@ -46,11 +41,6 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
     setShowNoteEditor
   } = useDocumentHighlighting(contractText);
   
-  // Filter the highlights based on activeFilters
-  const filteredHighlights = activeFilters.length > 0 
-    ? highlights.filter(h => activeFilters.includes(h.category || 'custom')) 
-    : highlights;
-  
   // Get highlight statistics
   const highlightStats = getHighlightStats();
 
@@ -71,9 +61,6 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
   const handleClearFilters = () => {
     setActiveFilters([]);
   };
-  
-  // Prepare highlighted HTML content
-  const highlightedContent = renderHighlightedText();
   
   useEffect(() => {
     // When switching to highlights tab, auto-select all categories if no filters are active
@@ -107,135 +94,48 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
         
         <TabsContent value="document">
           {contractText && (
-            <div className="px-6 pb-2 flex flex-wrap items-center gap-2 border-b">
-              <Button
-                variant={isHighlightMode ? "default" : "outline"}
-                size="sm"
-                className="flex items-center gap-1"
-                onClick={toggleHighlightMode}
-              >
-                <Highlighter className="h-4 w-4" />
-                {isHighlightMode ? "Exit Highlight Mode" : "Highlight Text"}
-              </Button>
-              
-              {isHighlightMode && (
-                <>
-                  <HighlightCategorySelector
-                    categories={categories}
-                    activeCategory={activeCategory}
-                    onSelectCategory={changeCategory}
-                    onAddCategory={addCategory}
-                  />
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearHighlights}
-                    className="ml-auto text-xs"
-                    disabled={highlights.length === 0}
-                  >
-                    Clear All
-                  </Button>
-                </>
-              )}
-            </div>
+            <HighlightControls 
+              isHighlightMode={isHighlightMode}
+              toggleHighlightMode={toggleHighlightMode}
+              activeCategory={activeCategory}
+              changeCategory={changeCategory}
+              addCategory={addCategory}
+              categories={categories}
+              clearHighlights={clearHighlights}
+              highlightsCount={highlights.length}
+            />
           )}
           
           <CardContent>
-            {showNoteEditor && selectedHighlight && (
-              <HighlightNoteEditor
-                highlight={selectedHighlight}
-                note={highlightNote}
-                onNoteChange={setHighlightNote}
-                onSave={updateHighlightNote}
-                onClose={() => setShowNoteEditor(false)}
-              />
-            )}
-            
-            {contractText ? (
-              <>
-                <div 
-                  className="bg-muted p-4 rounded-md overflow-auto transition-all" 
-                  style={{ maxHeight }}
-                  ref={containerRef}
-                  onMouseUp={handleTextSelection}
-                >
-                  {isHighlightMode && (
-                    <div className="p-2 mb-2 text-xs bg-blue-50 rounded border border-blue-100">
-                      <p className="font-medium">Highlight Mode Active</p>
-                      <p>Select any text in the document to highlight it as <span className="font-medium">{categories.find(c => c.id === activeCategory)?.name}</span>.</p>
-                    </div>
-                  )}
-                  
-                  {highlightedContent ? (
-                    <div 
-                      className="text-sm whitespace-pre-wrap font-mono text-muted-foreground"
-                      dangerouslySetInnerHTML={{ __html: highlightedContent }}
-                      onClick={(e) => {
-                        // Check if we clicked on a highlight
-                        if (e.target instanceof HTMLElement) {
-                          const element = e.target as HTMLElement;
-                          if (element.hasAttribute('data-highlight-id')) {
-                            const highlightId = element.getAttribute('data-highlight-id');
-                            if (highlightId) {
-                              selectHighlight(highlightId);
-                            }
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">
-                      {contractText}
-                    </pre>
-                  )}
-                </div>
-                
-                {contractText.length > 500 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-4 w-full flex items-center justify-center"
-                    onClick={() => setExpanded(!expanded)}
-                  >
-                    {expanded ? (
-                      <>
-                        <ChevronUp className="h-4 w-4 mr-1" /> Show Less
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 mr-1" /> Show More
-                      </>
-                    )}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <Alert variant="default" className="bg-amber-50 border-amber-200">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                <AlertDescription className="text-sm">
-                  No document content available. Please upload a document to view its contents.
-                </AlertDescription>
-              </Alert>
-            )}
+            <DocumentViewer
+              contractText={contractText}
+              isHighlightMode={isHighlightMode}
+              containerRef={containerRef}
+              highlights={highlights}
+              selectedHighlight={selectedHighlight}
+              highlightNote={highlightNote}
+              showNoteEditor={showNoteEditor}
+              handleTextSelection={handleTextSelection}
+              selectHighlight={selectHighlight}
+              setHighlightNote={setHighlightNote}
+              updateHighlightNote={updateHighlightNote}
+              setShowNoteEditor={setShowNoteEditor}
+              renderHighlightedText={renderHighlightedText}
+              categories={categories}
+              activeCategory={activeCategory}
+            />
           </CardContent>
         </TabsContent>
         
         <TabsContent value="highlights">
           <CardContent>
-            {highlights.length > 0 && (
-              <HighlightFilters
-                categories={categories}
-                categoryStats={highlightStats}
-                activeFilters={activeFilters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-              />
-            )}
-            
-            <HighlightsSummaryPanel
-              highlights={filteredHighlights}
+            <HighlightsTabContent 
+              highlights={highlights}
               categories={categories}
+              highlightStats={highlightStats}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
               onSelectHighlight={selectHighlight}
               onRemoveHighlight={removeHighlight}
             />
