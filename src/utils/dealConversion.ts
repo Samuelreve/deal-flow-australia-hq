@@ -14,8 +14,7 @@ export const convertDealToDealSummary = (deal: Deal): DealSummary => {
     buyerId: deal.buyer_id,
     sellerName: deal.seller?.name || "",
     buyerName: deal.buyer?.name || "",
-    businessName: deal.business_name || deal.title,
-    targetCompletionDate: deal.target_completion_date ? new Date(deal.target_completion_date) : undefined
+    businessName: deal.business_name || deal.title
   };
 };
 
