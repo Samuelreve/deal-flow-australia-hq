@@ -15,6 +15,7 @@ import DealHealthTable from "@/components/deals/health/DealHealthTable";
 import DealHealthFilters from "@/components/deals/health/DealHealthFilters";
 import { useNavigate } from "react-router-dom";
 import { Zap, BarChart3 } from "lucide-react";
+import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 
 const DealHealthMonitoring = () => {
   const { user } = useAuth();
@@ -25,18 +26,21 @@ const DealHealthMonitoring = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
+  // Convert deals to DealSummary format
+  const dealSummaries = convertDealsToDealSummaries(deals);
+
   // Find the deal with the lowest health score
   useEffect(() => {
-    if (deals.length > 0 && !selectedDealId) {
-      const lowestHealthDeal = [...deals]
+    if (dealSummaries.length > 0 && !selectedDealId) {
+      const lowestHealthDeal = [...dealSummaries]
         .filter(d => d.status === 'active')
-        .sort((a, b) => a.health_score - b.health_score)[0];
+        .sort((a, b) => a.healthScore - b.healthScore)[0];
         
       if (lowestHealthDeal) {
         setSelectedDealId(lowestHealthDeal.id);
       }
     }
-  }, [deals, selectedDealId]);
+  }, [dealSummaries, selectedDealId]);
 
   if (loading) {
     return (
@@ -133,7 +137,7 @@ const DealHealthMonitoring = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <HealthScoreOverviewChart deals={deals} />
+                <HealthScoreOverviewChart deals={dealSummaries} />
               </CardContent>
             </Card>
 
@@ -148,7 +152,7 @@ const DealHealthMonitoring = () => {
             />
             
             <DealHealthTable 
-              deals={deals} 
+              deals={dealSummaries} 
               healthFilterValue={healthFilterValue}
               riskFilter={riskFilter}
               sortOrder={sortOrder}

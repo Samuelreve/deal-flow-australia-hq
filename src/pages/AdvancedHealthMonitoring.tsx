@@ -7,7 +7,7 @@ import { useAdvancedHealthMonitoring } from "@/hooks/useAdvancedHealthMonitoring
 import AdvancedHealthHeader from "@/components/advanced-health/AdvancedHealthHeader";
 import DealSelector from "@/components/advanced-health/DealSelector";
 import HealthMonitoringTabs from "@/components/advanced-health/HealthMonitoringTabs";
-import { Deal } from "@/services/dealsService";
+import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 
 const AdvancedHealthMonitoring = () => {
   const { user } = useAuth();
@@ -32,19 +32,21 @@ const AdvancedHealthMonitoring = () => {
     );
   }
 
-  const selectedDeal = selectedDealId ? deals.find(d => d.id === selectedDealId) : null;
+  // Convert deals to DealSummary format
+  const dealSummaries = convertDealsToDealSummaries(deals);
+  const selectedDeal = selectedDealId ? dealSummaries.find(d => d.id === selectedDealId) : null;
 
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-6">
         <AdvancedHealthHeader />
         <DealSelector 
-          deals={deals}
+          deals={dealSummaries}
           selectedDealId={selectedDealId}
           onSelectionChange={setSelectedDealId}
         />
         <HealthMonitoringTabs
-          deals={deals}
+          deals={dealSummaries}
           selectedDeal={selectedDeal}
           selectedDealId={selectedDealId}
           healthData={healthData}
