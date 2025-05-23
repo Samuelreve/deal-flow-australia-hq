@@ -4,6 +4,17 @@ import { UserProfile } from "@/types/auth";
 import { toast } from "sonner";
 
 /**
+ * Safely convert JSON to string array with validation
+ */
+const jsonToStringArray = (json: any): string[] => {
+  if (!json) return [];
+  if (Array.isArray(json)) {
+    return json.filter(item => typeof item === 'string');
+  }
+  return [];
+};
+
+/**
  * Fetch a user's profile from the database
  */
 export const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
@@ -40,7 +51,7 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
         professional_phone: data.professional_phone,
         professional_website: data.professional_website,
         professional_location: data.professional_location,
-        professional_specializations: data.professional_specializations || [],
+        professional_specializations: jsonToStringArray(data.professional_specializations),
         onboarding_complete: data.onboarding_complete || false,
         created_at: data.created_at,
         updated_at: data.updated_at
@@ -92,7 +103,7 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
         professional_phone: existingProfile.professional_phone,
         professional_website: existingProfile.professional_website,
         professional_location: existingProfile.professional_location,
-        professional_specializations: existingProfile.professional_specializations || [],
+        professional_specializations: jsonToStringArray(existingProfile.professional_specializations),
         onboarding_complete: existingProfile.onboarding_complete || false,
         created_at: existingProfile.created_at,
         updated_at: existingProfile.updated_at
@@ -140,7 +151,7 @@ export const createUserProfile = async (supabaseUser: any): Promise<UserProfile 
         professional_phone: createdProfile.professional_phone,
         professional_website: createdProfile.professional_website,
         professional_location: createdProfile.professional_location,
-        professional_specializations: createdProfile.professional_specializations || [],
+        professional_specializations: jsonToStringArray(createdProfile.professional_specializations),
         onboarding_complete: createdProfile.onboarding_complete || false,
         created_at: createdProfile.created_at,
         updated_at: createdProfile.updated_at
