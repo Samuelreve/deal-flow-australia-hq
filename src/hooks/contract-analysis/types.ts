@@ -2,10 +2,12 @@
 export interface DocumentMetadata {
   name: string;
   type: string;
-  uploadDate: string;
+  uploadDate: string;  // This needs to match mockDocumentMetadata
   status: string;
   version: string;
   versionDate: string;
+  id?: string;
+  size?: number;
 }
 
 export interface SummaryItem {

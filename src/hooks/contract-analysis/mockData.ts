@@ -41,13 +41,13 @@ export const mockSummaryData: MockSummary = {
   disclaimer: "This is an AI-generated summary and may not cover all legal details. Always consult with a legal professional before making decisions based on this information."
 };
 
-// Mock document metadata
+// Mock document metadata - adjusted to match DocumentMetadata type
 export const mockDocumentMetadata = {
   id: "mock-contract-1",
   name: "Sample_NDA_Contract.pdf",
   size: 156789,
   type: "application/pdf",
-  uploadedAt: new Date().toISOString(),
+  uploadDate: new Date().toISOString(),  // Changed from uploadedAt to uploadDate
   version: "v1.0",
   versionDate: new Date().toLocaleDateString(),
   status: "analyzed" as const
