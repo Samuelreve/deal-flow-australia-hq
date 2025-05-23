@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import useDocumentCommentHandler from '@/components/documents/DocumentCommentHandler';
+import { useDocumentComments } from '@/hooks/documentComments';
 import { useDocumentExplanation } from '@/hooks/useDocumentExplanation';
 
 interface UseDocumentInteractionsProps {
@@ -34,7 +34,7 @@ export function useDocumentInteractions({
     commentCount,
     handleSubmitComment,
     handleDeleteComment
-  } = useDocumentCommentHandler({ versionId });
+  } = useDocumentComments(versionId);
   
   // Get explanation functionality
   const {

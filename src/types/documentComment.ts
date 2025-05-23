@@ -27,3 +27,4 @@ export interface DocumentCommentCreateData {
   selected_text?: string | null;
   parent_comment_id?: string | null;
 }
+
