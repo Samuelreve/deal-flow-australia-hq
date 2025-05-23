@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { QuestionAnswerState, QuestionHistoryItem } from '@/types/contract';
 import { supabase } from '@/integrations/supabase/client';
 import { realContractService } from '@/services/realContractService';
@@ -104,7 +104,7 @@ export const useRealContractQuestionAnswer = (contractId: string | null) => {
   }, []);
 
   // Load question history when contract changes
-  useState(() => {
+  useEffect(() => {
     loadQuestionHistory();
   }, [loadQuestionHistory]);
 

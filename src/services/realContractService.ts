@@ -72,7 +72,7 @@ class RealContractService {
       // Trigger text extraction
       this.extractText(contract.id, filePath);
 
-      return contract;
+      return contract as Contract;
     } catch (error) {
       console.error('Contract upload error:', error);
       toast.error('Failed to upload contract');
@@ -111,7 +111,7 @@ class RealContractService {
         return null;
       }
 
-      return contract;
+      return contract as Contract;
     } catch (error) {
       console.error('Get contract error:', error);
       return null;
@@ -130,7 +130,7 @@ class RealContractService {
         return [];
       }
 
-      return contracts || [];
+      return (contracts || []) as Contract[];
     } catch (error) {
       console.error('Get contracts error:', error);
       return [];
@@ -150,7 +150,10 @@ class RealContractService {
         return [];
       }
 
-      return questions || [];
+      return (questions || []).map(q => ({
+        ...q,
+        sources: Array.isArray(q.sources) ? q.sources : []
+      })) as ContractQuestion[];
     } catch (error) {
       console.error('Get questions error:', error);
       return [];
