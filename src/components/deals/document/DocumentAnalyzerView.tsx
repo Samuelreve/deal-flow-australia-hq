@@ -5,11 +5,10 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/components/ui/use-toast';
-import { ANALYSIS_TYPES } from './analyzer/constants';
-import { useAnalysisState } from './analyzer/useAnalysisState';
-import AnalysisTypeList from './analyzer/AnalysisTypeList';
+import { useDocumentAnalysis } from '@/hooks/document-analysis';
+import DocumentAnalysisTypeGrid from './analyzer/DocumentAnalysisTypeGrid';
 import AnalysisContent from './analyzer/AnalysisContent';
-import AnalysisProgress from './analyzer/AnalysisProgress';
+import DocumentAnalysisProgressBar from './analyzer/DocumentAnalysisProgressBar';
 import DisclaimerFooter from './analyzer/DisclaimerFooter';
 
 interface DocumentAnalyzerViewProps {
@@ -26,38 +25,55 @@ const DocumentAnalyzerView: React.FC<DocumentAnalyzerViewProps> = ({
   onClose
 }) => {
   const { toast } = useToast();
+  
   const {
-    activeTab,
-    analysisResults,
-    analysisInProgress,
-    analysisProgress,
-    analysisStartTime,
-    aiLoading,
-    aiError,
+    // Analysis types
+    analysisTypes,
+    
+    // Execution
     runAnalysis,
-    handleTabChange,
-  } = useAnalysisState(dealId, documentId, versionId);
+    currentAnalysis,
+    analysisProgress,
+    analysisResults,
+    isAnalyzing,
+    analysisError,
+    getAnalysisResult,
+    
+    // History
+    history,
+    loadHistory
+  } = useDocumentAnalysis({ dealId, documentId, versionId });
 
-  // Run initial contract summary when component mounts
+  // Load analysis history on mount
   useEffect(() => {
-    runAnalysis('summarize_contract');
-  }, [documentId, versionId]);
-
-  const renderAnalysisContent = (analysisType: string) => {
-    const result = analysisResults[analysisType];
-    const loading = analysisInProgress === analysisType || (aiLoading && !result);
-    
-    if (loading) {
-      return <AnalysisProgress progress={analysisProgress} startTime={analysisStartTime} />;
+    if (documentId && versionId) {
+      loadHistory(documentId, versionId);
     }
-    
-    return <AnalysisContent 
-      analysisType={analysisType} 
-      result={result} 
-      loading={aiLoading} 
-      inProgress={analysisInProgress === analysisType} 
-    />;
+  }, [documentId, versionId, loadHistory]);
+
+  // Auto-run contract summary on mount
+  useEffect(() => {
+    if (!getAnalysisResult('summarize_contract') && !isAnalyzing) {
+      runAnalysis('summarize_contract');
+    }
+  }, []);
+
+  const handleAnalysisSelect = async (analysisType: string) => {
+    try {
+      await runAnalysis(analysisType);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive'
+      });
+    }
   };
+
+  const completedAnalyses = Object.keys(analysisResults).filter(
+    type => analysisResults[type]?.success
+  );
 
   return (
     <Card className="w-full">
@@ -70,22 +86,74 @@ const DocumentAnalyzerView: React.FC<DocumentAnalyzerViewProps> = ({
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <AnalysisTypeList 
-            analysisTypes={ANALYSIS_TYPES}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            analysisInProgress={analysisInProgress}
-          />
-          
-          {ANALYSIS_TYPES.map(type => (
-            <TabsContent key={type.id} value={type.id} className="pt-2">
-              {renderAnalysisContent(type.id)}
-              <DisclaimerFooter result={analysisResults[type.id]} />
-            </TabsContent>
-          ))}
-        </Tabs>
+      <CardContent className="space-y-6">
+        {/* Analysis Progress */}
+        {analysisProgress && (
+          <DocumentAnalysisProgressBar progress={analysisProgress} />
+        )}
+        
+        {/* Analysis Type Selection */}
+        {!isAnalyzing && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-medium">Choose Analysis Type</h3>
+            <DocumentAnalysisTypeGrid
+              analysisTypes={analysisTypes}
+              onSelect={handleAnalysisSelect}
+              isAnalyzing={isAnalyzing}
+              currentAnalysis={currentAnalysis}
+              completedAnalyses={completedAnalyses}
+            />
+          </div>
+        )}
+        
+        {/* Results Display */}
+        {completedAnalyses.length > 0 && !isAnalyzing && (
+          <Tabs defaultValue={completedAnalyses[0]} className="w-full">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {completedAnalyses.map(type => {
+                const analysisType = analysisTypes.find(at => at.id === type);
+                return (
+                  <Button
+                    key={type}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Switch to this tab's content
+                      const result = getAnalysisResult(type);
+                      if (result) {
+                        // This could be enhanced to show the result in a modal or expanded view
+                      }
+                    }}
+                  >
+                    {analysisType?.label || type}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            {completedAnalyses.map(type => {
+              const result = getAnalysisResult(type);
+              return (
+                <TabsContent key={type} value={type} className="pt-2">
+                  <AnalysisContent 
+                    analysisType={type}
+                    result={result?.content}
+                    loading={false}
+                    inProgress={false}
+                  />
+                  <DisclaimerFooter result={result} />
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        )}
+        
+        {/* Error Display */}
+        {analysisError && (
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive text-sm">{analysisError}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
