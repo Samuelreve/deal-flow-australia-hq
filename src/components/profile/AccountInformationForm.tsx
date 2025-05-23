@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UserProfile } from "@/types/auth";
-import { Loader2, User, Building, Phone, CheckCircle } from "lucide-react";
+import { Loader2, User, Building, Phone, CheckCircle, AtSign } from "lucide-react";
 import { useProfileManagement } from "@/hooks/profile/useProfileManagement";
 
 interface AccountInformationFormProps {
@@ -68,7 +68,13 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
 
   return (
     <Card className="border shadow-sm">
-      <CardContent className="pt-6">
+      <CardHeader>
+        <CardTitle>Account Information</CardTitle>
+        <CardDescription>
+          Update your personal information and how you appear on the platform
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -91,14 +97,19 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
             
             <div className="space-y-2">
               <Label htmlFor="email" className="font-medium">Email</Label>
-              <Input 
-                id="email"
-                name="email"
-                value={formData.email}
-                disabled
-                className="bg-gray-50"
-                title="Email cannot be changed"
-              />
+              <div className="relative">
+                <div className="absolute left-3 top-3 text-gray-400">
+                  <AtSign className="h-4 w-4" />
+                </div>
+                <Input 
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  disabled
+                  className="bg-gray-50 pl-9"
+                  title="Email cannot be changed"
+                />
+              </div>
               <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
             </div>
           </div>
@@ -141,7 +152,7 @@ const AccountInformationForm: React.FC<AccountInformationFormProps> = ({ profile
             </div>
           </div>
           
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center pt-2">
             {showSaved && (
               <div className="flex items-center text-green-600 text-sm">
                 <CheckCircle className="h-4 w-4 mr-1" />

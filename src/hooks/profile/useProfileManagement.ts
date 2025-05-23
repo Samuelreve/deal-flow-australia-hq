@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserProfile } from "@/types/auth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useProfileManagement = () => {
   const { user, updateUserProfile } = useAuth();
@@ -30,12 +31,39 @@ export const useProfileManagement = () => {
     });
 
     try {
+      // Make sure we're including all required fields
       const updatedProfile = {
         ...user.profile,
         ...profileData,
         updated_at: new Date().toISOString(),
       };
 
+      // Update the profile in Supabase
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedProfile.name,
+          company: updatedProfile.company,
+          phone: updatedProfile.phone,
+          is_professional: updatedProfile.is_professional,
+          professional_headline: updatedProfile.professional_headline,
+          professional_bio: updatedProfile.professional_bio,
+          professional_firm_name: updatedProfile.professional_firm_name,
+          professional_contact_email: updatedProfile.professional_contact_email,
+          professional_phone: updatedProfile.professional_phone,
+          professional_website: updatedProfile.professional_website,
+          professional_location: updatedProfile.professional_location,
+          professional_specializations: updatedProfile.professional_specializations,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.profile.id)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      // Use the AuthContext's updateUserProfile to update the local state
       const success = await updateUserProfile(updatedProfile);
 
       if (success) {
