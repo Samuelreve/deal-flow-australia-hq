@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -22,7 +23,7 @@ serve(async (req) => {
   
   try {
     // Parse request body
-    const { question, contractText } = await req.json();
+    const { question, contractText, contractId } = await req.json();
     
     if (!question) {
       return new Response(
@@ -98,19 +99,20 @@ serve(async (req) => {
     
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
+    if (authHeader && contractId) {
       try {
         const token = authHeader.replace('Bearer ', '');
         const { data: { user } } = await supabase.auth.getUser(token);
         
         if (user) {
-          // Save the question and answer in the database (fire and forget)
-          EdgeRuntime.waitUntil(saveQuestionAnswer(supabase, {
+          // Save the question and answer in the database
+          await saveQuestionAnswer(supabase, {
             userId: user.id,
             question,
             answer: formattedAnswer,
-            sources
-          }));
+            sources,
+            contractId
+          });
         }
       } catch (error) {
         console.error("Error getting user:", error);
@@ -140,24 +142,17 @@ serve(async (req) => {
 async function saveQuestionAnswer(
   supabase: any, 
   { userId, question, answer, sources, contractId }: 
-  { userId: string, question: string, answer: string, sources: string[], contractId?: string }
+  { userId: string, question: string, answer: string, sources: string[], contractId: string }
 ) {
   try {
-    // If we have a contractId, save to contract_questions table
-    if (contractId) {
-      await supabase.from('contract_questions').insert({
-        contract_id: contractId,
-        user_id: userId,
-        question,
-        answer,
-        sources: sources
-      });
-    }
-    
-    // Otherwise just log that we're not saving because we don't have a contractId
-    else {
-      console.log('No contractId provided, not saving question/answer');
-    }
+    // Save to contract_questions table
+    await supabase.from('contract_questions').insert({
+      contract_id: contractId,
+      user_id: userId,
+      question,
+      answer,
+      sources: sources
+    });
   } catch (error) {
     console.error('Error saving question/answer:', error);
   }

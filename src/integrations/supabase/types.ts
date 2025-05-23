@@ -71,6 +71,118 @@ export type Database = {
           },
         ]
       }
+      contract_questions: {
+        Row: {
+          answer: string
+          contract_id: string | null
+          created_at: string | null
+          id: string
+          question: string
+          sources: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          answer: string
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          question: string
+          sources?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          question?: string
+          sources?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_questions_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_summaries: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          id: string
+          summary_data: Json
+          updated_at: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          summary_data: Json
+          updated_at?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string
+          summary_data?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_summaries_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          analysis_status: string | null
+          content: string | null
+          created_at: string | null
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          name: string
+          updated_at: string | null
+          upload_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          analysis_status?: string | null
+          content?: string | null
+          created_at?: string | null
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          name: string
+          updated_at?: string | null
+          upload_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          analysis_status?: string | null
+          content?: string | null
+          created_at?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          name?: string
+          updated_at?: string | null
+          upload_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       deal_invitations: {
         Row: {
           accepted_at: string | null
