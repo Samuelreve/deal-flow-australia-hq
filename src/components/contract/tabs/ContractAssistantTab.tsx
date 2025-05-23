@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MessageSquare, Search, Loader } from 'lucide-react';
 import { toast } from 'sonner';
+import { QuestionHistoryItem } from '@/types/contract';
 
 interface ContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<{ answer: string; sources?: string[] } | string>;
-  questionHistory?: Array<{question: string, answer: string}>;
+  questionHistory?: QuestionHistoryItem[];
   isProcessing?: boolean;
 }
 
@@ -22,7 +23,6 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
   const [answer, setAnswer] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<Array<{question: string, answer: string}>>(questionHistory);
 
   const handleAskQuestion = async () => {
     if (!question.trim()) {
@@ -40,10 +40,8 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
       // Handle different response formats
       if (typeof response === 'string') {
         setAnswer(response);
-        setHistory(prev => [...prev, { question, answer: response }]);
       } else {
         setAnswer(response.answer);
-        setHistory(prev => [...prev, { question, answer: response.answer }]);
         if (response.sources) {
           setSources(response.sources);
         }
@@ -54,6 +52,20 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const getAnswerText = (answer: string | { answer: string; sources?: string[] }): string => {
+    if (typeof answer === 'string') {
+      return answer;
+    }
+    return answer.answer;
+  };
+
+  const getAnswerSources = (answer: string | { answer: string; sources?: string[] }): string[] => {
+    if (typeof answer === 'string' || !answer.sources) {
+      return [];
+    }
+    return answer.sources;
   };
 
   return (
@@ -114,14 +126,27 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
             </div>
           )}
 
-          {history.length > 0 && !answer && (
+          {questionHistory.length > 0 && !answer && (
             <div className="mt-6">
               <h3 className="text-sm font-medium mb-2">Previous Questions</h3>
               <div className="space-y-3">
-                {history.map((item, index) => (
+                {questionHistory.map((item, index) => (
                   <div key={index} className="bg-muted/50 p-3 rounded-md">
                     <p className="text-sm font-medium">{item.question}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{item.answer}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{getAnswerText(item.answer)}</p>
+                    
+                    {typeof item.answer !== 'string' && item.answer.sources && item.answer.sources.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-border/30">
+                        <p className="text-xs text-muted-foreground">Sources:</p>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {item.answer.sources.map((source, sIndex) => (
+                            <span key={sIndex} className="bg-secondary/50 text-xs px-2 py-0.5 rounded">
+                              {source}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
