@@ -1,9 +1,14 @@
 
-import { Navigate, Outlet } from "react-router-dom";
+import React, { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
-const ProtectedRoute = () => {
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   // Show loading indicator while authentication state is being determined
@@ -21,7 +26,7 @@ const ProtectedRoute = () => {
   }
 
   // Render child routes if authenticated
-  return <Outlet />;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

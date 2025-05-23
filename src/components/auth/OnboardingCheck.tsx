@@ -1,13 +1,17 @@
-import React from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import React, { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+
+interface OnboardingCheckProps {
+  children: ReactNode;
+}
 
 /**
  * Component that checks if a user needs to complete onboarding
  * and redirects them to the onboarding page if necessary
  */
-const OnboardingCheck: React.FC = () => {
+const OnboardingCheck: React.FC<OnboardingCheckProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   
@@ -32,7 +36,7 @@ const OnboardingCheck: React.FC = () => {
   }
   
   // Otherwise, render the child routes
-  return <Outlet />;
+  return <>{children}</>;
 };
 
 export default OnboardingCheck;

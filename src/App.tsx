@@ -56,101 +56,137 @@ function App() {
               <Route path="/demo/contract" element={<DemoContractPage />} />
               
               {/* Protected routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <Dashboard />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <Dashboard />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/deals" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <DealsPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/deals" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <DealsPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/deals/health" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <DealHealthPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/deals/health" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <DealHealthPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/deals/create" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <CreateDealPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/deals/create" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <CreateDealPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/deals/:id" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <DealDetails />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/deals/:id" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <DealDetails />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/deals/:id/documents" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <DocumentsPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/deals/:id/documents" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <DocumentsPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/contracts" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <RealContractPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/contracts" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <RealContractPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <ProfilePage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <ProfilePage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/professionals" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <ProfessionalsDirectoryPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/professionals" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <ProfessionalsDirectoryPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/professionals/:id" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <ProfessionalProfilePage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/professionals/:id" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <ProfessionalProfilePage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <SettingsPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <SettingsPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/notifications" element={
-                <ProtectedRoute>
-                  <OnboardingCheck>
-                    <NotificationsPage />
-                  </OnboardingCheck>
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <OnboardingCheck>
+                      <NotificationsPage />
+                    </OnboardingCheck>
+                  </ProtectedRoute>
+                } 
+              />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
