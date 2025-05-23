@@ -73,15 +73,18 @@ const DealHealthHistoryChart: React.FC<DealHealthHistoryChartProps> = ({ dealId 
                     <ChartTooltipContent
                       formatter={(value, name, props) => {
                         const tooltipData = props.payload.tooltipData;
+                        const currentScore = Number(value);
+                        const previousScore = tooltipData.previousScore ? Number(tooltipData.previousScore) : null;
+                        
                         return [
                           <div key="score">
                             <span className="font-medium">Score: </span>
-                            <span>{value}%</span>
+                            <span>{currentScore}%</span>
                           </div>,
-                          tooltipData.previousScore && (
+                          previousScore !== null && (
                             <div key="change">
                               <span className="font-medium">Change: </span>
-                              <span>{value - tooltipData.previousScore}%</span>
+                              <span>{currentScore - previousScore}%</span>
                             </div>
                           ),
                           tooltipData.changeReason && (

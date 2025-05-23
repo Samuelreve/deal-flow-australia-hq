@@ -9,13 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { Activity } from "lucide-react";
 
 const Sidebar = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      logout();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
