@@ -17,7 +17,14 @@ export const useHealthThresholds = (dealId: string) => {
         .order('threshold_value', { ascending: false });
 
       if (error) throw error;
-      setThresholds(data || []);
+      
+      // Type assertion to ensure proper types
+      const typedThresholds: HealthThreshold[] = (data || []).map(threshold => ({
+        ...threshold,
+        threshold_type: threshold.threshold_type as 'critical' | 'warning' | 'info'
+      }));
+      
+      setThresholds(typedThresholds);
     } catch (error) {
       console.error('Error fetching health thresholds:', error);
       toast.error('Failed to load health thresholds');

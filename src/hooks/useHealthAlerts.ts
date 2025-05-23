@@ -22,7 +22,19 @@ export const useHealthAlerts = (dealId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setAlerts(data || []);
+      
+      // Type assertion to ensure proper types
+      const typedAlerts: HealthAlert[] = (data || []).map(alert => ({
+        ...alert,
+        alert_type: alert.alert_type as 'threshold_breach' | 'score_drop' | 'improvement',
+        recommendations: alert.recommendations as Array<{
+          area: string;
+          recommendation: string;
+          impact: 'low' | 'medium' | 'high';
+        }>
+      }));
+      
+      setAlerts(typedAlerts);
     } catch (error) {
       console.error('Error fetching health alerts:', error);
       toast.error('Failed to load health alerts');
