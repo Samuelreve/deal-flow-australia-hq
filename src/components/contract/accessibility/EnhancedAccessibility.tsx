@@ -75,6 +75,24 @@ export const useContractKeyboardNavigation = (
       }
     };
 
+    const announceToScreenReader = (message: string) => {
+      // Create or update live region
+      let liveRegion = document.getElementById('contract-announcements');
+      if (!liveRegion) {
+        liveRegion = document.createElement('div');
+        liveRegion.id = 'contract-announcements';
+        liveRegion.setAttribute('aria-live', 'polite');
+        liveRegion.setAttribute('aria-atomic', 'true');
+        liveRegion.className = 'sr-only';
+        document.body.appendChild(liveRegion);
+      }
+      
+      liveRegion.textContent = message;
+      
+      // Also show toast for visual feedback
+      toast.info(message);
+    };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onUpload, onSave, onSearch, onEscape]);

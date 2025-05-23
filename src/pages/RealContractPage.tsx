@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -27,7 +26,7 @@ const RealContractPage: React.FC = () => {
   } = useRealContracts();
 
   const questionAnswerState = useRealContractQuestionAnswer(selectedContract?.id || null);
-  const { announceLiveRegion } = useContractFocusManagement();
+  const { announceToScreenReader } = useContractFocusManagement();
   const { isOpen: isKeyboardHelpOpen, setIsOpen: setKeyboardHelpOpen } = useKeyboardHelp();
 
   // Handle file upload with enhanced UX
@@ -37,12 +36,12 @@ const RealContractPage: React.FC = () => {
       try {
         await uploadContract(file);
         toast.success('Contract uploaded successfully');
-        announceLiveRegion(`Contract ${file.name} uploaded and analysis started`);
+        announceToScreenReader(`Contract ${file.name} uploaded and analysis started`);
         setActiveTab('assistant');
       } catch (error) {
         console.error('Upload failed:', error);
         toast.error('Failed to upload contract');
-        announceLiveRegion('Contract upload failed');
+        announceToScreenReader('Contract upload failed');
       }
     }
   };
@@ -50,7 +49,7 @@ const RealContractPage: React.FC = () => {
   const handleContractSelect = (contractId: string) => {
     selectContract(contractId);
     setActiveTab('assistant');
-    announceLiveRegion('Contract selected and ready for analysis');
+    announceToScreenReader('Contract selected and ready for analysis');
   };
 
   const handleAskQuestion = async (question: string) => {
@@ -70,7 +69,7 @@ const RealContractPage: React.FC = () => {
   const handleRetryAnalysis = () => {
     if (selectedContract) {
       selectContract(selectedContract.id);
-      announceLiveRegion('Retrying contract analysis');
+      announceToScreenReader('Retrying contract analysis');
     }
   };
 
@@ -78,15 +77,15 @@ const RealContractPage: React.FC = () => {
   useContractKeyboardNavigation(
     () => {
       document.getElementById('contract-upload-input')?.click();
-      announceLiveRegion('Opening file upload dialog');
+      announceToScreenReader('Opening file upload dialog');
     },
     () => {
       // TODO: Save functionality
-      announceLiveRegion('Save function not yet implemented');
+      announceToScreenReader('Save function not yet implemented');
     },
     () => {
       // TODO: Search functionality
-      announceLiveRegion('Search function not yet implemented');
+      announceToScreenReader('Search function not yet implemented');
     },
     () => {
       setKeyboardHelpOpen(false);
