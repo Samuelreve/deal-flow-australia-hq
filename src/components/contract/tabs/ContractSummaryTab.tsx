@@ -14,12 +14,26 @@ interface SummaryData {
   disclaimer: string;
 }
 
-interface ContractSummaryTabProps {
-  summaryData: SummaryData;
+export interface ContractSummaryTabProps {
+  summaryData?: SummaryData;
+  customSummary?: any;
+  mockSummary?: any;
 }
 
-const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) => {
-  if (!summaryData || !summaryData.summary || summaryData.summary.length === 0) {
+const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ 
+  summaryData,
+  customSummary,
+  mockSummary
+}) => {
+  // Use customSummary or mockSummary if summaryData is not provided
+  const displayData = summaryData || customSummary?.summary ? 
+    { 
+      summary: customSummary?.summary || [],
+      disclaimer: customSummary?.disclaimer || mockSummary?.disclaimer || "This is an AI-generated summary and may not cover all legal details. Always consult with a legal professional."
+    } 
+    : mockSummary;
+  
+  if (!displayData || !displayData.summary || displayData.summary.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -49,7 +63,7 @@ const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {summaryData.summary.map((item, index) => (
+        {displayData.summary.map((item, index) => (
           <div key={index} className="space-y-1 border-b pb-4 last:border-b-0">
             <h3 className="text-base font-medium text-gray-800">{item.title}</h3>
             <p className="text-sm text-muted-foreground">{item.content}</p>
@@ -59,7 +73,7 @@ const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ summaryData }) 
         <Alert className="bg-amber-50 border-amber-200 mt-6">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-sm text-amber-700">
-            {summaryData.disclaimer}
+            {displayData.disclaimer}
           </AlertDescription>
         </Alert>
       </CardContent>

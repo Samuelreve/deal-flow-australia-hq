@@ -42,6 +42,10 @@ const ContractSidebar: React.FC<ContractSidebarProps> = ({
       <DocumentVersions 
         documentHighlights={documentHighlights}
         onExportHighlights={onExportHighlights}
+        documentMetadata={documentMetadata ? {
+          version: documentMetadata.version,
+          versionDate: documentMetadata.versionDate
+        } : undefined}
       />
     </div>
   );

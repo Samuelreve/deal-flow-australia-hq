@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -30,9 +29,11 @@ const RealContractPage: React.FC = () => {
 
   const questionAnswerState = useRealContractQuestionAnswer(selectedContract?.id || null);
 
-  const handleFileUpload = async (file: File) => {
-    const contract = await uploadContract(file);
-    if (contract) {
+  // Create a wrapper function that extracts the file from the event
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await uploadContract(file);
       toast.success('Contract uploaded and analysis started');
       setActiveTab('assistant');
     }

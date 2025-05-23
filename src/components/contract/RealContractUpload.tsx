@@ -9,19 +9,24 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface RealContractUploadProps {
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-  isUploading: boolean;
-  uploadProgress: number;
-  error: string | null;
+  isUploading?: boolean;
+  uploadProgress?: number;
+  error?: string | null;
+  uploading?: boolean;
 }
 
 const RealContractUpload: React.FC<RealContractUploadProps> = ({
   onFileUpload,
   isUploading,
-  uploadProgress,
-  error
+  uploadProgress = 0,
+  error,
+  uploading = false
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  
+  // Use either isUploading or uploading prop for backward compatibility
+  const isProcessing = isUploading || uploading;
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -80,7 +85,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           </Alert>
         )}
 
-        {isUploading && (
+        {isProcessing && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{getProgressMessage()}</span>
@@ -90,7 +95,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           </div>
         )}
 
-        {uploadProgress === 100 && !isUploading && (
+        {uploadProgress === 100 && !isProcessing && (
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
@@ -105,15 +110,15 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           onChange={onFileUpload}
           accept=".pdf,.doc,.docx,.txt"
           className="hidden"
-          disabled={isUploading}
+          disabled={isProcessing}
         />
         
         <Button 
           onClick={handleUploadClick}
-          disabled={isUploading}
+          disabled={isProcessing}
           className="w-full"
         >
-          {isUploading ? (
+          {isProcessing ? (
             <>
               <Loader className="mr-2 h-4 w-4 animate-spin" />
               Processing...
