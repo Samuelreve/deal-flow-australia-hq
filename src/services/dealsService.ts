@@ -51,7 +51,11 @@ export const dealsService = {
         ...deal,
         seller_id: user.id
       })
-      .select()
+      .select(`
+        *,
+        seller:profiles!seller_id(name),
+        buyer:profiles!buyer_id(name)
+      `)
       .single();
 
     if (error) {
@@ -67,7 +71,11 @@ export const dealsService = {
       .from('deals')
       .update(updates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        seller:profiles!seller_id(name),
+        buyer:profiles!buyer_id(name)
+      `)
       .single();
 
     if (error) {

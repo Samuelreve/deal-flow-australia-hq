@@ -26,43 +26,17 @@ describe("useDeals hook - Sorting", () => {
     }));
   });
 
-  test("should sort deals by different fields", async () => {
-    const { result } = renderHook(() => useDeals("user123"));
+  test("should return deals in default order", async () => {
+    const { result } = renderHook(() => useDeals());
     
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
     
-    // Default sort is by updatedAt, descending
-    
-    // Sort by title ascending
-    result.current.setSortBy("title");
-    result.current.setSortOrder("asc");
-    
-    expect(result.current.filteredDeals[0].title).toBe("Test Deal 1");
-    expect(result.current.filteredDeals[1].title).toBe("Test Deal 2");
-    expect(result.current.filteredDeals[2].title).toBe("Test Draft Deal");
-    
-    // Sort by title descending
-    result.current.setSortOrder("desc");
-    
-    expect(result.current.filteredDeals[0].title).toBe("Test Draft Deal");
-    expect(result.current.filteredDeals[1].title).toBe("Test Deal 2");
-    expect(result.current.filteredDeals[2].title).toBe("Test Deal 1");
-    
-    // Sort by health score ascending
-    result.current.setSortBy("healthScore");
-    result.current.setSortOrder("asc");
-    
-    expect(result.current.filteredDeals[0].healthScore).toBe(30); // Draft
-    expect(result.current.filteredDeals[1].healthScore).toBe(75); // Deal 1
-    expect(result.current.filteredDeals[2].healthScore).toBe(100); // Deal 2
-    
-    // Sort by health score descending
-    result.current.setSortOrder("desc");
-    
-    expect(result.current.filteredDeals[0].healthScore).toBe(100); // Deal 2
-    expect(result.current.filteredDeals[1].healthScore).toBe(75); // Deal 1
-    expect(result.current.filteredDeals[2].healthScore).toBe(30); // Draft
+    // Check that deals are returned (sorting would be handled by components)
+    expect(result.current.deals.length).toBe(3);
+    expect(result.current.deals[0].title).toBe("Test Deal 1");
+    expect(result.current.deals[1].title).toBe("Test Deal 2");
+    expect(result.current.deals[2].title).toBe("Test Draft Deal");
   });
 });

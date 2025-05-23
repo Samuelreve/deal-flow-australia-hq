@@ -7,10 +7,11 @@ import { useAdvancedHealthMonitoring } from "@/hooks/useAdvancedHealthMonitoring
 import AdvancedHealthHeader from "@/components/advanced-health/AdvancedHealthHeader";
 import DealSelector from "@/components/advanced-health/DealSelector";
 import HealthMonitoringTabs from "@/components/advanced-health/HealthMonitoringTabs";
+import { Deal } from "@/services/dealsService";
 
 const AdvancedHealthMonitoring = () => {
   const { user } = useAuth();
-  const { deals, loading: dealsLoading } = useDeals(user?.id);
+  const { deals, loading: dealsLoading } = useDeals();
   const [selectedDealId, setSelectedDealId] = useState<string>('');
   
   const healthData = useAdvancedHealthMonitoring(user?.id);

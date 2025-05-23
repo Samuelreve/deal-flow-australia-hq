@@ -18,7 +18,7 @@ import { Zap, BarChart3 } from "lucide-react";
 
 const DealHealthMonitoring = () => {
   const { user } = useAuth();
-  const { deals, loading } = useDeals(user?.id);
+  const { deals, loading } = useDeals();
   const navigate = useNavigate();
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [healthFilterValue, setHealthFilterValue] = useState<number | null>(null);
@@ -30,7 +30,7 @@ const DealHealthMonitoring = () => {
     if (deals.length > 0 && !selectedDealId) {
       const lowestHealthDeal = [...deals]
         .filter(d => d.status === 'active')
-        .sort((a, b) => a.healthScore - b.healthScore)[0];
+        .sort((a, b) => a.health_score - b.health_score)[0];
         
       if (lowestHealthDeal) {
         setSelectedDealId(lowestHealthDeal.id);
@@ -166,11 +166,11 @@ const DealHealthMonitoring = () => {
           </TabsContent>
 
           <TabsContent value="thresholds">
-            <HealthThresholdManager userId={user?.id} />
+            <HealthThresholdManager />
           </TabsContent>
 
           <TabsContent value="notifications">
-            <HealthNotificationSettings userId={user?.id} />
+            <HealthNotificationSettings />
           </TabsContent>
         </Tabs>
       </div>

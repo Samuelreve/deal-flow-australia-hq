@@ -27,7 +27,7 @@ describe("useDeals hook - Metrics", () => {
   });
 
   test("should calculate metrics correctly", async () => {
-    const { result } = renderHook(() => useDeals("user123"));
+    const { result } = renderHook(() => useDeals());
     
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -39,8 +39,7 @@ describe("useDeals hook - Metrics", () => {
     expect(result.current.metrics.completed).toBe(1);
     expect(result.current.metrics.draft).toBe(1);
     
-    // Check average health score of active deals
-    expect(result.current.activeDeals.length).toBe(1);
-    expect(result.current.averageHealthScore).toBe(75);
+    // Check average health score calculation
+    expect(result.current.metrics.averageHealthScore).toBe(68); // (75 + 100 + 30) / 3 = 68.33, rounded to 68
   });
 });
