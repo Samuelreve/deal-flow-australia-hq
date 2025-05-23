@@ -26,6 +26,7 @@ export const useContractAnalysisState = () => {
     stage: '', 
     progress: 0 
   });
+  const [error, setError] = useState<string | null>(null);
 
   const requestAnalysis = async (request: AnalysisRequest) => {
     const { documentId, analysisType } = request;
@@ -146,7 +147,8 @@ export const useContractAnalysisState = () => {
     setDocumentHighlights: updateDocumentHighlights,
     analysisProgress,
     setAnalysisProgress,
-    setError: (error: string) => console.error('Analysis error:', error)
+    error,
+    setError
   };
 };
 

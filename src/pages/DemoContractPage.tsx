@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -62,20 +61,7 @@ const DemoContractPage: React.FC = () => {
   
   const uploadHandler = useContractDocumentUpload({
     onUploadSuccess: (metadata, text, summary) => {
-      // Ensure metadata is correctly typed
-      const typedMetadata: DocumentMetadata = {
-        id: metadata?.id || '',
-        name: metadata?.name || 'Untitled Document',
-        type: metadata?.type || 'contract',
-        uploadDate: metadata?.uploadDate || new Date().toISOString(),
-        status: (metadata?.status as 'pending' | 'analyzing' | 'completed' | 'error') || 'pending',
-        version: metadata?.version || '1.0',
-        versionDate: metadata?.versionDate || new Date().toISOString(),
-        size: metadata?.size || 0,
-        category: metadata?.category || 'legal'
-      };
-      
-      analysisState.setDocumentMetadata(typedMetadata);
+      analysisState.setDocumentMetadata(metadata);
       analysisState.setContractText(text || SAMPLE_CONTRACT_TEXT);
       analysisState.setCustomSummary(summary);
     },

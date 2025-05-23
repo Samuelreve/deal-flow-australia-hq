@@ -1,82 +1,73 @@
 
 import { useState, useCallback } from 'react';
-import { QuestionAnswerState, QuestionHistoryItem } from '@/types/contract';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
+import { QuestionHistoryItem } from '@/types/contract';
 
 export const useContractQuestionAnswer = () => {
-  const [state, setState] = useState<QuestionAnswerState>({
-    questionHistory: [],
-    isProcessing: false,
-    error: null
-  });
+  const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = useCallback(async (question: string, contractText: string): Promise<string | { answer: string; sources?: string[] }> => {
-    setState(prev => ({ ...prev, isProcessing: true, error: null }));
+  const handleAskQuestion = useCallback(async (question: string) => {
+    if (!question.trim()) {
+      setError("Please enter a question");
+      return;
+    }
+
+    setError(null);
+    setIsProcessing(true);
+
+    // Add the question to history with isProcessing flag
+    const questionId = uuidv4();
+    const newQuestion: QuestionHistoryItem = {
+      id: questionId,
+      question,
+      answer: "",
+      timestamp: new Date(),
+      isProcessing: true
+    };
+
+    setQuestionHistory(prev => [newQuestion, ...prev]);
 
     try {
-      // Call our Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('contract-assistant', {
-        body: { question, contractText }
-      });
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (error) {
-        throw new Error(error.message || 'Failed to process question');
-      }
+      // Mock response
+      const mockResponse = `This is a sample answer to your question about "${question}". In a real implementation, this would come from an AI assistant with contract expertise.`;
 
-      // Format the answer
-      const result = {
-        answer: data.answer,
-        sources: data.sources
-      };
-
-      // Create a new history item
-      const newHistoryItem: QuestionHistoryItem = {
-        id: `q-${Date.now()}`,
-        question,
-        answer: result,
-        timestamp: new Date()
-      };
-
-      // Update state with the new history item
-      setState(prev => ({
-        ...prev,
-        questionHistory: [newHistoryItem, ...prev.questionHistory],
-        isProcessing: false,
-        error: null
-      }));
-
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to process question';
+      // Update the question in history with the answer
+      setQuestionHistory(prev =>
+        prev.map(q =>
+          q.id === questionId
+            ? { ...q, answer: mockResponse, isProcessing: false }
+            : q
+        )
+      );
+    } catch (err) {
+      console.error('Error asking question:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get answer';
       
-      toast.error(errorMessage);
+      // Update the question in history with the error
+      setQuestionHistory(prev =>
+        prev.map(q =>
+          q.id === questionId
+            ? { ...q, answer: `Error: ${errorMessage}`, isProcessing: false }
+            : q
+        )
+      );
       
-      setState(prev => ({
-        ...prev,
-        isProcessing: false,
-        error: errorMessage
-      }));
-
-      throw new Error(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   }, []);
 
-  const clearHistory = useCallback(() => {
-    setState(prev => ({ ...prev, questionHistory: [] }));
-  }, []);
-
-  const removeQuestion = useCallback((questionId: string) => {
-    setState(prev => ({
-      ...prev,
-      questionHistory: prev.questionHistory.filter(item => item.id !== questionId)
-    }));
-  }, []);
-
   return {
-    ...state,
+    questionHistory,
+    isProcessing,
+    error,
     handleAskQuestion,
-    clearHistory,
-    removeQuestion
+    setError
   };
 };

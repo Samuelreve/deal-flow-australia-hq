@@ -47,7 +47,7 @@ export const useContractDocumentUpload = ({
         name: file.name,
         type: file.type,
         uploadDate: new Date().toISOString(),
-        status: 'completed',
+        status: 'completed' as const,
         version: '1.0',
         versionDate: new Date().toISOString(),
         size: file.size
