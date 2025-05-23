@@ -125,19 +125,23 @@ export const useProfileHandler = () => {
 
       updateData.updated_at = new Date().toISOString();
 
+      console.log('Sending update to Supabase:', updateData);
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', user.profile.id);
 
       if (updateError) {
+        console.error('Supabase update error:', updateError);
         throw updateError;
       }
 
+      console.log('Supabase update successful, updating context...');
       const success = await updateUserProfile(updatedProfile as UserProfile);
       
       if (success) {
-        toast.success('Profile updated successfully');
+        console.log('Context update successful');
         setState(prev => ({ ...prev, retryCount: 0 }));
       } else {
         throw new Error('Failed to update profile in context');
@@ -152,9 +156,6 @@ export const useProfileHandler = () => {
         retryCount: prev.retryCount + 1
       }));
       
-      toast.error('Failed to update profile', {
-        description: error.message
-      });
       return false;
     } finally {
       setState(prev => ({ ...prev, loading: false }));
