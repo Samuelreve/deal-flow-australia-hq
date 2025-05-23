@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
 import { AUTH_ROUTES } from "@/contexts/auth/constants";
 import { handleAuthError } from "@/contexts/auth/authUtils";
 import { useToast } from "@/hooks/use-toast";

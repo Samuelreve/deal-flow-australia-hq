@@ -1,28 +1,28 @@
 
 import { createContext, useContext } from "react";
 import { AuthContextType } from "@/types/auth";
-import { useAuthOperations } from "./authOperations";
-import { AuthProviderProps } from "./types";
 
-// Create the context with undefined default value
+// Create a context with undefined default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  // Use the extracted auth operations
-  const authOperations = useAuthOperations();
+// Re-export the main auth provider and hook
+export { AuthProvider } from "@/contexts/AuthContext";
 
-  return (
-    <AuthContext.Provider value={authOperations}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-// Custom hook to use the auth context
+// Re-export the main auth hook with a warning about the transition
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  console.warn(
+    "You are using the auth context from '/contexts/auth/AuthContext'. " +
+    "This is deprecated and will be removed in a future version. " +
+    "Please import from '@/contexts/AuthContext' instead."
+  );
+  
+  const mainAuth = useContext(AuthContext);
+  
+  // If this context is not defined, try to use the main auth context
+  if (mainAuth === undefined) {
+    const { useAuth: mainUseAuth } = require("@/contexts/AuthContext");
+    return mainUseAuth();
   }
-  return context;
+  
+  return mainAuth;
 };

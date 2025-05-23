@@ -1,48 +1,49 @@
-
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const useSignUp = (inviteToken?: string | null) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  
+  const navigate = useNavigate();
+  const { signup } = useAuth();
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
     
-    if (!email || !password || !name) {
-      setError("All fields are required");
-      setIsLoading(false);
+    if (!email || !password) {
+      setError("Email and password are required");
       return;
     }
     
+    setIsLoading(true);
+    setError("");
+    
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            // Store inviteToken in user metadata if provided
-            inviteToken: inviteToken || null,
-          },
-        },
-      });
+      const success = await signup(email, password, name);
       
-      if (signUpError) throw signUpError;
-      
-      if (data?.user) {
+      if (success) {
         setShowSuccess(true);
-        // Form fields are kept in case user needs to use this info to login
+        
+        // If invitation token exists, navigate to accept-invite page
+        if (inviteToken) {
+          navigate(`/accept-invite?token=${inviteToken}`);
+        } else {
+          // Otherwise just show success message
+          toast.success("Account created successfully!");
+        }
+      } else {
+        setError("Failed to create account. Please try again.");
       }
-    } catch (error: any) {
-      setError(error.message || "An error occurred during sign up");
-      console.error("Sign up error:", error);
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(err.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +59,6 @@ export const useSignUp = (inviteToken?: string | null) => {
     isLoading,
     error,
     showSuccess,
-    handleSubmit,
+    handleSubmit
   };
 };

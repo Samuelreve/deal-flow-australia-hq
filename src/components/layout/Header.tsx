@@ -1,8 +1,7 @@
-
 import { Settings, User, Search, Brain } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

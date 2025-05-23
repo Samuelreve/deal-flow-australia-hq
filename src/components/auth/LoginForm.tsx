@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
 import LoginFormContainer from "./LoginFormContainer";
 
 interface LoginFormProps {

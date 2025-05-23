@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext"; // Use the main AuthContext
 import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginInfoPanel from "@/components/auth/LoginInfoPanel";
