@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { useDocumentHighlighting } from '@/hooks/contract-analysis/useDocumentHi
 import HighlightCategorySelector from '../HighlightCategorySelector';
 import HighlightsSummaryPanel from '../HighlightsSummaryPanel';
 import HighlightNoteEditor from '../HighlightNoteEditor';
+import HighlightFilters from '../HighlightFilters';
 
 interface DocumentTabProps {
   contractText: string;
@@ -17,6 +18,7 @@ interface DocumentTabProps {
 const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("document");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const maxHeight = expanded ? '100%' : '600px';
   
   // Use our document highlighting hook
@@ -40,11 +42,45 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
     selectHighlight,
     setHighlightNote,
     updateHighlightNote,
+    getHighlightStats,
     setShowNoteEditor
   } = useDocumentHighlighting(contractText);
   
+  // Filter the highlights based on activeFilters
+  const filteredHighlights = activeFilters.length > 0 
+    ? highlights.filter(h => activeFilters.includes(h.category || 'custom')) 
+    : highlights;
+  
+  // Get highlight statistics
+  const highlightStats = getHighlightStats();
+
+  // Toggle a filter
+  const handleFilterChange = (categoryId: string) => {
+    setActiveFilters(prev => {
+      if (prev.includes(categoryId)) {
+        // Remove the filter
+        return prev.filter(id => id !== categoryId);
+      } else {
+        // Add the filter
+        return [...prev, categoryId];
+      }
+    });
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setActiveFilters([]);
+  };
+  
   // Prepare highlighted HTML content
   const highlightedContent = renderHighlightedText();
+  
+  useEffect(() => {
+    // When switching to highlights tab, auto-select all categories if no filters are active
+    if (activeTab === "highlights" && activeFilters.length === 0) {
+      setActiveFilters(categories.map(c => c.id));
+    }
+  }, [activeTab, categories]);
   
   return (
     <Card className="mb-6">
@@ -187,8 +223,18 @@ const DocumentTab: React.FC<DocumentTabProps> = ({ contractText }) => {
         
         <TabsContent value="highlights">
           <CardContent>
+            {highlights.length > 0 && (
+              <HighlightFilters
+                categories={categories}
+                categoryStats={highlightStats}
+                activeFilters={activeFilters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+              />
+            )}
+            
             <HighlightsSummaryPanel
-              highlights={highlights}
+              highlights={filteredHighlights}
               categories={categories}
               onSelectHighlight={selectHighlight}
               onRemoveHighlight={removeHighlight}
