@@ -10,7 +10,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisState';
 import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
-import { mockSummaryData } from '@/hooks/contract-analysis/mockData';
+import { mockSummaryData, mockQuestionHistory } from '@/hooks/contract-analysis/mockData';
 import { DocumentMetadata } from '@/types/contract';
 
 // Sample contract text for demo purposes
@@ -119,6 +119,14 @@ const DemoContractPage: React.FC = () => {
     // Set sample contract text if no contract text is available
     if (!analysisState.contractText) {
       analysisState.setContractText(SAMPLE_CONTRACT_TEXT);
+    }
+    
+    // In demo mode, pre-populate with mock data if no real data exists
+    if (!questionAnswerState.questionHistory || questionAnswerState.questionHistory.length === 0) {
+      // Only for demo purposes - use mock question history
+      if (process.env.NODE_ENV !== 'production') {
+        questionAnswerState.setQuestionHistory(mockQuestionHistory);
+      }
     }
     
     if (shouldAnalyze && !analysisState.isAnalyzing) {

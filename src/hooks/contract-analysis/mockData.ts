@@ -1,83 +1,84 @@
 
-import { DocumentMetadata, SummaryData } from './types';
+import { SummaryItem } from '@/components/contract/tabs/ContractSummaryTab';
 
-// Mock document metadata for demonstration
-export const mockDocumentMetadata: DocumentMetadata = {
-  name: 'Sample Contract.pdf',
-  type: 'PDF Document',
-  uploadDate: new Date().toLocaleDateString(),
-  status: 'Analyzed',
-  version: '1.0',
-  versionDate: new Date().toLocaleDateString(),
-};
+// Mock data for contract summary
+export interface MockSummary {
+  summary: SummaryItem[];
+  disclaimer: string;
+}
 
-// Mock summary data for demonstration
-export const mockSummaryData: SummaryData = {
+export const mockSummaryData: MockSummary = {
   summary: [
     {
-      title: 'Contract Overview',
-      content: 'This is a non-disclosure agreement (NDA) between Company A and Company B, effective as of the date of signing.'
+      title: "Agreement Type",
+      content: "Mutual Non-Disclosure Agreement (NDA)"
     },
     {
-      title: 'Key Parties',
-      content: 'Company A (Disclosing Party) and Company B (Receiving Party)'
+      title: "Parties",
+      content: "Company A and Company B"
     },
     {
-      title: 'Term and Duration',
-      content: 'The agreement is effective for 3 years from the date of signing, with automatic renewal unless terminated.'
+      title: "Effective Date",
+      content: "June 1, 2023"
     },
     {
-      title: 'Confidentiality Obligations',
-      content: 'The receiving party must protect the confidential information with the same degree of care as their own confidential information.'
+      title: "Term",
+      content: "3 years from Effective Date, with confidentiality obligations surviving for 5 years after termination"
     },
     {
-      title: 'Termination Provisions',
-      content: 'Either party may terminate this agreement with 30 days written notice.'
+      title: "Confidentiality Scope",
+      content: "Covers any information disclosed that is designated as confidential or would be understood by a reasonable person to be confidential"
+    },
+    {
+      title: "Governing Law",
+      content: "State of New York"
+    },
+    {
+      title: "Termination",
+      content: "30 days prior written notice required"
     }
   ],
-  disclaimer: 'This AI-generated summary is for informational purposes only and should not be considered legal advice. Always consult a qualified legal professional before making decisions based on this information.'
+  disclaimer: "This is an AI-generated summary and may not cover all legal details. Always consult with a legal professional before making decisions based on this information."
 };
 
-// Sample contract text for demonstration
-export const sampleContractText = `NON-DISCLOSURE AGREEMENT
+// Mock contract analysis responses for different analysis types
+export const mockAnalysisResponses = {
+  summary: {
+    answer: "This is a comprehensive contract summary analyzing the main terms, parties involved, and key obligations. The contract establishes a mutual non-disclosure agreement between two companies with specific confidentiality requirements and a 3-year term.",
+    sources: ["Section 1", "Section 3"]
+  },
+  risks: {
+    answer: "Key risks identified:\n• Broad definition of confidential information could lead to disputes\n• 5-year post-termination confidentiality period may be excessive\n• Limited remedies specified for breach\n• No specific carve-outs for independently developed information",
+    sources: ["Section 2", "Section 3", "Section 6"]
+  },
+  keyTerms: {
+    answer: "Key terms and clauses:\n• Effective Date: June 1, 2023\n• Term: 3 years with 5-year survival for confidentiality\n• Governing Law: State of New York\n• Termination: 30 days written notice\n• Remedies: Injunctive relief available\n• No IP rights granted",
+    sources: ["Section 3", "Section 5", "Section 8"]
+  },
+  suggestions: {
+    answer: "Recommendations for improvement:\n• Add specific carve-outs for publicly available information\n• Include return/destruction of confidential information clause\n• Consider reducing post-termination confidentiality period\n• Add dispute resolution mechanism\n• Clarify what constitutes 'reasonable person' standard",
+    sources: ["Section 2", "Section 3"]
+  }
+};
 
-This Non-Disclosure Agreement (the "Agreement") is entered into between:
-
-Company A, with its principal place of business at 123 Business Ave, City, State ("Disclosing Party")
-
-and
-
-Company B, with its principal place of business at 456 Corporate Blvd, Town, State ("Receiving Party")
-
-WHEREAS, the Disclosing Party possesses certain ideas and information relating to [business purpose] that is confidential and proprietary to the Disclosing Party (hereinafter referred to as "Confidential Information"); and
-
-WHEREAS, the Receiving Party is willing to receive disclosure of the Confidential Information for the purpose of [stated purpose] (the "Purpose").
-
-NOW THEREFORE, in consideration of the mutual covenants and agreements contained herein, the parties agree as follows:
-
-1. Definition of Confidential Information
-   For purposes of this Agreement, "Confidential Information" shall include all information or material that has or could have commercial value or other utility in the business in which the Disclosing Party is engaged.
-
-2. Obligations of Receiving Party
-   The Receiving Party shall hold and maintain the Confidential Information in strictest confidence for the sole and exclusive benefit of the Disclosing Party.
-
-3. Term
-   This Agreement shall remain in effect for a period of 3 years from the date of signing.
-
-4. Termination
-   This Agreement may be terminated by either party with thirty (30) days written notice to the other party.
-
-5. Governing Law
-   This Agreement shall be governed by the laws of the State of [State].
-
-IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
-
-Company A
-By: ____________________
-Name: _________________
-Title: __________________
-
-Company B
-By: ____________________
-Name: _________________
-Title: __________________`;
+// Mock question & answer history
+export const mockQuestionHistory = [
+  {
+    id: "q1",
+    question: "What is the effective date of this contract?",
+    answer: {
+      answer: "The effective date of this contract is June 1, 2023, as specified in the opening paragraph.",
+      sources: ["Paragraph 1"]
+    },
+    timestamp: new Date(2023, 5, 15, 14, 30)
+  },
+  {
+    id: "q2",
+    question: "How long does the confidentiality obligation last?",
+    answer: {
+      answer: "The confidentiality obligations survive for 5 years after termination of the agreement, which itself has a term of 3 years from the effective date.",
+      sources: ["Section 3"]
+    },
+    timestamp: new Date(2023, 5, 15, 14, 35)
+  }
+];

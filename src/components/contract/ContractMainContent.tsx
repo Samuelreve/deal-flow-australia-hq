@@ -6,6 +6,7 @@ import DocumentTab from './tabs/DocumentTab';
 import EnhancedContractAssistantTab from './tabs/EnhancedContractAssistantTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuestionHistoryItem } from '@/types/contract';
+import { mockAnalysisResponses } from '@/hooks/contract-analysis/mockData';
 
 interface ContractMainContentProps {
   isAnalyzing: boolean;
@@ -34,17 +35,11 @@ const ContractMainContent: React.FC<ContractMainContentProps> = ({
   onTabChange,
   onAskQuestion
 }) => {
-  // Mock analysis function for different analysis types
+  // Mock analysis function that uses standardized mock responses
   const handleAnalyzeContract = async (analysisType: string) => {
-    // Simulate different analysis types
-    const analysisResponses = {
-      summary: { answer: "This is a comprehensive contract summary analyzing the main terms, parties involved, and key obligations. The contract establishes a mutual non-disclosure agreement between two companies with specific confidentiality requirements and a 3-year term." },
-      risks: { answer: "Key risks identified:\n• Broad definition of confidential information could lead to disputes\n• 5-year post-termination confidentiality period may be excessive\n• Limited remedies specified for breach\n• No specific carve-outs for independently developed information" },
-      keyTerms: { answer: "Key terms and clauses:\n• Effective Date: June 1, 2023\n• Term: 3 years with 5-year survival for confidentiality\n• Governing Law: State of New York\n• Termination: 30 days written notice\n• Remedies: Injunctive relief available\n• No IP rights granted" },
-      suggestions: { answer: "Recommendations for improvement:\n• Add specific carve-outs for publicly available information\n• Include return/destruction of confidential information clause\n• Consider reducing post-termination confidentiality period\n• Add dispute resolution mechanism\n• Clarify what constitutes 'reasonable person' standard" }
-    };
-
-    return analysisResponses[analysisType as keyof typeof analysisResponses] || { answer: "Analysis complete." };
+    // Return mock response for the requested analysis type or a default response
+    return mockAnalysisResponses[analysisType as keyof typeof mockAnalysisResponses] || 
+      { answer: "Analysis complete." };
   };
 
   if (isAnalyzing) {
@@ -66,7 +61,7 @@ const ContractMainContent: React.FC<ContractMainContentProps> = ({
 
       <TabsContent value="summary" className="space-y-6">
         <ContractSummaryTab 
-          customSummary={customSummary}
+          summaryData={customSummary}
           mockSummary={mockSummary}
         />
       </TabsContent>
