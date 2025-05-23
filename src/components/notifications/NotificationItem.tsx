@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2, Clock, TrendingDown, TrendingUp } from 'lucide-react';
@@ -6,15 +7,15 @@ import { CheckCircle, FileText, Info, Users, AlertCircle, Bell, Loader2, Clock, 
 export interface Notification {
   id: string;
   user_id: string;
-  deal_id: string | null;
+  deal_id?: string | null;
   type: string;
   title: string;
   message: string | null;
   read: boolean;
   created_at: string;
-  related_entity_id: string | null;
-  related_entity_type: string | null;
-  link: string | null;
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
+  link?: string | null;
 }
 
 interface NotificationItemProps {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { notificationsService, Notification } from '@/services/notificationsService';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -21,6 +22,7 @@ export const useNotifications = () => {
       setNotifications(data);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+      toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
@@ -34,6 +36,7 @@ export const useNotifications = () => {
       );
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      toast.error('Failed to update notification');
     }
   };
 
@@ -43,17 +46,21 @@ export const useNotifications = () => {
       setNotifications(prev => 
         prev.map(n => ({ ...n, read: true }))
       );
+      toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
+      toast.error('Failed to update notifications');
     }
   };
 
   const deleteNotification = async (id: string) => {
     try {
-      // For now, just remove from local state since we don't have a delete service yet
+      await notificationsService.deleteNotification(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success('Notification removed');
     } catch (error) {
       console.error('Failed to delete notification:', error);
+      toast.error('Failed to remove notification');
     }
   };
 

@@ -7,9 +7,12 @@ export interface Notification {
   message: string;
   type: string;
   read: boolean;
-  deal_id?: string;
-  link?: string;
+  deal_id?: string | null;
+  link?: string | null;
   created_at: string;
+  user_id: string;
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
 }
 
 export const notificationsService = {
@@ -52,6 +55,18 @@ export const notificationsService = {
 
     if (error) {
       console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  async deleteNotification(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting notification:', error);
       throw error;
     }
   }

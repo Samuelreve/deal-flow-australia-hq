@@ -114,18 +114,21 @@ export const NotificationsDropdown = () => {
               </div>
             ) : (
               notifications.map((notification) => {
-                // Transform notification to match expected interface
-                const transformedNotification = {
-                  ...notification,
-                  user_id: notification.id, // placeholder
-                  related_entity_id: notification.deal_id,
-                  related_entity_type: notification.deal_id ? 'deal' : null
+                // Ensure the notification has required fields for the NotificationItem
+                const notificationItemProps = {
+                  notification: {
+                    ...notification,
+                    // If these properties don't exist in the notification, provide default values
+                    user_id: notification.user_id || '',
+                    related_entity_id: notification.deal_id || null,
+                    related_entity_type: notification.deal_id ? 'deal' : null
+                  }
                 };
                 
                 return (
                   <NotificationItem
                     key={notification.id}
-                    notification={transformedNotification}
+                    notification={notificationItemProps.notification}
                     onMarkAsRead={markAsRead}
                     onDelete={deleteNotification}
                     onNotificationClick={handleNotificationClick}
