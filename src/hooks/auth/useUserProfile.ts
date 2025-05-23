@@ -22,8 +22,21 @@ export const useUserProfile = () => {
         throw error;
       }
 
-      console.log('Profile fetched successfully:', profile);
-      return profile;
+      if (profile) {
+        // Convert Json type to string[] for professional_specializations
+        const convertedProfile: UserProfile = {
+          ...profile,
+          professional_specializations: Array.isArray(profile.professional_specializations) 
+            ? profile.professional_specializations 
+            : profile.professional_specializations 
+              ? [profile.professional_specializations as string]
+              : undefined
+        };
+        console.log('Profile fetched successfully:', convertedProfile);
+        return convertedProfile;
+      }
+
+      return null;
     } catch (error) {
       console.error('Error fetching user profile:', error);
       return null;
@@ -74,8 +87,21 @@ export const useUserProfile = () => {
         throw error;
       }
 
-      console.log('Profile created successfully:', profile);
-      return profile;
+      if (profile) {
+        // Convert Json type to string[] for professional_specializations
+        const convertedProfile: UserProfile = {
+          ...profile,
+          professional_specializations: Array.isArray(profile.professional_specializations) 
+            ? profile.professional_specializations 
+            : profile.professional_specializations 
+              ? [profile.professional_specializations as string]
+              : undefined
+        };
+        console.log('Profile created successfully:', convertedProfile);
+        return convertedProfile;
+      }
+
+      return null;
     } catch (error) {
       console.error('Error creating user profile:', error);
       return null;

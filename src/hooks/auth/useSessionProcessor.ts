@@ -57,3 +57,57 @@ export const useSessionProcessor = () => {
 
   return { processUserSession };
 };
+
+// Export the function directly for easier importing
+export const processUserSession = async (session: Session): Promise<{ user: User | null; isAuthenticated: boolean }> => {
+  try {
+    const userId = session.user.id;
+    const email = session.user.email || '';
+    const name = session.user.user_metadata?.name || email.split('@')[0] || 'User';
+
+    console.log('Processing session for user:', userId);
+
+    // Try to fetch existing profile first
+    const { fetchUserProfile, createUserProfile } = useUserProfile();
+    let profile = await fetchUserProfile(userId);
+    
+    if (!profile) {
+      console.log('No profile found, creating new profile');
+      profile = await createUserProfile(userId, email, name);
+      
+      if (!profile) {
+        console.error('Failed to create profile, creating fallback user');
+        // Create a fallback user without profile for now
+        return {
+          user: {
+            id: userId,
+            email,
+            name,
+            profile: null
+          },
+          isAuthenticated: true
+        };
+      }
+    }
+
+    const user: User = {
+      id: userId,
+      email,
+      name: profile.name,
+      role: profile.role,
+      profile
+    };
+
+    console.log('User session processed successfully:', {
+      id: user.id,
+      email: user.email,
+      onboarding_complete: profile.onboarding_complete,
+      profile_exists: !!profile
+    });
+
+    return { user, isAuthenticated: true };
+  } catch (error) {
+    console.error('Error processing user session:', error);
+    return { user: null, isAuthenticated: false };
+  }
+};
