@@ -13,8 +13,10 @@ interface LoginFormContainerProps {
 
 const LoginFormContainer = ({ onSignUp, inviteToken }: LoginFormContainerProps) => {
   const {
-    isLoading,
+    form,
     error,
+    errorMsg,
+    isLoading,
     showSuccess,
     showResetPassword,
     needs2fa,

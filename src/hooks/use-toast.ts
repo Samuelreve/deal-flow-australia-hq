@@ -1,5 +1,5 @@
 
-import { toast as sonnerToast } from "sonner";
+import { toast as sonner } from "sonner";
 
 type ToastProps = {
   title?: string;
@@ -9,9 +9,9 @@ type ToastProps = {
 
 export function toast(props: ToastProps) {
   if (props.variant === "destructive") {
-    sonnerToast.error(props.title || props.description || "Error");
+    sonner.error(props.title || props.description || "Error");
   } else {
-    sonnerToast.success(props.title || props.description || "Success");
+    sonner.success(props.title || props.description || "Success");
   }
 }
 
@@ -26,4 +26,4 @@ export const useToast = () => {
 };
 
 // Re-export the sonner toast for direct use
-export { sonnerToast as toast } from "sonner";
+export { sonner as toast } from "sonner";

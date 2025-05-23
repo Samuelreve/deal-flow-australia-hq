@@ -5,7 +5,7 @@ import { fetchUserProfile, createUserProfile } from "./useUserProfile";
 
 export const processUserSession = async (session: Session): Promise<{ user: User; isAuthenticated: boolean }> => {
   if (!session?.user) {
-    return { user: null, isAuthenticated: false };
+    return { user: null, isAuthenticated: false } as any;
   }
 
   try {
@@ -20,22 +20,22 @@ export const processUserSession = async (session: Session): Promise<{ user: User
     // Create combined user object with proper type casting
     const userRole = profile?.role as UserRole;
     
-    const user: User = {
+    const user = {
       ...session.user,
       profile,
       role: userRole
-    };
+    } as User;
     
     return { user, isAuthenticated: true };
   } catch (error) {
     console.error("Error processing user session:", error);
     
     // Return basic user without profile if there's an error
-    const user: User = {
+    const user = {
       ...session.user,
       profile: null,
       role: undefined
-    };
+    } as User;
     
     return { user, isAuthenticated: true };
   }

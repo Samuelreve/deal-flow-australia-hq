@@ -45,7 +45,7 @@ export const authService = {
     // Ensure specializations is properly formatted as a string array
     const specializations = Array.isArray(profile.professional_specializations) 
       ? profile.professional_specializations 
-      : (profile.professional_specializations ? [profile.professional_specializations.toString()] : []);
+      : (profile.professional_specializations ? [String(profile.professional_specializations)] : []);
     
     const { data, error } = await supabase
       .from('profiles')
