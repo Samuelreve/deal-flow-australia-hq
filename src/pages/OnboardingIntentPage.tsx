@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,8 +30,14 @@ const OnboardingIntentPage: React.FC = () => {
       return false;
     }
 
-    if (!user?.id || !user.profile) {
-      setError("You must be logged in to complete onboarding");
+    if (!user?.id) {
+      setError("Authentication error. Please log in again.");
+      return false;
+    }
+
+    // Check if user has a profile
+    if (!user.profile) {
+      setError("User profile not found. Please try logging in again.");
       return false;
     }
 
@@ -43,6 +48,13 @@ const OnboardingIntentPage: React.FC = () => {
     e.preventDefault();
     setError(null);
     
+    console.log('Form submission started', {
+      intent,
+      isProfessional,
+      userId: user?.id,
+      hasProfile: !!user?.profile
+    });
+    
     if (!validateForm()) {
       return;
     }
@@ -50,8 +62,7 @@ const OnboardingIntentPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // For professionals, they need to complete their professional profile
-      // For non-professionals, onboarding is complete after this step
+      // Determine if this user needs to complete professional profile
       const isSelectingProfessionalRole = isProfessional && ['advisor'].includes(intent!);
       
       const updatedProfile = {
@@ -60,21 +71,25 @@ const OnboardingIntentPage: React.FC = () => {
         onboarding_complete: !isSelectingProfessionalRole // Complete onboarding unless they're a professional
       };
 
-      console.log('Updating profile with:', updatedProfile);
+      console.log('Attempting to update profile with:', updatedProfile);
+      
       const success = await updateProfile(updatedProfile);
 
       if (success) {
+        console.log('Profile update successful');
         toast.success("Welcome to DealPilot!");
         
         // Redirect based on intent and professional status
         if (isSelectingProfessionalRole) {
+          console.log('Redirecting to profile for professional setup');
           navigate("/profile");
           toast.info("Please complete your professional profile to finish setup");
         } else {
+          console.log('Redirecting to dashboard');
           navigate("/dashboard");
         }
       } else {
-        throw new Error("Failed to update profile");
+        throw new Error(profileError || "Failed to update profile");
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
