@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Activity, Zap, LayoutDashboard, FileText, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useNavigationState } from "@/hooks/navigation/useNavigationState";
+import AppErrorBoundary from "@/components/common/AppErrorBoundary";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { getActiveClass, canNavigate } = useNavigationState();
 
   const handleSignOut = async () => {
     try {
@@ -30,108 +33,84 @@ const Sidebar = () => {
     }
   };
 
-  return (
-    <aside className="fixed left-0 top-0 z-20 flex h-full w-64 flex-col border-r bg-background pt-16 transition-transform lg:translate-x-0">
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="flex items-center justify-center mb-6">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={user?.profile?.avatar_url} alt={user?.profile?.name} />
-            <AvatarFallback>{user?.profile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </div>
-        <div className="text-center mb-4">
-          <h3 className="font-semibold">{user?.profile?.name}</h3>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
-        </div>
-      </div>
-      
-      <nav className="flex-1 overflow-y-auto p-4">
-        <ul className="space-y-1">
-          <li>
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <LayoutDashboard className="mr-2 h-5 w-5" />
-              Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/deals"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <FileText className="mr-2 h-5 w-5" />
-              Deals
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/health-monitoring"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <Activity className="mr-2 h-5 w-5" />
-              Health Monitoring
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/advanced-health-monitoring"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <Zap className="mr-2 h-5 w-5" />
-              Advanced Health
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                `flex items-center rounded-md px-3 py-2 ${
-                  isActive
-                    ? "bg-muted text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <Settings className="mr-2 h-5 w-5" />
-              Settings
-            </NavLink>
-          </li>
-        </ul>
-      </nav>
+  if (!canNavigate) {
+    return null; // Don't show sidebar during onboarding
+  }
 
-      <div className="p-4">
-        <Button variant="outline" className="w-full" onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
-        </Button>
-      </div>
-    </aside>
+  return (
+    <AppErrorBoundary>
+      <aside className="fixed left-0 top-0 z-20 flex h-full w-64 flex-col border-r bg-background pt-16 transition-transform lg:translate-x-0">
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex items-center justify-center mb-6">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={user?.profile?.avatar_url} alt={user?.profile?.name} />
+              <AvatarFallback>{user?.profile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="text-center mb-4">
+            <h3 className="font-semibold">{user?.profile?.name}</h3>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
+          </div>
+        </div>
+        
+        <nav className="flex-1 overflow-y-auto p-4">
+          <ul className="space-y-1">
+            <li>
+              <NavLink
+                to="/dashboard"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/dashboard')}`}
+              >
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                Dashboard
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/deals"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/deals')}`}
+              >
+                <FileText className="mr-2 h-5 w-5" />
+                Deals
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/health-monitoring"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/health-monitoring')}`}
+              >
+                <Activity className="mr-2 h-5 w-5" />
+                Health Monitoring
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/advanced-health-monitoring"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/advanced-health-monitoring')}`}
+              >
+                <Zap className="mr-2 h-5 w-5" />
+                Advanced Health
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/settings"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/settings')}`}
+              >
+                <Settings className="mr-2 h-5 w-5" />
+                Settings
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="p-4">
+          <Button variant="outline" className="w-full" onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
+      </aside>
+    </AppErrorBoundary>
   );
 };
 
