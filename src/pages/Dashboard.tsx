@@ -2,24 +2,22 @@
 import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DealFilters from "@/components/dashboard/DealFilters";
-import DealMetrics from "@/components/dashboard/DealMetrics";
-import DealsDashboard from "@/components/deals/DealsDashboard";
-import { useDeals } from "@/hooks/useDeals";
 import { useAuth } from "@/contexts/AuthContext";
-import DealInsightsPanel from "@/components/dashboard/DealInsightsPanel";
-import { toast } from "sonner";
-import { useDocumentAI } from "@/hooks/document-ai";
-import DealHealthPredictionPanel from "@/components/deals/health/DealHealthPredictionPanel";
-import SmartContractPanel from "@/components/dashboard/SmartContractPanel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Clock, Inbox, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Activity, Clock, Inbox, AlertCircle, Plus } from "lucide-react";
+import { useDeals } from "@/hooks/useDeals";
+import { useNotifications } from "@/hooks/useNotifications";
+import CreateDealForm from "@/components/deals/CreateDealForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { deals, loading, filteredDeals, statusFilter, setStatusFilter, searchTerm, setSearchTerm, sortBy, setSortBy, sortOrder, setSortOrder, metrics } = useDeals();
+  const { deals, loading: dealsLoading, metrics } = useDeals();
+  const { notifications, unreadCount } = useNotifications();
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [showCreateDeal, setShowCreateDeal] = useState(false);
   
   // Get current date for dashboard information
   const currentDate = new Date().toLocaleDateString('en-US', { 
@@ -40,47 +38,67 @@ const Dashboard = () => {
     
     const name = user?.profile?.name || "there";
     setWelcomeMessage(`${greeting}, ${name}!`);
-    
-    // Show error message if deals failed to load
-    if (loading === false && deals.length === 0) {
-      toast.error("Failed to load deals", {
-        description: "Please try refreshing the page."
-      });
-    }
-  }, [user, deals, loading]);
+  }, [user]);
 
-  // Get active deals sorted by health
-  const activeDealsSortedByHealth = [...filteredDeals]
-    .filter(deal => deal.status === "active")
-    .sort((a, b) => a.healthScore - b.healthScore);
-  
-  // Get the deal with the lowest health score
-  const needsAttentionDeal = activeDealsSortedByHealth[0];
-  
-  // Calculate recent activity
+  // Get recent activity from real deals
   const recentActivityCount = deals.filter(deal => {
-    const updatedDate = new Date(deal.updatedAt);
+    const updatedDate = new Date(deal.updated_at);
     const today = new Date();
     const differenceInDays = Math.floor((today.getTime() - updatedDate.getTime()) / (1000 * 3600 * 24));
-    return differenceInDays < 7; // Updated in the last 7 days
+    return differenceInDays < 7;
   }).length;
   
-  // Get upcoming milestones (mock data for demonstration)
-  const upcomingMilestones = [
-    { name: "Contract Review", dueDate: "Tomorrow", dealName: "Business Acquisition", priority: "high" },
-    { name: "Financial Verification", dueDate: "In 3 days", dealName: "Property Sale", priority: "medium" },
-    { name: "Final Agreement", dueDate: "Next week", dealName: "Partnership Deal", priority: "low" }
-  ];
+  // Get upcoming milestones from real notifications
+  const upcomingMilestones = notifications
+    .filter(n => !n.read && n.type === 'info')
+    .slice(0, 3)
+    .map(n => ({
+      name: n.title,
+      dueDate: "Soon",
+      dealName: "Related Deal",
+      priority: "medium" as const
+    }));
+
+  if (dealsLoading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-6">
         {/* Welcome and header */}
-        <div className="mb-8 mt-2">
-          <h1 className="text-3xl font-bold tracking-tight">{welcomeMessage}</h1>
-          <p className="text-muted-foreground mt-2">
-            {currentDate} · Welcome to your personalized deal dashboard
-          </p>
+        <div className="mb-8 mt-2 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{welcomeMessage}</h1>
+            <p className="text-muted-foreground mt-2">
+              {currentDate} · Welcome to your personalized deal dashboard
+            </p>
+          </div>
+          <Dialog open={showCreateDeal} onOpenChange={setShowCreateDeal}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Deal
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Deal</DialogTitle>
+              </DialogHeader>
+              <CreateDealForm onSuccess={() => setShowCreateDeal(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
         
         {/* Quick stats section */}
@@ -134,7 +152,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Unread Messages</p>
-                  <h3 className="text-2xl font-bold mt-1">3</h3>
+                  <h3 className="text-2xl font-bold mt-1">{unreadCount}</h3>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
                   <Inbox className="h-6 w-6 text-amber-600" />
@@ -144,78 +162,88 @@ const Dashboard = () => {
           </Card>
         </div>
         
-        {/* Upcoming tasks/milestones */}
-        <div className="mb-8">
+        {/* Recent Deals and Notifications */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Deals */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium">Upcoming Milestones</CardTitle>
-              <CardDescription>Tasks that require your attention</CardDescription>
+              <CardTitle className="text-lg font-medium">Recent Deals</CardTitle>
+              <CardDescription>Your latest business opportunities</CardDescription>
             </CardHeader>
             <CardContent>
-              {upcomingMilestones.length > 0 ? (
+              {deals.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingMilestones.map((milestone, index) => (
-                    <div key={index} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                  {deals.slice(0, 5).map((deal) => (
+                    <div key={deal.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
                       <div className="flex items-start gap-3">
-                        <div className={`h-2.5 w-2.5 mt-1.5 rounded-full ${
-                          milestone.priority === 'high' ? 'bg-red-500' : 
-                          milestone.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'
-                        }`} />
+                        <div className="h-2.5 w-2.5 mt-1.5 rounded-full bg-blue-500" />
                         <div>
-                          <p className="font-medium">{milestone.name}</p>
-                          <p className="text-sm text-muted-foreground">{milestone.dealName}</p>
+                          <p className="font-medium">{deal.title}</p>
+                          <p className="text-sm text-muted-foreground">{deal.business_name || 'No business name'}</p>
                         </div>
                       </div>
                       <div className="flex items-center">
                         <Badge variant={
-                          milestone.priority === 'high' ? 'destructive' : 
-                          milestone.priority === 'medium' ? 'default' : 'outline'
+                          deal.status === 'active' ? 'default' : 
+                          deal.status === 'completed' ? 'outline' : 'secondary'
                         }>
-                          {milestone.dueDate}
+                          {deal.status}
                         </Badge>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-4">No upcoming milestones</p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No deals yet</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setShowCreateDeal(true)}
+                  >
+                    Create your first deal
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
-        </div>
-        
-        {/* Main dashboard content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Deals list area - takes 2/3 of the space on large screens */}
-          <div className="lg:col-span-2 space-y-6">
-            <DashboardHeader 
-              title="Your Deals" 
-              subtitle="View and manage all your business deals"
-            />
-            
-            <DealFilters 
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              sortOrder={sortOrder}
-              setSortOrder={setSortOrder}
-            />
-            <DealsDashboard deals={filteredDeals} />
-          </div>
-          
-          {/* Sidebar area - takes 1/3 of the space on large screens */}
-          <div className="space-y-6">
-            <SmartContractPanel dealId={needsAttentionDeal?.id} />
-            <DealInsightsPanel />
-            
-            {/* Render Deal Health Prediction Panel if there are active deals */}
-            {needsAttentionDeal && (
-              <DealHealthPredictionPanel dealId={needsAttentionDeal.id} />
-            )}
-          </div>
+
+          {/* Upcoming Milestones */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">Recent Notifications</CardTitle>
+              <CardDescription>Latest updates and alerts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {notifications.length > 0 ? (
+                <div className="space-y-4">
+                  {notifications.slice(0, 5).map((notification) => (
+                    <div key={notification.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-start gap-3">
+                        <div className={`h-2.5 w-2.5 mt-1.5 rounded-full ${
+                          notification.read ? 'bg-gray-300' : 'bg-blue-500'
+                        }`} />
+                        <div>
+                          <p className="font-medium">{notification.title}</p>
+                          <p className="text-sm text-muted-foreground">{notification.message}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <Badge variant={
+                          notification.type === 'error' ? 'destructive' : 
+                          notification.type === 'warning' ? 'default' : 'outline'
+                        }>
+                          {notification.type}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">No notifications</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AppLayout>

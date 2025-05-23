@@ -1,68 +1,62 @@
 
-import { useState, useEffect } from "react";
-import { DealSummary } from "@/types/deal";
-import { 
-  fetchDealsFromSupabase,
-  filterDeals, 
-  sortDeals,
-  calculateMetrics, 
-  calculateAverageHealthScore 
-} from "./deals";
+import { useState, useEffect } from 'react';
+import { dealsService, Deal } from '@/services/dealsService';
+import { useAuth } from '@/contexts/AuthContext';
 
-/**
- * Hook for fetching and filtering deals
- */
-export const useDeals = (userId?: string) => {
-  const [deals, setDeals] = useState<DealSummary[]>([]);
-  const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
+export const useDeals = () => {
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Filter and sort states
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [sortBy, setSortBy] = useState<string>("updatedAt");
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
-  // Fetch deals from Supabase
   useEffect(() => {
-    const fetchDeals = async () => {
+    if (isAuthenticated) {
+      fetchDeals();
+    }
+  }, [isAuthenticated]);
+
+  const fetchDeals = async () => {
+    try {
       setLoading(true);
-      const fetchedDeals = await fetchDealsFromSupabase(userId);
-      setDeals(fetchedDeals);
+      const dealsData = await dealsService.getDeals();
+      setDeals(dealsData);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch deals:', err);
+      setError('Failed to load deals');
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    fetchDeals();
-  }, [userId]);
-  
-  // Update filtered deals when dependencies change
-  useEffect(() => {
-    const filtered = filterDeals(deals, statusFilter, searchTerm);
-    const sorted = sortDeals(filtered, sortBy, sortOrder);
-    setFilteredDeals(sorted);
-  }, [deals, statusFilter, searchTerm, sortBy, sortOrder]);
+  const createDeal = async (dealData: Partial<Deal>) => {
+    try {
+      const newDeal = await dealsService.createDeal(dealData);
+      setDeals(prev => [newDeal, ...prev]);
+      return newDeal;
+    } catch (err) {
+      console.error('Failed to create deal:', err);
+      throw err;
+    }
+  };
 
-  // Calculate metrics
-  const metrics = calculateMetrics(deals);
-  
-  // Get active deals and average health score
-  const activeDeals = deals.filter(deal => deal.status === "active");
-  const averageHealthScore = calculateAverageHealthScore(activeDeals);
+  // Calculate metrics from real data
+  const metrics = {
+    total: deals.length,
+    active: deals.filter(d => d.status === 'active').length,
+    completed: deals.filter(d => d.status === 'completed').length,
+    draft: deals.filter(d => d.status === 'draft').length,
+    averageHealthScore: deals.length > 0 
+      ? Math.round(deals.reduce((sum, deal) => sum + deal.health_score, 0) / deals.length)
+      : 0
+  };
 
   return {
     deals,
-    filteredDeals,
     loading,
-    statusFilter,
-    setStatusFilter,
-    searchTerm,
-    setSearchTerm,
-    sortBy,
-    setSortBy,
-    sortOrder,
-    setSortOrder,
+    error,
     metrics,
-    activeDeals,
-    averageHealthScore
+    createDeal,
+    refreshDeals: fetchDeals
   };
 };
