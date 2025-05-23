@@ -119,6 +119,28 @@ export const useProfileHandler = () => {
         return false;
       }
 
+      // Build the update object with only the fields we want to update
+      const updateData: Record<string, any> = {};
+      
+      // Only include fields that are present in the updates
+      Object.keys(updates).forEach(key => {
+        if (updates[key as keyof UserProfile] !== undefined) {
+          updateData[key] = updates[key as keyof UserProfile];
+        }
+      });
+
+      // Always update the timestamp
+      updateData.updated_at = new Date().toISOString();
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.profile.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
       const success = await updateUserProfile(updatedProfile as UserProfile);
       
       if (success) {

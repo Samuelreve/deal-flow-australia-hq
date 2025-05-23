@@ -61,7 +61,7 @@ export const useRealtimeUpdates = (config: RealtimeConfig[]) => {
             schema: 'public',
             table: cfg.table,
             filter: cfg.filter
-          },
+          } as any,
           (payload) => handleRealtimeEvent(payload.eventType, payload, cfg)
         )
         .subscribe();
@@ -89,7 +89,7 @@ export const useRealtimeUpdates = (config: RealtimeConfig[]) => {
           schema: 'public',
           table: tableConfig.table,
           filter: tableConfig.filter
-        },
+        } as any,
         (payload) => handleRealtimeEvent(payload.eventType, payload, tableConfig)
       )
       .subscribe();
