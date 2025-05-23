@@ -57,7 +57,7 @@ const HighlightNoteEditor: React.FC<HighlightNoteEditorProps> = ({
       </CardContent>
       <CardFooter className="flex justify-end">
         <Button 
-          variant="primary"
+          variant="default"
           onClick={() => onSave(highlight.id, note)}
           className="flex items-center gap-1"
         >
