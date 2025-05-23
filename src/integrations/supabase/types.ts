@@ -183,6 +183,53 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_health_metrics: {
+        Row: {
+          created_at: string
+          current_value: number
+          deal_id: string
+          id: string
+          is_active: boolean
+          metric_name: string
+          metric_weight: number
+          target_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          deal_id: string
+          id?: string
+          is_active?: boolean
+          metric_name: string
+          metric_weight?: number
+          target_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          deal_id?: string
+          id?: string
+          is_active?: boolean
+          metric_name?: string
+          metric_weight?: number
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_health_metrics_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_health_alerts: {
         Row: {
           alert_type: string
@@ -790,6 +837,125 @@ export type Database = {
           },
         ]
       }
+      health_recovery_plans: {
+        Row: {
+          action_items: Json
+          created_at: string
+          current_score: number
+          deal_id: string
+          estimated_timeline_days: number | null
+          id: string
+          status: string
+          target_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          created_at?: string
+          current_score: number
+          deal_id: string
+          estimated_timeline_days?: number | null
+          id?: string
+          status?: string
+          target_score: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          created_at?: string
+          current_score?: number
+          deal_id?: string
+          estimated_timeline_days?: number | null
+          id?: string
+          status?: string
+          target_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_recovery_plans_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_reports: {
+        Row: {
+          created_at: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids: Json | null
+          file_url: string | null
+          id: string
+          report_data: Json | null
+          report_name: string
+          report_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids?: Json | null
+          file_url?: string | null
+          id?: string
+          report_data?: Json | null
+          report_name: string
+          report_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_range_end?: string
+          date_range_start?: string
+          deal_ids?: Json | null
+          file_url?: string | null
+          id?: string
+          report_data?: Json | null
+          report_name?: string
+          report_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_score_comparisons: {
+        Row: {
+          comparison_name: string
+          created_at: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids: Json
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comparison_name: string
+          created_at?: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids?: Json
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comparison_name?: string
+          created_at?: string
+          date_range_end?: string
+          date_range_start?: string
+          deal_ids?: Json
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -1075,6 +1241,29 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: boolean
       }
+      create_custom_metric: {
+        Args: {
+          p_deal_id: string
+          p_user_id: string
+          p_metric_name: string
+          p_metric_weight: number
+          p_current_value: number
+          p_target_value: number
+          p_is_active: boolean
+        }
+        Returns: {
+          created_at: string
+          current_value: number
+          deal_id: string
+          id: string
+          is_active: boolean
+          metric_name: string
+          metric_weight: number
+          target_value: number
+          updated_at: string
+          user_id: string
+        }
+      }
       create_deal_invitation: {
         Args: {
           p_deal_id: string
@@ -1091,6 +1280,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_custom_health_metrics: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          current_value: number
+          deal_id: string
+          id: string
+          is_active: boolean
+          metric_name: string
+          metric_weight: number
+          target_value: number
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_deal_invitations: {
         Args: { p_deal_id: string }
         Returns: Json
@@ -1098,6 +1302,49 @@ export type Database = {
       get_deal_timeline: {
         Args: { deal_uuid: string }
         Returns: Database["public"]["CompositeTypes"]["timeline_event"][]
+      }
+      get_health_comparisons: {
+        Args: { p_user_id: string }
+        Returns: {
+          comparison_name: string
+          created_at: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids: Json
+          id: string
+          user_id: string
+        }[]
+      }
+      get_health_reports: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          date_range_end: string
+          date_range_start: string
+          deal_ids: Json | null
+          file_url: string | null
+          id: string
+          report_data: Json | null
+          report_name: string
+          report_type: string
+          status: string
+          user_id: string
+        }[]
+      }
+      get_recovery_plans: {
+        Args: { p_user_id: string }
+        Returns: {
+          action_items: Json
+          created_at: string
+          current_score: number
+          deal_id: string
+          estimated_timeline_days: number | null
+          id: string
+          status: string
+          target_score: number
+          updated_at: string
+          user_id: string
+        }[]
       }
       update_deal_status: {
         Args: { p_deal_id: string; p_new_status: string }

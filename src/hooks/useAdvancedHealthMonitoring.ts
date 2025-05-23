@@ -23,7 +23,6 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
     if (!userId) return;
     
     try {
-      // Use direct SQL query to handle the database structure correctly
       const { data, error } = await supabase
         .from('deal_health_predictions')
         .select('*')
@@ -32,141 +31,178 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
       if (error) throw error;
       
       // Map database fields to the expected HealthPrediction structure
-      const formattedPredictions = data?.map(item => ({
+      const formattedPredictions: HealthPrediction[] = (data || []).map(item => ({
         id: item.id,
         deal_id: item.deal_id,
-        predicted_score: item.probability_percentage, // Map to the correct field
-        prediction_date: new Date().toISOString(), // Use a default if not available
+        predicted_score: item.probability_percentage,
+        prediction_date: item.created_at,
         confidence_level: parseFloat(item.confidence_level) || 0.5,
-        factors: item.suggested_improvements?.map((imp: any) => ({
-          factor: imp.area || 'Unknown factor',
-          impact: imp.impact === 'high' ? 15 : imp.impact === 'medium' ? 10 : 5,
-          description: imp.recommendation || 'No description'
-        })) || [],
+        factors: Array.isArray(item.suggested_improvements) 
+          ? (item.suggested_improvements as any[]).map((imp: any) => ({
+              factor: imp.area || 'Unknown factor',
+              impact: imp.impact === 'high' ? 15 : imp.impact === 'medium' ? 10 : 5,
+              description: imp.recommendation || 'No description'
+            }))
+          : [],
         created_at: item.created_at
       }));
 
-      setPredictions(formattedPredictions || []);
+      setPredictions(formattedPredictions);
     } catch (error) {
       console.error('Error fetching predictions:', error);
       toast.error('Failed to load health predictions');
     }
   };
 
-  // Fetch custom metrics
+  // Fetch custom metrics using RPC function
   const fetchCustomMetrics = async () => {
     if (!userId) return;
     
     try {
-      // Direct SQL query approach
-      const { data, error } = await supabase.rpc('get_custom_metrics', {
+      const { data, error } = await supabase.rpc('get_custom_health_metrics', {
         p_user_id: userId
       });
 
       if (error) {
-        // If RPC fails, try direct fetch (will work after migration has been applied)
-        const { data: directData, error: directError } = await supabase.rpc('get_custom_health_metrics', {
-          p_user_id: userId
-        });
-        
-        if (directError) {
-          // Fallback to empty array if both methods fail
-          setCustomMetrics([]);
-          return;
-        }
-        
-        setCustomMetrics(directData || []);
+        console.error('RPC error:', error);
+        setCustomMetrics([]);
         return;
       }
       
-      setCustomMetrics(data || []);
+      // Format the data to match our CustomHealthMetric type
+      const formattedMetrics: CustomHealthMetric[] = (data || []).map((metric: any) => ({
+        id: metric.id,
+        deal_id: metric.deal_id,
+        user_id: metric.user_id,
+        metric_name: metric.metric_name,
+        metric_weight: metric.metric_weight,
+        current_value: metric.current_value,
+        target_value: metric.target_value,
+        is_active: metric.is_active,
+        created_at: metric.created_at,
+        updated_at: metric.updated_at
+      }));
+      
+      setCustomMetrics(formattedMetrics);
     } catch (error) {
       console.error('Error fetching custom metrics:', error);
       toast.error('Failed to load custom metrics');
-      // Set empty array on error
       setCustomMetrics([]);
     }
   };
 
-  // Fetch recovery plans
+  // Fetch recovery plans using RPC function
   const fetchRecoveryPlans = async () => {
     if (!userId) return;
     
     try {
-      // Direct SQL query approach
       const { data, error } = await supabase.rpc('get_recovery_plans', {
         p_user_id: userId
       });
 
       if (error) {
-        // Fallback to empty array if query fails
+        console.error('RPC error:', error);
         setRecoveryPlans([]);
         return;
       }
       
-      setRecoveryPlans(data || []);
+      // Format the data to match our HealthRecoveryPlan type
+      const formattedPlans: HealthRecoveryPlan[] = (data || []).map((plan: any) => ({
+        id: plan.id,
+        deal_id: plan.deal_id,
+        user_id: plan.user_id,
+        current_score: plan.current_score,
+        target_score: plan.target_score,
+        estimated_timeline_days: plan.estimated_timeline_days,
+        action_items: Array.isArray(plan.action_items) ? plan.action_items : [],
+        status: plan.status as 'active' | 'completed' | 'cancelled',
+        created_at: plan.created_at,
+        updated_at: plan.updated_at
+      }));
+      
+      setRecoveryPlans(formattedPlans);
     } catch (error) {
       console.error('Error fetching recovery plans:', error);
       toast.error('Failed to load recovery plans');
-      // Set empty array on error
       setRecoveryPlans([]);
     }
   };
 
-  // Fetch comparisons
+  // Fetch comparisons using RPC function
   const fetchComparisons = async () => {
     if (!userId) return;
     
     try {
-      // Direct SQL query approach
       const { data, error } = await supabase.rpc('get_health_comparisons', {
         p_user_id: userId
       });
 
       if (error) {
-        // Fallback to empty array if query fails
+        console.error('RPC error:', error);
         setComparisons([]);
         return;
       }
       
-      setComparisons(data || []);
+      // Format the data to match our HealthScoreComparison type
+      const formattedComparisons: HealthScoreComparison[] = (data || []).map((comparison: any) => ({
+        id: comparison.id,
+        user_id: comparison.user_id,
+        comparison_name: comparison.comparison_name,
+        deal_ids: Array.isArray(comparison.deal_ids) ? comparison.deal_ids : [],
+        date_range_start: comparison.date_range_start,
+        date_range_end: comparison.date_range_end,
+        created_at: comparison.created_at
+      }));
+      
+      setComparisons(formattedComparisons);
     } catch (error) {
       console.error('Error fetching comparisons:', error);
       toast.error('Failed to load comparisons');
-      // Set empty array on error
       setComparisons([]);
     }
   };
 
-  // Fetch reports
+  // Fetch reports using RPC function
   const fetchReports = async () => {
     if (!userId) return;
     
     try {
-      // Direct SQL query approach
       const { data, error } = await supabase.rpc('get_health_reports', {
         p_user_id: userId
       });
 
       if (error) {
-        // Fallback to empty array if query fails
+        console.error('RPC error:', error);
         setReports([]);
         return;
       }
       
-      setReports(data || []);
+      // Format the data to match our HealthReport type
+      const formattedReports: HealthReport[] = (data || []).map((report: any) => ({
+        id: report.id,
+        user_id: report.user_id,
+        report_name: report.report_name,
+        report_type: report.report_type as 'pdf' | 'csv' | 'json',
+        deal_ids: Array.isArray(report.deal_ids) ? report.deal_ids : undefined,
+        date_range_start: report.date_range_start,
+        date_range_end: report.date_range_end,
+        report_data: report.report_data,
+        file_url: report.file_url,
+        status: report.status as 'generating' | 'completed' | 'failed',
+        created_at: report.created_at
+      }));
+      
+      setReports(formattedReports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast.error('Failed to load reports');
-      // Set empty array on error
       setReports([]);
     }
   };
 
-  // Create custom metric
+  // Create custom metric using RPC function
   const createCustomMetric = async (metric: Omit<CustomHealthMetric, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      // Use direct SQL insert
       const { data, error } = await supabase.rpc('create_custom_metric', {
         p_deal_id: metric.deal_id,
         p_user_id: metric.user_id,
@@ -177,24 +213,25 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
         p_is_active: metric.is_active
       });
 
-      if (error) {
-        // If RPC fails, try direct insert (will work after migration has been applied)
-        const { data: insertData, error: insertError } = await supabase
-          .from('custom_health_metrics')
-          .insert([metric])
-          .select('*')
-          .single();
-          
-        if (insertError) throw insertError;
-        
-        setCustomMetrics(prev => [insertData, ...prev]);
-        toast.success('Custom metric created successfully');
-        return insertData;
-      }
+      if (error) throw error;
       
-      setCustomMetrics(prev => [data, ...prev]);
+      // Format the returned data
+      const formattedMetric: CustomHealthMetric = {
+        id: data.id,
+        deal_id: data.deal_id,
+        user_id: data.user_id,
+        metric_name: data.metric_name,
+        metric_weight: data.metric_weight,
+        current_value: data.current_value,
+        target_value: data.target_value,
+        is_active: data.is_active,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      };
+      
+      setCustomMetrics(prev => [formattedMetric, ...prev]);
       toast.success('Custom metric created successfully');
-      return data;
+      return formattedMetric;
     } catch (error) {
       console.error('Error creating custom metric:', error);
       toast.error('Failed to create custom metric');
@@ -202,10 +239,9 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
     }
   };
 
-  // Create recovery plan
+  // Create recovery plan (using mock data until table is ready)
   const createRecoveryPlan = async (plan: Omit<HealthRecoveryPlan, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      // Using placeholder data until the actual tables are available
       const mockPlan: HealthRecoveryPlan = {
         id: crypto.randomUUID(),
         deal_id: plan.deal_id,
@@ -229,10 +265,9 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
     }
   };
 
-  // Create comparison
+  // Create comparison (using mock data until table is ready)
   const createComparison = async (comparison: Omit<HealthScoreComparison, 'id' | 'created_at'>) => {
     try {
-      // Using placeholder data until the actual tables are available
       const mockComparison: HealthScoreComparison = {
         id: crypto.randomUUID(),
         user_id: comparison.user_id,
@@ -253,10 +288,9 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
     }
   };
 
-  // Generate report
+  // Generate report (using mock data until table is ready)
   const generateReport = async (reportConfig: Omit<HealthReport, 'id' | 'created_at' | 'status' | 'report_data' | 'file_url'>) => {
     try {
-      // Using placeholder data until the actual tables are available
       const mockReport: HealthReport = {
         id: crypto.randomUUID(),
         user_id: reportConfig.user_id,
@@ -279,7 +313,7 @@ export const useAdvancedHealthMonitoring = (userId?: string) => {
             report.id === mockReport.id 
               ? { 
                   ...report, 
-                  status: 'completed', 
+                  status: 'completed' as const, 
                   report_data: { 
                     summary: 'Health report generated successfully',
                     deal_count: reportConfig.deal_ids?.length || 0,
