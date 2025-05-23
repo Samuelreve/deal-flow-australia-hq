@@ -2,7 +2,7 @@
 import { Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
-import { Notification } from "@/types/notifications";
+import { Notification } from "@/services/notificationsService";
 
 import {
   DropdownMenu,
@@ -113,19 +113,29 @@ export const NotificationsDropdown = () => {
                 <p className="text-sm text-muted-foreground">No notifications</p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkAsRead={markAsRead}
-                  onDelete={deleteNotification}
-                  onNotificationClick={handleNotificationClick}
-                  onClose={() => {
-                    const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
-                    if (trigger) trigger.click(); // Close the dropdown
-                  }}
-                />
-              ))
+              notifications.map((notification) => {
+                // Transform notification to match expected interface
+                const transformedNotification = {
+                  ...notification,
+                  user_id: notification.id, // placeholder
+                  related_entity_id: notification.deal_id,
+                  related_entity_type: notification.deal_id ? 'deal' : null
+                };
+                
+                return (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={transformedNotification}
+                    onMarkAsRead={markAsRead}
+                    onDelete={deleteNotification}
+                    onNotificationClick={handleNotificationClick}
+                    onClose={() => {
+                      const trigger = document.querySelector('[data-state="open"]') as HTMLElement;
+                      if (trigger) trigger.click(); // Close the dropdown
+                    }}
+                  />
+                );
+              })
             )}
           </DropdownMenuGroup>
         </ScrollArea>

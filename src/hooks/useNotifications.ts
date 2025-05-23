@@ -48,6 +48,15 @@ export const useNotifications = () => {
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      // For now, just remove from local state since we don't have a delete service yet
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return {
@@ -56,6 +65,8 @@ export const useNotifications = () => {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    refreshNotifications: fetchNotifications
+    deleteNotification,
+    refreshNotifications: fetchNotifications,
+    fetchNotifications
   };
 };

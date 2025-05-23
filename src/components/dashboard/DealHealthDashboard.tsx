@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, AlertTriangle, Search, Filter } from "lucide-react";
 import { useDeals } from "@/hooks/useDeals";
-import { DealSummary } from "@/types/deal";
+import { Deal } from "@/services/dealsService";
 import { useNavigate } from "react-router-dom";
 import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
 
-interface DealHealthItem extends DealSummary {
+interface DealHealthItem extends Deal {
   healthTrend?: 'up' | 'down' | 'stable';
   riskLevel?: 'low' | 'medium' | 'high';
 }
@@ -27,7 +28,7 @@ const DealHealthDashboard = () => {
   const healthDeals: DealHealthItem[] = useMemo(() => {
     return deals.map(deal => ({
       ...deal,
-      riskLevel: deal.healthScore >= 75 ? 'low' : deal.healthScore >= 50 ? 'medium' : 'high',
+      riskLevel: deal.health_score >= 75 ? 'low' : deal.health_score >= 50 ? 'medium' : 'high',
       healthTrend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable' // Mock trend
     }));
   }, [deals]);
@@ -36,7 +37,7 @@ const DealHealthDashboard = () => {
   const filteredAndSortedDeals = useMemo(() => {
     let filtered = healthDeals.filter(deal => {
       const matchesSearch = deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           deal.businessName?.toLowerCase().includes(searchTerm.toLowerCase());
+                           deal.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRisk = filterRisk === 'all' || deal.riskLevel === filterRisk;
       return matchesSearch && matchesRisk;
     });
@@ -44,11 +45,11 @@ const DealHealthDashboard = () => {
     return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'health':
-          return a.healthScore - b.healthScore; // Show worst health first
+          return a.health_score - b.health_score; // Show worst health first
         case 'title':
           return a.title.localeCompare(b.title);
         case 'date':
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
         default:
           return 0;
       }
@@ -168,9 +169,9 @@ const DealHealthDashboard = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold">{deal.title}</h3>
-                              {deal.businessName && (
+                              {deal.business_name && (
                                 <span className="text-sm text-muted-foreground">
-                                  ({deal.businessName})
+                                  ({deal.business_name})
                                 </span>
                               )}
                               <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')}>
@@ -180,15 +181,15 @@ const DealHealthDashboard = () => {
                             
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <span>Status: {deal.status}</span>
-                              <span>Updated: {deal.updatedAt.toLocaleDateString()}</span>
-                              {deal.sellerName && <span>Seller: {deal.sellerName}</span>}
+                              <span>Updated: {new Date(deal.updated_at).toLocaleDateString()}</span>
+                              {deal.seller?.name && <span>Seller: {deal.seller.name}</span>}
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-4">
                             <div className="text-center">
-                              <div className={`text-2xl font-bold ${getHealthColor(deal.healthScore)}`}>
-                                {deal.healthScore}%
+                              <div className={`text-2xl font-bold ${getHealthColor(deal.health_score)}`}>
+                                {deal.health_score}%
                               </div>
                               <div className="text-xs text-muted-foreground">Health Score</div>
                             </div>
