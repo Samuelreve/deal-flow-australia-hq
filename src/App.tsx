@@ -15,7 +15,6 @@ import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import OnboardingCheck from "@/components/auth/OnboardingCheck";
 import DealHealthPage from "@/pages/DealHealthPage";
 import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
 import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
@@ -52,81 +51,79 @@ function App() {
             {/* Demo route - accessible to everyone */}
             <Route path="/demo/contract" element={<DemoContractPage />} />
             
-            {/* Protected routes - no onboarding routes anymore */}
-            <Route element={<OnboardingCheck><></></OnboardingCheck>}>
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/deals" 
-                element={
-                  <ProtectedRoute>
-                    <DealsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/deals/:dealId" 
-                element={
-                  <ProtectedRoute>
-                    <DealDetailsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/notifications" 
-                element={
-                  <ProtectedRoute>
-                    <NotificationsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/deal-health" 
-                element={
-                  <ProtectedRoute>
-                    <DealHealthPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/health-monitoring" 
-                element={
-                  <ProtectedRoute>
-                    <DealHealthMonitoring />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/advanced-health-monitoring" 
-                element={
-                  <ProtectedRoute>
-                    <AdvancedHealthMonitoring />
-                  </ProtectedRoute>
-                } 
-              />
-            </Route>
+            {/* Protected routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals" 
+              element={
+                <ProtectedRoute>
+                  <DealsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals/:dealId" 
+              element={
+                <ProtectedRoute>
+                  <DealDetailsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deal-health" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/advanced-health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <AdvancedHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         </AuthProvider>
       </div>
