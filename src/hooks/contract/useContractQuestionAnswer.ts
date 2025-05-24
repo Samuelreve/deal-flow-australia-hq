@@ -29,18 +29,25 @@ export const useContractQuestionAnswer = () => {
         throw new Error('You must be logged in to ask questions');
       }
 
+      console.log('Sending question to AI:', question);
+      console.log('Contract content length:', contractContent?.length || 0);
+
       const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: {
           operation: 'explain_clause',
           content: question,
           context: { contractContent: contractContent || '' },
-          userId: user.id
+          userId: user.id,
+          dealId: 'temp-deal-id' // Using temp ID for standalone contract analysis
         }
       });
       
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to process your question');
       }
+      
+      console.log('AI response received:', data);
       
       const answer = data?.explanation || 'No response received';
       
@@ -77,18 +84,27 @@ export const useContractQuestionAnswer = () => {
         throw new Error('You must be logged in to analyze contracts');
       }
 
+      console.log('Sending analysis request:', analysisType);
+      console.log('Contract content length:', contractContent.length);
+
       const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: {
           operation: 'analyze_document',
           content: contractContent,
           context: { analysisType },
-          userId: user.id
+          userId: user.id,
+          dealId: 'temp-deal-id', // Using temp ID for standalone contract analysis
+          documentId: 'temp-doc-id',
+          documentVersionId: 'temp-version-id'
         }
       });
       
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message || `Failed to analyze contract: ${analysisType}`);
       }
+      
+      console.log('Analysis response received:', data);
       
       const analysis = data?.analysis?.content || `Analysis of type ${analysisType} completed`;
       
