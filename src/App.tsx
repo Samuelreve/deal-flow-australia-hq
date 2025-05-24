@@ -10,7 +10,7 @@ import SignUp from "@/pages/SignUp";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotificationsPage from "@/pages/NotificationsPage";
-import DemoContractPage from "@/pages/DemoContractPage";
+import ContractAnalysisPage from "@/pages/ContractAnalysisPage";
 import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -48,8 +48,8 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             
-            {/* Demo route - accessible to everyone */}
-            <Route path="/demo/contract" element={<DemoContractPage />} />
+            {/* Contract Analysis - accessible to everyone */}
+            <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
             
             {/* Protected routes */}
             <Route 
