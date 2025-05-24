@@ -41,18 +41,12 @@ export const useLoginForm = () => {
       const success = await login(email, password);
       
       if (success) {
-        console.log('Login successful, showing success state');
+        console.log('Login successful');
         setShowSuccess(true);
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        
-        // Get the intended destination from location state or default to dashboard
-        const from = location.state?.from?.pathname || AUTH_ROUTES.DASHBOARD;
-        
-        // Navigate immediately without delay
-        navigate(from, { replace: true });
         
         return true;
       } else {
@@ -66,8 +60,23 @@ export const useLoginForm = () => {
         return false;
       }
     } catch (error: any) {
-      console.error("Login error:", error);
-      const errorMessage = error.message || "Login failed. Please try again.";
+      console.error("Login error details:", error);
+      
+      let errorMessage = "Login failed. Please try again.";
+      
+      // Handle specific Supabase auth errors
+      if (error.message) {
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password. Please check your credentials and try again.";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please check your email and confirm your account before signing in.";
+        } else if (error.message.includes("Too many requests")) {
+          errorMessage = "Too many login attempts. Please wait a moment and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setErrorMsg(errorMessage);
       
       toast({
@@ -76,7 +85,6 @@ export const useLoginForm = () => {
         description: errorMessage,
       });
       
-      handleAuthError(error, toast);
       return false;
     } finally {
       setIsLoading(false);
@@ -84,7 +92,7 @@ export const useLoginForm = () => {
   };
 
   const onSubmit = async (formValues: LoginFormValues) => {
-    await handleLoginSubmit(formValues.email, formValues.password);
+    await handleLoginSubmit(formValues.email.trim(), formValues.password);
   };
 
   const handleVerify2faCode = async (code: string) => {

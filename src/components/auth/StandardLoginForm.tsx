@@ -32,10 +32,10 @@ const StandardLoginForm = ({
   const validateForm = () => {
     let isValid = true;
     
-    if (!email) {
+    if (!email.trim()) {
       setEmailError("Email is required");
       isValid = false;
-    } else if (!validateEmail(email)) {
+    } else if (!validateEmail(email.trim())) {
       setEmailError("Please enter a valid email address");
       isValid = false;
     } else {
@@ -44,9 +44,6 @@ const StandardLoginForm = ({
 
     if (!password) {
       setPasswordError("Password is required");
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
       isValid = false;
     } else {
       setPasswordError("");
@@ -62,7 +59,7 @@ const StandardLoginForm = ({
       return;
     }
 
-    await onSubmit(email, password);
+    await onSubmit(email.trim(), password);
   };
 
   return (
@@ -137,7 +134,7 @@ const StandardLoginForm = ({
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading || !email || !password}
+        disabled={isLoading || !email.trim() || !password}
       >
         {isLoading ? (
           <>
