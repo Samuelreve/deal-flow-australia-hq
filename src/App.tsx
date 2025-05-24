@@ -12,7 +12,6 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import DemoContractPage from "@/pages/DemoContractPage";
 import Index from "@/pages/Index";
-import OnboardingIntentPage from "@/pages/OnboardingIntentPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -53,17 +52,7 @@ function App() {
             {/* Demo route - accessible to everyone */}
             <Route path="/demo/contract" element={<DemoContractPage />} />
             
-            {/* Onboarding routes - protected but outside OnboardingCheck */}
-            <Route 
-              path="/onboarding/intent" 
-              element={
-                <ProtectedRoute>
-                  <OnboardingIntentPage />
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Protected routes with onboarding check */}
+            {/* Protected routes - no onboarding routes anymore */}
             <Route element={<OnboardingCheck><></></OnboardingCheck>}>
               <Route 
                 path="/dashboard" 

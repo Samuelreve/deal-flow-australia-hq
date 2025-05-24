@@ -18,7 +18,7 @@ const SignUp = () => {
     }
   }, [isAuthenticated, navigate, inviteToken]);
   
-  // If authenticated without token, redirect to dashboard
+  // If authenticated without token, redirect to dashboard - no onboarding
   if (isAuthenticated && !inviteToken) {
     return <Navigate to="/dashboard" replace />;
   }

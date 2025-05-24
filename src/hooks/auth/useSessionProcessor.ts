@@ -20,7 +20,7 @@ export const useSessionProcessor = () => {
         profile = await createUserProfileDirect(userId, email, name);
         
         if (!profile) {
-          console.error('Failed to create profile, using fallback');
+          console.log('Failed to create profile, using fallback');
           // Create a fallback profile when database operations fail
           profile = createFallbackProfile(userId, email, name);
         }
@@ -58,7 +58,7 @@ const createFallbackProfile = (userId: string, email: string, name: string): Use
     email,
     name,
     role: 'seller',
-    onboarding_complete: false,
+    onboarding_complete: true, // Always mark as complete since we removed onboarding
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -131,7 +131,7 @@ const createUserProfileDirect = async (userId: string, email: string, name: stri
       email,
       name,
       role: 'seller' as const,
-      onboarding_complete: false
+      onboarding_complete: true // Always mark as complete since we removed onboarding
     };
 
     console.log('Inserting new profile:', newProfile);

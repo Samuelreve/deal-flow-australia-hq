@@ -17,7 +17,6 @@ const Login = () => {
     authLoading,
     hasUser: !!user,
     hasProfile: !!user?.profile,
-    onboardingComplete: user?.profile?.onboarding_complete,
     inviteToken
   });
   
@@ -33,14 +32,7 @@ const Login = () => {
         return;
       }
       
-      // If user has no profile or incomplete onboarding, go to onboarding
-      if (!user.profile || !user.profile.onboarding_complete) {
-        console.log("Redirecting to onboarding");
-        navigate("/onboarding/intent", { replace: true });
-        return;
-      }
-      
-      // User has completed everything, go to dashboard
+      // Always go to dashboard - no onboarding check
       console.log("Redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
