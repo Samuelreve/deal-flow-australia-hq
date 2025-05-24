@@ -58,7 +58,7 @@ export const useContractDocumentUpload = (props?: UseContractDocumentUploadProps
       console.log('User authenticated:', user.id);
       setUploadProgress(25);
       
-      // Create a unique file path
+      // Create a unique file path for contracts bucket
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `contracts/${user.id}/${fileName}`;
@@ -66,9 +66,9 @@ export const useContractDocumentUpload = (props?: UseContractDocumentUploadProps
       console.log('Uploading to path:', filePath);
       setUploadProgress(40);
 
-      // Upload file to Supabase storage
+      // Upload file to Supabase storage using the contracts bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
+        .from('contracts')
         .upload(filePath, file);
 
       if (uploadError) {
@@ -103,9 +103,29 @@ export const useContractDocumentUpload = (props?: UseContractDocumentUploadProps
       
       setUploadProgress(80);
 
+      // Save contract to database
+      const { data: contractData, error: contractError } = await supabase
+        .from('contracts')
+        .insert({
+          user_id: user.id,
+          name: file.name,
+          file_path: uploadData.path,
+          file_size: file.size,
+          mime_type: file.type,
+          content: extractedText,
+          analysis_status: 'completed'
+        })
+        .select()
+        .single();
+
+      if (contractError) {
+        console.error('Database save error:', contractError);
+        throw new Error(`Failed to save contract: ${contractError.message}`);
+      }
+
       // Create document metadata
       const metadata: DocumentMetadata = {
-        id: `contract-${Date.now()}`,
+        id: contractData.id,
         name: file.name,
         size: file.size,
         type: file.type,
@@ -126,7 +146,7 @@ export const useContractDocumentUpload = (props?: UseContractDocumentUploadProps
             body: {
               operation: 'summarize_contract',
               content: extractedText,
-              documentId: metadata.id,
+              documentId: contractData.id,
               userId: user.id
             }
           });
@@ -140,6 +160,14 @@ export const useContractDocumentUpload = (props?: UseContractDocumentUploadProps
               riskFactors: summaryData.riskFactors || []
             };
             console.log('AI summary generated successfully');
+
+            // Save summary to database
+            await supabase
+              .from('contract_summaries')
+              .insert({
+                contract_id: contractData.id,
+                summary_data: summary
+              });
           } else {
             console.warn('AI summary generation failed:', summaryError);
           }
