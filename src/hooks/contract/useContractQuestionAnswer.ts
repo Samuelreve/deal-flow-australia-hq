@@ -1,90 +1,123 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { QuestionHistoryItem, DealHealthPrediction } from './types/contractQuestionTypes';
-import { generateMockAnswer, generateMockDealHealthPrediction } from './mockData/questionAnswerMocks';
+import { supabase } from '@/integrations/supabase/client';
 
-export type { QuestionHistoryItem } from './types/contractQuestionTypes';
+export interface QuestionHistoryItem {
+  question: string;
+  answer: string | { answer: string; sources?: string[] };
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+}
 
-export function useContractQuestionAnswer() {
+export const useContractQuestionAnswer = () => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = async (question: string): Promise<{ answer: string } | undefined> => {
+  const handleAskQuestion = useCallback(async (question: string, contractContent?: string) => {
     if (!question.trim()) {
-      toast.error("Question cannot be empty");
-      return;
+      toast.error('Please enter a question');
+      return null;
     }
-    
+
     setIsProcessing(true);
-    setError(null);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('You must be logged in to ask questions');
+      }
+
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'explain_clause',
+          content: question,
+          context: { contractContent: contractContent || '' },
+          userId: user.id
+        }
+      });
       
-      // Generate a mock response
-      const answer = generateMockAnswer(question);
+      if (error) {
+        throw new Error(error.message || 'Failed to process your question');
+      }
       
-      const newItem: QuestionHistoryItem = {
+      const answer = data?.explanation || 'No response received';
+      
+      const historyItem: QuestionHistoryItem = {
         question,
         answer,
         timestamp: Date.now(),
         type: 'question'
       };
       
-      setQuestionHistory(prev => [...prev, newItem]);
+      setQuestionHistory(prev => [...prev, historyItem]);
       
-      return { answer };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to process question';
-      setError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
-      throw err;
+      return { question, answer };
+    } catch (error: any) {
+      console.error('Error asking question:', error);
+      toast.error(error.message || 'Failed to process your question');
+      return null;
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, []);
 
-  const handleDealHealthPrediction = async (dealId: string): Promise<DealHealthPrediction> => {
-    if (!dealId.trim()) {
-      const error = "Deal ID is required";
-      toast.error(error);
-      throw new Error(error);
+  const handleAnalyzeContract = useCallback(async (analysisType: string, contractContent?: string) => {
+    if (!contractContent) {
+      toast.error('No contract content available for analysis');
+      return null;
     }
 
     setIsProcessing(true);
-    setError(null);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('You must be logged in to analyze contracts');
+      }
+
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'analyze_document',
+          content: contractContent,
+          context: { analysisType },
+          userId: user.id
+        }
+      });
       
-      // Return mock implementation result
-      return generateMockDealHealthPrediction(dealId);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate health prediction';
-      setError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
-      throw err;
+      if (error) {
+        throw new Error(error.message || `Failed to analyze contract: ${analysisType}`);
+      }
+      
+      const analysis = data?.analysis?.content || `Analysis of type ${analysisType} completed`;
+      
+      const historyItem: QuestionHistoryItem = {
+        question: `Analyze contract: ${analysisType}`,
+        answer: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),
+        timestamp: Date.now(),
+        type: 'analysis',
+        analysisType
+      };
+      
+      setQuestionHistory(prev => [...prev, historyItem]);
+      
+      return { analysisType, analysis };
+    } catch (error: any) {
+      console.error(`Error analyzing contract (${analysisType}):`, error);
+      toast.error(error.message || `Failed to analyze contract: ${analysisType}`);
+      return null;
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const clearHistory = () => {
-    setQuestionHistory([]);
-    setError(null);
-  };
+  }, []);
 
   return {
     questionHistory,
-    setQuestionHistory,
     isProcessing,
-    error,
     handleAskQuestion,
-    handleDealHealthPrediction,
-    clearHistory
+    handleAnalyzeContract,
+    setQuestionHistory,
+    clearHistory: () => setQuestionHistory([])
   };
-}
+};

@@ -1,46 +1,32 @@
 
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { DocumentHighlight } from '@/types/contract';
 
 export const useContractInteractions = () => {
-  // Add a mock analyze contract function
-  const handleAnalyzeContract = async (
-    setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryItem[]>>,
-    analysisType: string
-  ) => {
-    const answer = `This is a simulated ${analysisType} analysis of the contract.`;
-    const newItem: QuestionHistoryItem = {
-      question: `Analyze contract: ${analysisType}`,
-      answer,
-      timestamp: Date.now(),
-      type: 'analysis',
-      analysisType
-    };
-    
-    setQuestionHistory(prev => [...prev, newItem]);
-    return { analysisType, analysis: answer };
-  };
-
-  const exportHighlightsToCSV = (documentHighlights: any[]) => {
-    if (documentHighlights.length === 0) {
+  
+  const exportHighlightsToCSV = useCallback((highlights: DocumentHighlight[]) => {
+    if (highlights.length === 0) {
       toast.error('No highlights to export');
       return;
     }
     
     try {
+      // Create CSV content
       const headers = ['Text', 'Category', 'Note', 'Created At'];
       const csvContent = [
         headers.join(','),
-        ...documentHighlights.map(highlight => {
+        ...highlights.map(highlight => {
           return [
             `"${highlight.text.replace(/"/g, '""')}"`,
-            highlight.category || '',
+            highlight.category,
             `"${(highlight.note || '').replace(/"/g, '""')}"`,
             new Date(highlight.createdAt).toLocaleString()
           ].join(',');
         })
       ].join('\n');
       
+      // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -56,10 +42,19 @@ export const useContractInteractions = () => {
       console.error('Error exporting highlights:', error);
       toast.error('Failed to export highlights');
     }
-  };
+  }, []);
+
+  const handleAnalyzeContract = useCallback(async (
+    setQuestionHistory: (updater: (prev: any[]) => any[]) => void,
+    analysisType: string
+  ) => {
+    // This will be called by the parent component with the actual analysis logic
+    // The parent component will handle the AI analysis call
+    return Promise.resolve();
+  }, []);
 
   return {
-    handleAnalyzeContract,
-    exportHighlightsToCSV
+    exportHighlightsToCSV,
+    handleAnalyzeContract
   };
 };

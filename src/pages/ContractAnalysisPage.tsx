@@ -13,13 +13,14 @@ import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionA
 const ContractAnalysisPage: React.FC = () => {
   const analysisState = useContractAnalysisState();
   const questionAnswerState = useContractQuestionAnswer();
-  const { exportHighlightsToCSV, handleAnalyzeContract } = useContractInteractions();
+  const { exportHighlightsToCSV } = useContractInteractions();
   
   const uploadHandler = useContractDocumentUpload({
     onUploadSuccess: (metadata, text, summary) => {
       analysisState.setDocumentMetadata(metadata);
       analysisState.setContractText(text || '');
       analysisState.setCustomSummary(summary);
+      analysisState.setError(null);
     },
     onUploadError: (error) => {
       analysisState.setError(error);
@@ -27,14 +28,11 @@ const ContractAnalysisPage: React.FC = () => {
   });
 
   const handleQuestionSubmission = async (question: string) => {
-    return questionAnswerState.handleAskQuestion(question);
+    return questionAnswerState.handleAskQuestion(question, analysisState.contractText);
   };
   
   const handleContractAnalysis = async (analysisType: string) => {
-    return handleAnalyzeContract(
-      questionAnswerState.setQuestionHistory,
-      analysisType
-    );
+    return questionAnswerState.handleAnalyzeContract(analysisType, analysisState.contractText);
   };
 
   return (
@@ -58,7 +56,6 @@ const ContractAnalysisPage: React.FC = () => {
           
           {/* Main Column - Analysis and Interactive Features */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Contract Analysis */}
             <ContractAnalysisContent
               documentMetadata={analysisState.documentMetadata}
               contractText={analysisState.contractText}
