@@ -1,85 +1,36 @@
 
-import { buildDealInsightsPrompt } from "./utils/openai-prompt-builder.ts";
-import { fetchUserDealPortfolio } from "./utils/portfolio-data-fetcher.ts";
-import { formatDealPortfolioForPrompt } from "./utils/portfolio-formatter.ts";
+import OpenAI from "https://esm.sh/openai@4.0.0";
 
-/**
- * Generate AI insights for a user's deal portfolio
- */
-export async function handleGetDealInsights(userId: string, openai: any) {
+export async function handleGetDealInsights(
+  userId: string,
+  openai: OpenAI
+) {
   try {
-    // Fetch the user's deal portfolio
-    const { deals, error } = await fetchUserDealPortfolio(userId);
-    
-    if (error) {
-      throw new Error(`Failed to fetch deal portfolio: ${error}`);
-    }
-    
-    if (!deals || deals.length === 0) {
-      return {
-        insights: [],
-        recommendations: ["Start your first deal to get personalized insights"],
-        metrics: {},
-        insightsText: "You don't have any active deals in your portfolio. Start a new deal to get AI-powered insights.",
-        disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
-      };
-    }
-    
-    // Format deal data for the AI prompt
-    const formattedDealsData = formatDealPortfolioForPrompt(deals);
-    
-    // Prepare the OpenAI prompt
-    const prompt = buildDealInsightsPrompt(formattedDealsData);
-
-    // Call OpenAI for insights using a model that's definitely available
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Using standard OpenAI model that's widely available
+      model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: "You are an AI business analyst specialized in deal analysis. Provide concise, data-driven insights about the user's deal portfolio."
+        { 
+          role: "system", 
+          content: "You are a business intelligence expert. Provide insights about deal performance and trends." 
         },
-        {
-          role: "user",
-          content: prompt
+        { 
+          role: "user", 
+          content: "Provide insights about deal performance, potential risks, and opportunities for improvement." 
         }
       ],
-      temperature: 0.3, // Lower temperature for more factual analysis
-      max_tokens: 800  // Adjust based on desired response length
+      temperature: 0.3,
+      max_tokens: 1000
     });
 
-    // Parse the AI response
-    const aiResponse = response.choices[0].message.content;
-    
-    try {
-      // Try to parse as JSON first
-      const parsedResponse = JSON.parse(aiResponse);
-      return {
-        ...parsedResponse,
-        disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
-      };
-    } catch (parseError) {
-      // If not valid JSON, return as text
-      return {
-        insights: [
-          { 
-            title: "Portfolio Analysis", 
-            description: aiResponse, 
-            type: "general",
-            priority: "medium" 
-          }
-        ],
-        recommendations: ["Review your deal portfolio regularly"],
-        metrics: {
-          dealCount: deals.length,
-          averageHealth: deals.reduce((sum, deal) => sum + (deal.health_score || 0), 0) / deals.length,
-        },
-        insightsText: aiResponse,
-        disclaimer: "This is an AI-generated analysis based on your deal portfolio data. It is provided for informational purposes only and should not replace professional judgment."
-      };
-    }
+    const insights = response.choices[0]?.message?.content || "Sorry, I couldn't generate insights.";
+
+    return {
+      insights,
+      userId,
+      disclaimer: "These AI-generated insights are for informational purposes only."
+    };
   } catch (error) {
-    console.error("Error generating deal insights:", error);
-    throw new Error(`Failed to generate deal insights: ${error.message}`);
+    console.error('Error in get deal insights operation:', error);
+    throw new Error('Failed to get deal insights');
   }
 }
