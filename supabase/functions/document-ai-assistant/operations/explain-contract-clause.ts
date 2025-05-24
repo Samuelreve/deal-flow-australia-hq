@@ -55,3 +55,30 @@ ${contractContent}`
     throw new Error('Failed to explain contract clause');
   }
 }
+
+// Add the missing export that's being imported in index.ts
+export async function handleExplainContractClause(
+  dealId: string,
+  userId: string,
+  clauseText: string,
+  openai: any
+) {
+  try {
+    // Call the existing operation function
+    const result = await explainContractClauseOperation(
+      openai,
+      clauseText,
+      undefined, // contractContent - we don't have full contract context here
+      undefined, // documentId
+      userId
+    );
+
+    return {
+      explanation: result.explanation,
+      disclaimer: result.disclaimer
+    };
+  } catch (error) {
+    console.error('Error in handleExplainContractClause:', error);
+    throw new Error('Failed to explain contract clause');
+  }
+}
