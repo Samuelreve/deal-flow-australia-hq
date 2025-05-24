@@ -1,73 +1,57 @@
 
-import { verifyAuthorizedDealParticipant } from "./summarize-contract.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/**
- * Handle contract clause explanation operation
- */
-export async function handleExplainContractClause(
-  dealId: string,
-  userId: string,
-  selectedText: string,
-  openai: any
+export async function explainContractClauseOperation(
+  openai: any,
+  clauseText: string,
+  contractContent?: string,
+  documentId?: string,
+  userId?: string
 ) {
-  // Verify the user is authorized to use this feature
-  const isAuthorized = await verifyAuthorizedDealParticipant(userId, dealId);
-  if (!isAuthorized) {
-    throw new Error("You are not authorized to use the Smart Contract Assistant feature for this deal");
-  }
-  
-  if (!selectedText || selectedText.trim() === "") {
-    throw new Error("No clause text provided for explanation");
-  }
+  try {
+    const systemPrompt = `
+      You are a legal contract clause explanation expert. Your task is to explain contract clauses in plain English.
+      
+      Guidelines:
+      1. Break down complex legal language into simple terms
+      2. Explain the practical implications of the clause
+      3. Highlight any potential risks or benefits
+      4. Provide context about why this clause might be included
+      5. Be objective and factual
+      
+      Format your response clearly with:
+      - Plain English explanation
+      - Key implications
+      - Potential concerns (if any)
+    `;
 
-  // Call OpenAI for clause explanation
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini", // Using the most suitable model for legal analysis
-    messages: [
-      {
-        role: "system",
-        content: `You are a legal assistant. Explain the following legal clause from a contract in plain English, avoiding legal jargon. Assume the user is a business owner or buyer who is not a lawyer.
-        
-        Answer ONLY using what is explicitly stated in the clause.
-        Do NOT invent information or speculate.
-        Do NOT provide legal advice; state that you are an informational tool.
-        If the clause is ambiguous, mention that it could be interpreted in multiple ways and advise consulting a lawyer.
-        Highlight any unclear or ambiguous language if found.`
-      },
-      {
-        role: "user",
-        content: `Legal Clause to Explain:
-        ${selectedText}
-        
-        Provide the explanation concisely and directly.`
-      }
-    ],
-    temperature: 0.3, // Lower temperature for more factual explanation
-    max_tokens: 1000  // Adjusted based on desired explanation length
-  });
+    const userPrompt = contractContent 
+      ? `Please explain this clause from the contract in plain English:
 
-  const explanationContent = response.choices[0].message.content;
-  
-  // Determine if the clause was flagged as ambiguous
-  const isAmbiguous = explanationContent.toLowerCase().includes("ambiguous") || 
-                     explanationContent.toLowerCase().includes("ambiguity") || 
-                     explanationContent.toLowerCase().includes("interpret") || 
-                     explanationContent.toLowerCase().includes("multiple ways") ||
-                     explanationContent.toLowerCase().includes("unclear");
-  
-  // Extract ambiguity explanation if present
-  let ambiguityExplanation = null;
-  if (isAmbiguous) {
-    const ambiguityMatch = explanationContent.match(/(?:ambiguous|ambiguity|unclear|interpret|multiple ways)([^.]*.)/i);
-    if (ambiguityMatch && ambiguityMatch[0]) {
-      ambiguityExplanation = ambiguityMatch[0].trim();
-    }
+Clause to explain: "${clauseText}"
+
+Full contract context:
+${contractContent}`
+      : `Please explain this contract clause in plain English: "${clauseText}"`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 800
+    });
+
+    const explanation = response.choices[0]?.message?.content || "Sorry, I couldn't generate an explanation.";
+
+    return {
+      explanation,
+      disclaimer: "This AI-generated explanation is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance."
+    };
+  } catch (error) {
+    console.error('Error in explain contract clause operation:', error);
+    throw new Error('Failed to explain contract clause');
   }
-
-  return {
-    explanation: explanationContent,
-    isAmbiguous: isAmbiguous,
-    ambiguityExplanation: ambiguityExplanation || undefined,
-    disclaimer: "This tool provides general legal information, not legal advice. Always consult a lawyer for final review of any contract clause."
-  };
 }

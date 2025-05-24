@@ -1,75 +1,68 @@
 
-import OpenAI from "https://esm.sh/openai@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/**
- * Handler for summarizing contracts using AI
- */
-export async function handleSummarizeContract(
-  dealId: string,
-  documentId: string,
-  documentVersionId: string,
+export async function verifyAuthorizedDealParticipant(
+  supabaseClient: any,
   userId: string,
-  openai: OpenAI
+  dealId: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('deal_participants')
+      .select('id')
+      .eq('deal_id', dealId)
+      .eq('user_id', userId)
+      .single();
+
+    return !error && data !== null;
+  } catch (error) {
+    console.error('Error verifying deal participant:', error);
+    return false;
+  }
+}
+
+export async function summarizeContractOperation(
+  openai: any,
+  content: string,
+  documentId?: string,
+  userId?: string
 ) {
   try {
-    // For standalone contract analysis, we'll receive content directly
-    // This is a simplified version for the contract analysis page
-    
-    const systemPrompt = `You are ContractGPT, an AI assistant specialized in analyzing legal contracts and agreements. 
-    
-Your task is to provide a comprehensive summary of contracts including:
-1. Executive Summary - Brief overview of the agreement
-2. Key Terms - Important contractual terms and conditions  
-3. Parties - Who is involved and their roles
-4. Important Dates - Deadlines, effective dates, termination dates
-5. Risk Factors - Potential legal or business risks
+    const systemPrompt = `
+      You are a legal contract analysis expert. Provide a comprehensive but concise summary of the contract.
+      
+      Include:
+      1. Contract type and purpose
+      2. Key parties involved
+      3. Main obligations and responsibilities
+      4. Important dates and timelines
+      5. Financial terms (if any)
+      6. Termination conditions
+      
+      Format your response in clear, structured sections with bullet points where appropriate.
+      Keep the summary professional and factual.
+    `;
 
-Format your response as a clear, structured analysis that helps users understand the contract quickly.`;
+    const userPrompt = `Please provide a comprehensive summary of this contract:\n\n${content}`;
 
-    const userPrompt = `Please provide a comprehensive summary of this contract. Focus on the key terms, parties involved, important dates, and any potential risks or notable clauses.
-
-If no contract content is provided, generate a sample analysis structure that shows what a typical contract summary would look like.`;
-
-    // Call OpenAI for contract summary
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.3,
+      temperature: 0.2,
       max_tokens: 1500
     });
 
-    const summary = completion.choices[0]?.message?.content || "Summary could not be generated.";
-    
-    // Structure the response for the frontend
+    const summary = response.choices[0]?.message?.content || "Sorry, I couldn't generate a summary.";
+
     return {
-      summary: summary,
-      keyTerms: [
-        "Service provision agreement",
-        "12-month duration", 
-        "Monthly payment schedule",
-        "30-day termination notice"
-      ],
-      parties: [
-        { name: "Service Provider", role: "Contractor" },
-        { name: "Client", role: "Customer" }
-      ],
-      importantDates: [
-        { date: "2024-01-01", description: "Agreement effective date" },
-        { date: "2024-12-31", description: "Agreement expiration" }
-      ],
-      riskFactors: [
-        "Termination clauses may favor one party",
-        "Payment terms require careful monitoring",
-        "Intellectual property rights need clarification"
-      ],
-      disclaimer: "This AI-generated summary is for informational purposes only and should not be considered legal advice. Always consult with a qualified legal professional for specific guidance."
+      summary,
+      disclaimer: "This AI-generated summary is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance."
     };
-    
-  } catch (error: any) {
-    console.error('Error in handleSummarizeContract:', error);
-    throw error;
+  } catch (error) {
+    console.error('Error in summarize contract operation:', error);
+    throw new Error('Failed to summarize contract');
   }
 }
