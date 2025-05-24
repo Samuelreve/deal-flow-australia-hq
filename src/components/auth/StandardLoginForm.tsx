@@ -24,19 +24,11 @@ const StandardLoginForm = ({
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const validateForm = () => {
     let isValid = true;
     
     if (!email.trim()) {
       setEmailError("Email is required");
-      isValid = false;
-    } else if (!validateEmail(email.trim())) {
-      setEmailError("Please enter a valid email address");
       isValid = false;
     } else {
       setEmailError("");
