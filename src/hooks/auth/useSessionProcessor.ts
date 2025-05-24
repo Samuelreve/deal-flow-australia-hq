@@ -20,14 +20,8 @@ export const useSessionProcessor = () => {
         profile = await createUserProfileDirect(userId, email, name);
         
         if (!profile) {
-          console.error('Failed to create profile, creating fallback user');
-          // Create a fallback user without profile for now
-          return {
-            id: userId,
-            email,
-            name,
-            profile: null
-          };
+          console.error('Failed to create profile');
+          throw new Error('Failed to create user profile');
         }
       }
 
@@ -49,7 +43,7 @@ export const useSessionProcessor = () => {
       return user;
     } catch (error) {
       console.error('Error processing user session:', error);
-      return null;
+      throw error; // Re-throw to handle in auth context
     }
   };
 
@@ -78,7 +72,6 @@ const fetchUserProfileDirect = async (userId: string): Promise<UserProfile | nul
       
       if (profile.professional_specializations) {
         if (Array.isArray(profile.professional_specializations)) {
-          // Filter and map to ensure we only get strings
           specializations = profile.professional_specializations
             .filter((item): item is string => typeof item === 'string');
         } else if (typeof profile.professional_specializations === 'string') {
@@ -98,7 +91,7 @@ const fetchUserProfileDirect = async (userId: string): Promise<UserProfile | nul
     return null;
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    return null;
+    throw error;
   }
 };
 
@@ -106,7 +99,7 @@ const createUserProfileDirect = async (userId: string, email: string, name: stri
   try {
     console.log('Creating profile for user:', userId);
 
-    // First check if profile already exists
+    // First check if profile already exists to avoid duplicate creation
     const existingProfile = await fetchUserProfileDirect(userId);
     if (existingProfile) {
       console.log('Profile already exists:', existingProfile);
@@ -131,45 +124,18 @@ const createUserProfileDirect = async (userId: string, email: string, name: stri
 
     if (error) {
       console.error('Profile creation error:', error);
-      
-      // If profile creation fails, try to fetch existing profile
-      console.log('Profile creation failed, trying to fetch existing profile');
-      const fallbackProfile = await fetchUserProfileDirect(userId);
-      if (fallbackProfile) {
-        console.log('Found existing profile as fallback:', fallbackProfile);
-        return fallbackProfile;
-      }
-      
       throw error;
     }
 
     if (profile) {
-      // Convert Json type to string[] for professional_specializations
-      let specializations: string[] | undefined = undefined;
-      
-      if (profile.professional_specializations) {
-        if (Array.isArray(profile.professional_specializations)) {
-          // Filter and map to ensure we only get strings
-          specializations = profile.professional_specializations
-            .filter((item): item is string => typeof item === 'string');
-        } else if (typeof profile.professional_specializations === 'string') {
-          specializations = [profile.professional_specializations];
-        }
-      }
-
-      const convertedProfile: UserProfile = {
-        ...profile,
-        professional_specializations: specializations
-      };
-      
-      console.log('Profile created successfully:', convertedProfile);
-      return convertedProfile;
+      console.log('Profile created successfully:', profile);
+      return profile as UserProfile;
     }
 
-    return null;
+    throw new Error('Profile creation returned no data');
   } catch (error) {
     console.error('Error creating user profile:', error);
-    return null;
+    throw error;
   }
 };
 
@@ -190,17 +156,8 @@ export const processUserSession = async (session: Session): Promise<{ user: User
       profile = await createUserProfileDirect(userId, email, name);
       
       if (!profile) {
-        console.error('Failed to create profile, creating fallback user');
-        // Create a fallback user without profile for now
-        return {
-          user: {
-            id: userId,
-            email,
-            name,
-            profile: null
-          },
-          isAuthenticated: true
-        };
+        console.error('Failed to create profile');
+        throw new Error('Failed to create user profile');
       }
     }
 
