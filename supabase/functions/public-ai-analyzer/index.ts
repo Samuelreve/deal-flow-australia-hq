@@ -106,11 +106,13 @@ Important Rules for AI Output:
     
     console.log('Request model:', requestBody.model);
     
+    // Make direct API call without any project association
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        // Explicitly omit any OpenAI-Project header to avoid project association
       },
       body: JSON.stringify(requestBody),
     });
@@ -168,11 +170,13 @@ Important Rules:
     console.log('Using API key starting with:', openAIApiKey.substring(0, 10) + '...');
     console.log('Using model: gpt-3.5-turbo');
     
+    // Make direct API call without any project association
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        // Explicitly omit any OpenAI-Project header to avoid project association
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",

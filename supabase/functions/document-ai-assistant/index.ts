@@ -15,9 +15,10 @@ serve(async (req) => {
     return createCorsResponse();
   }
 
-  // Initialize OpenAI client
+  // Initialize OpenAI client with only API key - no project association
   const openai = new OpenAI({
-    apiKey: openAIApiKey
+    apiKey: openAIApiKey,
+    // Explicitly don't set project or organization to avoid project association issues
   });
   
   return handleRequest(req, openai, supabaseUrl, supabaseKey);
