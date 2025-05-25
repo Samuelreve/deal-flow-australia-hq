@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Import pages
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
+import DealsPage from "./pages/DealsPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import ContractAnalysisPage from "./pages/ContractAnalysisPage";
 
