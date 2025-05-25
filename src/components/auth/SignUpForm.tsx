@@ -8,11 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
-interface SignUpFormProps {
-  inviteToken?: string | null;
-}
-
-const SignUpForm: React.FC<SignUpFormProps> = ({ inviteToken }) => {
+const SignUpForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -38,7 +34,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ inviteToken }) => {
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
           <CardDescription>
-            {inviteToken ? 'Complete your invitation' : 'Sign up for a new account'}
+            Sign up for a new account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

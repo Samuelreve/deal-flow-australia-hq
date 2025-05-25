@@ -19,14 +19,7 @@ export const useDocumentVersionOperations = (
   
   const deleteDocumentVersion = useCallback(async (version: DocumentVersion): Promise<boolean> => {
     try {
-      // Fix: Pass all required parameters
-      await documentService.deleteDocumentVersion(
-        version,
-        dealId,
-        user?.id || '',
-        documentId || version.documentId,
-        version.documentId
-      );
+      await documentService.deleteDocumentVersion(version.id);
       
       // Refresh versions and documents
       refreshVersions(documentId || version.documentId);

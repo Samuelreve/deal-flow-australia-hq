@@ -20,7 +20,7 @@ export const useDocumentVersions = (dealId: string) => {
     if (!documentId) return;
     setLoadingVersions(true);
     try {
-      const versions = await documentService.getDocumentVersions(documentId, documentId);
+      const versions = await documentService.getDocumentVersions(documentId);
       setDocumentVersions(versions);
       
       // If there are versions and no selected version, select the first one

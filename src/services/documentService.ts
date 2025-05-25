@@ -51,13 +51,13 @@ export class DocumentService {
         name: 'Purchase Agreement.pdf',
         category: 'contract',
         uploadedBy: 'user1',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         type: 'application/pdf',
         latestVersionId: 'v1',
         latestVersion: {
           id: 'v1',
           versionNumber: 1,
-          uploadedAt: new Date().toISOString(),
+          uploadedAt: new Date(),
           size: 245760,
           type: 'application/pdf',
           url: '#'
@@ -88,7 +88,7 @@ export class DocumentService {
       {
         id: 'v1',
         versionNumber: 1,
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: new Date(),
         size: 245760,
         type: 'application/pdf',
         url: '#'
