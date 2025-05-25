@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
 
 // CORS headers for public access
 const corsHeaders = {
@@ -18,8 +16,7 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
     return new TextDecoder().decode(fileBuffer);
   }
   
-  // For PDFs - We'll use a simplified approach for the demo
-  // In a production environment, you'd want to use proper PDF extraction libraries
+  // For PDFs - Using a simplified approach since pdf-parse may not work in Deno
   if (mimeType === 'application/pdf') {
     // For demo purposes, return a placeholder text
     console.log("PDF detected - would normally extract text with pdf-parse");
@@ -37,58 +34,135 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
 }
 
 // Setup OpenAI client
-function setupOpenAI() {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set in environment variables");
-  }
-  
-  const configuration = new Configuration({ apiKey });
-  return new OpenAIApi(configuration);
-}
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 // Helper to analyze contract text with OpenAI
-async function analyzeContractWithAI(text: string): Promise<string> {
+async function analyzeContractWithAI(text: string): Promise<any> {
   try {
-    const openai = setupOpenAI();
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
     
     // Limit text length to avoid token limits
     const truncatedText = text.substring(0, 6000);
     
-    const response = await openai.createChatCompletion({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful contract analysis assistant. Provide concise summary of legal documents."
-        },
-        {
-          role: "user",
-          content: `Analyze this contract and provide a summary of key terms and obligations:
-          
+    const initialAnalysisPrompt = `You are a highly skilled legal and business analyst. Your task is to provide a comprehensive, actionable, and concise analysis of the provided contract document. This analysis is for a business owner or buyer who needs to quickly understand the core elements, potential risks, and key implications of the contract without legal jargon.
+
+Contract Document Content:
 ${truncatedText}
 
-Format your response with these sections:
-1. Document Type
-2. Key Parties
-3. Main Purpose
-4. Key Terms
-5. Important Dates`
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 1000,
+---
+
+Your analysis MUST be structured as a single JSON object with the following keys. If a section is not found or not applicable, use "N/A" or "Not found" for its value.
+
+{
+  "contract_summary": { "title": "Concise Summary of Contract", "content": "[A 3-5 sentence summary of the contract's overall purpose and key agreements.]" },
+  "key_parties": { "title": "Key Parties Involved", "content": "[List all named parties and their roles (e.g., Seller: ABC Pty Ltd, Buyer: XYZ Corp, Landlord: John Doe).]" },
+  "contract_type": { "title": "Contract Type Identified", "content": "[Identify the specific type of contract (e.g., Non-Disclosure Agreement, Asset Purchase Agreement, Commercial Lease Agreement, Service Agreement).]" },
+  "key_obligations": { "title": "Key Obligations & Responsibilities", "content": "[Summarize main responsibilities and duties of each party. Use bullet points for clarity.]" },
+  "financial_terms": { "title": "Financial Terms (if applicable)", "content": "[Extract and summarize any explicit financial terms, payments, pricing, or compensation mentioned. If none, state 'Not found'.]" },
+  "timelines_and_dates": { "title": "Critical Timelines & Dates", "content": "[List all important dates, deadlines, or durations (e.g., 'Effective Date: 2025-01-01', 'Term: 5 years from Effective Date', 'Payment due within 30 days of invoice').]" },
+  "termination_rules": { "title": "Termination & Exit Clauses", "content": "[Summarize conditions under which the contract can be terminated early, notice periods required, and any penalties or obligations upon termination.]" },
+  "liabilities_and_indemnities": { "title": "Liabilities, Warranties & Indemnities", "content": "[Summarize clauses related to damages, indemnification, warranties, and limitations of liability.]" },
+  "governing_law": { "title": "Governing Law", "content": "[State the governing law and jurisdiction (e.g., 'Laws of Victoria, Australia'). If not found, state 'Not found'.]" },
+  "potential_risks_flags": { "title": "Potential Risks & Red Flags", "content": "[Identify any ambiguous language, missing standard clauses (e.g., no force majeure, no dispute resolution), unusually broad liabilities, or terms that seem unfavorable to a typical party in this type of contract. Use bullet points. If none, state 'None identified in a quick review.']" },
+  "next_steps_suggestions": { "title": "Actionable Next Steps", "content": "[Based on the analysis, suggest 2-3 immediate actionable steps a business owner/buyer should consider regarding this contract (e.g., 'Consult with a lawyer regarding termination clauses', 'Verify financial terms with an accountant', 'Clarify ambiguous language').]" }
+}
+
+Important Rules for AI Output:
+1. Your entire response MUST be a single, valid JSON object as specified above.
+2. Extract information ONLY from the provided 'Contract Document Content'. Do NOT invent information or speculate.
+3. If a specific piece of information is not found in the document, use "Not found" or "N/A" as the value for that specific content field.
+4. Be concise and professional in all summaries and explanations.
+5. Do NOT provide legal advice or financial advice. Your role is to analyze and present information.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are a legal and business document analysis expert. Output valid JSON." },
+          { role: "user", content: initialAnalysisPrompt }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 2000,
+        temperature: 0.1,
+      }),
     });
     
-    let analysisText = response.data.choices[0]?.message?.content || "Analysis could not be generated.";
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
     
-    // Add disclaimer
-    analysisText += "\n\nDisclaimer: This AI analysis is for informational purposes only and should not be considered legal advice.";
+    const data = await response.json();
+    const analysisResult = data.choices[0]?.message?.content;
     
-    return analysisText;
+    if (!analysisResult) {
+      throw new Error('No analysis content received from OpenAI');
+    }
+    
+    return JSON.parse(analysisResult);
   } catch (error) {
     console.error("Error analyzing with OpenAI:", error);
-    return "An error occurred during contract analysis. Please try again later.";
+    throw new Error(`Failed to analyze contract: ${error.message}`);
+  }
+}
+
+// Helper to answer questions with OpenAI
+async function answerQuestionWithAI(question: string, documentText: string): Promise<string> {
+  try {
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not set');
+    }
+    
+    const qaPrompt = `You are a helpful, deal-specific assistant. Your goal is to answer user questions about the provided document content.
+
+Document Content:
+${documentText}
+
+---
+
+User's Question:
+${question}
+
+Important Rules:
+1. Answer the user's question concisely and directly.
+2. Base your answer **ONLY** on the 'Document Content' provided. Do NOT invent information or speculate.
+3. If the answer is NOT explicitly available in the provided 'Document Content', state clearly: 'I do not have enough information in the provided document to answer that question.' Do NOT make up information.
+4. Do NOT provide legal advice, financial advice, or personal opinions.
+5. Keep your answer brief and to the point.
+6. Include the following disclaimer at the very end of your response: 'Disclaimer: This tool provides general legal information, not legal advice. Always consult a lawyer for final review.'`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are a helpful assistant that answers questions based on provided text." },
+          { role: "user", content: qaPrompt }
+        ],
+        max_tokens: 500,
+        temperature: 0.1,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0]?.message?.content || 'No answer generated.';
+  } catch (error) {
+    console.error("Error answering question with OpenAI:", error);
+    throw new Error(`Failed to answer question: ${error.message}`);
   }
 }
 
@@ -107,67 +181,107 @@ serve(async (req) => {
   }
 
   try {
-    // Parse the multipart form data to get the file
-    const formData = await req.formData();
-    const file = formData.get("file");
+    const contentType = req.headers.get('content-type');
     
-    if (!file || !(file instanceof File)) {
-      return new Response(
-        JSON.stringify({ error: "No file provided or invalid file" }),
-        { headers: corsHeaders, status: 400 }
-      );
-    }
+    // Handle multipart form data (file upload for initial analysis)
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const file = formData.get("file");
+      const requestType = formData.get("requestType");
+      
+      if (!file || !(file instanceof File)) {
+        return new Response(
+          JSON.stringify({ error: "No file provided or invalid file" }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
 
-    // Validate file type
-    const allowedTypes = [
-      "text/plain",
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
+      // Validate file type
+      const allowedTypes = [
+        "text/plain",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid file type. Please upload a .txt, .pdf, or .docx file." }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
+      
+      // Limit file size (5MB)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      if (file.size > MAX_FILE_SIZE) {
+        return new Response(
+          JSON.stringify({ error: "File too large. Maximum size is 5MB." }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
+      
+      // Convert file to buffer
+      const fileBuffer = new Uint8Array(await file.arrayBuffer());
+      
+      // Extract text from file
+      const text = await extractTextFromFile(fileBuffer, file.type);
+      
+      if (!text || text.length < 50) {
+        return new Response(
+          JSON.stringify({ error: "Insufficient text extracted from document" }),
+          { headers: corsHeaders, status: 422 }
+        );
+      }
+      
+      // Analyze the contract with AI
+      const analysis = await analyzeContractWithAI(text);
+      
+      // Return the result
       return new Response(
-        JSON.stringify({ error: "Invalid file type. Please upload a .txt, .pdf, or .docx file." }),
-        { headers: corsHeaders, status: 400 }
+        JSON.stringify({
+          success: true,
+          analysis,
+          fullDocumentText: text
+        }),
+        { headers: corsHeaders }
       );
     }
     
-    // Limit file size (5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_FILE_SIZE) {
+    // Handle JSON requests (Q&A)
+    else if (contentType?.includes('application/json')) {
+      const requestBody = await req.json();
+      const { requestType, userQuestion, fullDocumentText } = requestBody;
+      
+      if (requestType === 'answer_question') {
+        if (!userQuestion || !fullDocumentText) {
+          return new Response(
+            JSON.stringify({ error: 'Missing userQuestion or document context for Q&A.' }),
+            { headers: corsHeaders, status: 400 }
+          );
+        }
+        
+        const answer = await answerQuestionWithAI(userQuestion, fullDocumentText);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            answer
+          }),
+          { headers: corsHeaders }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'Invalid requestType for JSON body.' }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
+    }
+    
+    else {
       return new Response(
-        JSON.stringify({ error: "File too large. Maximum size is 5MB." }),
+        JSON.stringify({ error: "Invalid content type" }),
         { headers: corsHeaders, status: 400 }
       );
     }
-    
-    // Convert file to buffer
-    const fileBuffer = new Uint8Array(await file.arrayBuffer());
-    
-    // Extract text from file
-    const text = await extractTextFromFile(fileBuffer, file.type);
-    
-    // Generate file metadata
-    const metadata = {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      lastModified: new Date(file.lastModified).toISOString(),
-    };
-    
-    // Analyze the contract with AI
-    const analysis = await analyzeContractWithAI(text);
-    
-    // Return the result
-    return new Response(
-      JSON.stringify({
-        success: true,
-        metadata,
-        text: text.substring(0, 10000), // Truncate text to avoid large responses
-        analysis,
-      }),
-      { headers: corsHeaders }
-    );
     
   } catch (error) {
     console.error("Error in public-ai-analyzer:", error);
