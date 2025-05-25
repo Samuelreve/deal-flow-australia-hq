@@ -9,18 +9,34 @@ import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentU
 import { useContractInteractions } from '@/hooks/contract/useContractInteractions';
 import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisState';
 import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
+import { useContractAnalyzer } from '@/hooks/useContractAnalyzer';
+import { toast } from 'sonner';
 
 const ContractAnalysisPage: React.FC = () => {
   const analysisState = useContractAnalysisState();
   const questionAnswerState = useContractQuestionAnswer();
   const { exportHighlightsToCSV } = useContractInteractions();
+  const { analyzeContract, loading: analyzing, error: analysisError } = useContractAnalyzer();
   
   const uploadHandler = useContractDocumentUpload({
-    onUploadSuccess: (metadata, text, summary) => {
+    onUploadSuccess: async (metadata, text, summary) => {
       analysisState.setDocumentMetadata(metadata);
       analysisState.setContractText(text || '');
       analysisState.setCustomSummary(summary);
       analysisState.setError(null);
+      
+      // Auto-analyze the contract when uploaded
+      if (text) {
+        try {
+          toast.info('Analyzing contract...');
+          const analysisResult = await analyzeContract(text);
+          toast.success('Contract analysis completed!');
+          console.log('Analysis result:', analysisResult);
+        } catch (error) {
+          console.error('Auto-analysis failed:', error);
+          toast.error('Failed to analyze contract automatically');
+        }
+      }
     },
     onUploadError: (error) => {
       analysisState.setError(error);
@@ -46,7 +62,7 @@ const ContractAnalysisPage: React.FC = () => {
             <ErrorBoundary>
               <ContractSidebar
                 documentMetadata={analysisState.documentMetadata}
-                isAnalyzing={analysisState.isAnalyzing}
+                isAnalyzing={analysisState.isAnalyzing || analyzing}
                 documentHighlights={analysisState.documentHighlights}
                 onFileUpload={uploadHandler.handleFileUpload}
                 onExportHighlights={() => exportHighlightsToCSV(analysisState.documentHighlights)}
@@ -59,12 +75,17 @@ const ContractAnalysisPage: React.FC = () => {
             <ContractAnalysisContent
               documentMetadata={analysisState.documentMetadata}
               contractText={analysisState.contractText}
-              error={analysisState.error}
+              error={analysisState.error || analysisError}
               isProcessing={questionAnswerState.isProcessing}
               questionHistory={questionAnswerState.questionHistory}
               onAskQuestion={handleQuestionSubmission}
               onAnalyzeContract={handleContractAnalysis}
-              onRetryAnalysis={() => analysisState.setError(null)}
+              onRetryAnalysis={() => {
+                analysisState.setError(null);
+                if (analysisState.contractText) {
+                  analyzeContract(analysisState.contractText);
+                }
+              }}
             />
           </div>
         </div>
