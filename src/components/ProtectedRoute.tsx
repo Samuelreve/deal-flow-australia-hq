@@ -17,20 +17,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true,
   redirectTo = "/login" 
 }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   console.log('ProtectedRoute check:', {
-    isAuthenticated,
-    loading,
     hasUser: !!user,
-    hasProfile: !!user?.profile,
-    onboardingComplete: user?.profile?.onboarding_complete,
+    loading,
     currentPath: location.pathname,
     requireAuth
   });
 
-  // Show loading only when actually loading, with timeout
+  // Show loading only when actually loading
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -45,7 +42,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // If authentication is required but user is not authenticated
-  if (requireAuth && !isAuthenticated) {
+  if (requireAuth && !user) {
     console.log('ProtectedRoute: Redirecting to login - not authenticated');
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }

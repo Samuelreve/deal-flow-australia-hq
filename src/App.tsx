@@ -13,7 +13,7 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import DemoContractPage from "@/pages/DemoContractPage";
 import Index from "@/pages/Index";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import DealHealthPage from "@/pages/DealHealthPage";
 import DealHealthMonitoring from "@/pages/DealHealthMonitoring";

@@ -5,13 +5,19 @@ type ToastProps = {
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
+  duration?: number;
 };
 
 export function toast(props: ToastProps) {
+  const message = props.title || props.description || "";
+  const options = {
+    duration: props.duration || 4000,
+  };
+
   if (props.variant === "destructive") {
-    sonnerToast.error(props.title || props.description || "Error");
+    sonnerToast.error(message, options);
   } else {
-    sonnerToast.success(props.title || props.description || "Success");
+    sonnerToast.success(message, options);
   }
 }
 
