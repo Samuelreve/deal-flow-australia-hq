@@ -1,54 +1,55 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+/**
+ * Handler for explaining specific contract clauses using OpenAI
+ */
 export async function explainContractClauseOperation(
-  openai: any,
-  clauseText: string,
-  contractContent?: string,
-  documentId?: string,
-  userId?: string
+  dealId: string,
+  userId: string,
+  clauseText: string
 ) {
   try {
-    const systemPrompt = `
-      You are a legal contract clause explanation expert. Your task is to explain contract clauses in plain English.
-      
-      Guidelines:
-      1. Break down complex legal language into simple terms
-      2. Explain the practical implications of the clause
-      3. Highlight any potential risks or benefits
-      4. Provide context about why this clause might be included
-      5. Be objective and factual
-      
-      Format your response clearly with:
-      - Plain English explanation
-      - Key implications
-      - Potential concerns (if any)
-    `;
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
-    const userPrompt = contractContent 
-      ? `Please explain this clause from the contract in plain English:
-
-Clause to explain: "${clauseText}"
-
-Full contract context:
-${contractContent}`
-      : `Please explain this contract clause in plain English: "${clauseText}"`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 800
+    // Use direct fetch to bypass any project association
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a legal expert who explains contract clauses in simple, clear language. Break down complex legal terms and explain their practical implications." 
+          },
+          { 
+            role: "user", 
+            content: `Please explain this contract clause in plain English: "${clauseText}"` 
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 800
+      })
     });
 
-    const explanation = response.choices[0]?.message?.content || "Sorry, I couldn't generate an explanation.";
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const explanation = data.choices[0]?.message?.content || "Sorry, I couldn't explain this clause.";
 
     return {
       explanation,
-      disclaimer: "This AI-generated explanation is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance."
+      disclaimer: "This explanation is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters."
     };
   } catch (error) {
     console.error('Error in explain contract clause operation:', error);
@@ -56,29 +57,19 @@ ${contractContent}`
   }
 }
 
-// Add the missing export that's being imported in index.ts
+/**
+ * Main handler for contract clause explanation requests
+ */
 export async function handleExplainContractClause(
   dealId: string,
   userId: string,
   clauseText: string,
-  openai: any
+  openai: any // We'll use fetch instead of the openai client
 ) {
   try {
-    // Call the existing operation function
-    const result = await explainContractClauseOperation(
-      openai,
-      clauseText,
-      undefined, // contractContent - we don't have full contract context here
-      undefined, // documentId
-      userId
-    );
-
-    return {
-      explanation: result.explanation,
-      disclaimer: result.disclaimer
-    };
-  } catch (error) {
+    return await explainContractClauseOperation(dealId, userId, clauseText);
+  } catch (error: any) {
     console.error('Error in handleExplainContractClause:', error);
-    throw new Error('Failed to explain contract clause');
+    throw error;
   }
 }

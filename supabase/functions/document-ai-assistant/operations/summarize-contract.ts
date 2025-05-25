@@ -1,64 +1,56 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export async function verifyAuthorizedDealParticipant(
-  supabaseClient: any,
-  userId: string,
-  dealId: string
-): Promise<boolean> {
-  try {
-    const { data, error } = await supabaseClient
-      .from('deal_participants')
-      .select('id')
-      .eq('deal_id', dealId)
-      .eq('user_id', userId)
-      .single();
-
-    return !error && data !== null;
-  } catch (error) {
-    console.error('Error verifying deal participant:', error);
-    return false;
-  }
-}
-
+/**
+ * Handler for summarizing contract documents using OpenAI
+ */
 export async function summarizeContractOperation(
-  openai: any,
-  content: string,
-  documentId?: string,
-  userId?: string
+  dealId: string,
+  documentId: string,
+  documentVersionId: string,
+  userId: string
 ) {
   try {
-    const systemPrompt = `
-      You are a legal contract analysis expert. Provide a comprehensive but concise summary of the contract.
-      
-      Include:
-      1. Contract type and purpose
-      2. Key parties involved
-      3. Main obligations and responsibilities
-      4. Important dates and timelines
-      5. Financial terms (if any)
-      6. Termination conditions
-      
-      Format your response in clear, structured sections with bullet points where appropriate.
-      Keep the summary professional and factual.
-    `;
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
-    const userPrompt = `Please provide a comprehensive summary of this contract:\n\n${content}`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 1500
+    // Use direct fetch to bypass any project association
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a legal document analysis expert. Provide comprehensive contract summaries in plain English." 
+          },
+          { 
+            role: "user", 
+            content: "Please provide a detailed summary of this contract document, highlighting key terms, obligations, and important clauses." 
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 1500
+      })
     });
 
-    const summary = response.choices[0]?.message?.content || "Sorry, I couldn't generate a summary.";
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const summary = data.choices[0]?.message?.content || "Sorry, I couldn't generate a contract summary.";
 
     return {
       summary,
-      disclaimer: "This AI-generated summary is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance."
+      disclaimer: "This AI-generated contract summary is for informational purposes only and should not be considered legal advice."
     };
   } catch (error) {
     console.error('Error in summarize contract operation:', error);
@@ -66,29 +58,20 @@ export async function summarizeContractOperation(
   }
 }
 
+/**
+ * Main handler for contract summarization requests
+ */
 export async function handleSummarizeContract(
   dealId: string,
   documentId: string,
   documentVersionId: string,
   userId: string,
-  openai: any
+  openai: any // We'll use fetch instead of the openai client
 ) {
   try {
-    // For now, we'll use the existing summarizeContractOperation
-    // In a real implementation, you might want to fetch the contract content from the document
-    const result = await summarizeContractOperation(
-      openai,
-      "Contract content would be fetched here", // This should be the actual contract content
-      documentId,
-      userId
-    );
-
-    return {
-      summary: result.summary,
-      disclaimer: result.disclaimer
-    };
-  } catch (error) {
+    return await summarizeContractOperation(dealId, documentId, documentVersionId, userId);
+  } catch (error: any) {
     console.error('Error in handleSummarizeContract:', error);
-    throw new Error('Failed to summarize contract');
+    throw error;
   }
 }
