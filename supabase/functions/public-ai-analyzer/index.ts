@@ -95,7 +95,7 @@ Important Rules for AI Output:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a legal and business document analysis expert. Output valid JSON." },
           { role: "user", content: initialAnalysisPrompt }
@@ -161,7 +161,7 @@ Important Rules:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a helpful assistant that answers questions based on provided text." },
           { role: "user", content: qaPrompt }
