@@ -40,8 +40,8 @@ export const useContractQuestionAnswer = () => {
     setIsProcessing(true);
 
     try {
-      // Use the public AI analyzer endpoint for Q&A
-      const response = await fetch('/api/public-ai-analyzer', {
+      // Use the correct Supabase edge function endpoint
+      const response = await fetch('/functions/v1/public-ai-analyzer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ export const useContractQuestionAnswer = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/public-ai-analyzer', {
+      const response = await fetch('/functions/v1/public-ai-analyzer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
