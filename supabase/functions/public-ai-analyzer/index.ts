@@ -40,7 +40,8 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 async function analyzeContractWithAI(text: string): Promise<any> {
   try {
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not set');
+      console.error('OpenAI API key is missing');
+      throw new Error('OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.');
     }
     
     // Limit text length to avoid token limits
@@ -76,6 +77,7 @@ Important Rules for AI Output:
 4. Be concise and professional in all summaries and explanations.
 5. Do NOT provide legal advice or financial advice. Your role is to analyze and present information.`;
 
+    console.log('Making OpenAI API call...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -95,7 +97,9 @@ Important Rules for AI Output:
     });
     
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI API error: ${response.status}. Please check your API key and billing status.`);
     }
     
     const data = await response.json();
@@ -108,7 +112,7 @@ Important Rules for AI Output:
     return JSON.parse(analysisResult);
   } catch (error) {
     console.error("Error analyzing with OpenAI:", error);
-    throw new Error(`Failed to analyze contract: ${error.message}`);
+    throw error;
   }
 }
 
@@ -116,7 +120,8 @@ Important Rules for AI Output:
 async function answerQuestionWithAI(question: string, documentText: string): Promise<string> {
   try {
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not set');
+      console.error('OpenAI API key is missing');
+      return 'OpenAI API key is not configured. Please contact the administrator to set up the OPENAI_API_KEY environment variable.';
     }
     
     const qaPrompt = `You are a helpful, deal-specific assistant. Your goal is to answer user questions about the provided document content.
@@ -137,6 +142,7 @@ Important Rules:
 5. Keep your answer brief and to the point.
 6. Include the following disclaimer at the very end of your response: 'Disclaimer: This tool provides general legal information, not legal advice. Always consult a lawyer for final review.'`;
 
+    console.log('Making OpenAI API call for Q&A...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -155,14 +161,16 @@ Important Rules:
     });
     
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      return `I'm currently unable to process your question due to an API configuration issue (Error ${response.status}). Please contact the administrator to check the OpenAI API key and billing status.`;
     }
     
     const data = await response.json();
     return data.choices[0]?.message?.content || 'No answer generated.';
   } catch (error) {
     console.error("Error answering question with OpenAI:", error);
-    throw new Error(`Failed to answer question: ${error.message}`);
+    return `I'm currently unable to process your question due to a technical issue: ${error.message}. Please try again later or contact support.`;
   }
 }
 
@@ -254,7 +262,10 @@ serve(async (req) => {
       if (requestType === 'answer_question') {
         if (!userQuestion || !fullDocumentText) {
           return new Response(
-            JSON.stringify({ error: 'Missing userQuestion or document context for Q&A.' }),
+            JSON.stringify({ 
+              success: false,
+              error: 'Missing userQuestion or document context for Q&A.' 
+            }),
             { headers: corsHeaders, status: 400 }
           );
         }
@@ -270,7 +281,10 @@ serve(async (req) => {
         );
       } else {
         return new Response(
-          JSON.stringify({ error: 'Invalid requestType for JSON body.' }),
+          JSON.stringify({ 
+            success: false,
+            error: 'Invalid requestType for JSON body.' 
+          }),
           { headers: corsHeaders, status: 400 }
         );
       }
@@ -278,7 +292,10 @@ serve(async (req) => {
     
     else {
       return new Response(
-        JSON.stringify({ error: "Invalid content type" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid content type" 
+        }),
         { headers: corsHeaders, status: 400 }
       );
     }
@@ -288,6 +305,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
+        success: false,
         error: "Failed to analyze document",
         message: error instanceof Error ? error.message : "Unknown error",
       }),
