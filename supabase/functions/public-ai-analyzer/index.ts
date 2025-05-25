@@ -33,8 +33,17 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
   return "Text extraction not supported for this file type.";
 }
 
-// Setup OpenAI client
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Setup OpenAI client - Try multiple possible environment variable names
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('OPENAI_KEY') || Deno.env.get('OPEN_AI_API_KEY');
+
+console.log('Environment variables check:');
+console.log('OPENAI_API_KEY exists:', !!Deno.env.get('OPENAI_API_KEY'));
+console.log('OPENAI_KEY exists:', !!Deno.env.get('OPENAI_KEY'));
+console.log('OPEN_AI_API_KEY exists:', !!Deno.env.get('OPEN_AI_API_KEY'));
+console.log('Final API key found:', !!openAIApiKey);
+if (openAIApiKey) {
+  console.log('API key starts with:', openAIApiKey.substring(0, 7) + '...');
+}
 
 // Helper to analyze contract text with OpenAI
 async function analyzeContractWithAI(text: string): Promise<any> {
@@ -78,6 +87,7 @@ Important Rules for AI Output:
 5. Do NOT provide legal advice or financial advice. Your role is to analyze and present information.`;
 
     console.log('Making OpenAI API call...');
+    console.log('Using API key starting with:', openAIApiKey.substring(0, 7) + '...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -143,6 +153,7 @@ Important Rules:
 6. Include the following disclaimer at the very end of your response: 'Disclaimer: This tool provides general legal information, not legal advice. Always consult a lawyer for final review.'`;
 
     console.log('Making OpenAI API call for Q&A...');
+    console.log('Using API key starting with:', openAIApiKey.substring(0, 7) + '...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
