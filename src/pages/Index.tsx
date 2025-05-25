@@ -1,114 +1,125 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import AppLayout from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Users, TrendingUp, Shield } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import HeroSection from "@/components/landing/HeroSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import BenefitsSection from "@/components/landing/BenefitsSection";
+import FAQSection from "@/components/landing/FAQSection";
+import CTASection from "@/components/landing/CTASection";
+import Footer from "@/components/landing/Footer";
+import { useEffect } from "react";
+import SmartContractPanel from "@/components/dashboard/SmartContractPanel";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const handleGetStarted = () => {
-    if (user) {
-      navigate('/deals');
-    } else {
-      navigate('/login');
+  const { isAuthenticated } = useAuth();
+  
+  // Function to handle scrolling to sections
+  const scrollToSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
-  const handleContractAnalysis = () => {
-    navigate('/contract-analysis');
-  };
-
+  
+  // Handle hash in URL to scroll to section on page load
+  useEffect(() => {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, []);
+  
   return (
-    <AppLayout>
+    <div className="min-h-screen">
+      <HeroSection isAuthenticated={isAuthenticated} scrollToSection={scrollToSection} />
+      
+      {/* Add Smart Contract Assistant in a prominent position after the hero section */}
       <div className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Streamline Your Business Deals
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Manage documents, track progress, and collaborate with AI-powered contract analysis
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-800">
+              Smart Contract Assistant
+            </span>
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            Upload any contract and get instant analysis, summaries, and answers to your questions
           </p>
-          <div className="space-x-4">
-            <Button size="lg" onClick={handleGetStarted}>
-              {user ? 'Go to My Deals' : 'Get Started'}
-            </Button>
-            <Button size="lg" variant="outline" onClick={handleContractAnalysis}>
-              Try Contract Analysis
-            </Button>
-          </div>
         </div>
-
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-blue-500" />
-                <span>Document Management</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Upload, organize, and manage all your deal documents in one place.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-green-500" />
-                <span>Team Collaboration</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Work together with your team and track everyone's progress.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-purple-500" />
-                <span>Progress Tracking</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Monitor deal health and milestone completion in real-time.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-5 w-5 text-orange-500" />
-                <span>AI Analysis</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Get intelligent insights and contract analysis powered by AI.</p>
-            </CardContent>
-          </Card>
+        
+        <div className="max-w-3xl mx-auto">
+          {isAuthenticated ? (
+            <SmartContractPanel dealId="demo-deal" />
+          ) : (
+            <Card className="bg-gradient-to-br from-white to-blue-50">
+              <CardHeader className="pb-2 flex items-center">
+                <div className="mx-auto flex flex-col items-center text-center">
+                  <FileText className="h-12 w-12 text-primary mb-4" />
+                  <CardTitle className="text-xl">Smart Contract Assistant</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="mb-6">
+                  Upload any contract to get instant analysis and understanding.
+                  Our AI can summarize key terms, explain legal clauses, and answer your questions.
+                </p>
+                <div className="bg-blue-50 p-4 rounded-lg mb-6 max-w-md mx-auto">
+                  <h4 className="font-medium text-sm">What our AI can do:</h4>
+                  <ul className="text-sm mt-2 space-y-1.5 text-left">
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span> 
+                      <span>Summarize key terms and sections</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span> 
+                      <span>Explain legal clauses in plain English</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-blue-500 mr-2">•</span> 
+                      <span>Answer questions about the contract</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={() => navigate('/demo/contract')}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Try Demo
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/login')}
+                    className="flex-1"
+                  >
+                    Sign in to get started
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
-
-        {/* Call to Action */}
-        {!user && (
-          <div className="text-center bg-gray-50 rounded-lg p-8">
-            <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
-            <p className="text-gray-600 mb-6">
-              Join thousands of professionals who trust our platform for their business deals
-            </p>
-            <Button size="lg" onClick={() => navigate('/login')}>
-              Sign Up Now
-            </Button>
-          </div>
-        )}
       </div>
-    </AppLayout>
+      
+      <main>
+        <FeaturesSection />
+        <HowItWorksSection />
+        <BenefitsSection />
+        <FAQSection />
+        <CTASection />
+      </main>
+      
+      <Footer />
+    </div>
   );
 };
 
