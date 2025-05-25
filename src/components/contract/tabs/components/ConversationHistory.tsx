@@ -42,7 +42,7 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
             </div>
             <div className="bg-card border p-3 rounded-lg rounded-tl-none flex-1">
               <p className="text-sm whitespace-pre-wrap">{getAnswerText(item.answer)}</p>
-              {item.type === 'analysis' && (
+              {item.type === 'analysis' && item.analysisType && (
                 <div className="mt-2 pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
                     Analysis type: {item.analysisType}

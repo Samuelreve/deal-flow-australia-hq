@@ -8,25 +8,21 @@ export interface QuestionHistoryItem {
   answer: string;
   timestamp: Date;
   isProcessing?: boolean;
+  type?: 'question' | 'analysis';
+  analysisType?: string;
 }
 
 export const useContractQuestionAnswer = () => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAskQuestion = async (question: string, contractText: string) => {
+  const handleAskQuestion = async (question: string, contractText?: string) => {
     if (!question.trim()) {
       toast.error('Please enter a question');
       return;
     }
 
-    if (!contractText) {
-      toast.error('No contract content available');
-      return;
-    }
-
     console.log('Sending question to AI:', question);
-    console.log('Contract content length:', contractText.length);
 
     const questionId = Date.now().toString();
     
@@ -36,7 +32,8 @@ export const useContractQuestionAnswer = () => {
       question,
       answer: '',
       timestamp: new Date(),
-      isProcessing: true
+      isProcessing: true,
+      type: 'question'
     };
 
     setQuestionHistory(prev => [...prev, processingItem]);
@@ -52,7 +49,7 @@ export const useContractQuestionAnswer = () => {
         body: JSON.stringify({
           requestType: 'answer_question',
           userQuestion: question,
-          fullDocumentText: contractText
+          fullDocumentText: contractText || 'Sample contract text for demo purposes'
         }),
       });
 
@@ -91,8 +88,7 @@ export const useContractQuestionAnswer = () => {
     }
   };
 
-  const handleAnalyzeContract = async (analysisType: string, contractText: string) => {
-    // For now, convert analysis requests to questions
+  const handleAnalyzeContract = async (analysisType: string, contractText?: string) => {
     const analysisQuestions: Record<string, string> = {
       'summarize_contract': 'Please provide a comprehensive summary of this contract.',
       'explain_clause': 'What are the key clauses and terms in this contract?',
@@ -101,11 +97,70 @@ export const useContractQuestionAnswer = () => {
     };
 
     const question = analysisQuestions[analysisType] || `Please analyze this contract for: ${analysisType}`;
-    return handleAskQuestion(question, contractText);
+    
+    const questionId = Date.now().toString();
+    
+    const processingItem: QuestionHistoryItem = {
+      id: questionId,
+      question,
+      answer: '',
+      timestamp: new Date(),
+      isProcessing: true,
+      type: 'analysis',
+      analysisType
+    };
+
+    setQuestionHistory(prev => [...prev, processingItem]);
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch('/api/public-ai-analyzer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestType: 'answer_question',
+          userQuestion: question,
+          fullDocumentText: contractText || 'Sample contract text for demo purposes'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get analysis from AI');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.answer) {
+        setQuestionHistory(prev => 
+          prev.map(item => 
+            item.id === questionId 
+              ? { ...item, answer: data.answer, isProcessing: false }
+              : item
+          )
+        );
+        
+        toast.success('Analysis complete!');
+      } else {
+        throw new Error('No analysis received from AI');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing contract:', error);
+      
+      setQuestionHistory(prev => prev.filter(item => item.id !== questionId));
+      
+      toast.error('Failed to get analysis from AI');
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return {
     questionHistory,
+    setQuestionHistory,
     isProcessing,
     handleAskQuestion,
     handleAnalyzeContract
