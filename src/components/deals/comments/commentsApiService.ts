@@ -31,7 +31,18 @@ export const fetchDealComments = async (dealId: string): Promise<Comment[]> => {
     throw error;
   }
   
-  return data || [];
+  // Transform the data to match our Comment type
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    deal_id: item.deal_id,
+    user_id: item.user_id,
+    content: item.content,
+    created_at: item.created_at,
+    profiles: {
+      name: item.profiles?.name || 'Unknown User',
+      avatar_url: item.profiles?.avatar_url || null
+    }
+  }));
 };
 
 /**

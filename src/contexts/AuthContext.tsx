@@ -1,8 +1,17 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { UserProfile } from '@/types/auth';
+import { useUserProfile } from '@/hooks/auth/useUserProfile';
+
+// Extended User type that includes profile
+interface User {
+  id: string;
+  email: string;
+  profile: UserProfile | null;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +22,7 @@ interface AuthContextType {
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
+  updateUserProfile: (profile: UserProfile) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +39,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { fetchUserProfile, createUserProfile } = useUserProfile();
+
+  const updateUserProfile = async (profile: UserProfile): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      // Update the user state with the new profile
+      setUser({
+        ...user,
+        profile: profile
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating user profile in context:', error);
+      return false;
+    }
+  };
+
+  const createUserFromSupabaseUser = async (supabaseUser: SupabaseUser): Promise<User> => {
+    let profile = await fetchUserProfile(supabaseUser.id);
+    
+    if (!profile) {
+      // Create profile if it doesn't exist
+      profile = await createUserProfile(
+        supabaseUser.id,
+        supabaseUser.email || '',
+        supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User'
+      );
+    }
+
+    return {
+      id: supabaseUser.id,
+      email: supabaseUser.email || '',
+      profile: profile
+    };
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -36,20 +83,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
-        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          try {
+            const userData = await createUserFromSupabaseUser(session.user);
+            setUser(userData);
+          } catch (error) {
+            console.error('Error creating user data:', error);
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       }
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        try {
+          const userData = await createUserFromSupabaseUser(session.user);
+          setUser(userData);
+        } catch (error) {
+          console.error('Error creating user data:', error);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUserProfile, createUserProfile]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -169,7 +238,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     signup,
     logout,
-    resetPassword
+    resetPassword,
+    updateUserProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

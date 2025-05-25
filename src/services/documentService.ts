@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Document } from '@/types/deal';
 
@@ -61,6 +62,36 @@ export class DocumentService {
           type: 'application/pdf',
           url: '#'
         }
+      }
+    ];
+  }
+
+  async deleteDocument(documentId: string): Promise<void> {
+    // Mock implementation
+    console.log('Deleting document:', documentId);
+    // In a real implementation, this would call the backend API
+    throw new Error('Document deletion not implemented yet');
+  }
+
+  async deleteDocumentVersion(versionId: string): Promise<void> {
+    // Mock implementation
+    console.log('Deleting document version:', versionId);
+    // In a real implementation, this would call the backend API
+    throw new Error('Document version deletion not implemented yet');
+  }
+
+  async getDocumentVersions(documentId: string): Promise<any[]> {
+    // Mock implementation
+    console.log('Getting document versions for:', documentId);
+    // In a real implementation, this would call the backend API
+    return [
+      {
+        id: 'v1',
+        versionNumber: 1,
+        uploadedAt: new Date().toISOString(),
+        size: 245760,
+        type: 'application/pdf',
+        url: '#'
       }
     ];
   }
