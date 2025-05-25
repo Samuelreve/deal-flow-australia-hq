@@ -66,16 +66,23 @@ export const useContractQuestionAnswer = () => {
         );
         
         toast.success('Answer received!');
+        return data.answer;
       } else {
-        throw new Error('No answer received from AI');
+        throw new Error(data?.error || 'No answer received from AI');
       }
     } catch (error: any) {
       console.error('Error asking question:', error);
       
-      // Remove the processing item on error
-      setQuestionHistory(prev => prev.filter(item => item.id !== questionId));
+      // Add error message to the question item instead of removing it
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === questionId 
+            ? { ...item, answer: `Error: ${error.message}`, isProcessing: false }
+            : item
+        )
+      );
       
-      toast.error('Failed to get answer from AI');
+      toast.error('Failed to get answer from AI: ' + error.message);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -132,15 +139,23 @@ export const useContractQuestionAnswer = () => {
         );
         
         toast.success('Analysis complete!');
+        return data.answer;
       } else {
-        throw new Error('No analysis received from AI');
+        throw new Error(data?.error || 'No analysis received from AI');
       }
     } catch (error: any) {
       console.error('Error analyzing contract:', error);
       
-      setQuestionHistory(prev => prev.filter(item => item.id !== questionId));
+      // Add error message to the analysis item instead of removing it
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === questionId 
+            ? { ...item, answer: `Error: ${error.message}`, isProcessing: false }
+            : item
+        )
+      );
       
-      toast.error('Failed to get analysis from AI');
+      toast.error('Failed to get analysis from AI: ' + error.message);
       throw error;
     } finally {
       setIsProcessing(false);

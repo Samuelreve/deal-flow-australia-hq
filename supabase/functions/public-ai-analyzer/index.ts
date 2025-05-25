@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
 
@@ -34,15 +33,18 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
 }
 
 // Setup OpenAI client - Try multiple possible environment variable names
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('OPENAI_KEY') || Deno.env.get('OPEN_AI_API_KEY');
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('OPENAI_KEY') || Deno.env.get('OPEN_AI_API_KEY') || Deno.env.get('OPENAI_SECRET_KEY');
 
 console.log('Environment variables check:');
 console.log('OPENAI_API_KEY exists:', !!Deno.env.get('OPENAI_API_KEY'));
 console.log('OPENAI_KEY exists:', !!Deno.env.get('OPENAI_KEY'));
 console.log('OPEN_AI_API_KEY exists:', !!Deno.env.get('OPEN_AI_API_KEY'));
+console.log('OPENAI_SECRET_KEY exists:', !!Deno.env.get('OPENAI_SECRET_KEY'));
 console.log('Final API key found:', !!openAIApiKey);
 if (openAIApiKey) {
-  console.log('API key starts with:', openAIApiKey.substring(0, 7) + '...');
+  console.log('API key starts with:', openAIApiKey.substring(0, 10) + '...');
+  console.log('API key length:', openAIApiKey.length);
+  console.log('API key format check:', openAIApiKey.startsWith('sk-'));
 }
 
 // Helper to analyze contract text with OpenAI
@@ -87,29 +89,38 @@ Important Rules for AI Output:
 5. Do NOT provide legal advice or financial advice. Your role is to analyze and present information.`;
 
     console.log('Making OpenAI API call...');
-    console.log('Using API key starting with:', openAIApiKey.substring(0, 7) + '...');
+    console.log('Using API key starting with:', openAIApiKey.substring(0, 10) + '...');
+    console.log('API endpoint: https://api.openai.com/v1/chat/completions');
+    
+    const requestBody = {
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a legal and business document analysis expert. Output valid JSON." },
+        { role: "user", content: initialAnalysisPrompt }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 2000,
+      temperature: 0.1,
+    };
+    
+    console.log('Request model:', requestBody.model);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a legal and business document analysis expert. Output valid JSON." },
-          { role: "user", content: initialAnalysisPrompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 2000,
-        temperature: 0.1,
-      }),
+      body: JSON.stringify(requestBody),
     });
+    
+    console.log('OpenAI response status:', response.status);
+    console.log('OpenAI response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`OpenAI API error: ${response.status} - ${errorText}`);
-      throw new Error(`OpenAI API error: ${response.status}. Please check your API key and billing status.`);
+      throw new Error(`OpenAI API error: ${response.status}. Error details: ${errorText}`);
     }
     
     const data = await response.json();
@@ -153,7 +164,9 @@ Important Rules:
 6. Include the following disclaimer at the very end of your response: 'Disclaimer: This tool provides general legal information, not legal advice. Always consult a lawyer for final review.'`;
 
     console.log('Making OpenAI API call for Q&A...');
-    console.log('Using API key starting with:', openAIApiKey.substring(0, 7) + '...');
+    console.log('Using API key starting with:', openAIApiKey.substring(0, 10) + '...');
+    console.log('Using model: gpt-3.5-turbo');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -161,7 +174,7 @@ Important Rules:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo",
         messages: [
           { role: "system", content: "You are a helpful assistant that answers questions based on provided text." },
           { role: "user", content: qaPrompt }
@@ -171,10 +184,12 @@ Important Rules:
       }),
     });
     
+    console.log('Q&A OpenAI response status:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`OpenAI API error: ${response.status} - ${errorText}`);
-      return `I'm currently unable to process your question due to an API configuration issue (Error ${response.status}). Please contact the administrator to check the OpenAI API key and billing status.`;
+      return `I'm currently unable to process your question due to an API configuration issue (Error ${response.status}). Error details: ${errorText}. Please contact the administrator to check the OpenAI API key and billing status.`;
     }
     
     const data = await response.json();
