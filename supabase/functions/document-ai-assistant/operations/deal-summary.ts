@@ -1,5 +1,4 @@
 
-import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { fetchDocumentContent } from "./document-content.ts";
 
@@ -8,7 +7,7 @@ import { fetchDocumentContent } from "./document-content.ts";
  */
 export async function handleDealSummary(
   dealId: string,
-  openai: OpenAI,
+  openai: any, // We'll use fetch instead of the openai client
   supabase?: ReturnType<typeof createClient>
 ) {
   try {
@@ -117,18 +116,38 @@ Please provide:
 
 Format your response in clear sections with headings.`;
 
-    // 7. Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "You are an AI business advisor specializing in deal analysis and summaries." },
-        { role: "user", content: promptContent }
-      ],
-      temperature: 0.3,
-      max_tokens: 1000
+    // 7. Call OpenAI API using direct fetch
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "You are an AI business advisor specializing in deal analysis and summaries." },
+          { role: "user", content: promptContent }
+        ],
+        temperature: 0.3,
+        max_tokens: 1000
+      })
     });
 
-    const summary = response.choices[0]?.message?.content || 'Failed to generate deal summary';
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const summary = data.choices[0]?.message?.content || 'Failed to generate deal summary';
     
     // 8. Return the summary with disclaimer
     return {
