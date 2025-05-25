@@ -94,7 +94,7 @@ Important Rules for AI Output:
     console.log('API endpoint: https://api.openai.com/v1/chat/completions');
     
     const requestBody = {
-      model: "gpt-4o-mini",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a legal and business document analysis expert. Output valid JSON." },
         { role: "user", content: initialAnalysisPrompt }
@@ -166,7 +166,7 @@ Important Rules:
 
     console.log('Making OpenAI API call for Q&A...');
     console.log('Using API key starting with:', openAIApiKey.substring(0, 10) + '...');
-    console.log('Using model: gpt-4o-mini');
+    console.log('Using model: gpt-3.5-turbo');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -175,7 +175,7 @@ Important Rules:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo",
         messages: [
           { role: "system", content: "You are a helpful assistant that answers questions based on provided text." },
           { role: "user", content: qaPrompt }
