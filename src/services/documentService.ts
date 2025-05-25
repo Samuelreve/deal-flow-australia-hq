@@ -49,15 +49,21 @@ export class DocumentService {
       {
         id: '1',
         name: 'Purchase Agreement.pdf',
-        category: 'contract',
+        url: '#',
         uploadedBy: 'user1',
-        createdAt: new Date(),
+        uploadedAt: new Date(),
+        size: 245760,
         type: 'application/pdf',
+        status: 'draft',
+        version: 1,
+        category: 'contract',
         latestVersionId: 'v1',
         latestVersion: {
           id: 'v1',
+          documentId: '1',
           versionNumber: 1,
           uploadedAt: new Date(),
+          uploadedBy: 'user1',
           size: 245760,
           type: 'application/pdf',
           url: '#'
@@ -87,8 +93,10 @@ export class DocumentService {
     return [
       {
         id: 'v1',
+        documentId: documentId,
         versionNumber: 1,
         uploadedAt: new Date(),
+        uploadedBy: 'user1',
         size: 245760,
         type: 'application/pdf',
         url: '#'

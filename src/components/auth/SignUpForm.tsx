@@ -8,7 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
-const SignUpForm: React.FC = () => {
+interface SignUpFormProps {
+  inviteToken?: string | null;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({ inviteToken }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');

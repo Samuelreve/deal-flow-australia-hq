@@ -32,7 +32,7 @@ export const useShareDialogState = (
     revokeShareLink, 
     revokingLink 
   } = useDocumentVersionActions({
-    userRole: user?.role || "user",
+    userRole: user?.role || user?.profile?.role || "seller",
     userId: user?.id,
     documentOwnerId: documentVersion?.uploadedBy || ""
   });
