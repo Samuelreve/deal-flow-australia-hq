@@ -1,4 +1,3 @@
-
 import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { fetchDocumentContent } from "./document-content.ts";
@@ -119,7 +118,7 @@ Format your response in clear sections with headings.`;
 
     // 7. Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are an AI business advisor specializing in deal analysis and summaries." },
         { role: "user", content: promptContent }
