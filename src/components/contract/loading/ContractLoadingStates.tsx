@@ -1,33 +1,9 @@
 
 import React from 'react';
-import { Loader2, FileText } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { cn } from '@/lib/utils';
-
-interface MinimalLoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
-  text?: string;
-  className?: string;
-}
-
-export const MinimalLoadingSpinner: React.FC<MinimalLoadingSpinnerProps> = ({
-  size = 'md',
-  text,
-  className
-}) => {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8'
-  };
-
-  return (
-    <span className={cn("flex items-center gap-2", className)}>
-      <Loader2 className={cn("animate-spin", sizeClasses[size])} />
-      {text && <span className="text-sm">{text}</span>}
-    </span>
-  );
-};
+import { Loader2, FileText } from "lucide-react";
 
 export const ContractAnalysisLoading: React.FC = () => (
   <div className="text-center py-8">
@@ -47,3 +23,21 @@ export const ContractAnalysisLoading: React.FC = () => (
     </div>
   </div>
 );
+
+export const MinimalLoadingSpinner: React.FC<{ size?: "sm" | "md" | "lg", text?: string }> = ({ 
+  size = "md",
+  text = "Loading..."
+}) => {
+  const sizeClasses = {
+    sm: "h-3 w-3",
+    md: "h-4 w-4", 
+    lg: "h-5 w-5"
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Loader2 className={`${sizeClasses[size]} animate-spin`} />
+      <span>{text}</span>
+    </div>
+  );
+};

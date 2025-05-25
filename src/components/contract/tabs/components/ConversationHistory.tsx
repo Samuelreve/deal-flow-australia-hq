@@ -2,10 +2,17 @@
 import React from 'react';
 import { Brain, Loader2 } from "lucide-react";
 import { MinimalLoadingSpinner } from "../../loading/ContractLoadingStates";
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+
+interface HistoryItem {
+  question: string;
+  answer: string;
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+}
 
 interface ConversationHistoryProps {
-  questionHistory: QuestionHistoryItem[];
+  questionHistory: HistoryItem[];
   isProcessing: boolean;
 }
 
@@ -13,14 +20,6 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
   questionHistory,
   isProcessing
 }) => {
-  // Helper function to extract answer text from potentially complex answer object
-  const getAnswerText = (answer: string | { answer: string; sources?: string[] }): string => {
-    if (typeof answer === 'string') {
-      return answer;
-    }
-    return answer.answer;
-  };
-
   return (
     <div className="flex-1 overflow-y-auto mb-4 space-y-4">
       {questionHistory.map((item, index) => (
@@ -41,8 +40,8 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
               <Brain className="h-4 w-4 text-primary-foreground" />
             </div>
             <div className="bg-card border p-3 rounded-lg rounded-tl-none flex-1">
-              <p className="text-sm whitespace-pre-wrap">{getAnswerText(item.answer)}</p>
-              {item.type === 'analysis' && item.analysisType && (
+              <p className="text-sm whitespace-pre-wrap">{item.answer}</p>
+              {item.type === 'analysis' && (
                 <div className="mt-2 pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
                     Analysis type: {item.analysisType}

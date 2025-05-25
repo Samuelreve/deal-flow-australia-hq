@@ -4,12 +4,19 @@ import AnalysisOptions from './components/AnalysisOptions';
 import EmptyState from './components/EmptyState';
 import ConversationHistory from './components/ConversationHistory';
 import QuestionInput from './components/QuestionInput';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+
+interface HistoryItem {
+  question: string;
+  answer: string;
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+}
 
 interface EnhancedContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<any>;
   onAnalyzeContract: (analysisType: string) => Promise<any>;
-  questionHistory: QuestionHistoryItem[];
+  questionHistory: HistoryItem[];
   isProcessing: boolean;
   contractText: string;
   isMobile?: boolean;

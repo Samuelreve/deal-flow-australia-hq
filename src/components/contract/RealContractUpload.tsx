@@ -29,13 +29,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
   const isProcessing = isUploading || uploading;
 
   const handleUploadClick = () => {
-    console.log('Upload button clicked');
     fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File input changed:', e.target.files?.length);
-    await onFileUpload(e);
   };
 
   const getProgressMessage = () => {
@@ -113,7 +107,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          onChange={handleFileChange}
+          onChange={onFileUpload}
           accept=".pdf,.doc,.docx,.txt"
           className="hidden"
           disabled={isProcessing}

@@ -6,7 +6,6 @@ import { FileText } from "lucide-react";
 import { ContractAnalysisLoading } from './loading/ContractLoadingStates';
 import { ContractAnalysisError } from './error/ContractErrorStates';
 import { contractAriaLabels } from './accessibility/ContractAccessibility';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
 
 // Lazy load heavy components
 const EnhancedContractAssistantTab = React.lazy(() => 
@@ -22,13 +21,21 @@ interface Contract {
   analysis_status: string;
 }
 
+interface HistoryItem {
+  question: string;
+  answer: string;
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+}
+
 interface ContractMainContentProps {
   selectedContract: Contract | null;
   activeTab: string;
   onTabChange: (tab: string) => void;
   onAskQuestion: (question: string) => Promise<any>;
   onAnalyzeContract: (analysisType: string) => Promise<any>;
-  questionHistory: QuestionHistoryItem[];
+  questionHistory: HistoryItem[];
   isProcessing: boolean;
   error?: string | null;
   onRetryAnalysis?: () => void;

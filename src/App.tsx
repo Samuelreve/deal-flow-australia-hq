@@ -1,62 +1,134 @@
 
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Dashboard from "@/pages/Dashboard";
+import DealsPage from "@/pages/DealsPage";
+import DealDetailsPage from "@/pages/DealDetailsPage";
+import SettingsPage from "@/pages/SettingsPage";
+import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import NotificationsPage from "@/pages/NotificationsPage";
+import DemoContractPage from "@/pages/DemoContractPage";
+import Index from "@/pages/Index";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ThemeProvider } from "./components/theme/ThemeProvider";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import DealHealthPage from "@/pages/DealHealthPage";
+import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
+import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
+import ProfilePage from "@/pages/ProfilePage";
 
-// Import pages
-import Index from "./pages/Index";
-import LoginPage from "./pages/LoginPage";
-import DocumentsPage from "./pages/DocumentsPage";
-import ContractAnalysisPage from "./pages/ContractAnalysisPage";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <TooltipProvider>
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-background">
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route 
-                path="/documents/:dealId" 
-                element={
-                  <ProtectedRoute>
-                    <DocumentsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/deals/:dealId/documents" 
-                element={
-                  <ProtectedRoute>
-                    <DocumentsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/contract-analysis" 
-                element={
-                  <ProtectedRoute>
-                    <ContractAnalysisPage />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route 
+              path="/login" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Login />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <SignUp />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            
+            {/* Demo route - accessible to everyone */}
+            <Route path="/demo/contract" element={<DemoContractPage />} />
+            
+            {/* Protected routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals" 
+              element={
+                <ProtectedRoute>
+                  <DealsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deals/:dealId" 
+              element={
+                <ProtectedRoute>
+                  <DealDetailsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/notifications" 
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/deal-health" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <DealHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/advanced-health-monitoring" 
+              element={
+                <ProtectedRoute>
+                  <AdvancedHealthMonitoring />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </AuthProvider>
+      </div>
+    </Router>
+  );
+}
 
 export default App;

@@ -7,7 +7,6 @@ import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 
 interface ContractAnalysisContentProps {
   documentMetadata: DocumentMetadata | null;
@@ -31,28 +30,6 @@ const ContractAnalysisContent: React.FC<ContractAnalysisContentProps> = ({
   onRetryAnalysis
 }) => {
   const [activeTab, setActiveTab] = useState("summary");
-
-  // Show error state
-  if (error) {
-    return (
-      <Card className="h-96 flex items-center justify-center">
-        <CardContent className="text-center space-y-4">
-          <div className="mx-auto p-4 bg-red-100 rounded-full w-fit">
-            <AlertCircle className="h-8 w-8 text-red-600" />
-          </div>
-          <div>
-            <CardTitle className="text-lg text-red-900">Upload Error</CardTitle>
-            <CardDescription className="mt-2 text-red-700">
-              {error}
-            </CardDescription>
-          </div>
-          <Button onClick={onRetryAnalysis} variant="outline">
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Show upload prompt if no document is loaded
   if (!documentMetadata || !contractText) {
