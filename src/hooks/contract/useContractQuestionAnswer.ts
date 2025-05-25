@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface QuestionHistoryItem {
   id: string;
@@ -40,28 +41,21 @@ export const useContractQuestionAnswer = () => {
     setIsProcessing(true);
 
     try {
-      // Use the correct Supabase edge function endpoint
-      const response = await fetch('/functions/v1/public-ai-analyzer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use Supabase function invocation instead of direct fetch
+      const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
+        body: {
           requestType: 'answer_question',
           userQuestion: question,
           fullDocumentText: contractText || 'Sample contract text for demo purposes'
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Supabase function error:', errorData);
-        throw new Error(errorData.message || 'Failed to get answer from AI');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get answer from AI');
       }
 
-      const data = await response.json();
-      
-      if (data.success && data.answer) {
+      if (data && data.success && data.answer) {
         // Update the processing item with the actual answer
         setQuestionHistory(prev => 
           prev.map(item => 
@@ -114,26 +108,21 @@ export const useContractQuestionAnswer = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/functions/v1/public-ai-analyzer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use Supabase function invocation instead of direct fetch
+      const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
+        body: {
           requestType: 'answer_question',
           userQuestion: question,
           fullDocumentText: contractText || 'Sample contract text for demo purposes'
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to get analysis from AI');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get analysis from AI');
       }
 
-      const data = await response.json();
-      
-      if (data.success && data.answer) {
+      if (data && data.success && data.answer) {
         setQuestionHistory(prev => 
           prev.map(item => 
             item.id === questionId 
