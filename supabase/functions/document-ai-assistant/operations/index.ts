@@ -12,6 +12,7 @@ import { handleGetDealInsights } from "./get-deal-insights.ts";
 import { handlePredictDealHealth } from "./predict-deal-health.ts";
 import { handleSummarizeDeal } from "./summarize-deal.ts";
 import { handleExplainContractClause } from "./explain-contract-clause.ts";
+import { handleSummarizeContract } from "./summarize-contract.ts";
 import { analyzeSmartContract, explainSmartContractClause, summarizeSmartContract } from "./smart-contract-operations.ts";
 import { OpenAI } from "https://esm.sh/openai@4.0.0/index.js";
 
@@ -30,6 +31,7 @@ export {
   handlePredictDealHealth,
   handleSummarizeDeal,
   handleExplainContractClause,
+  handleSummarizeContract,
   analyzeSmartContract,
   explainSmartContractClause,
   summarizeSmartContract

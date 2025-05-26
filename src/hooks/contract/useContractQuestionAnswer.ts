@@ -1,139 +1,170 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useDocumentAI } from '@/hooks/useDocumentAI';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface QuestionHistoryItem {
+  id: string;
   question: string;
-  answer: string | { answer: string; sources?: string[] };
+  answer: string;
   timestamp: number;
   type: 'question' | 'analysis';
-  analysisType?: string;
+  isProcessing?: boolean;
 }
 
 export const useContractQuestionAnswer = () => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = useCallback(async (question: string, contractContent?: string) => {
-    if (!question.trim()) {
-      toast.error('Please enter a question');
-      return null;
-    }
+  // Initialize AI hook with a demo deal ID
+  const { explainClause, analyzeDocument } = useDocumentAI({ 
+    dealId: 'demo-deal-id' 
+  });
 
-    setIsProcessing(true);
+  const handleAskQuestion = async (question: string, contractText: string) => {
+    if (!question.trim()) return;
+
+    const questionId = `q-${Date.now()}`;
     
+    // Add question to history immediately
+    const newQuestion: QuestionHistoryItem = {
+      id: questionId,
+      question: question.trim(),
+      answer: '',
+      timestamp: Date.now(),
+      type: 'question',
+      isProcessing: true
+    };
+
+    setQuestionHistory(prev => [...prev, newQuestion]);
+    setIsProcessing(true);
+    setError(null);
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('You must be logged in to ask questions');
+      // Use the AI service to get an answer
+      const result = await explainClause(question, { contractText });
+      
+      if (result && result.explanation) {
+        // Update the question with the answer
+        setQuestionHistory(prev => 
+          prev.map(item => 
+            item.id === questionId 
+              ? { ...item, answer: result.explanation, isProcessing: false }
+              : item
+          )
+        );
+        
+        toast.success('Question answered successfully');
+      } else {
+        throw new Error('No explanation received from AI service');
       }
-
-      console.log('Sending question to AI:', question);
-      console.log('Contract content length:', contractContent?.length || 0);
-
-      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'explain_clause',
-          content: question,
-          context: { contractContent: contractContent || '' },
-          userId: user.id,
-          dealId: 'temp-deal-id' // Using temp ID for standalone contract analysis
-        }
-      });
-      
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to process your question');
-      }
-      
-      console.log('AI response received:', data);
-      
-      const answer = data?.explanation || 'No response received';
-      
-      const historyItem: QuestionHistoryItem = {
-        question,
-        answer,
-        timestamp: Date.now(),
-        type: 'question'
-      };
-      
-      setQuestionHistory(prev => [...prev, historyItem]);
-      
-      return { question, answer };
     } catch (error: any) {
       console.error('Error asking question:', error);
-      toast.error(error.message || 'Failed to process your question');
-      return null;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, []);
-
-  const handleAnalyzeContract = useCallback(async (analysisType: string, contractContent?: string) => {
-    if (!contractContent) {
-      toast.error('No contract content available for analysis');
-      return null;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('You must be logged in to analyze contracts');
-      }
-
-      console.log('Sending analysis request:', analysisType);
-      console.log('Contract content length:', contractContent.length);
-
-      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'analyze_document',
-          content: contractContent,
-          context: { analysisType },
-          userId: user.id,
-          dealId: 'temp-deal-id', // Using temp ID for standalone contract analysis
-          documentId: 'temp-doc-id',
-          documentVersionId: 'temp-version-id'
-        }
+      const errorMessage = error.message || 'Failed to get AI response';
+      
+      // Update question with error
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === questionId 
+            ? { ...item, answer: `Error: ${errorMessage}`, isProcessing: false }
+            : item
+        )
+      );
+      
+      setError(errorMessage);
+      toast.error('Failed to get AI response', {
+        description: errorMessage
       });
-      
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || `Failed to analyze contract: ${analysisType}`);
-      }
-      
-      console.log('Analysis response received:', data);
-      
-      const analysis = data?.analysis?.content || `Analysis of type ${analysisType} completed`;
-      
-      const historyItem: QuestionHistoryItem = {
-        question: `Analyze contract: ${analysisType}`,
-        answer: typeof analysis === 'string' ? analysis : JSON.stringify(analysis),
-        timestamp: Date.now(),
-        type: 'analysis',
-        analysisType
-      };
-      
-      setQuestionHistory(prev => [...prev, historyItem]);
-      
-      return { analysisType, analysis };
-    } catch (error: any) {
-      console.error(`Error analyzing contract (${analysisType}):`, error);
-      toast.error(error.message || `Failed to analyze contract: ${analysisType}`);
-      return null;
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  };
+
+  const handleAnalyzeContract = async (analysisType: string, contractText: string) => {
+    if (!contractText) {
+      toast.error('No contract text available for analysis');
+      return;
+    }
+
+    const analysisId = `analysis-${Date.now()}`;
+    
+    // Add analysis to history
+    const newAnalysis: QuestionHistoryItem = {
+      id: analysisId,
+      question: `Contract Analysis: ${analysisType}`,
+      answer: '',
+      timestamp: Date.now(),
+      type: 'analysis',
+      isProcessing: true
+    };
+
+    setQuestionHistory(prev => [...prev, newAnalysis]);
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Use the document analysis service
+      const result = await analyzeDocument('demo-doc-id', 'demo-version-id', analysisType);
+      
+      if (result && result.analysis) {
+        const analysisContent = typeof result.analysis.content === 'string' 
+          ? result.analysis.content 
+          : JSON.stringify(result.analysis.content, null, 2);
+          
+        setQuestionHistory(prev => 
+          prev.map(item => 
+            item.id === analysisId 
+              ? { ...item, answer: analysisContent, isProcessing: false }
+              : item
+          )
+        );
+        
+        toast.success(`${analysisType} analysis completed`);
+      } else {
+        throw new Error('No analysis received from AI service');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing contract:', error);
+      const errorMessage = error.message || 'Failed to analyze contract';
+      
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === analysisId 
+            ? { ...item, answer: `Error: ${errorMessage}`, isProcessing: false }
+            : item
+        )
+      );
+      
+      setError(errorMessage);
+      toast.error('Contract analysis failed', {
+        description: errorMessage
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const clearHistory = () => {
+    setQuestionHistory([]);
+    setError(null);
+  };
+
+  const setQuestionHistory = (newHistory: QuestionHistoryItem[] | ((prev: QuestionHistoryItem[]) => QuestionHistoryItem[])) => {
+    if (typeof newHistory === 'function') {
+      setQuestionHistory(prev => newHistory(prev));
+    } else {
+      setQuestionHistory(newHistory);
+    }
+  };
 
   return {
     questionHistory,
     isProcessing,
+    error,
     handleAskQuestion,
     handleAnalyzeContract,
-    setQuestionHistory,
-    clearHistory: () => setQuestionHistory([])
+    clearHistory,
+    setQuestionHistory
   };
 };
