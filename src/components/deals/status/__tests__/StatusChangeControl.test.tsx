@@ -1,7 +1,7 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import '@testing-library/jest-dom'; // Add this import for DOM matchers
+import '@testing-library/jest-dom';
 import { StatusChangeControl } from '../StatusChangeControl';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,14 +28,33 @@ vi.mock('@/hooks/useAllowedDealStatuses', () => ({
   })
 }));
 
+const mockSupabaseRpcSuccess = (data: any) => ({ 
+  data, 
+  error: null, 
+  status: 200, 
+  statusText: 'OK', 
+  count: null 
+});
+
+const mockSupabaseRpcError = (message: string) => ({ 
+  data: null, 
+  error: { 
+    message, 
+    code: '42501', 
+    details: 'mock details', 
+    hint: 'mock hint', 
+    name: 'PostgrestError' 
+  }, 
+  status: 403, 
+  statusText: 'Forbidden', 
+  count: null 
+});
+
 describe('StatusChangeControl Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock successful supabase response by default
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: { success: true },
-      error: null
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockSupabaseRpcSuccess({ success: true }));
   });
 
   test('renders change status button', () => {
@@ -109,15 +128,7 @@ describe('StatusChangeControl Component', () => {
 
   test('handles error when update fails', async () => {
     // Mock an error response from supabase
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: {
-        message: 'Permission denied: Invalid status transition',
-        details: '',
-        hint: '',
-        code: ''
-      }
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockSupabaseRpcError('Permission denied: Invalid status transition'));
 
     render(
       <StatusChangeControl

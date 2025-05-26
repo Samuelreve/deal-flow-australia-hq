@@ -13,15 +13,15 @@ export const organizeCommentsIntoThreads = (comments: DocumentComment[]): Docume
 
   // Group comments by parent ID
   comments.forEach(comment => {
-    if (!comment.parentCommentId) {
+    if (!comment.parent_comment_id) {
       // This is a top-level comment
       parentComments.push({...comment, replies: []});
     } else {
       // This is a reply
-      if (!replies[comment.parentCommentId]) {
-        replies[comment.parentCommentId] = [];
+      if (!replies[comment.parent_comment_id]) {
+        replies[comment.parent_comment_id] = [];
       }
-      replies[comment.parentCommentId].push(comment);
+      replies[comment.parent_comment_id].push(comment);
     }
   });
 
@@ -66,7 +66,7 @@ export const commentRetrievalService = {
       if (error) throw error;
 
       // Transform database format to our service format
-      const comments: DocumentComment[] = (commentsData || [])
+      const comments: DocumentComment[] = (commentsData as DbDocumentComment[] || [])
         .map((comment: DbDocumentComment) => mapDbCommentToServiceComment(comment));
       
       // Organize into threaded structure

@@ -6,11 +6,6 @@ import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginInfoPanel from "@/components/auth/LoginInfoPanel";
 
-interface LoginFormComponentProps {
-  onSignUp: () => void;
-  inviteToken?: string | null;
-}
-
 const Login = () => {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
@@ -75,11 +70,6 @@ const Login = () => {
       </div>
     );
   }
-
-  // Create a component wrapper to handle the props
-  const LoginFormComponent = ({ onSignUp, inviteToken }: LoginFormComponentProps) => (
-    <LoginForm onSignUp={onSignUp} inviteToken={inviteToken} />
-  );
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col lg:flex-row">
@@ -93,7 +83,7 @@ const Login = () => {
             </p>
           </div>
           
-          <LoginFormComponent onSignUp={handleSignUp} inviteToken={inviteToken} />
+          <LoginForm onSignUp={handleSignUp} inviteToken={inviteToken} />
         </div>
       </div>
       

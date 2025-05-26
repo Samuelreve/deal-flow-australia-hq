@@ -1,7 +1,7 @@
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import '@testing-library/jest-dom'; // Add this import for DOM matchers
+import '@testing-library/jest-dom';
 import { useAllowedDealStatuses } from '../useAllowedDealStatuses';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,6 +12,28 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+const mockSupabaseRpcSuccess = (data: any) => ({ 
+  data, 
+  error: null, 
+  status: 200, 
+  statusText: 'OK', 
+  count: null 
+});
+
+const mockSupabaseRpcError = (message: string) => ({ 
+  data: null, 
+  error: { 
+    message, 
+    code: '42501', 
+    details: 'mock details', 
+    hint: 'mock hint', 
+    name: 'PostgrestError' 
+  }, 
+  status: 403, 
+  statusText: 'Forbidden', 
+  count: null 
+});
+
 describe('useAllowedDealStatuses Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,14 +41,11 @@ describe('useAllowedDealStatuses Hook', () => {
 
   test('returns allowed statuses from successful API response', async () => {
     // Mock successful API response
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: {
-        current_status: 'active',
-        allowed_statuses: ['pending', 'completed', 'cancelled'],
-        participant_role: 'seller'
-      },
-      error: null
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockSupabaseRpcSuccess({
+      current_status: 'active',
+      allowed_statuses: ['pending', 'completed', 'cancelled'],
+      participant_role: 'seller'
+    }));
 
     const { result } = renderHook(() => useAllowedDealStatuses('123'));
 
@@ -52,15 +71,7 @@ describe('useAllowedDealStatuses Hook', () => {
   test('handles API error', async () => {
     // Mock API error
     const errorMsg = 'Failed to fetch allowed statuses';
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: {
-        message: errorMsg,
-        details: '',
-        hint: '',
-        code: ''
-      }
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockSupabaseRpcError(errorMsg));
 
     const { result } = renderHook(() => useAllowedDealStatuses('123'));
 
@@ -76,10 +87,7 @@ describe('useAllowedDealStatuses Hook', () => {
 
   test('handles unexpected response format', async () => {
     // Mock unexpected response format
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: "Not the expected object format",
-      error: null
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(mockSupabaseRpcSuccess("Not the expected object format"));
 
     const { result } = renderHook(() => useAllowedDealStatuses('123'));
 
