@@ -40,11 +40,11 @@ const DemoContractPage: React.FC = () => {
     return questionAnswerState.handleAskQuestion(question, '');
   };
   
-  // Wrap the handleAnalyzeContract function to handle question history - fix the function call
+  // Fix the handleAnalyzeContract function call to match the expected signature
   const handleContractAnalysis = async (analysisType: string) => {
     return handleAnalyzeContract(
-      analysisType,
-      questionAnswerState.setQuestionHistory
+      questionAnswerState.setQuestionHistory,
+      analysisType
     );
   };
 
