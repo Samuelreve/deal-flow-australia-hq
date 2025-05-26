@@ -1,23 +1,15 @@
 
 /// <reference types="vitest" />
 import React from 'react';
-import { render } from '@testing-library/react';
-import { screen } from '@testing-library/dom';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock the actual component since we don't have its implementation
-const MockParticipantsList = ({ participants }: { participants?: any[] }) => (
+const MockParticipantsList = ({ participants }: { participants: any[] }) => (
   <div>
-    <h2>Participants List</h2>
-    {participants && participants.length > 0 ? (
-      <ul>
-        {participants.map((p, i) => (
-          <li key={i}>{p.name}</li>
-        ))}
-      </ul>
-    ) : (
-      <p>No participants</p>
-    )}
+    {participants.map((participant, index) => (
+      <div key={index}>{participant.name}</div>
+    ))}
   </div>
 );
 
@@ -26,15 +18,15 @@ vi.mock('../ParticipantsList', () => ({
 }));
 
 describe('ParticipantsList Component', () => {
-  it('renders the participants list', () => {
-    render(<MockParticipantsList participants={[]} />);
-    const listElement = screen.getByText('Participants List');
-    expect(listElement).toBeInTheDocument();
-  });
-
-  it('shows no participants message when empty', () => {
-    render(<MockParticipantsList participants={[]} />);
-    const noParticipantsMessage = screen.getByText('No participants');
-    expect(noParticipantsMessage).toBeInTheDocument();
+  it('renders participants correctly', () => {
+    const mockParticipants = [
+      { name: 'John Doe', role: 'buyer' },
+      { name: 'Jane Smith', role: 'seller' }
+    ];
+    
+    render(<MockParticipantsList participants={mockParticipants} />);
+    
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 });

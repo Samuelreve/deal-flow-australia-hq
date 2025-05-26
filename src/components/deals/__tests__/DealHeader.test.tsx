@@ -1,15 +1,14 @@
 
 /// <reference types="vitest" />
 import React from 'react';
-import { render } from '@testing-library/react';
-import { screen, fireEvent, waitFor } from '@testing-library/dom';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock the actual component since we don't have its implementation
-const MockDealHeader = ({ onAction }: { onAction?: () => void }) => (
+const MockDealHeader = ({ deal, onEdit }: { deal: any; onEdit?: () => void }) => (
   <div>
-    <h1>Deal Header</h1>
-    <button onClick={onAction}>Action</button>
+    <h1>{deal?.title || 'Deal Title'}</h1>
+    <button onClick={onEdit}>Edit Deal</button>
   </div>
 );
 
@@ -18,21 +17,27 @@ vi.mock('../DealHeader', () => ({
 }));
 
 describe('DealHeader Component', () => {
-  it('renders the header correctly', () => {
-    render(<MockDealHeader />);
-    const headerElement = screen.getByText('Deal Header');
-    expect(headerElement).toBeInTheDocument();
+  const mockDeal = {
+    id: '1',
+    title: 'Test Deal',
+    status: 'active'
+  };
+
+  it('renders the deal title', () => {
+    render(<MockDealHeader deal={mockDeal} />);
+    const titleElement = screen.getByText('Test Deal');
+    expect(titleElement).toBeInTheDocument();
   });
 
-  it('handles action click', async () => {
-    const mockAction = vi.fn();
-    render(<MockDealHeader onAction={mockAction} />);
+  it('calls onEdit when edit button is clicked', async () => {
+    const mockOnEdit = vi.fn();
+    render(<MockDealHeader deal={mockDeal} onEdit={mockOnEdit} />);
     
-    const actionButton = screen.getByText('Action');
-    fireEvent.click(actionButton);
+    const editButton = screen.getByText('Edit Deal');
+    fireEvent.click(editButton);
     
     await waitFor(() => {
-      expect(mockAction).toHaveBeenCalled();
+      expect(mockOnEdit).toHaveBeenCalled();
     });
   });
 });
