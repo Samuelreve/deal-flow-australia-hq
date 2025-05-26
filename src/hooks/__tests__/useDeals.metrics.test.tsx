@@ -1,6 +1,9 @@
+
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { useDeals } from '../useDeals';
+import { setupMocks, mockSupabaseDeals, supabase } from './testMocks';
 
 // Mock Supabase client
 vi.mock("@/integrations/supabase/client", () => ({

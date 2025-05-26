@@ -1,6 +1,8 @@
+
 import { render, screen } from '@testing-library/react';
 import { describe, test, expect } from 'vitest';
 import '@testing-library/jest-dom';
+import { StatusBadge } from '../StatusBadge';
 
 describe('StatusBadge Component', () => {
   test('renders draft status correctly', () => {

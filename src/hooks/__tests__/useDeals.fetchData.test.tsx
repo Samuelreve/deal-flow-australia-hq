@@ -1,6 +1,9 @@
+
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { useDeals } from '../useDeals';
+import { setupMocks, mockSupabaseDeals, supabase } from './testMocks';
 
 // Mock Supabase client
 vi.mock("@/integrations/supabase/client", () => ({
@@ -44,7 +47,7 @@ describe("useDeals hook - Data Fetching", () => {
     expect(result.current.deals[0].id).toBe("1");
     expect(result.current.deals[0].title).toBe("Test Deal 1");
     expect(result.current.deals[0].status).toBe("active");
-    expect(result.current.deals[0].seller?.name).toBe("Seller Name");
+    expect(result.current.deals[0].sellerName).toBe("Seller Name");
   });
   
   test("should handle Supabase error correctly", async () => {

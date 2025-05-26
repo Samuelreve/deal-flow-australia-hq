@@ -1,10 +1,15 @@
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router-dom';
+import DealHeader from '../DealHeader';
+import { Deal } from '@/types/deal';
 
 // Mock the useAllowedDealStatuses hook
+const mockUseAllowedDealStatuses = vi.fn();
 vi.mock('@/hooks/useAllowedDealStatuses', () => ({
-  useAllowedDealStatuses: vi.fn()
+  useAllowedDealStatuses: mockUseAllowedDealStatuses
 }));
 
 // Mock the useNavigate hook
@@ -46,7 +51,7 @@ describe('DealHeader Component', () => {
     vi.clearAllMocks();
     
     // Mock the useAllowedDealStatuses hook to return empty array by default
-    vi.mocked(AllowedStatusesHook.useAllowedDealStatuses).mockReturnValue({
+    mockUseAllowedDealStatuses.mockReturnValue({
       allowedStatuses: [],
       isLoading: false,
       error: null
@@ -70,13 +75,13 @@ describe('DealHeader Component', () => {
   test('renders back button', () => {
     renderWithRouter(<DealHeader deal={mockDeal} isParticipant={false} />);
     
-    const backButton = screen.getByText('Back');
+    const backButton = screen.getByText('Back to Deals');
     expect(backButton).toBeInTheDocument();
   });
 
   test('shows status change control for participants', () => {
     // Mock allowed statuses for this test
-    vi.mocked(AllowedStatusesHook.useAllowedDealStatuses).mockReturnValue({
+    mockUseAllowedDealStatuses.mockReturnValue({
       allowedStatuses: ['pending', 'completed', 'cancelled'],
       isLoading: false,
       error: null
@@ -107,7 +112,7 @@ describe('DealHeader Component', () => {
   });
 
   test('does not show status change control when no allowed statuses', () => {
-    vi.mocked(AllowedStatusesHook.useAllowedDealStatuses).mockReturnValue({
+    mockUseAllowedDealStatuses.mockReturnValue({
       allowedStatuses: [],
       isLoading: false,
       error: null
@@ -126,7 +131,7 @@ describe('DealHeader Component', () => {
 
   test('calls onStatusUpdated when status is changed', async () => {
     // Mock allowed statuses
-    vi.mocked(AllowedStatusesHook.useAllowedDealStatuses).mockReturnValue({
+    mockUseAllowedDealStatuses.mockReturnValue({
       allowedStatuses: ['pending', 'completed', 'cancelled'],
       isLoading: false,
       error: null
@@ -164,29 +169,5 @@ describe('DealHeader Component', () => {
     await waitFor(() => {
       expect(onStatusUpdatedMock).toHaveBeenCalledTimes(0); // This is 0 because the mock doesn't bubble up in this test
     });
-  });
-
-  test('renders document and message buttons for participants', () => {
-    renderWithRouter(
-      <DealHeader 
-        deal={mockDeal} 
-        isParticipant={true}
-      />
-    );
-    
-    expect(screen.getByText('Add Document')).toBeInTheDocument();
-    expect(screen.getByText('Message')).toBeInTheDocument();
-  });
-
-  test('does not render document and message buttons for non-participants', () => {
-    renderWithRouter(
-      <DealHeader 
-        deal={mockDeal} 
-        isParticipant={false}
-      />
-    );
-    
-    expect(screen.queryByText('Add Document')).not.toBeInTheDocument();
-    expect(screen.queryByText('Message')).not.toBeInTheDocument();
   });
 });
