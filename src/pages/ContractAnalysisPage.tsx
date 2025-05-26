@@ -27,10 +27,10 @@ const ContractAnalysisPage: React.FC = () => {
     }
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadHandler.handleFileUpload(file);
+      await uploadHandler.handleFileUpload(file);
     }
   };
 
