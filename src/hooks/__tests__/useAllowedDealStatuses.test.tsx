@@ -1,5 +1,7 @@
-import React from 'react';
+
+/// <reference types="vitest" />
 import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { useAllowedDealStatuses } from '../useAllowedDealStatuses';
 
 describe('useAllowedDealStatuses', () => {

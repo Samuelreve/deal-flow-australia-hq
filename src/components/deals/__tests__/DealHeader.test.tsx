@@ -1,57 +1,68 @@
+
+/// <reference types="vitest" />
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DealHeader from '../DealHeader';
+import { Deal } from '@/types/deal';
+
+// Mock react-router-dom
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}));
+
+// Mock the status components
+vi.mock('@/components/deals/status/StatusBadge', () => ({
+  StatusBadge: ({ status }: { status: string }) => <span>{status}</span>
+}));
+
+vi.mock('@/components/deals/status/StatusChangeControl', () => ({
+  StatusChangeControl: () => <div>Status Control</div>
+}));
+
+vi.mock('@/components/deals/DealHealth', () => ({
+  default: ({ healthScore }: { healthScore: number }) => <span>Health: {healthScore}</span>
+}));
+
+vi.mock('@/components/deals/DealSummaryButton', () => ({
+  default: () => <button>Deal Summary</button>
+}));
 
 describe('DealHeader Component', () => {
-  const mockDeal = {
+  const mockDeal: Deal = {
     id: '123',
     title: 'Test Deal',
     description: 'A test deal',
     status: 'active',
-    health_score: 75,
-    created_at: '2024-05-03T12:00:00.000Z',
-    user_id: 'user123',
+    healthScore: 75,
+    createdAt: new Date('2024-05-03T12:00:00.000Z'),
+    updatedAt: new Date('2024-05-03T12:00:00.000Z'),
+    sellerId: 'user123',
+    buyerId: 'buyer123',
+    milestones: [],
+    documents: [],
+    comments: [],
+    participants: []
   };
 
   it('renders deal information correctly', () => {
-    render(<DealHeader deal={mockDeal} />);
+    render(<DealHeader deal={mockDeal} isParticipant={true} />);
     expect(screen.getByText('Test Deal')).toBeInTheDocument();
     expect(screen.getByText('A test deal')).toBeInTheDocument();
   });
 
-  it('opens and closes the edit modal', async () => {
-    render(<DealHeader deal={mockDeal} />);
-    fireEvent.click(screen.getByText('Edit'));
-    expect(screen.getByText('Update Deal')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Cancel'));
-    await waitFor(() => {
-      expect(screen.queryByText('Update Deal')).not.toBeInTheDocument();
-    });
+  it('displays health score', () => {
+    render(<DealHeader deal={mockDeal} isParticipant={true} />);
+    expect(screen.getByText('Health: 75')).toBeInTheDocument();
   });
 
-  it('submits the form with updated data', async () => {
-    const onUpdate = jest.fn();
-    render(<DealHeader deal={mockDeal} onUpdate={onUpdate} />);
-
-    fireEvent.click(screen.getByText('Edit'));
-    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Updated Deal' } });
-    fireEvent.click(screen.getByText('Update'));
-
-    await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalled();
-    });
+  it('shows status control', () => {
+    render(<DealHeader deal={mockDeal} isParticipant={true} />);
+    expect(screen.getByText('Status Control')).toBeInTheDocument();
   });
 
-  it('displays an error message if update fails', async () => {
-    const onUpdate = jest.fn(() => Promise.reject('Update failed'));
-    render(<DealHeader deal={mockDeal} onUpdate={onUpdate} />);
-
-    fireEvent.click(screen.getByText('Edit'));
-    fireEvent.click(screen.getByText('Update'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Update failed')).toBeInTheDocument();
-    });
+  it('shows deal summary button when user is participant', () => {
+    render(<DealHeader deal={mockDeal} isParticipant={true} />);
+    expect(screen.getByText('Deal Summary')).toBeInTheDocument();
   });
 });

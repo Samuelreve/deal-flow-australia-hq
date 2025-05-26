@@ -21,7 +21,14 @@ const ContractSidebar: React.FC<ContractSidebarProps> = ({
   onFileUpload,
   onExportHighlights
 }) => {
-  const { isUploading, uploadProgress, error } = useContractDocumentUpload();
+  const { isUploading, uploadProgress, error } = useContractDocumentUpload({
+    onUploadSuccess: (metadata, text, summary) => {
+      console.log('Upload successful:', metadata);
+    },
+    onUploadError: (error) => {
+      console.error('Upload error:', error);
+    }
+  });
 
   return (
     <div className="space-y-6">
