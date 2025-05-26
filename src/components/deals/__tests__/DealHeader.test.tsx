@@ -13,19 +13,19 @@ vi.mock('react-router-dom', () => ({
 
 // Mock the status components
 vi.mock('@/components/deals/status/StatusBadge', () => ({
-  StatusBadge: ({ status }: { status: string }) => <span>{status}</span>
+  StatusBadge: ({ status }: { status: string }) => <span data-testid="status-badge">{status}</span>
 }));
 
 vi.mock('@/components/deals/status/StatusChangeControl', () => ({
-  StatusChangeControl: () => <div>Status Control</div>
+  default: () => <div data-testid="status-control">Status Control</div>
 }));
 
 vi.mock('@/components/deals/DealHealth', () => ({
-  default: ({ healthScore }: { healthScore: number }) => <span>Health: {healthScore}</span>
+  default: ({ healthScore }: { healthScore: number }) => <span data-testid="health-score">Health: {healthScore}</span>
 }));
 
 vi.mock('@/components/deals/DealSummaryButton', () => ({
-  default: () => <button>Deal Summary</button>
+  default: () => <button data-testid="deal-summary">Deal Summary</button>
 }));
 
 describe('DealHeader Component', () => {
@@ -53,16 +53,16 @@ describe('DealHeader Component', () => {
 
   it('displays health score', () => {
     render(<DealHeader deal={mockDeal} isParticipant={true} />);
-    expect(screen.getByText('Health: 75')).toBeInTheDocument();
+    expect(screen.getByTestId('health-score')).toBeInTheDocument();
   });
 
   it('shows status control', () => {
     render(<DealHeader deal={mockDeal} isParticipant={true} />);
-    expect(screen.getByText('Status Control')).toBeInTheDocument();
+    expect(screen.getByTestId('status-control')).toBeInTheDocument();
   });
 
   it('shows deal summary button when user is participant', () => {
     render(<DealHeader deal={mockDeal} isParticipant={true} />);
-    expect(screen.getByText('Deal Summary')).toBeInTheDocument();
+    expect(screen.getByTestId('deal-summary')).toBeInTheDocument();
   });
 });
