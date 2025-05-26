@@ -1,62 +1,95 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { useDeals } from '@/hooks/useDeals';
-import { Loader2 } from 'lucide-react';
-
-interface CreateDealFormData {
-  title: string;
-  description: string;
-  business_name: string;
-  business_industry: string;
-  asking_price: number;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CreateDealFormProps {
-  onSuccess?: () => void;
+  onDealCreated?: () => void;
 }
 
-const CreateDealForm: React.FC<CreateDealFormProps> = ({ onSuccess }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createDeal } = useDeals();
-  const { toast } = useToast();
-  
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateDealFormData>();
+export const CreateDealForm: React.FC<CreateDealFormProps> = ({ onDealCreated }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    asking_price: '',
+    business_legal_name: '',
+    business_industry: '',
+    target_completion_date: ''
+  });
 
-  const onSubmit = async (data: CreateDealFormData) => {
-    setIsSubmitting(true);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
+      toast.error('You must be logged in to create a deal');
+      return;
+    }
+
+    setLoading(true);
+    
     try {
-      await createDeal({
-        title: data.title,
-        description: data.description,
-        business_name: data.business_name,
-        business_industry: data.business_industry,
-        asking_price: data.asking_price,
-        status: 'draft'
-      });
+      const { data, error } = await supabase
+        .from('deals')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          asking_price: formData.asking_price ? parseFloat(formData.asking_price) : null,
+          business_legal_name: formData.business_legal_name,
+          business_industry: formData.business_industry,
+          target_completion_date: formData.target_completion_date || null,
+          seller_id: user.id,
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add the creator as a participant
+      await supabase
+        .from('deal_participants')
+        .insert({
+          deal_id: data.id,
+          user_id: user.id,
+          role: 'seller'
+        });
+
+      toast.success('Deal created successfully!');
       
-      toast({
-        title: "Deal created successfully",
-        description: "Your new deal has been created.",
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        asking_price: '',
+        business_legal_name: '',
+        business_industry: '',
+        target_completion_date: ''
       });
-      
-      reset();
-      onSuccess?.();
-    } catch (error) {
-      console.error('Failed to create deal:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to create deal",
-        description: "Please try again later.",
-      });
+
+      if (onDealCreated) {
+        onDealCreated();
+      }
+    } catch (error: any) {
+      console.error('Error creating deal:', error);
+      toast.error('Failed to create deal: ' + error.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -66,35 +99,39 @@ const CreateDealForm: React.FC<CreateDealFormProps> = ({ onSuccess }) => {
         <CardTitle>Create New Deal</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title">Deal Title *</Label>
             <Input
               id="title"
-              {...register('title', { required: 'Title is required' })}
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              required
               placeholder="Enter deal title"
             />
-            {errors.title && (
-              <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>
-            )}
           </div>
 
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              {...register('description')}
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
               placeholder="Describe the deal..."
               rows={3}
             />
           </div>
 
           <div>
-            <Label htmlFor="business_name">Business Name</Label>
+            <Label htmlFor="business_legal_name">Business Legal Name</Label>
             <Input
-              id="business_name"
-              {...register('business_name')}
-              placeholder="Enter business name"
+              id="business_legal_name"
+              name="business_legal_name"
+              value={formData.business_legal_name}
+              onChange={handleInputChange}
+              placeholder="Enter business legal name"
             />
           </div>
 
@@ -102,8 +139,10 @@ const CreateDealForm: React.FC<CreateDealFormProps> = ({ onSuccess }) => {
             <Label htmlFor="business_industry">Industry</Label>
             <Input
               id="business_industry"
-              {...register('business_industry')}
-              placeholder="e.g., Technology, Retail, Manufacturing"
+              name="business_industry"
+              value={formData.business_industry}
+              onChange={handleInputChange}
+              placeholder="e.g., Technology, Healthcare, Retail"
             />
           </div>
 
@@ -111,21 +150,27 @@ const CreateDealForm: React.FC<CreateDealFormProps> = ({ onSuccess }) => {
             <Label htmlFor="asking_price">Asking Price</Label>
             <Input
               id="asking_price"
+              name="asking_price"
               type="number"
-              {...register('asking_price', { valueAsNumber: true })}
+              value={formData.asking_price}
+              onChange={handleInputChange}
               placeholder="Enter asking price"
             />
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Deal...
-              </>
-            ) : (
-              'Create Deal'
-            )}
+          <div>
+            <Label htmlFor="target_completion_date">Target Completion Date</Label>
+            <Input
+              id="target_completion_date"
+              name="target_completion_date"
+              type="date"
+              value={formData.target_completion_date}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Creating Deal...' : 'Create Deal'}
           </Button>
         </form>
       </CardContent>

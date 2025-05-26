@@ -1,8 +1,10 @@
+
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import InviteParticipantButton from "../InviteParticipantButton";
 import { describe, test, expect, vi, afterEach } from "vitest";
+import '@testing-library/jest-dom';
 
 describe("InviteParticipantButton", () => {
   const mockOnClick = vi.fn();

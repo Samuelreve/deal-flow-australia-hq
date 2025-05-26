@@ -3,9 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreateDocumentCommentDto } from './types';
 import { DocumentComment, ProfileSummary } from '@/types/documentComment';
 
-/**
- * Add a new document comment
- */
 export const addDocumentComment = async (
   comment: CreateDocumentCommentDto
 ): Promise<DocumentComment | null> => {
@@ -77,9 +74,6 @@ export const addDocumentComment = async (
   }
 };
 
-/**
- * Update a document comment
- */
 export const updateDocumentComment = async (
   commentId: string, 
   content: string
@@ -102,9 +96,6 @@ export const updateDocumentComment = async (
   }
 };
 
-/**
- * Delete a document comment
- */
 export const deleteDocumentComment = async (commentId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -124,9 +115,6 @@ export const deleteDocumentComment = async (commentId: string): Promise<boolean>
   }
 };
 
-/**
- * Toggle resolved status of a comment
- */
 export const toggleCommentResolved = async (commentId: string): Promise<{ newStatus?: boolean }> => {
   try {
     // First get the current status
@@ -158,4 +146,11 @@ export const toggleCommentResolved = async (commentId: string): Promise<{ newSta
     console.error('Failed to toggle comment resolved status:', error);
     return {};
   }
+};
+
+export const commentMutationService = {
+  addDocumentComment,
+  updateDocumentComment,
+  deleteDocumentComment,
+  toggleCommentResolved
 };

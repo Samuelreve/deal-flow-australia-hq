@@ -1,109 +1,46 @@
 
-import React, { useState } from "react";
-import AppLayout from "@/components/layout/AppLayout";
-import { useDeals } from "@/hooks/useDeals";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdvancedHealthMonitoring } from "@/hooks/useAdvancedHealthMonitoring";
-import AdvancedHealthHeader from "@/components/advanced-health/AdvancedHealthHeader";
-import DealSelector from "@/components/advanced-health/DealSelector";
-import HealthMonitoringTabs from "@/components/advanced-health/HealthMonitoringTabs";
-import RealTimeHealthMonitor from "@/components/deals/health/RealTimeHealthMonitor";
-import HealthPredictionEngine from "@/components/health/HealthPredictionEngine";
-import RecoveryPlanGenerator from "@/components/health/RecoveryPlanGenerator";
-import PerformanceDashboard from "@/components/health/PerformanceDashboard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { convertDealsToDealSummaries } from "@/utils/dealConversion";
+import React from 'react';
+import { useDeals } from '@/hooks/useDeals';
+import { AdvancedHealthHeader } from '@/components/advanced-health/AdvancedHealthHeader';
+import { HealthMonitoringTabs } from '@/components/advanced-health/HealthMonitoringTabs';
+
+// Convert DealSummary to Deal interface for health monitoring
+const transformDealsForHealthMonitoring = (deals: any[]) => {
+  return deals.map(deal => ({
+    ...deal,
+    health_score: deal.healthScore,
+    seller_id: deal.sellerId,
+    created_at: deal.createdAt.toISOString(),
+    updated_at: deal.updatedAt.toISOString()
+  }));
+};
 
 const AdvancedHealthMonitoring = () => {
-  const { user } = useAuth();
-  const { deals, loading: dealsLoading } = useDeals();
-  const [selectedDealId, setSelectedDealId] = useState<string>('');
-  
-  const healthData = useAdvancedHealthMonitoring(user?.id);
+  const { deals, loading, error } = useDeals();
 
-  const handleHealthScoreUpdate = (dealId: string, newScore: number) => {
-    console.log(`Deal ${dealId} health score updated to ${newScore}%`);
-  };
-
-  if (dealsLoading || healthData.loading) {
+  if (loading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading advanced health monitoring...</p>
-          </div>
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading health monitoring data...</div>
+      </div>
     );
   }
 
-  // Convert deals to DealSummary format
-  const dealSummaries = convertDealsToDealSummaries(deals);
-  const selectedDeal = selectedDealId ? dealSummaries.find(d => d.id === selectedDealId) : null;
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
+  const transformedDeals = transformDealsForHealthMonitoring(deals);
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-6">
-        <AdvancedHealthHeader />
-        
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="realtime">Real-time</TabsTrigger>
-            <TabsTrigger value="predictions">AI Predictions</TabsTrigger>
-            <TabsTrigger value="recovery">Recovery Plans</TabsTrigger>
-            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="space-y-6">
-            <PerformanceDashboard deals={dealSummaries} />
-          </TabsContent>
-
-          <TabsContent value="realtime" className="space-y-6">
-            <RealTimeHealthMonitor
-              deals={dealSummaries}
-              onHealthScoreUpdate={handleHealthScoreUpdate}
-            />
-          </TabsContent>
-
-          <TabsContent value="predictions" className="space-y-6">
-            <HealthPredictionEngine
-              deals={dealSummaries}
-              userId={user?.id}
-            />
-          </TabsContent>
-
-          <TabsContent value="recovery" className="space-y-6">
-            <RecoveryPlanGenerator
-              deals={dealSummaries}
-              userId={user?.id}
-            />
-          </TabsContent>
-
-          <TabsContent value="monitoring" className="space-y-6">
-            <DealSelector 
-              deals={dealSummaries}
-              selectedDealId={selectedDealId}
-              onSelectionChange={setSelectedDealId}
-            />
-            <HealthMonitoringTabs
-              deals={dealSummaries}
-              selectedDeal={selectedDeal}
-              selectedDealId={selectedDealId}
-              healthData={healthData}
-              onHealthScoreUpdate={handleHealthScoreUpdate}
-            />
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid gap-6">
-              <PerformanceDashboard deals={dealSummaries} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AppLayout>
+    <div className="container mx-auto py-8 space-y-8">
+      <AdvancedHealthHeader />
+      <HealthMonitoringTabs deals={transformedDeals} />
+    </div>
   );
 };
 
