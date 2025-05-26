@@ -37,14 +37,14 @@ const DemoContractPage: React.FC = () => {
 
   // Wrap the handleAskQuestion to match the expected interface
   const handleQuestionSubmission = async (question: string) => {
-    return questionAnswerState.handleAskQuestion(question);
+    return questionAnswerState.handleAskQuestion(question, '');
   };
   
-  // Wrap the handleAnalyzeContract function to handle question history - fix: pass both arguments
+  // Wrap the handleAnalyzeContract function to handle question history - fix the function call
   const handleContractAnalysis = async (analysisType: string) => {
     return handleAnalyzeContract(
       analysisType,
-      questionAnswerState.setQuestionHistory
+      (updater) => questionAnswerState.setQuestionHistory(updater(questionAnswerState.questionHistory))
     );
   };
 
