@@ -1,35 +1,128 @@
 
-import { useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface NavigationState {
+  currentPath: string;
+  isHealthMonitoring: boolean;
+  isAdvancedHealth: boolean;
+  isDashboard: boolean;
+  isDeals: boolean;
+  isSettings: boolean;
+  isProfile: boolean;
+  isOnboarding: boolean;
+  canNavigate: boolean;
+  breadcrumbs: Array<{ label: string; path: string }>;
+}
 
 export const useNavigationState = () => {
   const location = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, loading } = useAuth();
+  const [navState, setNavState] = useState<NavigationState>({
+    currentPath: location.pathname,
+    isHealthMonitoring: false,
+    isAdvancedHealth: false,
+    isDashboard: false,
+    isDeals: false,
+    isSettings: false,
+    isProfile: false,
+    isOnboarding: false,
+    canNavigate: true,
+    breadcrumbs: []
+  });
 
-  const getActiveClass = (path: string) => {
-    const isActive = location.pathname === path || 
-                    (path !== '/' && location.pathname.startsWith(path));
+  useEffect(() => {
+    const path = location.pathname;
     
-    return isActive 
-      ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-      : "text-muted-foreground hover:text-foreground hover:bg-accent";
+    const breadcrumbs = generateBreadcrumbs(path);
+    
+    // User can navigate if they are:
+    // 1. Authenticated and have completed onboarding
+    // 2. On onboarding routes (regardless of completion status)
+    // 3. Not loading and have a user profile
+    const hasProfile = !!user?.profile;
+    const onboardingComplete = user?.profile?.onboarding_complete || false;
+    const isOnboardingPath = path.startsWith('/onboarding');
+    
+    const canNavigate = isAuthenticated && hasProfile && 
+      (onboardingComplete || isOnboardingPath);
+    
+    console.log('Navigation state update:', {
+      isAuthenticated,
+      hasProfile,
+      onboardingComplete,
+      isOnboardingPath,
+      canNavigate,
+      path,
+      loading
+    });
+    
+    setNavState({
+      currentPath: path,
+      isHealthMonitoring: path === '/health-monitoring',
+      isAdvancedHealth: path === '/advanced-health-monitoring',
+      isDashboard: path === '/dashboard',
+      isDeals: path.startsWith('/deals'),
+      isSettings: path.startsWith('/settings'),
+      isProfile: path === '/profile',
+      isOnboarding: path.startsWith('/onboarding'),
+      canNavigate,
+      breadcrumbs
+    });
+  }, [location.pathname, isAuthenticated, user?.profile?.onboarding_complete, user?.profile, loading]);
+
+  const generateBreadcrumbs = (path: string) => {
+    const segments = path.split('/').filter(Boolean);
+    const breadcrumbs = [{ label: 'Home', path: '/' }];
+    
+    let currentPath = '';
+    segments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      
+      let label = segment.charAt(0).toUpperCase() + segment.slice(1);
+      
+      // Custom labels for specific routes
+      switch (segment) {
+        case 'health-monitoring':
+          label = 'Health Monitoring';
+          break;
+        case 'advanced-health-monitoring':
+          label = 'Advanced Health';
+          break;
+        case 'onboarding':
+          label = 'Setup';
+          break;
+        default:
+          label = label.replace(/-/g, ' ');
+      }
+      
+      breadcrumbs.push({ label, path: currentPath });
+    });
+    
+    return breadcrumbs;
   };
 
-  // Simple check - if user is authenticated and has basic info, allow navigation
-  const canNavigate = () => {
-    if (!isAuthenticated || !user) {
-      return false;
+  const navigateWithCheck = (path: string) => {
+    // Allow navigation to onboarding routes even if onboarding is incomplete
+    if (!navState.canNavigate && !path.startsWith('/onboarding')) {
+      console.log('Navigation blocked, redirecting to onboarding');
+      navigate('/onboarding/intent');
+      return;
     }
-    
-    // Basic check - if user has profile data or if profile is null but user exists
-    return true;
+    navigate(path);
+  };
+
+  const getActiveClass = (path: string) => {
+    if (path === navState.currentPath) return 'bg-muted text-primary font-medium';
+    if (path !== '/' && navState.currentPath.startsWith(path)) return 'bg-muted/50 text-primary';
+    return 'text-muted-foreground hover:bg-muted hover:text-primary';
   };
 
   return {
-    currentPath: location.pathname,
-    getActiveClass,
-    canNavigate: canNavigate(),
-    isOnboarding: false, // Simplified - no complex onboarding logic for now
-    user
+    ...navState,
+    navigateWithCheck,
+    getActiveClass
   };
 };

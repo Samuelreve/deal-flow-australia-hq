@@ -3,8 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import ParticipantsList from "../ParticipantsList";
 import { DealParticipant } from "../../DealParticipants";
-import { describe, test, expect, vi } from "vitest";
-import '@testing-library/jest-dom';
+import { describe, it, expect, vi } from "vitest";
 
 // Mock the ParticipantItem component
 vi.mock("../ParticipantItem", () => ({
@@ -42,7 +41,7 @@ describe("ParticipantsList", () => {
 
   const mockDealId = "deal-123";
 
-  test("renders loading state", () => {
+  it("renders loading state", () => {
     render(
       <ParticipantsList 
         participants={[]} 
@@ -55,7 +54,7 @@ describe("ParticipantsList", () => {
     expect(screen.getAllByTestId("skeleton")).toBeTruthy();
   });
 
-  test("renders error message", () => {
+  it("renders error message", () => {
     const errorMessage = "Failed to load participants";
     render(
       <ParticipantsList 
@@ -70,7 +69,7 @@ describe("ParticipantsList", () => {
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  test("renders empty state message", () => {
+  it("renders empty state message", () => {
     render(
       <ParticipantsList 
         participants={[]} 
@@ -83,7 +82,7 @@ describe("ParticipantsList", () => {
     expect(screen.getByText(/No participants found/i)).toBeInTheDocument();
   });
 
-  test("renders list of participants", () => {
+  it("renders list of participants", () => {
     render(
       <ParticipantsList 
         participants={mockParticipants} 
@@ -100,7 +99,7 @@ describe("ParticipantsList", () => {
     expect(screen.getByText("Name: Buyer User")).toBeInTheDocument();
   });
 
-  test("passes currentUserId to child components", () => {
+  it("passes currentUserId to child components", () => {
     const currentUserId = "123"; // Same as first mock participant
     
     render(

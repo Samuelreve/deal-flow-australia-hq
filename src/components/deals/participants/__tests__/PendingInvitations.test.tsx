@@ -3,8 +3,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import PendingInvitations from "../PendingInvitations";
 import { DealInvitation } from "@/types/invitation";
-import { describe, test, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import { describe, it, expect } from "vitest";
 
 describe("PendingInvitations", () => {
   const mockInvitations: DealInvitation[] = [
@@ -34,7 +33,7 @@ describe("PendingInvitations", () => {
     }
   ];
 
-  test("renders nothing when loading", () => {
+  it("renders nothing when loading", () => {
     const { container } = render(
       <PendingInvitations 
         invitations={[]} 
@@ -45,7 +44,7 @@ describe("PendingInvitations", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  test("renders nothing when no invitations", () => {
+  it("renders nothing when no invitations", () => {
     const { container } = render(
       <PendingInvitations 
         invitations={[]} 
@@ -56,7 +55,7 @@ describe("PendingInvitations", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  test("renders pending invitations correctly", () => {
+  it("renders pending invitations correctly", () => {
     render(
       <PendingInvitations 
         invitations={mockInvitations} 
@@ -79,7 +78,7 @@ describe("PendingInvitations", () => {
     expect(statusBadges).toHaveLength(2);
   });
 
-  test("formats dates correctly", () => {
+  it("formats dates correctly", () => {
     render(
       <PendingInvitations 
         invitations={mockInvitations} 

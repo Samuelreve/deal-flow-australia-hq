@@ -28,9 +28,11 @@ export const useDocumentDelete = (
     }
     
     try {
-      await documentService.deleteDocument(document.id);
+      // Convert to deal document type for the service call
+      const dealDocument = adaptDocumentToDealType(document);
+      const success = await documentService.deleteDocument(dealDocument, dealId, user.id);
       
-      if (notifyDocumentsChange) {
+      if (success && notifyDocumentsChange) {
         const updatedDocuments = await documentService.getDocuments(dealId);
         notifyDocumentsChange(updatedDocuments);
         
@@ -40,7 +42,7 @@ export const useDocumentDelete = (
         );
       }
       
-      return true;
+      return success;
     } catch (error: any) {
       showErrorToast(error);
       return false;
@@ -56,26 +58,35 @@ export const useDocumentDelete = (
     }
     
     try {
-      await documentService.deleteDocumentVersion(version.id);
-      
-      // Inform parent component that versions have been updated
-      if (onVersionsChange) {
-        const updatedVersions = await documentService.getDocumentVersions(version.documentId);
-        onVersionsChange(updatedVersions);
-      }
-      
-      // Refresh documents to get updated latest_version_id
-      const updatedDocuments = await documentService.getDocuments(dealId);
-      if (notifyDocumentsChange) {
-        notifyDocumentsChange(updatedDocuments);
-      }
-      
-      showSuccessToast(
-        "Version deleted",
-        `Version ${version.versionNumber} has been deleted.`
+      // Delete the version with correct parameters
+      const success = await documentService.deleteDocumentVersion(
+        version,
+        dealId, 
+        user.id,
+        version.documentId,
+        version.documentId
       );
       
-      return true;
+      if (success) {
+        // Inform parent component that versions have been updated
+        if (onVersionsChange) {
+          const updatedVersions = await documentService.getDocumentVersions(dealId, version.documentId);
+          onVersionsChange(updatedVersions);
+        }
+        
+        // Refresh documents to get updated latest_version_id
+        const updatedDocuments = await documentService.getDocuments(dealId);
+        if (notifyDocumentsChange) {
+          notifyDocumentsChange(updatedDocuments);
+        }
+        
+        showSuccessToast(
+          "Version deleted",
+          `Version ${version.versionNumber} has been deleted.`
+        );
+      }
+      
+      return success;
     } catch (error: any) {
       showErrorToast(error);
       return false;

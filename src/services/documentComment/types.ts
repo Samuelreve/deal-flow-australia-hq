@@ -1,48 +1,52 @@
 
-export interface ProfileSummary {
+/**
+ * Types for document comments functionality
+ */
+
+// Document comment model
+export interface DocumentComment {
   id: string;
-  name: string;
-  avatar_url?: string | null;
+  documentVersionId: string;
+  userId: string;
+  content: string;
+  pageNumber?: number;
+  locationData?: any;
+  createdAt: Date;
+  updatedAt: Date;
+  resolved: boolean;
+  parentCommentId?: string;
+  user?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  replies?: DocumentComment[];
 }
 
+// Data transfer object for creating a new document comment
+export interface CreateDocumentCommentDto {
+  documentVersionId: string;
+  content: string;
+  pageNumber?: number;
+  locationData?: any;
+  parentCommentId?: string;
+}
+
+// Database comment structure (from Supabase)
 export interface DbDocumentComment {
   id: string;
   document_version_id: string;
   user_id: string;
   content: string;
-  page_number: number | null;
-  location_data: any | null;
-  created_at: string;
-  updated_at: string;
-  resolved: boolean;
-  parent_comment_id: string | null;
-  profiles: ProfileSummary | null;
-}
-
-export interface DocumentComment {
-  id: string;
-  content: string;
-  document_version_id: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  page_number?: number | null;
+  page_number?: number;
   location_data?: any;
+  created_at: string;
+  updated_at: string;
   resolved: boolean;
-  parent_comment_id?: string | null;
-  user?: {
+  parent_comment_id?: string;
+  profiles?: {
     id: string;
     name: string;
-    email?: string;
     avatar_url?: string;
   };
-  replies?: DocumentComment[];
-}
-
-export interface CreateDocumentCommentDto {
-  documentVersionId: string;
-  content: string;
-  pageNumber?: number | null;
-  locationData?: any | null;
-  parentCommentId?: string | null;
 }

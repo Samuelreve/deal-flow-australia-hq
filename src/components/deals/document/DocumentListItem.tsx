@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import DocumentVersionList from './DocumentVersionList';
 import { getCommentCount } from '@/hooks/utils/documentCommentUtils';
 import { useDocumentComments } from '@/hooks/documentComments';
+import { mapDbCommentToServiceComment } from '@/services/documentComment/mappers';
 
 interface DocumentListItemProps {
   document: Document;
@@ -55,8 +56,9 @@ const DocumentListItem = ({
   let commentCount = 0;
   versions.forEach(version => {
     const { comments } = useDocumentComments(version.id);
-    // Use the comments directly from the hook (they're already in the correct format)
-    commentCount += getCommentCount(comments);
+    // Use service comment type for the count function
+    const serviceComments = comments.map(comment => mapDbCommentToServiceComment(comment));
+    commentCount += getCommentCount(serviceComments);
   });
   
   const handleToggleExpand = () => {

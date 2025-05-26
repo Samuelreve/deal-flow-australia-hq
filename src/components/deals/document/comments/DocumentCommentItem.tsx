@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Check, X, Trash2, Edit, CornerDownRight, CheckSquare } from "lucide-react";
-import { DocumentComment } from "@/services/documentComment/types";
+import { DocumentComment } from "@/services/documentCommentService";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,8 +32,8 @@ const DocumentCommentItem = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
   
-  const canEdit = currentUserId === comment.user_id;
-  const canDelete = currentUserId === comment.user_id || 
+  const canEdit = currentUserId === comment.userId;
+  const canDelete = currentUserId === comment.userId || 
     ['admin', 'seller'].includes(currentUserDealRole || '');
   
   const userInitials = comment.user?.name
@@ -56,7 +56,7 @@ const DocumentCommentItem = ({
     <div className={`relative flex gap-3 ${comment.resolved ? 'opacity-70' : ''}`}>
       <div className="flex-shrink-0 mt-1">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={comment.user?.avatar_url} alt={comment.user?.name || 'User'} />
+          <AvatarImage src={comment.user?.avatarUrl} alt={comment.user?.name || 'User'} />
           <AvatarFallback>{userInitials}</AvatarFallback>
         </Avatar>
       </div>
@@ -65,7 +65,7 @@ const DocumentCommentItem = ({
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</span>
           <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+            {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
           </span>
           {comment.resolved && (
             <Badge variant="outline" className="bg-green-50 text-green-700 text-xs px-1.5 py-0.5">
@@ -119,7 +119,7 @@ const DocumentCommentItem = ({
             
             {canDelete && onDelete && (
               <button 
-                onClick={() => onDelete(comment.id, isReply ? comment.parent_comment_id : undefined)} 
+                onClick={() => onDelete(comment.id, isReply ? comment.parentCommentId : undefined)} 
                 className="text-xs flex items-center text-muted-foreground hover:text-destructive transition-colors"
               >
                 <Trash2 className="h-3 w-3 mr-1" />

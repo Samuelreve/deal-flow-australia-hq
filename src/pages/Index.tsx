@@ -2,95 +2,113 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, FileText, Shield, Zap } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileText, Users, TrendingUp, Shield } from 'lucide-react';
 
-const Index: React.FC = () => {
+const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
+
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/deals');
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const handleContractAnalysis = () => {
+    navigate('/contract-analysis');
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">DealFlow</h1>
+    <AppLayout>
+      <div className="container mx-auto px-4 py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Streamline Your Business Deals
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Manage documents, track progress, and collaborate with AI-powered contract analysis
+          </p>
           <div className="space-x-4">
-            {isAuthenticated ? (
-              <Button onClick={() => navigate('/dashboard')}>
-                Dashboard
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => navigate('/login')}>
-                  Sign In
-                </Button>
-                <Button onClick={() => navigate('/signup')}>
-                  Get Started
-                </Button>
-              </>
-            )}
+            <Button size="lg" onClick={handleGetStarted}>
+              {user ? 'Go to My Deals' : 'Get Started'}
+            </Button>
+            <Button size="lg" variant="outline" onClick={handleContractAnalysis}>
+              Try Contract Analysis
+            </Button>
           </div>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-5xl font-bold text-gray-900 mb-6">
-          Streamline Your Deal Management
-        </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Manage deals, analyze contracts with AI, and track progress all in one powerful platform.
-        </p>
-        
-        <div className="space-x-4">
-          <Button size="lg" onClick={() => navigate('/signup')}>
-            Start Free Trial
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => navigate('/demo/contract')}>
-            Try Demo
-          </Button>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <Card>
             <CardHeader>
-              <FileText className="h-10 w-10 text-blue-600 mb-4" />
-              <CardTitle>Smart Document Management</CardTitle>
-              <CardDescription>
-                Upload, organize, and analyze your contracts and documents with AI-powered insights.
-              </CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5 text-blue-500" />
+                <span>Document Management</span>
+              </CardTitle>
             </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">Upload, organize, and manage all your deal documents in one place.</p>
+            </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <Zap className="h-10 w-10 text-green-600 mb-4" />
-              <CardTitle>Real-time Deal Tracking</CardTitle>
-              <CardDescription>
-                Monitor deal progress, milestones, and health scores in real-time with actionable insights.
-              </CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-green-500" />
+                <span>Team Collaboration</span>
+              </CardTitle>
             </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">Work together with your team and track everyone's progress.</p>
+            </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <Shield className="h-10 w-10 text-purple-600 mb-4" />
-              <CardTitle>Secure Collaboration</CardTitle>
-              <CardDescription>
-                Collaborate securely with team members and stakeholders throughout the deal lifecycle.
-              </CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
+                <span>Progress Tracking</span>
+              </CardTitle>
             </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">Monitor deal health and milestone completion in real-time.</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-orange-500" />
+                <span>AI Analysis</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">Get intelligent insights and contract analysis powered by AI.</p>
+            </CardContent>
           </Card>
         </div>
-      </section>
-    </div>
+
+        {/* Call to Action */}
+        {!user && (
+          <div className="text-center bg-gray-50 rounded-lg p-8">
+            <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
+            <p className="text-gray-600 mb-6">
+              Join thousands of professionals who trust our platform for their business deals
+            </p>
+            <Button size="lg" onClick={() => navigate('/login')}>
+              Sign Up Now
+            </Button>
+          </div>
+        )}
+      </div>
+    </AppLayout>
   );
 };
 

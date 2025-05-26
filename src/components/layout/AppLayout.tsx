@@ -1,112 +1,140 @@
 
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  Home, 
   FileText, 
-  Settings, 
-  Bell, 
-  BarChart3, 
-  LogOut,
-  User
+  Home, 
+  LogOut, 
+  Menu, 
+  User,
+  FolderOpen,
+  BarChart3
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { user, signOut } = useAuth();
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const navigationItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/deals', icon: FileText, label: 'Deals' },
-    { path: '/health-monitoring', icon: BarChart3, label: 'Health Monitoring' },
-    { path: '/notifications', icon: Bell, label: 'Notifications' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { label: 'Home', icon: Home, path: '/' },
+    { label: 'My Deals', icon: FolderOpen, path: '/deals' },
+    { label: 'Contract Analysis', icon: FileText, path: '/contract-analysis' },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <h1 
-                className="text-xl font-bold cursor-pointer"
-                onClick={() => navigate('/dashboard')}
-              >
-                DealFlow
-              </h1>
-              
-              <nav className="hidden md:flex space-x-6">
-                {navigationItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.path}
-                      variant={location.pathname === item.path ? "default" : "ghost"}
-                      onClick={() => navigate(item.path)}
-                      className="flex items-center space-x-2"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Button>
-                  );
-                })}
-              </nav>
+      <header className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div 
+              className="flex items-center space-x-2 cursor-pointer"
+              onClick={() => navigate('/')}
+            >
+              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900">DealFlow</span>
             </div>
 
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center space-x-6">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* User Menu */}
             <div className="flex items-center space-x-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">{user.email}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/deals')}>
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      My Deals
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/contract-analysis')}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Contract Analysis
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="space-x-2">
+                  <Button variant="ghost" onClick={() => navigate('/login')}>
+                    Sign In
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <Button onClick={() => navigate('/login')}>
+                    Get Started
+                  </Button>
+                </div>
+              )}
+
+              {/* Mobile Menu */}
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {navigationItems.map((item) => (
+                      <DropdownMenuItem 
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                      >
+                        <item.icon className="h-4 w-4 mr-2" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1">
         {children}
       </main>
     </div>

@@ -1,67 +1,256 @@
 
-import React from 'react';
-import { useDeals } from '@/hooks/useDeals';
-import { HealthMetricsCard } from './HealthMetricsCard';
-import { DealHealthTable } from './DealHealthTable';
-import { HealthScoreChart } from './HealthScoreChart';
+import React, { useState, useMemo } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, TrendingDown, AlertTriangle, Search, Filter } from "lucide-react";
+import { useDeals } from "@/hooks/useDeals";
+import { Deal } from "@/services/dealsService";
+import { useNavigate } from "react-router-dom";
+import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
+import EnhancedLoadingState from "@/components/common/EnhancedLoadingState";
+import AppErrorBoundary from "@/components/common/AppErrorBoundary";
 
-export interface DealHealthItem {
-  id: string;
-  title: string;
-  status: string;
-  health_score: number;
-  seller_id: string;
-  created_at: string;
-  updated_at: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  healthTrend: 'up' | 'down' | 'stable';
+interface DealHealthItem extends Deal {
+  healthTrend?: 'up' | 'down' | 'stable';
+  riskLevel?: 'low' | 'medium' | 'high';
 }
 
-export const DealHealthDashboard = () => {
+const DealHealthDashboard = () => {
   const { deals, loading, error } = useDeals();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<'health' | 'title' | 'date'>('health');
+  const [filterRisk, setFilterRisk] = useState<'all' | 'low' | 'medium' | 'high'>('all');
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  // Transform deals with health analysis
+  const healthDeals: DealHealthItem[] = useMemo(() => {
+    return deals.map(deal => ({
+      ...deal,
+      riskLevel: deal.health_score >= 75 ? 'low' : deal.health_score >= 50 ? 'medium' : 'high',
+      healthTrend: 'stable'
+    }));
+  }, [deals]);
 
-  // Transform DealSummary to DealHealthItem
-  const healthDeals: DealHealthItem[] = deals.map(deal => ({
-    id: deal.id,
-    title: deal.title,
-    status: deal.status,
-    health_score: deal.healthScore,
-    seller_id: deal.sellerId,
-    created_at: deal.createdAt.toISOString(),
-    updated_at: deal.updatedAt.toISOString(),
-    riskLevel: deal.healthScore > 70 ? 'low' : deal.healthScore > 40 ? 'medium' : 'high',
-    healthTrend: 'stable' as const
-  }));
+  // Filter and sort deals
+  const filteredAndSortedDeals = useMemo(() => {
+    let filtered = healthDeals.filter(deal => {
+      const matchesSearch = deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           deal.business_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRisk = filterRisk === 'all' || deal.riskLevel === filterRisk;
+      return matchesSearch && matchesRisk;
+    });
 
-  const averageHealth = healthDeals.reduce((sum, deal) => sum + deal.health_score, 0) / healthDeals.length || 0;
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'health':
+          return a.health_score - b.health_score;
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'date':
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [healthDeals, searchTerm, sortBy, filterRisk]);
+
+  const getHealthColor = (score: number): string => {
+    if (score >= 75) return "text-green-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getHealthBadgeVariant = (riskLevel: string): "default" | "outline" | "secondary" | "destructive" => {
+    switch (riskLevel) {
+      case 'high': return "destructive";
+      case 'medium': return "default";
+      case 'low': return "secondary";
+      default: return "outline";
+    }
+  };
+
+  const getTrendIcon = (trend?: string) => {
+    switch (trend) {
+      case 'up': return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case 'down': return <TrendingDown className="h-4 w-4 text-red-500" />;
+      default: return <div className="h-4 w-4" />;
+    }
+  };
+
+  if (error) {
+    return (
+      <AppErrorBoundary>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-red-600">Error Loading Deal Health</CardTitle>
+            <CardDescription>Failed to load deal health information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">{error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </AppErrorBoundary>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Deal Health Dashboard</CardTitle>
+          <CardDescription>Loading deal health information...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EnhancedLoadingState type="cards" rows={3} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <HealthMetricsCard
-          title="Average Health Score"
-          value={Math.round(averageHealth)}
-          trend="up"
-        />
-        <HealthMetricsCard
-          title="Deals at Risk"
-          value={healthDeals.filter(d => d.riskLevel === 'high').length}
-          trend="down"
-        />
-        <HealthMetricsCard
-          title="Total Active Deals"
-          value={healthDeals.filter(d => d.status === 'active').length}
-          trend="stable"
-        />
+    <AppErrorBoundary>
+      <div className="space-y-6">
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="alerts">Health Alerts</TabsTrigger>
+            <TabsTrigger value="trends">Trends</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Deal Health Overview
+                </CardTitle>
+                <CardDescription>
+                  Monitor and analyze the health of all your deals
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                {/* Mobile-first Filters and Search */}
+                <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search deals..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                    <SelectTrigger className="w-full lg:w-48">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="health">Health Score</SelectItem>
+                      <SelectItem value="title">Deal Title</SelectItem>
+                      <SelectItem value="date">Last Updated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={filterRisk} onValueChange={(value: any) => setFilterRisk(value)}>
+                    <SelectTrigger className="w-full lg:w-48">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter by risk" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Risk Levels</SelectItem>
+                      <SelectItem value="high">High Risk</SelectItem>
+                      <SelectItem value="medium">Medium Risk</SelectItem>
+                      <SelectItem value="low">Low Risk</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Mobile-responsive Deal Health List */}
+                <div className="space-y-4">
+                  {filteredAndSortedDeals.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No deals found matching your criteria
+                    </div>
+                  ) : (
+                    filteredAndSortedDeals.map((deal) => (
+                      <Card key={deal.id} className="cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => navigate(`/deals/${deal.id}`)}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex flex-col space-y-2 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-3">
+                                <h3 className="font-semibold text-base lg:text-lg">{deal.title}</h3>
+                                {deal.business_name && (
+                                  <span className="text-sm text-muted-foreground">
+                                    ({deal.business_name})
+                                  </span>
+                                )}
+                                <Badge variant={getHealthBadgeVariant(deal.riskLevel || 'medium')} className="w-fit">
+                                  {deal.riskLevel?.toUpperCase()} RISK
+                                </Badge>
+                              </div>
+                              
+                              <div className="flex flex-col space-y-1 text-sm text-muted-foreground lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
+                                <span>Status: {deal.status}</span>
+                                <span>Updated: {new Date(deal.updated_at).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between lg:justify-end lg:space-x-4">
+                              <div className="text-center">
+                                <div className={`text-2xl font-bold ${getHealthColor(deal.health_score)}`}>
+                                  {deal.health_score}%
+                                </div>
+                                <div className="text-xs text-muted-foreground">Health Score</div>
+                              </div>
+                              
+                              <div className="flex items-center">
+                                {getTrendIcon(deal.healthTrend)}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="alerts">
+            <HealthAlertsList showMarkAllRead={true} />
+          </TabsContent>
+          
+          <TabsContent value="trends">
+            <Card>
+              <CardHeader>
+                <CardTitle>Health Trends</CardTitle>
+                <CardDescription>
+                  Coming soon: Historical health score trends and analytics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                  <p>Health trends and analytics will be available soon</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HealthScoreChart deals={healthDeals} />
-        <DealHealthTable deals={healthDeals} />
-      </div>
-    </div>
+    </AppErrorBoundary>
   );
 };
+
+export default DealHealthDashboard;

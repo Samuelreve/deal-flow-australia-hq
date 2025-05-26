@@ -2,6 +2,7 @@
 import { useDocumentComments } from "@/hooks/documentComments";
 import { useAuth } from "@/contexts/AuthContext";
 import DocumentCommentsList from "./DocumentCommentsList";
+import { mapDbCommentToServiceComment } from "@/services/documentComment/mappers";
 
 interface DocumentCommentsPanelProps {
   documentVersionId?: string;
@@ -55,10 +56,13 @@ const DocumentCommentsPanel = ({
     );
   }
 
+  // Convert DB comments to service comments
+  const serviceComments = comments.map(comment => mapDbCommentToServiceComment(comment));
+
   return (
     <div className="p-4">
       <DocumentCommentsList
-        comments={comments}
+        comments={serviceComments}
         loading={loading}
         submitting={submitting}
         currentUserId={user?.id}

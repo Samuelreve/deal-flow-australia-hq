@@ -1,90 +1,172 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { QuestionHistoryItem, DealHealthPrediction } from './types/contractQuestionTypes';
-import { generateMockAnswer, generateMockDealHealthPrediction } from './mockData/questionAnswerMocks';
+import { supabase } from '@/integrations/supabase/client';
 
-export type { QuestionHistoryItem } from './types/contractQuestionTypes';
+export interface QuestionHistoryItem {
+  id: string;
+  question: string;
+  answer: string;
+  timestamp: Date;
+  isProcessing?: boolean;
+  type?: 'question' | 'analysis';
+  analysisType?: string;
+}
 
-export function useContractQuestionAnswer() {
+export const useContractQuestionAnswer = () => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleAskQuestion = async (question: string): Promise<{ answer: string } | undefined> => {
+  const handleAskQuestion = async (question: string, contractText?: string) => {
     if (!question.trim()) {
-      toast.error("Question cannot be empty");
+      toast.error('Please enter a question');
       return;
     }
+
+    console.log('Sending question to AI:', question);
+
+    const questionId = Date.now().toString();
     
+    // Add processing item to history
+    const processingItem: QuestionHistoryItem = {
+      id: questionId,
+      question,
+      answer: '',
+      timestamp: new Date(),
+      isProcessing: true,
+      type: 'question'
+    };
+
+    setQuestionHistory(prev => [...prev, processingItem]);
     setIsProcessing(true);
-    setError(null);
-    
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use Supabase function invocation instead of direct fetch
+      const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
+        body: {
+          requestType: 'answer_question',
+          userQuestion: question,
+          fullDocumentText: contractText || 'Sample contract text for demo purposes'
+        },
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get answer from AI');
+      }
+
+      if (data && data.success && data.answer) {
+        // Update the processing item with the actual answer
+        setQuestionHistory(prev => 
+          prev.map(item => 
+            item.id === questionId 
+              ? { ...item, answer: data.answer, isProcessing: false }
+              : item
+          )
+        );
+        
+        toast.success('Answer received!');
+        return data.answer;
+      } else {
+        throw new Error(data?.error || 'No answer received from AI');
+      }
+    } catch (error: any) {
+      console.error('Error asking question:', error);
       
-      // Generate a mock response
-      const answer = generateMockAnswer(question);
+      // Add error message to the question item instead of removing it
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === questionId 
+            ? { ...item, answer: `Error: ${error.message}`, isProcessing: false }
+            : item
+        )
+      );
       
-      const newItem: QuestionHistoryItem = {
-        question,
-        answer,
-        timestamp: Date.now(),
-        type: 'question'
-      };
-      
-      setQuestionHistory(prev => [...prev, newItem]);
-      
-      return { answer };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to process question';
-      setError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
-      throw err;
+      toast.error('Failed to get answer from AI: ' + error.message);
+      throw error;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDealHealthPrediction = async (dealId: string): Promise<DealHealthPrediction> => {
-    if (!dealId.trim()) {
-      const error = "Deal ID is required";
-      toast.error(error);
-      throw new Error(error);
-    }
+  const handleAnalyzeContract = async (analysisType: string, contractText?: string) => {
+    const analysisQuestions: Record<string, string> = {
+      'summarize_contract': 'Please provide a comprehensive summary of this contract.',
+      'explain_clause': 'What are the key clauses and terms in this contract?',
+      'identify_risks': 'What are the potential risks and red flags in this contract?',
+      'obligations': 'What are the main obligations and responsibilities for each party?'
+    };
 
-    setIsProcessing(true);
-    setError(null);
+    const question = analysisQuestions[analysisType] || `Please analyze this contract for: ${analysisType}`;
     
+    const questionId = Date.now().toString();
+    
+    const processingItem: QuestionHistoryItem = {
+      id: questionId,
+      question,
+      answer: '',
+      timestamp: new Date(),
+      isProcessing: true,
+      type: 'analysis',
+      analysisType
+    };
+
+    setQuestionHistory(prev => [...prev, processingItem]);
+    setIsProcessing(true);
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Use Supabase function invocation instead of direct fetch
+      const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
+        body: {
+          requestType: 'answer_question',
+          userQuestion: question,
+          fullDocumentText: contractText || 'Sample contract text for demo purposes'
+        },
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get analysis from AI');
+      }
+
+      if (data && data.success && data.answer) {
+        setQuestionHistory(prev => 
+          prev.map(item => 
+            item.id === questionId 
+              ? { ...item, answer: data.answer, isProcessing: false }
+              : item
+          )
+        );
+        
+        toast.success('Analysis complete!');
+        return data.answer;
+      } else {
+        throw new Error(data?.error || 'No analysis received from AI');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing contract:', error);
       
-      // Return mock implementation result
-      return generateMockDealHealthPrediction(dealId);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate health prediction';
-      setError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
-      throw err;
+      // Add error message to the analysis item instead of removing it
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === questionId 
+            ? { ...item, answer: `Error: ${error.message}`, isProcessing: false }
+            : item
+        )
+      );
+      
+      toast.error('Failed to get analysis from AI: ' + error.message);
+      throw error;
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const clearHistory = () => {
-    setQuestionHistory([]);
-    setError(null);
   };
 
   return {
     questionHistory,
     setQuestionHistory,
     isProcessing,
-    error,
     handleAskQuestion,
-    handleDealHealthPrediction,
-    clearHistory
+    handleAnalyzeContract
   };
-}
+};

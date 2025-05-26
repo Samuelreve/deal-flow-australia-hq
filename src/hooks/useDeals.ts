@@ -1,56 +1,53 @@
 
 import { useState, useEffect } from 'react';
+import { dealsService, Deal } from '@/services/dealsService';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchDealsFromSupabase } from './deals/fetchDeals';
-import { DealSummary } from '@/types/deal';
 
-interface DealsMetrics {
-  total: number;
-  active: number;
-  completed: number;
-  draft: number;
-  averageHealthScore: number;
-}
-
-export function useDeals() {
-  const { user } = useAuth();
-  const [deals, setDeals] = useState<DealSummary[]>([]);
+export const useDeals = () => {
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDeals();
+    }
+  }, [isAuthenticated]);
 
   const fetchDeals = async () => {
-    if (!user?.id) {
-      setDeals([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
-      const fetchedDeals = await fetchDealsFromSupabase(user.id);
-      setDeals(fetchedDeals);
+      const dealsData = await dealsService.getDeals();
+      setDeals(dealsData);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch deals:', err);
-      setError(err.message || 'Failed to fetch deals');
-      setDeals([]);
+      setError('Failed to load deals');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDeals();
-  }, [user?.id]);
+  const createDeal = async (dealData: Partial<Deal>) => {
+    try {
+      const newDeal = await dealsService.createDeal(dealData);
+      setDeals(prev => [newDeal, ...prev]);
+      return newDeal;
+    } catch (err) {
+      console.error('Failed to create deal:', err);
+      throw err;
+    }
+  };
 
-  // Calculate metrics
-  const metrics: DealsMetrics = {
+  // Calculate metrics from real data
+  const metrics = {
     total: deals.length,
-    active: deals.filter(deal => deal.status === 'active').length,
-    completed: deals.filter(deal => deal.status === 'completed').length,
-    draft: deals.filter(deal => deal.status === 'draft').length,
+    active: deals.filter(d => d.status === 'active').length,
+    completed: deals.filter(d => d.status === 'completed').length,
+    draft: deals.filter(d => d.status === 'draft').length,
     averageHealthScore: deals.length > 0 
-      ? Math.round(deals.reduce((sum, deal) => sum + deal.healthScore, 0) / deals.length)
+      ? Math.round(deals.reduce((sum, deal) => sum + deal.health_score, 0) / deals.length)
       : 0
   };
 
@@ -59,6 +56,7 @@ export function useDeals() {
     loading,
     error,
     metrics,
-    refetch: fetchDeals
+    createDeal,
+    refreshDeals: fetchDeals
   };
-}
+};

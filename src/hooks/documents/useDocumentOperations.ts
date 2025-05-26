@@ -65,7 +65,11 @@ export const useDocumentOperations = (
 
   const deleteDocument = useCallback(async (document: Document): Promise<boolean> => {
     try {
-      await documentService.deleteDocument(document.id);
+      await documentService.deleteDocument(
+        document as any, 
+        dealId, 
+        user?.id || ''
+      );
       
       // Refresh document list
       refreshDocuments();
@@ -85,7 +89,7 @@ export const useDocumentOperations = (
       });
       return false;
     }
-  }, [refreshDocuments, toast]);
+  }, [dealId, user, refreshDocuments, toast]);
 
   return {
     uploading,

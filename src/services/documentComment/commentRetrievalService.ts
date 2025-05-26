@@ -13,15 +13,15 @@ export const organizeCommentsIntoThreads = (comments: DocumentComment[]): Docume
 
   // Group comments by parent ID
   comments.forEach(comment => {
-    if (!comment.parent_comment_id) {
+    if (!comment.parentCommentId) {
       // This is a top-level comment
       parentComments.push({...comment, replies: []});
     } else {
       // This is a reply
-      if (!replies[comment.parent_comment_id]) {
-        replies[comment.parent_comment_id] = [];
+      if (!replies[comment.parentCommentId]) {
+        replies[comment.parentCommentId] = [];
       }
-      replies[comment.parent_comment_id].push(comment);
+      replies[comment.parentCommentId].push(comment);
     }
   });
 
@@ -65,17 +65,9 @@ export const commentRetrievalService = {
 
       if (error) throw error;
 
-      // Transform database format to our service format - handle the profiles array from Supabase join
+      // Transform database format to our service format
       const comments: DocumentComment[] = (commentsData || [])
-        .map((comment: any) => {
-          const dbComment: DbDocumentComment = {
-            ...comment,
-            profiles: Array.isArray(comment.profiles) && comment.profiles.length > 0 
-              ? comment.profiles[0] 
-              : comment.profiles || null
-          };
-          return mapDbCommentToServiceComment(dbComment);
-        });
+        .map((comment: DbDocumentComment) => mapDbCommentToServiceComment(comment));
       
       // Organize into threaded structure
       return organizeCommentsIntoThreads(comments);

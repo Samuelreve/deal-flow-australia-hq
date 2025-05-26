@@ -42,7 +42,7 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
     }
     
     // Format the deals from Supabase format to our app format
-    return data.map((deal: any) => ({
+    return data.map((deal) => ({
       id: deal.id,
       title: deal.title,
       status: deal.status,
@@ -52,8 +52,8 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
       sellerId: deal.seller_id,
       buyerId: deal.buyer_id,
       askingPrice: deal.asking_price,
-      sellerName: Array.isArray(deal.seller) ? deal.seller[0]?.name || "Unknown" : deal.seller?.name || "Unknown",
-      buyerName: Array.isArray(deal.buyer) ? deal.buyer[0]?.name || "" : deal.buyer?.name || "",
+      sellerName: deal.seller?.name || "Unknown",
+      buyerName: deal.buyer?.name || "",
       businessName: deal.business_legal_name || deal.title || "",
       businessIndustry: deal.business_industry || "",
       targetCompletionDate: deal.target_completion_date ? new Date(deal.target_completion_date) : undefined
