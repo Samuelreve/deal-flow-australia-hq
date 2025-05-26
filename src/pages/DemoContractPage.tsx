@@ -40,11 +40,11 @@ const DemoContractPage: React.FC = () => {
     return questionAnswerState.handleAskQuestion(question);
   };
   
-  // Wrap the handleAnalyzeContract function to handle question history
+  // Wrap the handleAnalyzeContract function to handle question history - fix: pass both arguments
   const handleContractAnalysis = async (analysisType: string) => {
     return handleAnalyzeContract(
-      questionAnswerState.setQuestionHistory,
-      analysisType
+      analysisType,
+      questionAnswerState.setQuestionHistory
     );
   };
 

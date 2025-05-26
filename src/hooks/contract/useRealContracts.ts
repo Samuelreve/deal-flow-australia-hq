@@ -4,17 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-interface Contract {
+// Use a local Contract interface to avoid conflicts with realContractService
+interface LocalContract {
   id: string;
   name: string;
   content: string;
   uploadedAt: string;
   size: number;
+  file_size?: number;
+  upload_date?: string;
+  analysis_status?: 'pending' | 'processing' | 'completed' | 'error';
 }
 
 export const useRealContracts = () => {
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [contracts, setContracts] = useState<LocalContract[]>([]);
+  const [selectedContract, setSelectedContract] = useState<LocalContract | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -54,13 +58,16 @@ export const useRealContracts = () => {
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // Create new contract
-      const newContract: Contract = {
+      // Create new contract with all required properties
+      const newContract: LocalContract = {
         id: `contract-${Date.now()}`,
         name: file.name,
         content,
         uploadedAt: new Date().toISOString(),
-        size: file.size
+        size: file.size,
+        file_size: file.size,
+        upload_date: new Date().toISOString(),
+        analysis_status: 'pending'
       };
 
       setContracts(prev => [...prev, newContract]);
