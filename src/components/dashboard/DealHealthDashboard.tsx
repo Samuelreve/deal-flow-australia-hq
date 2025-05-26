@@ -13,6 +13,9 @@ import { useNavigate } from "react-router-dom";
 import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
 import EnhancedLoadingState from "@/components/common/EnhancedLoadingState";
 import AppErrorBoundary from "@/components/common/AppErrorBoundary";
+import HealthMetricsCard from "./HealthMetricsCard";
+import DealHealthTable from "./DealHealthTable";
+import HealthScoreChart from "./HealthScoreChart";
 
 interface DealHealthItem extends Deal {
   healthTrend?: 'up' | 'down' | 'stable';
@@ -114,6 +117,8 @@ const DealHealthDashboard = () => {
     );
   }
 
+  const averageHealth = healthDeals.reduce((sum, deal) => sum + deal.health_score, 0) / healthDeals.length || 0;
+
   return (
     <AppErrorBoundary>
       <div className="space-y-6">
@@ -137,6 +142,31 @@ const DealHealthDashboard = () => {
               </CardHeader>
               
               <CardContent className="space-y-6">
+                {/* Health Metrics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <HealthMetricsCard
+                    title="Average Health Score"
+                    value={Math.round(averageHealth)}
+                    trend="up"
+                  />
+                  <HealthMetricsCard
+                    title="Deals at Risk"
+                    value={healthDeals.filter(d => d.riskLevel === 'high').length}
+                    trend="down"
+                  />
+                  <HealthMetricsCard
+                    title="Total Active Deals"
+                    value={healthDeals.filter(d => d.status === 'active').length}
+                    trend="stable"
+                  />
+                </div>
+
+                {/* Charts and Table */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <HealthScoreChart deals={healthDeals} />
+                  <DealHealthTable deals={healthDeals} />
+                </div>
+
                 {/* Mobile-first Filters and Search */}
                 <div className="flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:space-x-4">
                   <div className="relative flex-1">
