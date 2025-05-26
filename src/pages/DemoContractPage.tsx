@@ -9,11 +9,13 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 import { useContractInteractions } from '@/hooks/contract/useContractInteractions';
 import { useDemoContractState } from '@/hooks/contract/useDemoContractState';
+import { useDemoContractInteractions } from '@/hooks/contract/useDemoContractInteractions';
 
 const DemoContractPage: React.FC = () => {
   // Use our custom hooks
   const { analysisState, questionAnswerState } = useDemoContractState();
-  const { exportHighlightsToCSV, handleAnalyzeContract } = useContractInteractions();
+  const { exportHighlightsToCSV } = useContractInteractions();
+  const { handleAnalyzeContract } = useDemoContractInteractions();
   
   const uploadHandler = useContractDocumentUpload({
     onUploadSuccess: (metadata, text, summary) => {
@@ -25,6 +27,13 @@ const DemoContractPage: React.FC = () => {
       analysisState.setError(error);
     }
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadHandler.handleFileUpload(file);
+    }
+  };
 
   // Wrap the handleAskQuestion to match the expected interface
   const handleQuestionSubmission = async (question: string) => {
@@ -52,7 +61,7 @@ const DemoContractPage: React.FC = () => {
                 documentMetadata={analysisState.documentMetadata}
                 isAnalyzing={analysisState.isAnalyzing}
                 documentHighlights={analysisState.documentHighlights}
-                onFileUpload={uploadHandler.handleFileUpload}
+                onFileUpload={handleFileUpload}
                 onExportHighlights={() => exportHighlightsToCSV(analysisState.documentHighlights)}
               />
             </ErrorBoundary>

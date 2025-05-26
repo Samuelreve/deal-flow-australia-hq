@@ -14,6 +14,7 @@ export const useContractDocumentUpload = ({
 }: UseContractDocumentUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -27,14 +28,16 @@ export const useContractDocumentUpload = ({
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      const error = 'Unsupported file type. Please upload PDF, Word, or text files.';
-      onUploadError(error);
-      toast.error(error);
+      const errorMsg = 'Unsupported file type. Please upload PDF, Word, or text files.';
+      setError(errorMsg);
+      onUploadError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
     setIsUploading(true);
     setUploadProgress(0);
+    setError(null);
 
     try {
       // Simulate upload progress
@@ -101,6 +104,7 @@ export const useContractDocumentUpload = ({
     } catch (error: any) {
       console.error('Upload error:', error);
       const errorMessage = error.message || 'Failed to upload document';
+      setError(errorMessage);
       onUploadError(errorMessage);
       toast.error('Upload failed', {
         description: errorMessage
@@ -114,6 +118,7 @@ export const useContractDocumentUpload = ({
   return {
     isUploading,
     uploadProgress,
+    error,
     handleFileUpload
   };
 };

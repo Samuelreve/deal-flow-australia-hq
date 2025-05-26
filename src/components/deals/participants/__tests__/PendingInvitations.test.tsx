@@ -1,7 +1,7 @@
-
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import PendingInvitations from "../PendingInvitations";
+import React from 'react';
+import { render } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import PendingInvitations from '../PendingInvitations';
 import { DealInvitation } from "@/types/invitation";
 import { describe, it, expect } from "vitest";
 

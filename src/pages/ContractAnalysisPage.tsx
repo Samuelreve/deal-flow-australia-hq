@@ -27,6 +27,13 @@ const ContractAnalysisPage: React.FC = () => {
     }
   });
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadHandler.handleFileUpload(file);
+    }
+  };
+
   const handleQuestionSubmission = async (question: string) => {
     return questionAnswerState.handleAskQuestion(question, analysisState.contractText);
   };
@@ -48,7 +55,7 @@ const ContractAnalysisPage: React.FC = () => {
                 documentMetadata={analysisState.documentMetadata}
                 isAnalyzing={analysisState.isAnalyzing}
                 documentHighlights={analysisState.documentHighlights}
-                onFileUpload={uploadHandler.handleFileUpload}
+                onFileUpload={handleFileUpload}
                 onExportHighlights={() => exportHighlightsToCSV(analysisState.documentHighlights)}
               />
             </ErrorBoundary>

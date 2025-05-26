@@ -1,10 +1,6 @@
-
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import InvitationForm from '../InvitationForm';
-import { useAuth } from '@/contexts/AuthContext';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { UserRole } from '@/types/auth';
 
 // Mock the auth context
 vi.mock('@/contexts/AuthContext', () => ({

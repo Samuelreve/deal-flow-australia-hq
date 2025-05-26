@@ -13,7 +13,7 @@ export interface QuestionHistoryItem {
 }
 
 export const useContractQuestionAnswer = () => {
-  const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
+  const [questionHistory, setQuestionHistoryState] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +37,7 @@ export const useContractQuestionAnswer = () => {
       isProcessing: true
     };
 
-    setQuestionHistory(prev => [...prev, newQuestion]);
+    setQuestionHistoryState(prev => [...prev, newQuestion]);
     setIsProcessing(true);
     setError(null);
 
@@ -47,7 +47,7 @@ export const useContractQuestionAnswer = () => {
       
       if (result && result.explanation) {
         // Update the question with the answer
-        setQuestionHistory(prev => 
+        setQuestionHistoryState(prev => 
           prev.map(item => 
             item.id === questionId 
               ? { ...item, answer: result.explanation, isProcessing: false }
@@ -64,7 +64,7 @@ export const useContractQuestionAnswer = () => {
       const errorMessage = error.message || 'Failed to get AI response';
       
       // Update question with error
-      setQuestionHistory(prev => 
+      setQuestionHistoryState(prev => 
         prev.map(item => 
           item.id === questionId 
             ? { ...item, answer: `Error: ${errorMessage}`, isProcessing: false }
@@ -99,7 +99,7 @@ export const useContractQuestionAnswer = () => {
       isProcessing: true
     };
 
-    setQuestionHistory(prev => [...prev, newAnalysis]);
+    setQuestionHistoryState(prev => [...prev, newAnalysis]);
     setIsProcessing(true);
     setError(null);
 
@@ -112,7 +112,7 @@ export const useContractQuestionAnswer = () => {
           ? result.analysis.content 
           : JSON.stringify(result.analysis.content, null, 2);
           
-        setQuestionHistory(prev => 
+        setQuestionHistoryState(prev => 
           prev.map(item => 
             item.id === analysisId 
               ? { ...item, answer: analysisContent, isProcessing: false }
@@ -128,7 +128,7 @@ export const useContractQuestionAnswer = () => {
       console.error('Error analyzing contract:', error);
       const errorMessage = error.message || 'Failed to analyze contract';
       
-      setQuestionHistory(prev => 
+      setQuestionHistoryState(prev => 
         prev.map(item => 
           item.id === analysisId 
             ? { ...item, answer: `Error: ${errorMessage}`, isProcessing: false }
@@ -146,16 +146,8 @@ export const useContractQuestionAnswer = () => {
   };
 
   const clearHistory = () => {
-    setQuestionHistory([]);
+    setQuestionHistoryState([]);
     setError(null);
-  };
-
-  const setQuestionHistory = (newHistory: QuestionHistoryItem[] | ((prev: QuestionHistoryItem[]) => QuestionHistoryItem[])) => {
-    if (typeof newHistory === 'function') {
-      setQuestionHistory(prev => newHistory(prev));
-    } else {
-      setQuestionHistory(newHistory);
-    }
   };
 
   return {
@@ -165,6 +157,6 @@ export const useContractQuestionAnswer = () => {
     handleAskQuestion,
     handleAnalyzeContract,
     clearHistory,
-    setQuestionHistory
+    setQuestionHistory: setQuestionHistoryState
   };
 };
