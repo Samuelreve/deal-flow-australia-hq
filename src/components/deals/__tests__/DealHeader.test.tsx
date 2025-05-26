@@ -1,11 +1,6 @@
-
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import '@testing-library/jest-dom'; // Add this import for DOM matchers
-import DealHeader from '../DealHeader';
-import { Deal } from '@/types/deal';
-import * as AllowedStatusesHook from '@/hooks/useAllowedDealStatuses';
+import '@testing-library/jest-dom';
 
 // Mock the useAllowedDealStatuses hook
 vi.mock('@/hooks/useAllowedDealStatuses', () => ({

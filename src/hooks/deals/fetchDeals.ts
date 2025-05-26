@@ -42,8 +42,7 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
     }
     
     // Format the deals from Supabase format to our app format
-    // Explicitly cast data to any[] to resolve type inference issues
-    return (data as any[]).map((deal: any) => ({
+    return data.map((deal: any) => ({
       id: deal.id,
       title: deal.title,
       status: deal.status,

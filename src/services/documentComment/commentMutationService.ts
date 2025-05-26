@@ -44,9 +44,16 @@ export const commentMutationService = {
 
       if (error) throw error;
 
-      // Map database response to our service format
+      // Safely map the response - handle the profiles array from Supabase join
+      const dbComment: DbDocumentComment = {
+        ...data,
+        profiles: Array.isArray(data.profiles) && data.profiles.length > 0 
+          ? data.profiles[0] 
+          : data.profiles || null
+      };
+
       return {
-        ...mapDbCommentToServiceComment(data as DbDocumentComment),
+        ...mapDbCommentToServiceComment(dbComment),
         replies: []
       };
     } catch (error) {

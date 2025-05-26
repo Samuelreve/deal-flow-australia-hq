@@ -1,9 +1,6 @@
-
-import { renderHook, waitFor } from "@testing-library/react";
-import { useDeals } from "../useDeals";
-import { supabase } from "@/integrations/supabase/client";
-import { mockDeals, mockSupabaseDeals, setupMocks } from "./utils/testUtils";
-import { vi, describe, beforeEach, test, expect } from "vitest";
+import { renderHook, waitFor } from '@testing-library/react';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom';
 
 // Mock Supabase client
 vi.mock("@/integrations/supabase/client", () => ({

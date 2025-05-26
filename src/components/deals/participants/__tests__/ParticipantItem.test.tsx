@@ -1,9 +1,9 @@
-
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import ParticipantItem from "../ParticipantItem";
 import { DealParticipant } from "../../DealParticipants";
-import { describe, it, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
+import '@testing-library/jest-dom';
 
 describe("ParticipantItem", () => {
   const mockParticipant: DealParticipant = {
@@ -15,7 +15,7 @@ describe("ParticipantItem", () => {
     profile_avatar_url: "https://example.com/avatar.jpg"
   };
 
-  it("renders participant information correctly", () => {
+  test("renders participant information correctly", () => {
     render(<ParticipantItem participant={mockParticipant} dealId="deal-123" />);
 
     expect(screen.getByText("John Doe")).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("ParticipantItem", () => {
     expect(avatar).toBeInTheDocument();
   });
 
-  it("highlights when the participant is the current user", () => {
+  test("highlights when the participant is the current user", () => {
     render(
       <ParticipantItem 
         participant={mockParticipant} 
@@ -38,7 +38,7 @@ describe("ParticipantItem", () => {
     expect(screen.getByText(/You/i)).toBeInTheDocument();
   });
 
-  it("doesn't show 'You' label for other participants", () => {
+  test("doesn't show 'You' label for other participants", () => {
     render(
       <ParticipantItem 
         participant={mockParticipant}
@@ -50,7 +50,7 @@ describe("ParticipantItem", () => {
     expect(screen.queryByText(/You/i)).not.toBeInTheDocument();
   });
 
-  it("displays fallback for missing profile name", () => {
+  test("displays fallback for missing profile name", () => {
     const participantWithoutName = {
       ...mockParticipant,
       profile_name: null
@@ -61,7 +61,7 @@ describe("ParticipantItem", () => {
     expect(screen.getByText("Unknown User")).toBeInTheDocument();
   });
 
-  it("formats role correctly with proper badge variant", () => {
+  test("formats role correctly with proper badge variant", () => {
     const roles = ["seller", "buyer", "lawyer", "admin"] as const;
     
     roles.forEach(role => {

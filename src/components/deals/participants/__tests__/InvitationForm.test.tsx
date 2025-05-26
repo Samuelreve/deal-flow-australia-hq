@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import InvitationForm from '../InvitationForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach } from 'vitest';
 import { UserRole } from '@/types/auth';
 
 // Mock the auth context
@@ -36,7 +35,7 @@ describe('InvitationForm', () => {
     vi.mocked(require('@/services/dealInvitationService').inviteParticipant).mockImplementation(mockInviteParticipant);
   });
   
-  it('renders the form correctly', () => {
+  test('renders the form correctly', () => {
     // Mock the auth context with a logged-in user
     (useAuth as any).mockReturnValue({
       user: {
@@ -70,7 +69,7 @@ describe('InvitationForm', () => {
     expect(screen.getByRole('button', { name: /send invitation/i })).toBeInTheDocument();
   });
   
-  it('handles form submission correctly', async () => {
+  test('handles form submission correctly', async () => {
     // Mock successful API response
     mockInviteParticipant.mockResolvedValue({
       success: true,
@@ -129,7 +128,7 @@ describe('InvitationForm', () => {
     });
   });
   
-  it('handles form validation', async () => {
+  test('handles form validation', async () => {
     // Mock the auth context with a logged-in user
     (useAuth as any).mockReturnValue({
       user: null,
@@ -166,7 +165,7 @@ describe('InvitationForm', () => {
     });
   });
   
-  it('handles API errors correctly', async () => {
+  test('handles API errors correctly', async () => {
     // Mock API error response
     const errorMessage = 'Failed to send invitation';
     mockInviteParticipant.mockRejectedValue(new Error(errorMessage));

@@ -1,9 +1,8 @@
-
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import InviteParticipantButton from "../InviteParticipantButton";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, test, expect, vi, afterEach } from "vitest";
 
 describe("InviteParticipantButton", () => {
   const mockOnClick = vi.fn();
@@ -12,7 +11,7 @@ describe("InviteParticipantButton", () => {
     vi.clearAllMocks();
   });
 
-  it("renders correctly when user can invite participants", () => {
+  test("renders correctly when user can invite participants", () => {
     render(
       <InviteParticipantButton 
         onClick={mockOnClick} 
@@ -24,7 +23,7 @@ describe("InviteParticipantButton", () => {
     expect(button).toBeInTheDocument();
   });
 
-  it("doesn't render when user cannot invite participants", () => {
+  test("doesn't render when user cannot invite participants", () => {
     const { container } = render(
       <InviteParticipantButton 
         onClick={mockOnClick} 
@@ -35,7 +34,7 @@ describe("InviteParticipantButton", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("calls onClick handler when button is clicked", async () => {
+  test("calls onClick handler when button is clicked", async () => {
     render(
       <InviteParticipantButton 
         onClick={mockOnClick} 

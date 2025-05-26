@@ -65,9 +65,17 @@ export const commentRetrievalService = {
 
       if (error) throw error;
 
-      // Transform database format to our service format
-      const comments: DocumentComment[] = (commentsData as DbDocumentComment[] || [])
-        .map((comment: DbDocumentComment) => mapDbCommentToServiceComment(comment));
+      // Transform database format to our service format - handle the profiles array from Supabase join
+      const comments: DocumentComment[] = (commentsData || [])
+        .map((comment: any) => {
+          const dbComment: DbDocumentComment = {
+            ...comment,
+            profiles: Array.isArray(comment.profiles) && comment.profiles.length > 0 
+              ? comment.profiles[0] 
+              : comment.profiles || null
+          };
+          return mapDbCommentToServiceComment(dbComment);
+        });
       
       // Organize into threaded structure
       return organizeCommentsIntoThreads(comments);
