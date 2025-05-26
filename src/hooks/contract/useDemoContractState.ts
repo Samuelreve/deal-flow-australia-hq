@@ -30,11 +30,10 @@ export const useDemoContractState = () => {
     // In demo mode, pre-populate with mock data if no real data exists
     if (!questionAnswerState.questionHistory || questionAnswerState.questionHistory.length === 0) {
       const mockHistoryWithType = mockQuestionHistory.map(item => ({
-        id: item.id,
-        question: item.question,
+        ...item,
+        type: 'question' as const,
         answer: typeof item.answer === 'string' ? item.answer : item.answer.answer,
-        timestamp: typeof item.timestamp === 'number' ? new Date(item.timestamp) : new Date(),
-        type: 'question' as const
+        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now()
       }));
       questionAnswerState.setQuestionHistory(mockHistoryWithType);
     }

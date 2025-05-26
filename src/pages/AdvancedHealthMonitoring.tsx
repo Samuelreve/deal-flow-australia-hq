@@ -17,7 +17,7 @@ import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 const AdvancedHealthMonitoring = () => {
   const { user } = useAuth();
   const { deals, loading: dealsLoading } = useDeals();
-  const [selectedDealId, setSelectedDealId] = useState<string>('all');
+  const [selectedDealId, setSelectedDealId] = useState<string>('');
   
   const healthData = useAdvancedHealthMonitoring(user?.id);
 
@@ -39,7 +39,7 @@ const AdvancedHealthMonitoring = () => {
 
   // Convert deals to DealSummary format
   const dealSummaries = convertDealsToDealSummaries(deals);
-  const selectedDeal = selectedDealId !== 'all' ? dealSummaries.find(d => d.id === selectedDealId) : null;
+  const selectedDeal = selectedDealId ? dealSummaries.find(d => d.id === selectedDealId) : null;
 
   return (
     <AppLayout>
@@ -90,7 +90,7 @@ const AdvancedHealthMonitoring = () => {
             <HealthMonitoringTabs
               deals={dealSummaries}
               selectedDeal={selectedDeal}
-              selectedDealId={selectedDealId !== 'all' ? selectedDealId : ''}
+              selectedDealId={selectedDealId}
               healthData={healthData}
               onHealthScoreUpdate={handleHealthScoreUpdate}
             />

@@ -1,4 +1,5 @@
 
+import OpenAI from "https://esm.sh/openai@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { RequestPayload } from "./types.ts";
 import { validateRequest, validateOperationSpecificFields } from "./utils/request-validator.ts";
@@ -9,7 +10,7 @@ import { saveAnalysisResult } from "./utils/analysis-saver.ts";
 
 export async function handleRequest(
   req: Request,
-  openai: any, // Now null since we use direct fetch calls
+  openai: OpenAI,
   supabaseUrl: string,
   supabaseKey: string
 ): Promise<Response> {
@@ -36,8 +37,8 @@ export async function handleRequest(
       return createErrorResponse(error.message, 403);
     }
     
-    // Route to appropriate operation handler (openai parameter is now ignored)
-    const result = await routeOperation(payload, null);
+    // Route to appropriate operation handler
+    const result = await routeOperation(payload, openai);
     
     // Save analysis result if it's an analyze_document operation
     if (payload.operation === 'analyze_document' && result && payload.context?.saveAnalysis !== false) {

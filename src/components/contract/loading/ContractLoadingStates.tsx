@@ -1,7 +1,5 @@
-
 import React from 'react';
-import { Loader2, FileText } from 'lucide-react';
-import { Progress } from "@/components/ui/progress";
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MinimalLoadingSpinnerProps {

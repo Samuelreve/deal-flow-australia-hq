@@ -23,7 +23,7 @@ const DealSelector: React.FC<DealSelectorProps> = ({
           <SelectValue placeholder="All deals or select specific deal" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Deals</SelectItem>
+          <SelectItem value="">All Deals</SelectItem>
           {deals.filter(d => d.status === 'active').map(deal => (
             <SelectItem key={deal.id} value={deal.id}>
               {deal.title} ({deal.healthScore}%)
