@@ -4,11 +4,13 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface QuestionHistoryItem {
+  id?: string;
   question: string;
   answer: string | { answer: string; sources?: string[] };
   timestamp: number;
   type: 'question' | 'analysis';
   analysisType?: string;
+  isProcessing?: boolean;
 }
 
 export const useContractQuestionAnswer = () => {
@@ -52,6 +54,7 @@ export const useContractQuestionAnswer = () => {
       setQuestionHistory(prev => [
         ...prev,
         {
+          id: `question-${Date.now()}`,
           question,
           answer,
           timestamp: Date.now(),
@@ -106,6 +109,7 @@ export const useContractQuestionAnswer = () => {
       setQuestionHistory(prev => [
         ...prev,
         {
+          id: `analysis-${Date.now()}`,
           question: `Analyze contract: ${analysisType}`,
           answer: analysis,
           timestamp: Date.now(),
@@ -129,6 +133,7 @@ export const useContractQuestionAnswer = () => {
     isProcessing,
     handleAskQuestion,
     handleAnalyzeContract,
+    setQuestionHistory,
     clearHistory: () => setQuestionHistory([])
   };
 };

@@ -34,10 +34,17 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
     return type === 'question' ? 'default' : 'secondary';
   };
 
+  const formatAnswer = (answer: string | { answer: string; sources?: string[] }) => {
+    if (typeof answer === 'string') {
+      return answer;
+    }
+    return answer.answer || 'No response available';
+  };
+
   return (
     <div className="flex-1 overflow-y-auto space-y-4 px-1">
-      {questionHistory.map((item) => (
-        <Card key={item.id} className="shadow-sm">
+      {questionHistory.map((item, index) => (
+        <Card key={item.id || `item-${index}`} className="shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -71,7 +78,7 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
                   </div>
                 ) : (
                   <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md">
-                    {item.answer || 'No response available'}
+                    {formatAnswer(item.answer)}
                   </div>
                 )}
               </div>
