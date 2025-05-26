@@ -1,8 +1,7 @@
 
 /// <reference types="vitest" />
 import React from 'react';
-import { render } from '@testing-library/react';
-import { screen } from '@testing-library/dom';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock the actual component since we don't have its implementation

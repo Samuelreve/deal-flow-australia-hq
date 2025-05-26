@@ -1,7 +1,6 @@
 
 /// <reference types="vitest" />
-import { renderHook } from '@testing-library/react';
-import { waitFor } from '@testing-library/dom';
+import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 
 // Mock hook since we don't have the actual implementation
