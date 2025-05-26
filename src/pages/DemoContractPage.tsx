@@ -44,7 +44,7 @@ const DemoContractPage: React.FC = () => {
   const handleContractAnalysis = async (analysisType: string) => {
     return handleAnalyzeContract(
       analysisType,
-      (updater) => questionAnswerState.setQuestionHistory(updater(questionAnswerState.questionHistory))
+      questionAnswerState.setQuestionHistory
     );
   };
 
