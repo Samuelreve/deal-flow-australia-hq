@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 
 interface Message {
@@ -32,7 +33,7 @@ const AIAssistantPage = () => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: "Hello! I'm your AI assistant. I can help you with business questions, contract analysis, deal insights, and general inquiries. What would you like to know?",
+      content: "Hello! I'm your AI business assistant powered by advanced AI technology. I can help you with business questions, deal analysis, contract insights, financial guidance, and strategic planning. What would you like to discuss today?",
       role: 'assistant',
       timestamp: new Date()
     };
@@ -50,24 +51,48 @@ const AIAssistantPage = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     try {
-      // Simulate AI response - in a real app, this would call your AI service
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+      console.log('Sending message to AI assistant:', currentInput);
       
-      const aiResponse = generateAIResponse(inputValue);
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: {
+          message: currentInput
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get AI response');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'AI service returned an error');
+      }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: aiResponse,
+        content: data.response,
         role: 'assistant',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error getting AI response:', error);
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "I apologize, but I'm having trouble connecting to the AI service right now. Please try again in a moment, or contact support if the issue persists.",
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
       toast.error('Failed to get AI response. Please try again.');
     } finally {
       setIsLoading(false);
@@ -79,28 +104,6 @@ const AIAssistantPage = () => {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const generateAIResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('contract') || input.includes('legal')) {
-      return "I can help you with contract analysis and legal document review. For specific legal advice, I recommend consulting with a qualified attorney. However, I can assist with understanding contract terms, identifying key clauses, and explaining legal concepts in plain language.";
-    }
-    
-    if (input.includes('deal') || input.includes('business')) {
-      return "Great! I can assist with deal structuring, business analysis, and transaction insights. I can help you understand deal metrics, identify potential risks, and suggest optimization strategies. What specific aspect of your business deal would you like to explore?";
-    }
-    
-    if (input.includes('hello') || input.includes('hi')) {
-      return "Hello! I'm here to help you with any questions you might have. I specialize in business, contracts, deals, and general problem-solving. What can I assist you with today?";
-    }
-    
-    if (input.includes('help')) {
-      return "I'm here to help! I can assist with:\n\n• Contract analysis and legal document review\n• Business deal evaluation and insights\n• Financial analysis and projections\n• Risk assessment and mitigation strategies\n• General business questions and advice\n\nWhat specific area would you like help with?";
-    }
-    
-    return "That's an interesting question! Based on what you've shared, I'd recommend considering multiple perspectives and gathering relevant data to make an informed decision. Could you provide more context so I can give you a more specific and helpful response?";
   };
 
   return (
@@ -115,7 +118,7 @@ const AIAssistantPage = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">AI Assistant</h1>
-                <p className="text-gray-600">Get instant answers to your business questions</p>
+                <p className="text-gray-600">Powered by advanced AI technology for business guidance</p>
               </div>
             </div>
           </div>
@@ -200,7 +203,7 @@ const AIAssistantPage = () => {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder="Ask me anything about business, contracts, or deals..."
+                    placeholder="Ask me anything about business, contracts, deals, or strategy..."
                     disabled={isLoading}
                     className="min-h-[44px] resize-none bg-white"
                   />
@@ -213,6 +216,9 @@ const AIAssistantPage = () => {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Powered by OpenAI • Responses are AI-generated and for informational purposes only
+              </p>
             </div>
           </Card>
         </div>
