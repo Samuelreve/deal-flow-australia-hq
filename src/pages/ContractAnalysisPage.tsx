@@ -124,7 +124,7 @@ const ContractAnalysisPage: React.FC = () => {
     try {
       setLoading(true);
       
-      // Create document record
+      // Create document record with correct status value
       const { data: documentData, error: documentError } = await supabase
         .from('documents')
         .insert({
@@ -132,14 +132,17 @@ const ContractAnalysisPage: React.FC = () => {
           type: file.type,
           size: file.size,
           category: 'contract',
-          status: 'completed'
+          status: 'draft',
+          storage_path: `contracts/${user.id}/${file.name}`,
+          uploaded_by: user.id,
+          deal_id: '00000000-0000-0000-0000-000000000000' // Temporary placeholder
         })
         .select()
         .single();
 
       if (documentError) throw documentError;
 
-      // Create version record
+      // Create version record with all required fields
       const { data: versionData, error: versionError } = await supabase
         .from('document_versions')
         .insert({
@@ -147,6 +150,8 @@ const ContractAnalysisPage: React.FC = () => {
           version_number: 1,
           size: file.size,
           type: file.type,
+          storage_path: `contracts/${user.id}/${file.name}`,
+          uploaded_by: user.id,
           description: 'Initial upload'
         })
         .select()
