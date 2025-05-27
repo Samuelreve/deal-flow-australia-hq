@@ -22,45 +22,36 @@ const ContractAnalysisPage: React.FC = () => {
 
   const questionAnswerState = useContractQuestionAnswer();
 
-  // Fetch uploaded documents
+  // Fetch uploaded contracts (using contracts table instead of documents)
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchContracts = async () => {
       if (!user) return;
       
       setLoading(true);
       try {
-        // Fetch documents from the database
-        const { data: documentsData, error: documentsError } = await supabase
-          .from('documents')
-          .select(`
-            id,
-            name,
-            type,
-            size,
-            created_at,
-            updated_at,
-            status,
-            category,
-            latest_version_id
-          `)
+        // Fetch contracts from the contracts table
+        const { data: contractsData, error: contractsError } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (documentsError) {
-          throw documentsError;
+        if (contractsError) {
+          throw contractsError;
         }
 
-        if (documentsData && documentsData.length > 0) {
+        if (contractsData && contractsData.length > 0) {
           // Map to DocumentMetadata format
-          const mappedDocuments: DocumentMetadata[] = documentsData.map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            type: doc.type || 'application/octet-stream',
-            uploadDate: doc.created_at,
-            status: doc.status as 'pending' | 'analyzing' | 'completed' | 'error',
+          const mappedDocuments: DocumentMetadata[] = contractsData.map(contract => ({
+            id: contract.id,
+            name: contract.name,
+            type: contract.mime_type || 'application/octet-stream',
+            uploadDate: contract.created_at,
+            status: contract.analysis_status as 'pending' | 'analyzing' | 'completed' | 'error',
             version: '1.0',
-            versionDate: doc.updated_at,
-            size: doc.size,
-            category: doc.category
+            versionDate: contract.updated_at,
+            size: contract.file_size,
+            category: 'contract'
           }));
 
           setDocuments(mappedDocuments);
@@ -70,50 +61,52 @@ const ContractAnalysisPage: React.FC = () => {
             const firstDoc = mappedDocuments[0];
             setSelectedDocument(firstDoc);
             
-            // Try to fetch document content and summary
-            await loadDocumentContent(firstDoc.id);
+            // Try to load contract content
+            await loadContractContent(firstDoc.id);
           }
         }
       } catch (error: any) {
-        console.error('Error fetching documents:', error);
-        setError(error.message || 'Failed to load documents');
+        console.error('Error fetching contracts:', error);
+        setError(error.message || 'Failed to load contracts');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDocuments();
+    fetchContracts();
   }, [user]);
 
-  const loadDocumentContent = async (documentId: string) => {
+  const loadContractContent = async (contractId: string) => {
     try {
-      // Try to get document content from storage or analysis
-      const { data: versionsData } = await supabase
-        .from('document_versions')
-        .select('storage_path, type')
-        .eq('document_id', documentId)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Get contract content from contracts table
+      const { data: contractData } = await supabase
+        .from('contracts')
+        .select('content, name')
+        .eq('id', contractId)
+        .single();
 
-      if (versionsData && versionsData.length > 0) {
-        // For now, set a placeholder text since we'd need to extract content from the file
-        setContractText('Document content would be extracted here from the uploaded file.');
+      if (contractData) {
+        if (contractData.content) {
+          setContractText(contractData.content);
+        } else {
+          setContractText('Contract content is being processed...');
+        }
         
-        // Create a mock summary for the uploaded document
+        // Create a summary for the contract
         setDocumentSummary({
           category: 'CONTRACT',
-          title: 'Document Successfully Uploaded',
-          message: 'Your document has been uploaded and is ready for analysis.',
+          title: 'Contract Successfully Uploaded',
+          message: 'Your contract has been uploaded and is ready for analysis.',
           analysisDate: new Date().toISOString(),
           keyPoints: [
-            'Document is available for AI analysis',
+            'Contract is available for AI analysis',
             'You can now ask questions about the content',
             'Analysis tools are enabled for this document'
           ]
         });
       }
     } catch (error) {
-      console.error('Error loading document content:', error);
+      console.error('Error loading contract content:', error);
     }
   };
 
@@ -124,68 +117,66 @@ const ContractAnalysisPage: React.FC = () => {
     try {
       setLoading(true);
       
-      // Create document record with correct status value
-      const { data: documentData, error: documentError } = await supabase
-        .from('documents')
+      // Read file content
+      let content = '';
+      if (file.type === 'text/plain') {
+        content = await file.text();
+      } else {
+        // For other file types, simulate content extraction
+        content = `Contract content extracted from ${file.name}. This is a placeholder for the actual extracted text content.`;
+      }
+      
+      // Create contract record directly in contracts table
+      const { data: contractData, error: contractError } = await supabase
+        .from('contracts')
         .insert({
           name: file.name,
-          type: file.type,
-          size: file.size,
-          category: 'contract',
-          status: 'draft',
-          storage_path: `contracts/${user.id}/${file.name}`,
-          uploaded_by: user.id,
-          deal_id: '00000000-0000-0000-0000-000000000000' // Temporary placeholder
+          mime_type: file.type,
+          file_size: file.size,
+          file_path: `contracts/${user.id}/${file.name}`,
+          content: content,
+          analysis_status: 'completed',
+          user_id: user.id
         })
         .select()
         .single();
 
-      if (documentError) throw documentError;
+      if (contractError) throw contractError;
 
-      // Create version record with all required fields
-      const { data: versionData, error: versionError } = await supabase
-        .from('document_versions')
-        .insert({
-          document_id: documentData.id,
-          version_number: 1,
-          size: file.size,
-          type: file.type,
-          storage_path: `contracts/${user.id}/${file.name}`,
-          uploaded_by: user.id,
-          description: 'Initial upload'
-        })
-        .select()
-        .single();
-
-      if (versionError) throw versionError;
-
-      // Update document with latest version
-      await supabase
-        .from('documents')
-        .update({ latest_version_id: versionData.id })
-        .eq('id', documentData.id);
-
-      // Refresh documents list
+      // Create new document metadata
       const newDocument: DocumentMetadata = {
-        id: documentData.id,
+        id: contractData.id,
         name: file.name,
         type: file.type,
-        uploadDate: documentData.created_at,
+        uploadDate: contractData.created_at,
         status: 'completed',
         version: '1.0',
-        versionDate: documentData.created_at,
+        versionDate: contractData.created_at,
         size: file.size,
         category: 'contract'
       };
 
       setDocuments(prev => [newDocument, ...prev]);
       setSelectedDocument(newDocument);
-      await loadDocumentContent(documentData.id);
+      setContractText(content);
       
-      toast.success('Document uploaded successfully');
+      // Create summary
+      setDocumentSummary({
+        category: 'CONTRACT',
+        title: 'Contract Successfully Uploaded',
+        message: 'Your contract has been uploaded and is ready for analysis.',
+        analysisDate: new Date().toISOString(),
+        keyPoints: [
+          'Contract is available for AI analysis',
+          'You can now ask questions about the content',
+          'Analysis tools are enabled for this document'
+        ]
+      });
+      
+      toast.success('Contract uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload document');
+      toast.error('Failed to upload contract');
       setError(error.message);
     } finally {
       setLoading(false);
