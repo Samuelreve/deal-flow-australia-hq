@@ -12,10 +12,13 @@ export interface DocumentMetadata {
 }
 
 export interface QuestionHistoryItem {
-  id: string;
+  id?: string;
   question: string;
   answer: string | { answer: string; sources?: string[] };
-  timestamp: Date;
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+  sources?: string[];
   isProcessing?: boolean;
 }
 

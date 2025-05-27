@@ -1,75 +1,60 @@
 
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
 
 export const useDemoContractInteractions = () => {
-  const [isExporting, setIsExporting] = useState(false);
-
   const handleAnalyzeContract = async (
-    setQuestionHistory: (updater: (prev: QuestionHistoryItem[]) => QuestionHistoryItem[]) => void,
+    setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryItem[]>>,
     analysisType: string
-  ) => {
-    const analysisId = `analysis-${Date.now()}`;
+  ): Promise<{ analysis: string; sources?: string[] } | null> => {
     
-    // Add analysis to history
-    const newAnalysis: QuestionHistoryItem = {
-      id: analysisId,
-      question: `Contract Analysis: ${analysisType}`,
-      answer: '',
-      timestamp: Date.now(),
-      type: 'analysis',
-      isProcessing: true
-    };
-
-    setQuestionHistory(prev => [...prev, newAnalysis]);
-
     try {
-      // Simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const analysisResult = generateAnalysisResult(analysisType);
+      let analysis = '';
+      let sources: string[] = [];
       
-      setQuestionHistory(prev => 
-        prev.map(item => 
-          item.id === analysisId 
-            ? { ...item, answer: analysisResult, isProcessing: false }
-            : item
-        )
-      );
+      switch (analysisType) {
+        case 'summary':
+          analysis = `This demo contract establishes clear terms between the parties with focus on confidentiality and mutual obligations. The agreement includes standard termination procedures and governing law provisions.`;
+          sources = ['Full Document Analysis'];
+          break;
+          
+        case 'risks':
+          analysis = `Demo analysis - Potential risks identified: 1) Confidentiality breach penalties, 2) Termination notice requirements, 3) Jurisdiction considerations for dispute resolution.`;
+          sources = ['Risk Assessment', 'Legal Analysis'];
+          break;
+          
+        case 'obligations':
+          analysis = `Demo analysis - Key obligations include: maintaining strict confidentiality, providing timely notifications, adhering to performance standards, and following proper termination procedures.`;
+          sources = ['Obligations Section', 'Performance Requirements'];
+          break;
+          
+        default:
+          analysis = `Demo analysis of type "${analysisType}" completed successfully. This shows how AI can analyze different aspects of your contracts.`;
+          sources = ['General Analysis'];
+      }
       
-      toast.success(`${analysisType} analysis completed`);
-    } catch (error: any) {
-      setQuestionHistory(prev => 
-        prev.map(item => 
-          item.id === analysisId 
-            ? { ...item, answer: `Error: ${error.message}`, isProcessing: false }
-            : item
-        )
-      );
+      const historyItem: QuestionHistoryItem = {
+        id: `demo-${Date.now()}`,
+        question: `Demo Contract Analysis: ${analysisType}`,
+        answer: analysis,
+        timestamp: Date.now(),
+        type: 'analysis',
+        analysisType,
+        sources
+      };
       
-      toast.error('Analysis failed');
-    }
-  };
-
-  const generateAnalysisResult = (analysisType: string): string => {
-    switch (analysisType) {
-      case 'Risk Analysis':
-        return 'Risk Assessment:\n\n• High Risk: Payment terms lack specific penalties for late payment\n• Medium Risk: Termination clause could be more specific about notice requirements\n• Low Risk: Confidentiality provisions are well-defined\n\nRecommendations:\n1. Add late payment penalties\n2. Clarify termination notice requirements\n3. Consider adding dispute resolution mechanisms';
+      setQuestionHistory(prev => [...prev, historyItem]);
       
-      case 'Key Terms':
-        return 'Key Contract Terms:\n\n• Contract Duration: 3 years with automatic renewal\n• Payment Terms: Net 30 days\n• Termination: 30 days written notice\n• Governing Law: State jurisdiction specified\n• Confidentiality: Mutual non-disclosure obligations\n• Intellectual Property: Rights remain with original owners';
+      return { analysis, sources };
       
-      case 'Obligations':
-        return 'Party Obligations:\n\nCompany A (Disclosing Party):\n• Provide accurate confidential information\n• Mark confidential materials appropriately\n• Notify of any changes to information\n\nCompany B (Receiving Party):\n• Maintain strict confidentiality\n• Implement security measures\n• Return or destroy information upon termination\n• Restrict access to need-to-know basis';
-      
-      default:
-        return `${analysisType} analysis completed. This is a comprehensive review of the contract focusing on ${analysisType.toLowerCase()} aspects. The analysis identifies key areas of concern and provides actionable recommendations for improvement.`;
+    } catch (error) {
+      console.error('Error in demo contract analysis:', error);
+      return null;
     }
   };
 
   return {
-    isExporting,
     handleAnalyzeContract
   };
 };

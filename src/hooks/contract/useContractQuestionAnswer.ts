@@ -1,6 +1,15 @@
 
 import { useState } from 'react';
-import { QuestionHistoryItem } from '@/types/contract';
+
+export interface QuestionHistoryItem {
+  id?: string;
+  question: string;
+  answer: string | { answer: string; sources?: string[] };
+  timestamp: number;
+  type: 'question' | 'analysis';
+  analysisType?: string;
+  sources?: string[];
+}
 
 export const useContractQuestionAnswer = () => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
@@ -195,6 +204,7 @@ export const useContractQuestionAnswer = () => {
     isProcessing,
     handleAskQuestion,
     handleAnalyzeContract,
+    setQuestionHistory,
     clearHistory: () => setQuestionHistory([])
   };
 };
