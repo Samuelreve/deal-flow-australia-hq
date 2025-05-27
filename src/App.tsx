@@ -1,6 +1,6 @@
 
 import React from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import DealsPage from "@/pages/DealsPage";
 import DealDetailsPage from "@/pages/DealDetailsPage";
@@ -70,7 +70,7 @@ function App() {
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
             
             {/* Protected routes - require authentication */}
-            <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               {/* Routes that require onboarding completion */}
               <Route element={<OnboardingCheck />}>
                 <Route path="/dashboard" element={<Dashboard />} />
