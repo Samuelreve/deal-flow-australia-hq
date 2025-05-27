@@ -71,21 +71,21 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
                 <h4 className="text-sm font-medium text-foreground mb-1">
                   {item.type === 'question' ? 'Answer:' : 'Result:'}
                 </h4>
-                {item.isProcessing ? (
-                  <div className="flex items-center gap-2 py-2">
-                    <MinimalLoadingSpinner size="sm" />
-                    <span className="text-sm text-muted-foreground">Processing...</span>
-                  </div>
-                ) : (
-                  <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md">
-                    {formatAnswer(item.answer)}
-                  </div>
-                )}
+                <div className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md">
+                  {formatAnswer(item.answer)}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       ))}
+      
+      {isProcessing && (
+        <div className="flex items-center gap-2 py-2">
+          <MinimalLoadingSpinner size="sm" />
+          <span className="text-sm text-muted-foreground">Processing...</span>
+        </div>
+      )}
     </div>
   );
 };
