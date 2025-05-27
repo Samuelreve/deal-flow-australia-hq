@@ -73,10 +73,17 @@ const Dashboard = () => {
           unreadCount={unreadCount}
         />
         
-        {/* Recent Deals and Notifications */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DashboardRecentDeals deals={deals} />
-          <DashboardRecentNotifications notifications={notifications} />
+          {/* Left Column - Recent Deals and Contract Analysis */}
+          <div className="space-y-6">
+            <DashboardRecentDeals deals={deals} />
+          </div>
+          
+          {/* Right Column - Notifications */}
+          <div>
+            <DashboardRecentNotifications notifications={notifications} />
+          </div>
         </div>
       </div>
     </AppLayout>
