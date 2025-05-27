@@ -1,85 +1,52 @@
 
-// Add any missing types needed for our hooks
+// Types for document AI operations
+
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
   timestamp: number;
 }
 
 export interface DealChatResponse {
   answer: string;
-  sources?: string[];
-  confidence?: number;
+  response?: string;
 }
 
-export interface DealHealthPredictionResponse {
+export interface HealthPrediction {
   probability_of_success_percentage: number;
-  confidence_level: string;
+  confidence_level: 'High' | 'Medium' | 'Low';
   prediction_reasoning: string;
   suggested_improvements: Array<{
     area: string;
     recommendation: string;
-    impact: string;
+    impact: 'High' | 'Medium' | 'Low';
   }>;
   disclaimer: string;
 }
 
-export interface ContractSummaryResponse {
+export interface AIAnalysisResult {
+  type: string;
+  content: any;
+  disclaimer?: string;
+}
+
+export interface DocumentSummary {
   summary: string;
-  key_points: string[];
+  keyPoints?: string[];
   disclaimer?: string;
 }
 
-export interface ContractClauseExplanationResponse {
-  explanation: string;
-  implications: string[];
-  isAmbiguous?: boolean;
-  ambiguityExplanation?: string;
-  disclaimer?: string;
-}
-
-export interface DocumentAnalysisResponse {
-  analysis: {
-    type: string;
-    content: any;
-  };
-  disclaimer: string;
-}
-
-export interface DealSummaryResponse {
-  summary: string;
-  key_details: Record<string, any>;
-  progress: {
-    percentage: number;
-    completed_milestones: number;
-    total_milestones: number;
-  };
-  participants: Array<{
-    role: string;
-    count: number;
-  }>;
-  disclaimer?: string;
-}
-
-export interface DealInsightsResponse {
-  insights: Array<{
-    title: string;
-    description: string;
-    type: string;
-    priority: string;
-  }>;
-  metrics: Record<string, any>;
-  recommendations: string[];
-  disclaimer?: string;
-  insightsText?: string; // Optional backward compatibility
-}
-
-export interface MilestoneGenerationResponse {
+export interface MilestoneGeneration {
   milestones: Array<{
     name: string;
     description: string;
     order: number;
   }>;
-  disclaimer: string;
+  disclaimer?: string;
+}
+
+export interface ClauseExplanation {
+  explanation: string;
+  disclaimer?: string;
 }

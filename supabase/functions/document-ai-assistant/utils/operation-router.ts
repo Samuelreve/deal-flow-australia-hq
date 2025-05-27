@@ -8,6 +8,7 @@ import { handleAnalyzeDocument } from "../operations/analyze-document.ts";
 import { handleSummarizeDocument } from "../operations/summarize-document.ts";
 import { handleSummarizeVersionChanges } from "../operations/summarize-version-changes.ts";
 import { handlePredictDealHealth } from "../operations/predict-deal-health.ts";
+import { handleDealChatQuery } from "../operations/deal-chat-query.ts";
 
 export async function routeOperation(payload: RequestPayload, openai: any) {
   switch (payload.operation) {
@@ -43,6 +44,15 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
     
     case 'predict_deal_health':
       return await handlePredictDealHealth(payload.dealId!, payload.userId!, openai);
+    
+    case 'deal_chat_query':
+      return await handleDealChatQuery(
+        payload.dealId!,
+        payload.userId!,
+        payload.content!,
+        payload.chatHistory || [],
+        openai
+      );
     
     default:
       throw new Error('Invalid operation type');

@@ -1,6 +1,5 @@
-
 export interface RequestPayload {
-  operation: 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'predict_deal_health';
+  operation: 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'predict_deal_health' | 'deal_chat_query';
   dealId?: string;
   documentId?: string;
   documentVersionId?: string;
@@ -9,9 +8,11 @@ export interface RequestPayload {
   milestoneId?: string;
   content?: string;
   userId?: string;
+  chatHistory?: any[];
   context?: {
     analysisType?: string;
     saveAnalysis?: boolean;
+    chatHistory?: any[];
     [key: string]: any;
   };
 }
@@ -36,4 +37,11 @@ export interface AIResponse {
     recommendation: string;
     impact: string;
   }>;
+  
+  // Deal chat specific fields
+  answer?: string;
+  response?: string;
 }
+
+// Keep the existing OperationResult type for compatibility
+export type OperationResult = AIResponse;

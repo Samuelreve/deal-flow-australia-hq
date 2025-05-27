@@ -83,6 +83,15 @@ export function validateOperationSpecificFields(payload: RequestPayload): Valida
       }
       break;
 
+    case 'deal_chat_query':
+      if (!payload.dealId) {
+        return { isValid: false, error: "Missing dealId for deal_chat_query operation" };
+      }
+      if (!payload.content) {
+        return { isValid: false, error: "Missing content for deal_chat_query operation" };
+      }
+      break;
+
     default:
       return { isValid: false, error: "Unknown operation type" };
   }
