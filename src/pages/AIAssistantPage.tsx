@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, Sparkles, MessageSquare, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -32,7 +32,7 @@ const AIAssistantPage = () => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: "Hello! I'm your AI assistant. I can help you with business questions, contract analysis, deal insights, and general inquiries. What would you like to know?",
+      content: "Hello! I'm your AI Business Assistant specializing in business transactions, legal analysis, and deal optimization. I can help with:\n\n• **Contract Analysis** - Review terms, identify risks, and explain legal clauses\n• **Deal Evaluation** - Assess business opportunities and valuations\n• **Due Diligence** - Guide you through buyer/seller checklists\n• **Risk Assessment** - Identify potential legal and financial risks\n• **Business Strategy** - Provide insights for negotiations and deal structure\n\nWhat business challenge can I help you with today?",
       role: 'assistant',
       timestamp: new Date()
     };
@@ -54,10 +54,10 @@ const AIAssistantPage = () => {
     setIsLoading(true);
 
     try {
-      // Simulate AI response - in a real app, this would call your AI service
+      // Simulate AI response with business-specific logic
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
       
-      const aiResponse = generateAIResponse(inputValue);
+      const aiResponse = generateBusinessAIResponse(inputValue);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -81,26 +81,46 @@ const AIAssistantPage = () => {
     }
   };
 
-  const generateAIResponse = (userInput: string): string => {
+  const generateBusinessAIResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
     
-    if (input.includes('contract') || input.includes('legal')) {
-      return "I can help you with contract analysis and legal document review. For specific legal advice, I recommend consulting with a qualified attorney. However, I can assist with understanding contract terms, identifying key clauses, and explaining legal concepts in plain language.";
+    // Legal/Contract Analysis
+    if (input.includes('contract') || input.includes('legal') || input.includes('clause') || input.includes('terms')) {
+      return "**Contract Analysis Assistance**\n\nI can help you with contract review and legal analysis. Here's my approach:\n\n• **Key Terms Review** - Identify payment terms, deliverables, and timelines\n• **Risk Assessment** - Flag potential legal risks and ambiguous language\n• **Compliance Check** - Ensure alignment with regulatory requirements\n• **Negotiation Points** - Suggest areas for improvement or clarification\n\nFor specific contract analysis, please share the relevant clauses or sections you'd like me to review. Remember: This is for informational purposes only and doesn't replace professional legal advice.";
     }
     
-    if (input.includes('deal') || input.includes('business')) {
-      return "Great! I can assist with deal structuring, business analysis, and transaction insights. I can help you understand deal metrics, identify potential risks, and suggest optimization strategies. What specific aspect of your business deal would you like to explore?";
+    // Business Valuation/Due Diligence
+    if (input.includes('valuation') || input.includes('due diligence') || input.includes('financial') || input.includes('revenue')) {
+      return "**Business Valuation & Due Diligence**\n\nI can guide you through comprehensive business evaluation:\n\n• **Financial Analysis** - Review revenue, EBITDA, cash flow patterns\n• **Market Position** - Assess competitive landscape and growth potential\n• **Asset Evaluation** - Tangible and intangible asset assessment\n• **Risk Factors** - Identify operational, financial, and market risks\n• **Valuation Methods** - DCF, comparable company analysis, asset-based approaches\n\n**Key Due Diligence Areas:**\n- Financial statements and tax returns (3-5 years)\n- Customer concentration and retention rates\n- Legal compliance and pending litigation\n- Management team and key employee dependencies\n- Technology and intellectual property assets\n\nWhat specific aspect of the business would you like to evaluate?";
     }
     
-    if (input.includes('hello') || input.includes('hi')) {
-      return "Hello! I'm here to help you with any questions you might have. I specialize in business, contracts, deals, and general problem-solving. What can I assist you with today?";
+    // Buyer Guidance
+    if (input.includes('buyer') || input.includes('buying') || input.includes('acquisition') || input.includes('purchase')) {
+      return "**Buyer's Guide to Business Acquisition**\n\nAs a buyer, here are critical steps to ensure a successful acquisition:\n\n**Pre-Purchase Phase:**\n• Define acquisition criteria and budget limits\n• Engage qualified advisors (lawyer, accountant, broker)\n• Secure financing pre-approval\n• Identify target businesses and conduct initial screening\n\n**Due Diligence Checklist:**\n• Financial performance verification\n• Legal structure and compliance review\n• Operational assessment and staff evaluation\n• Market analysis and competition review\n• Technology and systems audit\n\n**Negotiation Strategy:**\n• Structure deal terms (asset vs. stock purchase)\n• Plan for earnouts and seller financing\n• Address transition and training periods\n• Include appropriate warranties and representations\n\nWhat stage of the buying process are you currently in?";
     }
     
-    if (input.includes('help')) {
-      return "I'm here to help! I can assist with:\n\n• Contract analysis and legal document review\n• Business deal evaluation and insights\n• Financial analysis and projections\n• Risk assessment and mitigation strategies\n• General business questions and advice\n\nWhat specific area would you like help with?";
+    // Seller Guidance
+    if (input.includes('seller') || input.includes('selling') || input.includes('exit') || input.includes('sale')) {
+      return "**Seller's Guide to Business Exit Strategy**\n\nPreparing for a successful business sale requires strategic planning:\n\n**Pre-Sale Preparation (6-12 months):**\n• Clean up financial records and systems\n• Optimize business operations for maximum value\n• Address any legal or compliance issues\n• Develop management team independence\n• Prepare comprehensive information memorandum\n\n**Valuation Optimization:**\n• Improve EBITDA through cost management\n• Diversify customer base and revenue streams\n• Document all processes and procedures\n• Strengthen competitive positioning\n• Ensure clean legal structure\n\n**Sale Process Management:**\n• Engage experienced M&A advisor\n• Develop targeted buyer list\n• Manage confidentiality throughout process\n• Negotiate optimal deal structure\n• Plan for smooth transition period\n\nWhat's your timeline for the sale, and what's the current state of your business preparation?";
     }
     
-    return "That's an interesting question! Based on what you've shared, I'd recommend considering multiple perspectives and gathering relevant data to make an informed decision. Could you provide more context so I can give you a more specific and helpful response?";
+    // Risk Assessment
+    if (input.includes('risk') || input.includes('liability') || input.includes('insurance') || input.includes('compliance')) {
+      return "**Risk Assessment Framework**\n\nComprehensive risk analysis for business transactions:\n\n**Legal Risks:**\n• Regulatory compliance gaps\n• Pending or potential litigation\n• Intellectual property vulnerabilities\n• Employment law compliance\n• Environmental liabilities\n\n**Financial Risks:**\n• Customer concentration risk\n• Working capital fluctuations\n• Debt structure and covenants\n• Currency and interest rate exposure\n• Tax compliance and optimization\n\n**Operational Risks:**\n• Key person dependencies\n• Supply chain vulnerabilities\n• Technology and cybersecurity\n• Market competition and disruption\n• Regulatory changes\n\n**Mitigation Strategies:**\n• Insurance coverage analysis\n• Contractual protections and warranties\n• Escrow and holdback provisions\n• Transition planning and documentation\n\nWhich risk category would you like to explore in more detail?";
+    }
+    
+    // Business Strategy/Negotiation
+    if (input.includes('strategy') || input.includes('negotiation') || input.includes('structure') || input.includes('terms')) {
+      return "**Business Strategy & Deal Structuring**\n\nStrategic approach to successful business transactions:\n\n**Deal Structure Options:**\n• **Asset Purchase** - Buy specific assets, avoid liabilities\n• **Stock Purchase** - Acquire entire entity, including liabilities\n• **Merger** - Combine entities for strategic synergies\n• **Management Buyout** - Internal team acquires business\n\n**Key Negotiation Points:**\n• Purchase price and payment terms\n• Representations, warranties, and indemnifications\n• Employment agreements and non-compete clauses\n• Transition period and seller involvement\n• Earnout provisions based on future performance\n\n**Value Creation Strategies:**\n• Identify operational synergies\n• Plan for market expansion opportunities\n• Optimize capital structure\n• Develop integration timeline\n• Establish performance metrics\n\nWhat specific aspect of deal strategy would you like to discuss?";
+    }
+    
+    // General business questions
+    if (input.includes('help') || input.includes('start') || input.includes('advice')) {
+      return "**Business Advisory Services**\n\nI'm here to provide expert guidance across all aspects of business transactions:\n\n**My Expertise Areas:**\n• **Legal Analysis** - Contract review, compliance, risk assessment\n• **Financial Evaluation** - Valuation, due diligence, financial modeling\n• **Strategic Planning** - Deal structure, negotiation strategy, integration\n• **Process Management** - Transaction timeline, stakeholder coordination\n\n**Common Questions I Help With:**\n• \"What should I look for in this contract?\"\n• \"How do I value this business opportunity?\"\n• \"What are the key risks in this transaction?\"\n• \"How should I structure this deal?\"\n• \"What's missing from my due diligence?\"\n\n**Getting Started:**\nSimply describe your situation, share relevant documents or details, and I'll provide tailored analysis and recommendations.\n\nWhat specific business challenge can I help you tackle today?";
+    }
+    
+    // Default response with business focus
+    return "**Let me help with your business question!**\n\nI specialize in providing strategic guidance for:\n\n• **Lawyers** - Contract analysis, risk assessment, compliance review\n• **Business Analysts** - Financial modeling, market analysis, due diligence\n• **Buyers** - Acquisition strategy, valuation, negotiation tactics\n• **Sellers** - Exit planning, value optimization, deal structuring\n\nTo provide the most relevant assistance, could you share more details about:\n- Your role in the transaction\n- The specific challenge you're facing\n- Any relevant context or documents\n- Your timeline and objectives\n\nThe more specific your question, the more targeted and valuable my response will be!";
   };
 
   return (
@@ -111,11 +131,11 @@ const AIAssistantPage = () => {
           <div className="container mx-auto px-4 py-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Sparkles className="h-6 w-6 text-blue-600" />
+                <Briefcase className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">AI Assistant</h1>
-                <p className="text-gray-600">Get instant answers to your business questions</p>
+                <h1 className="text-3xl font-bold text-gray-900">AI Business Assistant</h1>
+                <p className="text-gray-600">Expert guidance for lawyers, analysts, buyers & sellers</p>
               </div>
             </div>
           </div>
@@ -184,7 +204,7 @@ const AIAssistantPage = () => {
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                         </div>
-                        <span className="text-sm text-gray-600">AI is thinking...</span>
+                        <span className="text-sm text-gray-600">AI is analyzing...</span>
                       </div>
                     </div>
                   </div>
@@ -200,7 +220,7 @@ const AIAssistantPage = () => {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder="Ask me anything about business, contracts, or deals..."
+                    placeholder="Ask about contracts, valuations, due diligence, deal structure..."
                     disabled={isLoading}
                     className="min-h-[44px] resize-none bg-white"
                   />
