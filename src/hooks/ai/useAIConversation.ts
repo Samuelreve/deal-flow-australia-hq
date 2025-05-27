@@ -25,16 +25,14 @@ export const useAIConversation = (documentContent?: string) => {
       id: '1',
       content: `Welcome! I'm your AI Business Assistant — here to help with strategy, deals, documents, and finance.
 
-**What I can do:**
-📈 Strategy – Market insights, growth planning  
-🤝 Deals – Term analysis, negotiation tips  
-📄 Contracts – Clause summaries, key risks  
-💰 Finance – Projections, valuation, ROI
+What I can do:
+📈 Strategy — Market insights, growth planning  
+🤝 Deals — Term analysis, negotiation tips  
+📄 Contracts — Clause summaries, key risks  
+💰 Finance — Projections, valuation, ROI
 
-**Get started:**  
-Ask a question like:  
-> "What's the risk in this contract?"  
-Or upload a doc for instant insights.
+Get started:  
+Ask a question like "What's the risk in this contract?" or upload a document for instant insights.
 
 What can I help you with today?`,
       role: 'assistant',
