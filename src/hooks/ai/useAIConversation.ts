@@ -23,18 +23,20 @@ export const useAIConversation = (documentContent?: string) => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: `Welcome! I'm your AI Business Assistant — here to help with strategy, deals, documents, and finance.
+      content: `**Welcome! I'm your AI Business Assistant** 🚀
 
-What I can do:
-📈 Strategy — Market insights, growth planning  
-🤝 Deals — Term analysis, negotiation tips  
-📄 Contracts — Clause summaries, key risks  
-💰 Finance — Projections, valuation, ROI
+**Ready to help with strategy, deals, documents, and finance.**
 
-Get started:  
-Ask a question like "What's the risk in this contract?" or upload a document for instant insights.
+**🎯 What I can do:**
+• **📈 Strategy** — Market insights, growth planning, competitive analysis
+• **🤝 Deals** — Term analysis, negotiation tactics, deal structuring  
+• **📄 Contracts** — Clause summaries, risk assessment, compliance checks
+• **💰 Finance** — Projections, valuation models, ROI analysis
 
-What can I help you with today?`,
+**✨ Get started:**  
+Ask me anything like **"What's the risk in this contract?"** or upload a document for instant insights.
+
+**What can I help you with today?**`,
       role: 'assistant',
       timestamp: new Date(),
       category: 'strategy'
