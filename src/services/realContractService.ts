@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DocumentTextExtractionService } from './documentTextExtraction';
@@ -41,7 +40,7 @@ class RealContractService {
         return null;
       }
 
-      // Generate unique file path
+      // Generate unique file path with user folder structure for RLS
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
@@ -73,6 +72,8 @@ class RealContractService {
 
       if (contractError) {
         console.error('Contract creation error:', contractError);
+        // Clean up uploaded file if database insert fails
+        await supabase.storage.from('contracts').remove([filePath]);
         toast.error('Failed to create contract record');
         return null;
       }
@@ -117,10 +118,16 @@ class RealContractService {
 
   async getContract(contractId: string): Promise<Contract | null> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return null;
+      }
+
       const { data: contract, error } = await supabase
         .from('contracts')
         .select('*')
         .eq('id', contractId)
+        .eq('user_id', user.id)
         .single();
 
       if (error) {
@@ -137,9 +144,15 @@ class RealContractService {
 
   async getUserContracts(): Promise<Contract[]> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return [];
+      }
+
       const { data: contracts, error } = await supabase
         .from('contracts')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -188,7 +201,8 @@ class RealContractService {
           contract_id: contractId,
           question: question,
           answer: data.explanation || data.answer || 'No response received',
-          sources: data.sources || []
+          sources: data.sources || [],
+          user_id: (await supabase.auth.getUser()).data.user?.id
         });
 
       return {
@@ -250,10 +264,16 @@ class RealContractService {
 
   async getContractQuestions(contractId: string): Promise<ContractQuestion[]> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return [];
+      }
+
       const { data: questions, error } = await supabase
         .from('contract_questions')
         .select('*')
         .eq('contract_id', contractId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) {

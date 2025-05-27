@@ -64,6 +64,7 @@ const ContractSidebarContent: React.FC<ContractSidebarContentProps> = ({
       <RealContractUpload 
         onFileUpload={onFileUpload}
         uploading={uploading}
+        uploadProgress={uploadProgress}
       />
       
       {uploading && (
@@ -113,15 +114,17 @@ const ContractSidebarContent: React.FC<ContractSidebarContentProps> = ({
                   )}
                   aria-pressed={selectedContract?.id === contract.id}
                 >
-                  <div className="flex items-center gap-3 w-full">
-                    <FileText className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium truncate">{contract.name}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {getStatusIcon(contract.analysis_status)}
-                        <span className="text-xs text-muted-foreground">
-                          {getStatusLabel(contract.analysis_status)}
-                        </span>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-start space-x-3 flex-1 min-w-0">
+                      <FileText className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{contract.name}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          {getStatusIcon(contract.analysis_status)}
+                          <span className="text-xs text-muted-foreground">
+                            {getStatusLabel(contract.analysis_status)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
