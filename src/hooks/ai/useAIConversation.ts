@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,34 +23,20 @@ export const useAIConversation = (documentContent?: string) => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: `Welcome to your AI Business Assistant! I'm here to provide expert guidance across key areas of business strategy and operations.
+      content: `Welcome! I'm your AI Business Assistant — here to help with strategy, deals, documents, and finance.
 
-**My Expertise Areas:**
+**What I can do:**
+📈 Strategy – Market insights, growth planning  
+🤝 Deals – Term analysis, negotiation tips  
+📄 Contracts – Clause summaries, key risks  
+💰 Finance – Projections, valuation, ROI
 
-**Business Strategy & Planning**
-• Market analysis and competitive positioning
-• Growth strategies and expansion planning  
-• Strategic decision-making frameworks
+**Get started:**  
+Ask a question like:  
+> "What's the risk in this contract?"  
+Or upload a doc for instant insights.
 
-**Deal Management & Negotiations**
-• Deal structuring and terms analysis
-• Negotiation strategies and tactics
-• Risk assessment and mitigation
-
-**Contract & Document Analysis**
-• Contract review and clause interpretation
-• Legal risk identification (informational only)
-• Document summarization and key insights
-
-**Financial Analysis & Planning**
-• Financial modeling and projections
-• Valuation methods and pricing strategies
-• Investment analysis and ROI calculations
-
-**How to Get Started:**
-You can ask me questions directly about any business challenge, or upload a document for detailed analysis. I'm ready to help with strategic decisions, deal structuring, contract reviews, financial planning, and more.
-
-What business challenge can I assist you with today?`,
+What can I help you with today?`,
       role: 'assistant',
       timestamp: new Date(),
       category: 'strategy'
