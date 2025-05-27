@@ -24,11 +24,13 @@ export const useAIConversation = (documentContent?: string) => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: `Welcome to your AI Business Assistant! I'm powered by advanced AI technology and specialize in helping with:
+      content: `Welcome to your AI Business Assistant! I'm here to provide expert guidance across key areas of business strategy and operations.
+
+**My Expertise Areas:**
 
 **Business Strategy & Planning**
 • Market analysis and competitive positioning
-• Growth strategies and expansion planning
+• Growth strategies and expansion planning  
 • Strategic decision-making frameworks
 
 **Deal Management & Negotiations**
@@ -46,7 +48,10 @@ export const useAIConversation = (documentContent?: string) => {
 • Valuation methods and pricing strategies
 • Investment analysis and ROI calculations
 
-You can ask me questions directly, or upload a document for analysis. What business challenge can I help you with today?`,
+**How to Get Started:**
+You can ask me questions directly about any business challenge, or upload a document for detailed analysis. I'm ready to help with strategic decisions, deal structuring, contract reviews, financial planning, and more.
+
+What business challenge can I assist you with today?`,
       role: 'assistant',
       timestamp: new Date(),
       category: 'strategy'
