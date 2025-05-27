@@ -4,7 +4,7 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocuments } from "./documents/useDocuments";
 import { toast } from "sonner";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 interface UseDocumentManagementProps {
   dealId: string;
@@ -38,7 +38,6 @@ export const useDocumentManagement = ({
   
   // Get URL search params to determine if we're in analyze mode
   const [searchParams] = useSearchParams();
-  const location = useLocation();
   const analyzeModeActive = searchParams.get("analyze") === "true";
   const docIdToAnalyze = searchParams.get("docId");
   
