@@ -28,7 +28,7 @@ ${content.substring(0, 2000)}`;
 
       if (documentType === "CONTRACT") {
         // Use contract-specific analysis
-        const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+        const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. Do not use markdown, bullet points, hashtags, asterisks, or any special formatting.
 
 ${content}
 
@@ -55,12 +55,12 @@ TERMINATION CONDITIONS
 POTENTIAL RISKS OR CONCERNS
 [Any risks, ambiguous clauses, or areas of concern]
 
-Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible.`;
+Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible. Do not use any markdown formatting, hashtags, or special characters.`;
 
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+            { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without any markdown, hashtags, bullet points, or special formatting. Use only plain text with clear section headers." },
             { role: "user", content: contractPrompt }
           ],
           temperature: 0.2,
@@ -76,7 +76,7 @@ Keep each section concise but comprehensive. Use plain English and avoid legal j
 
       } else {
         // Use general document analysis
-        const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+        const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. Do not use markdown, bullet points, hashtags, asterisks, or any special formatting.
 
 ${content}
 
@@ -100,12 +100,12 @@ IMPORTANT DETAILS
 RECOMMENDATIONS OR NEXT STEPS
 [If applicable, any suggested actions or next steps]
 
-Keep the summary clear and focused on the most relevant information.`;
+Keep the summary clear and focused on the most relevant information. Do not use any markdown formatting, hashtags, or special characters.`;
 
         const response = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+            { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without any markdown, hashtags, bullet points, or special formatting. Use only plain text with clear section headers." },
             { role: "user", content: generalPrompt }
           ],
           temperature: 0.2,

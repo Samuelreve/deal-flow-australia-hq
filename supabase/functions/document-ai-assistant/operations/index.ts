@@ -1,5 +1,4 @@
 
-// Export all operation handlers
 export { handleExplainClause } from './explain-clause.ts';
 export { handleGenerateTemplate } from './generate-template.ts';
 export { handleSummarizeDocument } from './summarize-document.ts';

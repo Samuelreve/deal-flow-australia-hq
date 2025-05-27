@@ -1,81 +1,53 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-export async function explainContractClauseOperation(
-  openai: any,
-  clauseText: string,
-  contractContent?: string,
-  documentId?: string,
-  userId?: string
+export async function handleExplainContractClause(
+  dealId: string,
+  userId: string,
+  selectedText: string,
+  openai: any
 ) {
   try {
-    const systemPrompt = `
-      You are a legal contract clause explanation expert. Your task is to explain contract clauses in plain English.
-      
-      Guidelines:
-      1. Break down complex legal language into simple terms
-      2. Explain the practical implications of the clause
-      3. Highlight any potential risks or benefits
-      4. Provide context about why this clause might be included
-      5. Be objective and factual
-      
-      Format your response clearly with:
-      - Plain English explanation
-      - Key implications
-      - Potential concerns (if any)
-    `;
+    if (!selectedText || selectedText.trim().length === 0) {
+      throw new Error('No text provided for explanation');
+    }
 
-    const userPrompt = contractContent 
-      ? `Please explain this clause from the contract in plain English:
+    const prompt = `You are a legal document expert. Analyze the following text from a contract and provide a clear explanation in plain text format. Do not use markdown, bullet points, hashtags, asterisks, or any special formatting.
 
-Clause to explain: "${clauseText}"
+Text to explain: "${selectedText}"
 
-Full contract context:
-${contractContent}`
-      : `Please explain this contract clause in plain English: "${clauseText}"`;
+Provide your explanation in this exact structure:
+
+PLAIN ENGLISH EXPLANATION
+[Explain what this text means in simple, everyday language that anyone can understand]
+
+KEY IMPLICATIONS
+[Explain the practical effects and consequences of this clause]
+
+POTENTIAL CONCERNS
+[Identify any risks, ambiguities, or areas that might need attention]
+
+CONTEXT
+[Explain how this type of clause typically fits into contracts and why it matters]
+
+Use only plain text formatting. Do not use hashtags, markdown, bullet points, or any special characters. Keep the explanation clear and accessible.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "system", content: "You are a legal expert who explains contract clauses in plain English. Provide clear explanations without any markdown, hashtags, bullet points, or special formatting. Use only plain text with clear section headers." },
+        { role: "user", content: prompt }
       ],
       temperature: 0.2,
       max_tokens: 800
     });
 
-    const explanation = response.choices[0]?.message?.content || "Sorry, I couldn't generate an explanation.";
+    const explanation = response.choices[0]?.message?.content || "Could not explain the selected text.";
 
     return {
-      explanation,
-      disclaimer: "This AI-generated explanation is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance."
-    };
-  } catch (error) {
-    console.error('Error in explain contract clause operation:', error);
-    throw new Error('Failed to explain contract clause');
-  }
-}
-
-// Add the missing export that's being imported in index.ts
-export async function handleExplainContractClause(
-  dealId: string,
-  userId: string,
-  clauseText: string,
-  openai: any
-) {
-  try {
-    // Call the existing operation function
-    const result = await explainContractClauseOperation(
-      openai,
-      clauseText,
-      undefined, // contractContent - we don't have full contract context here
-      undefined, // documentId
-      userId
-    );
-
-    return {
-      explanation: result.explanation,
-      disclaimer: result.disclaimer
+      explanation: explanation + "\n\nDISCLAIMER: This AI-generated explanation is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance.",
+      selectedText,
+      isAmbiguous: selectedText.toLowerCase().includes('reasonable') || 
+                  selectedText.toLowerCase().includes('appropriate') ||
+                  selectedText.toLowerCase().includes('satisfactory')
     };
   } catch (error) {
     console.error('Error in handleExplainContractClause:', error);
