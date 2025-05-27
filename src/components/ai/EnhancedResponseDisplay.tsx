@@ -130,41 +130,12 @@ const EnhancedResponseDisplay: React.FC<EnhancedResponseDisplayProps> = ({
               {formatResponse(content)}
             </div>
             
-            {/* Footer with branding and feedback */}
+            {/* Footer with just timestamp */}
             <div className="border-t pt-3 mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {getCategoryIcon(category)}
-                  <Badge variant="secondary" className="text-xs">
-                    Powered by OpenAI GPT-4o-mini
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  {onFeedback && (
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-green-100"
-                        onClick={() => onFeedback(true)}
-                      >
-                        👍
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-red-100"
-                        onClick={() => onFeedback(false)}
-                      >
-                        👎
-                      </Button>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center justify-end">
+                <span className="text-xs text-muted-foreground">
+                  {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             </div>
           </CardContent>
