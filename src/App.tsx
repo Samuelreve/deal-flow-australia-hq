@@ -17,6 +17,7 @@ import TermsOfServicePage from "@/pages/TermsOfServicePage";
 import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import CookiePolicyPage from "@/pages/CookiePolicyPage";
 import AccessibilityPage from "@/pages/AccessibilityPage";
+import AIAssistantPage from "@/pages/AIAssistantPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -58,6 +59,9 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/cookie-policy" element={<CookiePolicyPage />} />
             <Route path="/accessibility" element={<AccessibilityPage />} />
+            
+            {/* AI Assistant - accessible to everyone */}
+            <Route path="/ai-assistant" element={<AIAssistantPage />} />
             
             {/* Contract Analysis - accessible to everyone */}
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
