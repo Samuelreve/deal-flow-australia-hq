@@ -35,8 +35,7 @@ export const useDocumentManagement = ({
     deleteDocumentVersion,
     lastUploadedDocument,
     clearLastUploadedDocument,
-    handleVersionsUpdated,
-    handleDocumentsUpdated
+    handleVersionsUpdated
   } = useDocumentManagementCore({
     dealId,
     initialDocuments
@@ -109,11 +108,9 @@ export const useDocumentManagement = ({
     
     // Updates
     handleVersionsUpdated,
-    handleDocumentsUpdated,
     
     // User info
-    user,
-    isParticipant
+    user
   };
 };
 
