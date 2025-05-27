@@ -9,8 +9,16 @@ import ContractViewer from '@/components/contract-analysis/ContractViewer';
 import AnalysisPanel from '@/components/contract-analysis/AnalysisPanel';
 import QuestionPanel from '@/components/contract-analysis/QuestionPanel';
 
+interface QuestionHistoryItem {
+  question: string;
+  answer: string | { answer: string; sources?: string[] };
+  timestamp: number;
+  type: 'question' | 'analysis';
+}
+
 const ContractAnalysis = () => {
   const [aiStatus, setAiStatus] = useState<'checking' | 'ready' | 'error'>('checking');
+  const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   
   const {
     documentMetadata,
@@ -20,13 +28,12 @@ const ContractAnalysis = () => {
     isAnalyzing,
     analysisStage,
     analysisProgress,
-    questionHistory,
     isProcessing,
     documentHighlights,
     setDocumentHighlights,
     exportHighlightsToCSV,
     handleFileUpload,
-    handleAskQuestion
+    handleAskQuestion: originalHandleAskQuestion
   } = useContractAnalysis();
 
   // Test AI connection on component mount
@@ -39,7 +46,7 @@ const ContractAnalysis = () => {
         const testResponse = await fetch('/api/test-ai', { method: 'HEAD' });
         
         // For demo purposes, we'll assume AI is ready if the functions are available
-        if (handleAskQuestion && handleFileUpload) {
+        if (originalHandleAskQuestion && handleFileUpload) {
           setAiStatus('ready');
           console.log('✅ Contract Analysis: AI services ready');
           
@@ -61,7 +68,29 @@ const ContractAnalysis = () => {
 
     // Delay the test slightly to allow for initialization
     setTimeout(testAI, 1000);
-  }, [handleAskQuestion, handleFileUpload]);
+  }, [originalHandleAskQuestion, handleFileUpload]);
+
+  // Wrap the original handleAskQuestion to match the expected interface
+  const handleAskQuestion = async (question: string): Promise<{ answer: string; sources?: string[] }> => {
+    try {
+      const result = await originalHandleAskQuestion(question);
+      
+      // Add to question history with proper format
+      const historyItem: QuestionHistoryItem = {
+        question,
+        answer: result,
+        timestamp: Date.now(),
+        type: 'question'
+      };
+      
+      setQuestionHistory(prev => [...prev, historyItem]);
+      
+      return result;
+    } catch (error) {
+      console.error('Error asking question:', error);
+      throw error;
+    }
+  };
 
   // Show AI status in the header
   const getAiStatusIndicator = () => {

@@ -4,12 +4,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Send, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
-import { QuestionHistoryItem } from '@/types/contract';
+
+interface QuestionHistoryItem {
+  question: string;
+  answer: string | { answer: string; sources?: string[] };
+  timestamp: number;
+  type: 'question' | 'analysis';
+}
 
 interface QuestionPanelProps {
   questionHistory: QuestionHistoryItem[];
   isProcessing: boolean;
-  onAskQuestion: (question: string) => Promise<void>;
+  onAskQuestion: (question: string) => Promise<{ answer: string; sources?: string[] }>;
   aiStatus: 'checking' | 'ready' | 'error';
 }
 
@@ -25,8 +31,12 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
     e.preventDefault();
     if (!question.trim() || isProcessing || aiStatus !== 'ready') return;
     
-    await onAskQuestion(question);
-    setQuestion('');
+    try {
+      await onAskQuestion(question);
+      setQuestion('');
+    } catch (error) {
+      console.error('Error asking question:', error);
+    }
   };
 
   const getStatusIcon = () => {
