@@ -1,6 +1,11 @@
 
-import { useDocumentManagementCore } from "./useDocumentManagementCore";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDocuments } from "@/hooks/documents/useDocuments";
 import { useDocumentOperationsHandler } from "./useDocumentOperationsHandler";
+import { useDocumentManagementState } from "./useDocumentManagementState";
+import { useDocumentSelectionHandler } from "./useDocumentSelectionHandler";
+import { useDocumentUploadHandler } from "./useDocumentUploadHandler";
+import { useDocumentManagementOperations } from "./useDocumentManagementOperations";
 import { Document } from "@/types/documentVersion";
 
 export interface UseDocumentManagementProps {
@@ -17,32 +22,70 @@ export const useDocumentManagement = ({
   initialDocuments = [],
   isParticipant = false
 }: UseDocumentManagementProps) => {
-  // Use the core document management functionality
+  const { user } = useAuth();
+
+  // Initialize document hooks
   const {
     documents,
     isLoading,
-    uploading,
     selectedDocument,
+    selectDocument,
     documentVersions,
     loadingVersions,
-    user,
-    handleUpload,
-    handleSelectDocument,
-    handleSelectVersion,
-    selectedVersionUrl,
     selectedVersionId,
+    selectedVersionUrl,
+    selectVersion,
+    uploading,
+    uploadDocument,
     deleteDocument,
     deleteDocumentVersion,
+    refreshDocuments,
+    refreshVersions
+  } = useDocuments(dealId, initialDocuments);
+
+  // State management
+  const {
     lastUploadedDocument,
+    setLastUploadedDocument,
     clearLastUploadedDocument,
-    handleVersionsUpdated,
-    handleDocumentsUpdated
-  } = useDocumentManagementCore({
-    dealId,
-    initialDocuments
+    analyzeModeActive,
+    docIdToAnalyze
+  } = useDocumentManagementState();
+
+  // Selection handling
+  const {
+    handleSelectDocument,
+    handleSelectVersion
+  } = useDocumentSelectionHandler({
+    documents,
+    selectDocument,
+    selectVersion,
+    analyzeModeActive,
+    docIdToAnalyze
   });
-  
-  // Use the document operations handler
+
+  // Upload handling
+  const { handleUpload } = useDocumentUploadHandler({
+    uploadDocument,
+    selectDocument,
+    selectVersion,
+    setLastUploadedDocument
+  });
+
+  // Operations handling
+  const {
+    handleDeleteDocument,
+    handleDeleteVersion,
+    handleVersionsUpdated
+  } = useDocumentManagementOperations({
+    deleteDocument,
+    deleteDocumentVersion,
+    refreshDocuments,
+    refreshVersions,
+    selectedDocument
+  });
+
+  // Dialog operations handler
   const {
     openDeleteDialog,
     closeDeleteDialog,
@@ -61,8 +104,8 @@ export const useDocumentManagement = ({
     showShareDialog,
     versionToShare
   } = useDocumentOperationsHandler({
-    deleteDocument,
-    deleteDocumentVersion
+    deleteDocument: handleDeleteDocument,
+    deleteDocumentVersion: handleDeleteVersion
   });
 
   return {
@@ -109,7 +152,6 @@ export const useDocumentManagement = ({
     
     // Updates
     handleVersionsUpdated,
-    handleDocumentsUpdated,
     
     // User info
     user,
@@ -121,3 +163,7 @@ export const useDocumentManagement = ({
 export * from "./useDocumentManagementCore";
 export * from "./useDocumentDialogState";
 export * from "./useDocumentOperationsHandler";
+export * from "./useDocumentManagementState";
+export * from "./useDocumentSelectionHandler";
+export * from "./useDocumentUploadHandler";
+export * from "./useDocumentManagementOperations";
