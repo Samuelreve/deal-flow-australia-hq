@@ -1,83 +1,151 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, InfoIcon, FileText } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
-export interface SummaryItem {
-  title: string;
-  content: string;
-}
-
-interface SummaryData {
-  summary: SummaryItem[];
-  disclaimer: string;
-}
-
-export interface ContractSummaryTabProps {
-  summaryData?: SummaryData;
-  customSummary?: any;
-  mockSummary?: any;
+interface ContractSummaryTabProps {
+  documentSummary: any;
+  isAnalyzing: boolean;
 }
 
 const ContractSummaryTab: React.FC<ContractSummaryTabProps> = ({ 
-  summaryData,
-  customSummary,
-  mockSummary
+  documentSummary, 
+  isAnalyzing 
 }) => {
-  // Use customSummary or mockSummary if summaryData is not provided
-  const displayData = summaryData || customSummary?.summary ? 
-    { 
-      summary: customSummary?.summary || [],
-      disclaimer: customSummary?.disclaimer || mockSummary?.disclaimer || "This is an AI-generated summary and may not cover all legal details. Always consult with a legal professional."
-    } 
-    : mockSummary;
-  
-  if (!displayData || !displayData.summary || displayData.summary.length === 0) {
+  if (isAnalyzing) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Contract Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert className="bg-blue-50 border-blue-200">
-            <InfoIcon className="h-4 w-4 text-blue-500" />
-            <AlertDescription className="text-sm text-blue-700">
-              No summary is available for this contract. Try uploading a document to generate a summary.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Analyzing document...</p>
+      </div>
+    );
+  }
+  
+  if (!documentSummary) {
+    return (
+      <div className="text-center py-8">
+        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <p className="text-muted-foreground">
+          No document uploaded yet. Please upload a contract to see the summary.
+        </p>
+      </div>
     );
   }
 
+  const getIcon = () => {
+    switch (documentSummary.category) {
+      case 'CONTRACT':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'FINANCIAL':
+        return <AlertTriangle className="h-5 w-5 text-amber-600" />;
+      case 'IRRELEVANT':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <FileText className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
+  const getCardClassName = () => {
+    switch (documentSummary.category) {
+      case 'CONTRACT':
+        return 'border-green-200 bg-green-50';
+      case 'FINANCIAL':
+        return 'border-amber-200 bg-amber-50';
+      case 'IRRELEVANT':
+        return 'border-red-200 bg-red-50';
+      default:
+        return 'border-blue-200 bg-blue-50';
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Contract Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {displayData.summary.map((item, index) => (
-          <div key={index} className="space-y-1 border-b pb-4 last:border-b-0">
-            <h3 className="text-base font-medium text-gray-800">{item.title}</h3>
-            <p className="text-sm text-muted-foreground">{item.content}</p>
+    <div className="space-y-4">
+      <Card className={getCardClassName()}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            {getIcon()}
+            Document Analysis Result
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-lg mb-2">{documentSummary.title}</h3>
+              <p className="text-sm">{documentSummary.message}</p>
+            </div>
+            
+            {documentSummary.keyPoints && documentSummary.keyPoints.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">Key Points:</h4>
+                <ul className="space-y-1">
+                  {documentSummary.keyPoints.map((point: string, index: number) => (
+                    <li key={index} className="text-sm">
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {/* Show detailed contract information if it's a valid contract */}
+            {documentSummary.category === 'CONTRACT' && (
+              <div className="space-y-3 mt-4 pt-4 border-t border-green-200">
+                {documentSummary.contractType && (
+                  <div>
+                    <h4 className="font-medium text-sm">Contract Type:</h4>
+                    <p className="text-sm text-muted-foreground">{documentSummary.contractType}</p>
+                  </div>
+                )}
+                
+                {documentSummary.parties && (
+                  <div>
+                    <h4 className="font-medium text-sm">Parties:</h4>
+                    <p className="text-sm text-muted-foreground">{documentSummary.parties}</p>
+                  </div>
+                )}
+                
+                {documentSummary.obligations && documentSummary.obligations.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm">Key Obligations:</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {documentSummary.obligations.map((obligation: string, index: number) => (
+                        <li key={index}>• {obligation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {documentSummary.termination && (
+                  <div>
+                    <h4 className="font-medium text-sm">Termination:</h4>
+                    <p className="text-sm text-muted-foreground">{documentSummary.termination}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="text-xs text-muted-foreground pt-2">
+              Analyzed on {new Date(documentSummary.analysisDate).toLocaleDateString()}
+            </div>
           </div>
-        ))}
-        
-        <Alert className="bg-amber-50 border-amber-200 mt-6">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          <AlertDescription className="text-sm text-amber-700">
-            {displayData.disclaimer}
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      
+      {documentSummary.category === 'CONTRACT' && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="text-sm text-blue-800">
+              <strong>💡 What you can do next:</strong>
+              <ul className="mt-2 space-y-1 ml-4">
+                <li>• Use the "Ask Questions" tab to get specific answers about this contract</li>
+                <li>• Use the "Analysis" tab for detailed risk and compliance analysis</li>
+                <li>• All answers will be based solely on the content of your uploaded document</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

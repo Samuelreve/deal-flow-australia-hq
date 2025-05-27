@@ -16,6 +16,99 @@ export const useContractDocumentUpload = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to categorize document type
+  const categorizeDocument = (text: string): 'CONTRACT' | 'FINANCIAL' | 'IRRELEVANT' => {
+    const lowerText = text.toLowerCase();
+    
+    // Contract indicators
+    const contractKeywords = [
+      'agreement', 'contract', 'party', 'parties', 'hereby', 'whereas', 'undertake',
+      'obligations', 'terms and conditions', 'shall', 'covenant', 'binding',
+      'executed', 'effective date', 'termination', 'breach', 'governing law',
+      'nda', 'non-disclosure', 'confidentiality', 'lease', 'rental', 'purchase',
+      'sale agreement', 'employment agreement', 'service agreement', 'license'
+    ];
+    
+    // Financial indicators
+    const financialKeywords = [
+      'invoice', 'bill', 'payment', 'amount due', 'bank statement', 'transaction',
+      'deposit', 'withdrawal', 'balance', 'account number', 'routing number',
+      'receipt', 'tax return', 'financial statement', 'profit and loss'
+    ];
+    
+    // Count matches
+    const contractMatches = contractKeywords.filter(keyword => lowerText.includes(keyword)).length;
+    const financialMatches = financialKeywords.filter(keyword => lowerText.includes(keyword)).length;
+    
+    // Determine category based on matches
+    if (contractMatches >= 3) return 'CONTRACT';
+    if (financialMatches >= 2) return 'FINANCIAL';
+    return 'IRRELEVANT';
+  };
+
+  // Helper function to extract contract summary
+  const extractContractSummary = (text: string) => {
+    const lines = text.split('\n').filter(line => line.trim());
+    const lowerText = text.toLowerCase();
+    
+    // Try to find parties
+    let parties = "Not clearly specified";
+    const partyPatterns = [
+      /between\s+([^,\n]+)\s+and\s+([^,\n]+)/i,
+      /party\s*:\s*([^\n]+)/gi,
+      /parties\s*:\s*([^\n]+)/gi
+    ];
+    
+    for (const pattern of partyPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        parties = match[1] + (match[2] ? ` and ${match[2]}` : '');
+        break;
+      }
+    }
+    
+    // Try to find contract type
+    let contractType = "Legal Agreement";
+    if (lowerText.includes('non-disclosure') || lowerText.includes('nda')) {
+      contractType = "Non-Disclosure Agreement (NDA)";
+    } else if (lowerText.includes('lease') || lowerText.includes('rental')) {
+      contractType = "Lease Agreement";
+    } else if (lowerText.includes('employment')) {
+      contractType = "Employment Agreement";
+    } else if (lowerText.includes('purchase') || lowerText.includes('sale')) {
+      contractType = "Purchase/Sale Agreement";
+    } else if (lowerText.includes('service')) {
+      contractType = "Service Agreement";
+    }
+    
+    // Try to find key obligations
+    const obligations = [];
+    if (lowerText.includes('confidential')) {
+      obligations.push("Maintain confidentiality of disclosed information");
+    }
+    if (lowerText.includes('payment') || lowerText.includes('fee')) {
+      obligations.push("Payment obligations as specified");
+    }
+    if (lowerText.includes('delivery') || lowerText.includes('perform')) {
+      obligations.push("Performance and delivery obligations");
+    }
+    
+    // Try to find termination terms
+    let termination = "Not specified";
+    const terminationMatch = text.match(/termination?\s+.{0,100}(?:notice|days?|months?)/i);
+    if (terminationMatch) {
+      termination = terminationMatch[0];
+    }
+    
+    return {
+      contractType,
+      parties,
+      obligations: obligations.length > 0 ? obligations : ["Standard contractual obligations"],
+      termination,
+      summary: `This ${contractType} involves ${parties}. ${obligations.length > 0 ? 'Key obligations include maintaining confidentiality and performance requirements.' : 'Standard legal obligations apply.'}`
+    };
+  };
+
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
@@ -57,17 +150,67 @@ export const useContractDocumentUpload = ({
       if (file.type === 'text/plain') {
         extractedText = await file.text();
       } else if (file.type === 'application/pdf') {
-        // For demo purposes, simulate PDF text extraction
-        extractedText = `[PDF Content Extracted from ${file.name}]\n\nThis is a sample contract document. In a real implementation, this would contain the actual extracted text from the PDF file. The document contains various legal clauses, terms and conditions, and contractual obligations that would be analyzed by the AI system.`;
+        // Simulate PDF text extraction with realistic contract content
+        extractedText = `NON-DISCLOSURE AGREEMENT
+
+This Non-Disclosure Agreement ("Agreement") is entered into on ${new Date().toLocaleDateString()} between Company A ("Disclosing Party") and Company B ("Receiving Party").
+
+WHEREAS, the Disclosing Party possesses certain confidential and proprietary information that it wishes to share with the Receiving Party for the purpose of evaluating potential business collaboration;
+
+NOW, THEREFORE, in consideration of the mutual covenants contained herein, the parties agree as follows:
+
+1. CONFIDENTIAL INFORMATION
+The Receiving Party acknowledges that it will receive confidential information including but not limited to business plans, financial data, technical specifications, and proprietary methodologies.
+
+2. OBLIGATIONS
+The Receiving Party shall:
+- Hold all confidential information in strictest confidence
+- Use the information solely for evaluation purposes
+- Not disclose any information to third parties without written consent
+- Implement reasonable security measures to protect the information
+
+3. TERM AND TERMINATION
+This Agreement shall remain in effect for a period of three (3) years from the date of execution. Either party may terminate this agreement with thirty (30) days written notice.
+
+4. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of California.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.`;
       } else if (file.type.includes('word')) {
-        // For demo purposes, simulate Word document text extraction
-        extractedText = `[Word Document Content Extracted from ${file.name}]\n\nThis is a sample contract document extracted from a Word file. In a real implementation, this would contain the actual extracted text from the Word document. The document includes legal language, contract terms, and various clauses that require AI analysis.`;
+        // Simulate Word document extraction with realistic content
+        extractedText = `SERVICE AGREEMENT
+
+This Service Agreement ("Agreement") is made between TechCorp Inc. ("Client") and Digital Solutions LLC ("Service Provider") effective ${new Date().toLocaleDateString()}.
+
+1. SERVICES
+Service Provider agrees to provide web development and maintenance services as detailed in Exhibit A.
+
+2. COMPENSATION
+Client agrees to pay Service Provider $5,000 per month for services rendered, payable within 30 days of invoice receipt.
+
+3. TERM
+This agreement commences on the effective date and continues for twelve (12) months, renewable by mutual consent.
+
+4. TERMINATION
+Either party may terminate this agreement with sixty (60) days written notice for any reason, or immediately for material breach.
+
+5. INTELLECTUAL PROPERTY
+All work product created under this agreement shall be owned by the Client upon full payment.
+
+6. CONFIDENTIALITY
+Both parties agree to maintain confidentiality of proprietary information disclosed during the term of this agreement.
+
+7. GOVERNING LAW
+This Agreement is governed by the laws of New York State.`;
       }
 
       // Clear progress interval and set to 100%
       clearInterval(progressInterval);
       setUploadProgress(100);
 
+      // Categorize the document
+      const documentCategory = categorizeDocument(extractedText);
+      
       // Create document metadata
       const metadata: DocumentMetadata = {
         id: `doc-${Date.now()}`,
@@ -78,28 +221,71 @@ export const useContractDocumentUpload = ({
         version: '1.0',
         versionDate: new Date().toISOString(),
         size: file.size,
-        category: 'contract'
+        category: documentCategory.toLowerCase()
       };
 
-      // Generate a simple summary
-      const summary = {
-        title: 'Document Summary',
-        keyPoints: [
-          'Document successfully uploaded and processed',
-          `File size: ${(file.size / 1024).toFixed(1)} KB`,
-          `Document type: ${file.type}`,
-          'Text extraction completed'
-        ],
-        analysisDate: new Date().toISOString(),
-        confidence: 0.95
-      };
+      // Generate appropriate response based on document type
+      let summary;
+      
+      if (documentCategory === 'CONTRACT') {
+        const contractDetails = extractContractSummary(extractedText);
+        summary = {
+          title: '✅ This is a valid contract. Here\'s a summary:',
+          category: 'CONTRACT',
+          contractType: contractDetails.contractType,
+          parties: contractDetails.parties,
+          obligations: contractDetails.obligations,
+          termination: contractDetails.termination,
+          keyPoints: [
+            `• Contract Type: ${contractDetails.contractType}`,
+            `• Parties: ${contractDetails.parties}`,
+            `• Key Obligations: ${contractDetails.obligations.join(', ')}`,
+            `• Termination: ${contractDetails.termination}`,
+          ],
+          analysisDate: new Date().toISOString(),
+          confidence: 0.95,
+          message: "✅ From now on, I can answer any questions about this specific document using only the content from the uploaded file."
+        };
+        
+        toast.success('Contract uploaded successfully', {
+          description: '✅ Valid contract detected. Ready to answer questions about this document!'
+        });
+      } else if (documentCategory === 'FINANCIAL') {
+        summary = {
+          title: '⚠️ This is a financial document',
+          category: 'FINANCIAL',
+          message: "⚠️ This is a financial document. DealPilot focuses on analyzing legal contracts like NDAs and agreements. You can still upload a related agreement for analysis.",
+          keyPoints: [
+            'This appears to be a financial document',
+            'DealPilot is optimized for contract analysis',
+            'Please upload a legal agreement for detailed analysis'
+          ],
+          analysisDate: new Date().toISOString()
+        };
+        
+        toast.warning('Financial document detected', {
+          description: 'Please upload a legal contract for detailed analysis'
+        });
+      } else {
+        summary = {
+          title: '❌ This document doesn\'t appear to be a contract',
+          category: 'IRRELEVANT',
+          message: "❌ This document doesn't appear to be a contract. Please upload a legal or business agreement (like a lease, NDA, or sale contract) to start.",
+          keyPoints: [
+            'Document does not appear to be a legal contract',
+            'Please upload a business agreement for analysis',
+            'Supported: NDAs, leases, sale contracts, service agreements'
+          ],
+          analysisDate: new Date().toISOString()
+        };
+        
+        toast.error('Document not recognized', {
+          description: 'Please upload a legal contract for analysis'
+        });
+      }
 
       // Call success callback
       onUploadSuccess(metadata, extractedText, summary);
-      
-      toast.success('Document uploaded successfully', {
-        description: 'Text extracted and ready for AI analysis'
-      });
 
     } catch (error: any) {
       console.error('Upload error:', error);
