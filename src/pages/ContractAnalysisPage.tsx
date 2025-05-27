@@ -12,6 +12,11 @@ import { useContractSummary } from '@/hooks/contract/useContractSummary';
 import { toast } from 'sonner';
 
 const ContractAnalysisPage: React.FC = () => {
+  // All hooks must be called unconditionally at the top level
+  const contractDataState = useContractData();
+  const questionAnswerState = useContractQuestionAnswer();
+  
+  // Extract values from contractDataState to avoid destructuring in render
   const {
     documents,
     selectedDocument,
@@ -22,37 +27,42 @@ const ContractAnalysisPage: React.FC = () => {
     setSelectedDocument,
     setContractText,
     setError
-  } = useContractData();
+  } = contractDataState;
 
-  const { uploading, handleFileUpload } = useContractUpload(
+  // Call upload hook with stable dependencies
+  const uploadState = useContractUpload(
     setDocuments,
     setSelectedDocument,
     setContractText
   );
 
-  const { documentSummary } = useContractSummary(contractText, selectedDocument?.id);
+  // Call summary hook with stable dependencies
+  const summaryState = useContractSummary(contractText, selectedDocument?.id);
 
-  const questionAnswerState = useContractQuestionAnswer();
+  // Extract values to avoid destructuring issues
+  const { uploading, handleFileUpload } = uploadState;
+  const { documentSummary } = summaryState;
 
-  const handleQuestionSubmission = async (question: string) => {
+  // Define handlers as stable functions
+  const handleQuestionSubmission = React.useCallback(async (question: string) => {
     if (!contractText) {
       toast.error('No contract content available for analysis');
       return null;
     }
     return questionAnswerState.handleAskQuestion(question, contractText);
-  };
+  }, [contractText, questionAnswerState.handleAskQuestion]);
   
-  const handleContractAnalysis = async (analysisType: string) => {
+  const handleContractAnalysis = React.useCallback(async (analysisType: string) => {
     if (!contractText) {
       toast.error('No contract content available for analysis');
       return null;
     }
     return questionAnswerState.handleAnalyzeContract(analysisType, contractText);
-  };
+  }, [contractText, questionAnswerState.handleAnalyzeContract]);
 
-  const exportHighlights = () => {
+  const exportHighlights = React.useCallback(() => {
     toast.info('Export functionality not implemented yet');
-  };
+  }, []);
 
   return (
     <AppLayout>
