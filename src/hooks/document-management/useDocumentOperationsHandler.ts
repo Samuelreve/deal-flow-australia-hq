@@ -2,7 +2,6 @@
 import { useCallback } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useDocumentDialogState } from "./useDocumentDialogState";
-import { toast } from "sonner";
 
 interface UseDocumentOperationsHandlerProps {
   deleteDocument: (document: Document) => Promise<boolean>;
@@ -47,11 +46,7 @@ export const useDocumentOperationsHandler = ({
     setIsDeleting(true);
     try {
       await deleteDocument(documentToDelete);
-      toast.success("Document deleted successfully");
       closeDeleteDialog();
-    } catch (error) {
-      console.error("Delete failed:", error);
-      toast.error("Failed to delete document");
     } finally {
       setIsDeleting(false);
     }
@@ -64,11 +59,7 @@ export const useDocumentOperationsHandler = ({
     setIsDeletingVersion(true);
     try {
       await deleteDocumentVersion(versionToDelete);
-      toast.success("Version deleted successfully");
       closeVersionDeleteDialog();
-    } catch (error) {
-      console.error("Version delete failed:", error);
-      toast.error("Failed to delete version");
     } finally {
       setIsDeletingVersion(false);
     }
