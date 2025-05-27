@@ -9,26 +9,116 @@ export async function handleSummarizeDocument(
   try {
     // For contract analysis, content is provided directly
     if (dealId === 'contract-analysis') {
-      const systemPrompt = `You are a legal document summarization assistant. Provide concise, structured summaries of legal documents.`;
-      
-      const userPrompt = `Please provide a comprehensive summary of this document:\n\n${content}`;
+      // First, determine if this is a contract or non-contract document
+      const classificationPrompt = `Analyze the following document and determine if it is a contract/legal agreement or another type of document. Respond with only "CONTRACT" or "NON-CONTRACT":
 
-      const response = await openai.chat.completions.create({
+${content.substring(0, 2000)}`;
+
+      const classificationResponse = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "system", content: "You are a document classifier. Respond with only 'CONTRACT' or 'NON-CONTRACT'." },
+          { role: "user", content: classificationPrompt }
         ],
-        temperature: 0.2,
-        max_tokens: 1200
+        temperature: 0.1,
+        max_tokens: 10
       });
 
-      const summary = response.choices[0]?.message?.content || "Sorry, I couldn't generate a summary.";
+      const documentType = classificationResponse.choices[0]?.message?.content?.trim() || "NON-CONTRACT";
 
-      return {
-        summary,
-        disclaimer: "This AI-generated summary is for informational purposes only."
-      };
+      if (documentType === "CONTRACT") {
+        // Use contract-specific analysis
+        const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+
+${content}
+
+Provide your analysis in this exact structure:
+
+CONTRACT TYPE AND PURPOSE
+[Identify the type of contract and its main purpose]
+
+KEY PARTIES
+[List the main parties involved and their roles]
+
+MAIN TERMS AND CONDITIONS
+[Summarize the most important terms, obligations, and conditions]
+
+FINANCIAL TERMS
+[Detail any payments, pricing, or financial obligations]
+
+KEY DATES AND DEADLINES
+[Important dates, deadlines, or time periods]
+
+TERMINATION CONDITIONS
+[How and when the contract can be terminated]
+
+POTENTIAL RISKS OR CONCERNS
+[Any risks, ambiguous clauses, or areas of concern]
+
+Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible.`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+            { role: "user", content: contractPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: 1500
+        });
+
+        const summary = response.choices[0]?.message?.content || "Could not analyze the contract.";
+
+        return {
+          summary: summary + "\n\nDISCLAIMER: This AI-generated analysis is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance.",
+          documentType: "CONTRACT"
+        };
+
+      } else {
+        // Use general document analysis
+        const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+
+${content}
+
+Provide your analysis in this exact structure:
+
+DOCUMENT TYPE
+[Identify what type of document this is]
+
+MAIN PURPOSE
+[Explain the primary purpose or objective of the document]
+
+KEY INFORMATION
+[Summarize the most important information, data, or content]
+
+MAIN SECTIONS OR TOPICS
+[Overview of the major sections or topics covered]
+
+IMPORTANT DETAILS
+[Any specific details, numbers, dates, or requirements that stand out]
+
+RECOMMENDATIONS OR NEXT STEPS
+[If applicable, any suggested actions or next steps]
+
+Keep the summary clear and focused on the most relevant information.`;
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+            { role: "user", content: generalPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: 1200
+        });
+
+        const summary = response.choices[0]?.message?.content || "Could not analyze the document.";
+
+        return {
+          summary: summary + "\n\nNOTE: This is an AI-generated summary for informational purposes. Please review the original document for complete and accurate information.",
+          documentType: "NON-CONTRACT"
+        };
+      }
     }
 
     // For regular deals, implement actual document fetching here
