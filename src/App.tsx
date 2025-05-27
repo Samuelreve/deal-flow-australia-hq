@@ -23,6 +23,8 @@ import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
 import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
 import ProfilePage from "@/pages/ProfilePage";
 import AcceptInvitePage from "@/pages/AcceptInvitePage";
+import IntentCapturePage from "@/pages/onboarding/IntentCapturePage";
+import ProfessionalProfileSetupPage from "@/pages/onboarding/ProfessionalProfileSetupPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -90,9 +92,8 @@ function App() {
               
               {/* Onboarding routes - accessible if authenticated but onboarding incomplete */}
               {/* These are outside OnboardingCheck so users can access them during onboarding */}
-              {/* Note: These would need to be implemented as separate page components */}
-              {/* <Route path="/onboarding/intent" element={<IntentCapturePage />} /> */}
-              {/* <Route path="/profile/professional-setup" element={<ProfessionalProfileSetupPage />} /> */}
+              <Route path="/onboarding/intent" element={<IntentCapturePage />} />
+              <Route path="/profile/professional-setup" element={<ProfessionalProfileSetupPage />} />
             </Route>
             
             {/* Catch-all for 404 Not Found (ensure it's the last route) */}
