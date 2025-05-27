@@ -88,13 +88,23 @@ You can ask me questions directly, or upload a document for analysis. What busin
         }
       });
 
+      console.log('AI assistant response:', data);
+
       if (error) {
         console.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to get AI response');
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'AI service returned an error');
+      if (!data) {
+        throw new Error('No data received from AI service');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'AI service returned an error');
+      }
+
+      if (!data.response) {
+        throw new Error('No response content received from AI service');
       }
       
       const assistantMessage: Message = {
@@ -106,6 +116,7 @@ You can ask me questions directly, or upload a document for analysis. What busin
         confidence: detection.confidence
       };
 
+      console.log('Adding assistant message:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('Error getting AI response:', error);
