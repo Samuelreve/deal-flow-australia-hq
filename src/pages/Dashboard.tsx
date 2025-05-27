@@ -9,15 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Activity, Clock, Inbox, AlertCircle, Plus } from "lucide-react";
 import { useDeals } from "@/hooks/useDeals";
 import { useNotifications } from "@/hooks/useNotifications";
-import CreateDealForm from "@/components/deals/CreateDealForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { deals, loading: dealsLoading, metrics } = useDeals();
   const { notifications, unreadCount } = useNotifications();
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [showCreateDeal, setShowCreateDeal] = useState(false);
+  const navigate = useNavigate();
   
   // Get current date for dashboard information
   const currentDate = new Date().toLocaleDateString('en-US', { 
@@ -85,20 +84,10 @@ const Dashboard = () => {
               {currentDate} · Welcome to your personalized deal dashboard
             </p>
           </div>
-          <Dialog open={showCreateDeal} onOpenChange={setShowCreateDeal}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Deal
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Deal</DialogTitle>
-              </DialogHeader>
-              <CreateDealForm onSuccess={() => setShowCreateDeal(false)} />
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => navigate('/create-deal')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Deal
+          </Button>
         </div>
         
         {/* Quick stats section */}
@@ -199,7 +188,7 @@ const Dashboard = () => {
                   <Button 
                     variant="outline" 
                     className="mt-4"
-                    onClick={() => setShowCreateDeal(true)}
+                    onClick={() => navigate('/create-deal')}
                   >
                     Create your first deal
                   </Button>
@@ -208,7 +197,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Upcoming Milestones */}
+          {/* Recent Notifications */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-medium">Recent Notifications</CardTitle>
