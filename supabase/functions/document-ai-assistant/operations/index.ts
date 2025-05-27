@@ -1,48 +1,15 @@
 
-import { handleExplainClause } from "./explain-clause.ts";
-import { handleGenerateTemplate, handleGenerateSmartTemplate } from "./generate-template.ts";
-import { handleSummarizeDocument } from "./summarize-document.ts";
-import { handleExplainMilestone } from "./explain-milestone.ts";
-import { handleSuggestNextAction } from "./suggest-next-action.ts";
-import { handleGenerateMilestones } from "./generate-milestones.ts";
-import { handleAnalyzeDocument } from "./analyze-document.ts";
-import { handleSummarizeVersionChanges } from "./summarize-version-changes.ts";
-import { handleDealChatQuery } from "./deal-chat-query.ts";
-import { handleGetDealInsights } from "./get-deal-insights.ts";
-import { handlePredictDealHealth } from "./predict-deal-health.ts";
-import { handleSummarizeDeal } from "./summarize-deal.ts";
-import { handleExplainContractClause } from "./explain-contract-clause.ts";
-import { handleSummarizeContract } from "./summarize-contract.ts";
-import { analyzeSmartContract, explainSmartContractClause, summarizeSmartContract } from "./smart-contract-operations.ts";
-import { OpenAI } from "https://esm.sh/openai@4.0.0/index.js";
-
-export {
-  handleExplainClause,
-  handleGenerateTemplate,
-  handleGenerateSmartTemplate,
-  handleSummarizeDocument,
-  handleExplainMilestone,
-  handleSuggestNextAction,
-  handleGenerateMilestones,
-  handleAnalyzeDocument,
-  handleSummarizeVersionChanges,
-  handleDealChatQuery,
-  handleGetDealInsights,
-  handlePredictDealHealth,
-  handleSummarizeDeal,
-  handleExplainContractClause,
-  handleSummarizeContract,
-  analyzeSmartContract,
-  explainSmartContractClause,
-  summarizeSmartContract
-};
-
-// Helper function to initialize OpenAI
-export const initializeOpenAI = () => {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY environment variable");
-  }
-  
-  return new OpenAI({ apiKey });
-};
+// Export all operation handlers
+export { handleExplainClause } from './explain-clause.ts';
+export { handleGenerateTemplate } from './generate-template.ts';
+export { handleSummarizeDocument } from './summarize-document.ts';
+export { handleExplainMilestone } from './explain-milestone.ts';
+export { handleSuggestNextAction } from './suggest-next-action.ts';
+export { handleGenerateMilestones } from './generate-milestones.ts';
+export { handleAnalyzeDocument } from './analyze-document.ts';
+export { handleSummarizeDeal } from './summarize-deal.ts';
+export { handleGetDealInsights } from './get-deal-insights.ts';
+export { handleDealChatQuery } from './deal-chat-query.ts';
+export { handlePredictDealHealth } from './predict-deal-health.ts';
+export { handleSummarizeContract } from './summarize-contract.ts';
+export { handleExplainContractClause } from './explain-contract-clause.ts';

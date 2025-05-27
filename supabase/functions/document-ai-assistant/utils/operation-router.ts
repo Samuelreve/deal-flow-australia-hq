@@ -16,9 +16,6 @@ import {
   handleExplainContractClause
 } from "../operations/index.ts";
 
-/**
- * Route the request to the appropriate handler based on the operation type
- */
 export async function routeOperation(payload: RequestPayload, openai: any): Promise<Record<string, any>> {
   const { 
     operation, 
@@ -35,52 +32,59 @@ export async function routeOperation(payload: RequestPayload, openai: any): Prom
 
   switch (operation) {
     case "explain_clause":
-      // For contract analysis, handle directly with content
       if (dealId === 'contract-analysis') {
         return await handleExplainContractClause(dealId, userId, content, openai);
       }
       return await handleExplainClause(content, context, openai);
+      
     case "generate_template":
       const templateType = context?.templateType || "Agreement";
       return await handleGenerateTemplate(content, dealId, userId, templateType, context, openai);
+      
     case "summarize_document":
       return await handleSummarizeDocument(content, dealId, documentId, documentVersionId, openai);
+      
     case "explain_milestone":
       return await handleExplainMilestone(dealId, milestoneId as string, openai);
+      
     case "suggest_next_action":
       return await handleSuggestNextAction(dealId, openai);
+      
     case "generate_milestones":
       return await handleGenerateMilestones(dealId, userId, context, openai);
+      
     case "analyze_document":
-      // For contract analysis, handle directly with content
       if (dealId === 'contract-analysis') {
         return await handleAnalyzeContractDocument(content, context?.analysisType || "general", openai);
       }
       return await handleAnalyzeDocument(dealId, documentId, documentVersionId, context?.analysisType || "general", openai);
+      
     case "summarize_deal":
       return await handleSummarizeDeal(dealId, openai);
+      
     case "get_deal_insights":
       return await handleGetDealInsights(userId, openai);
+      
     case "deal_chat_query":
       return await handleDealChatQuery(dealId, userId, content, chatHistory, openai);
+      
     case "predict_deal_health":
       return await handlePredictDealHealth(dealId, userId, openai);
+      
     case "summarize_contract":
-      // For contract analysis, handle directly with content
       if (dealId === 'contract-analysis') {
         return await handleSummarizeContractContent(content, openai);
       }
       return await handleSummarizeContract(dealId, documentId, documentVersionId, userId, openai);
+      
     case "explain_contract_clause":
       return await handleExplainContractClause(dealId, userId, selectedText || content, openai);
+      
     default:
       throw new Error("Invalid operation type");
   }
 }
 
-/**
- * Handle contract document analysis for contract analysis flow
- */
 async function handleAnalyzeContractDocument(
   content: string,
   analysisType: string,
@@ -91,7 +95,6 @@ async function handleAnalyzeContractDocument(
       throw new Error("Insufficient document content for analysis. The document may be empty or the text extraction failed.");
     }
 
-    // Define prompt based on analysis type
     let prompt = '';
 
     switch(analysisType) {
@@ -140,10 +143,8 @@ Keep your summary clear, objective, and focused on the most essential informatio
         break;
     }
 
-    // Add disclaimer to the prompt
     prompt += `\n\nImportant: Base your analysis strictly on the document provided. Do not speculate beyond the text. End your response with this disclaimer: "This AI-generated analysis is for informational purposes only and should not be considered legal advice. Always consult with a qualified legal professional for specific guidance."`;
 
-    // Call OpenAI for analysis
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -167,9 +168,6 @@ Keep your summary clear, objective, and focused on the most essential informatio
   }
 }
 
-/**
- * Handle contract summarization for contract analysis flow
- */
 async function handleSummarizeContractContent(
   content: string,
   openai: any
@@ -179,13 +177,11 @@ async function handleSummarizeContractContent(
       throw new Error('Insufficient document content for summarization');
     }
 
-    // Truncate content if too large
     const maxContentLength = 15000;
     const truncatedContent = content.length > maxContentLength 
       ? content.substring(0, maxContentLength) + "... [CONTENT TRUNCATED]" 
       : content;
 
-    // Construct OpenAI prompt for summarization
     const promptContent = `You are a legal document summarization assistant. Please provide a comprehensive summary of the following document:
 
 ${truncatedContent}
@@ -200,7 +196,6 @@ Your summary should include:
 
 Format your response in clear sections with headings. Be concise but thorough.`;
 
-    // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
