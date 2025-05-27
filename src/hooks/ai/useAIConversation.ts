@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,20 +24,20 @@ export const useAIConversation = (documentContent?: string) => {
   useEffect(() => {
     const welcomeMessage: Message = {
       id: '1',
-      content: `**Welcome! I'm your AI Business Assistant** 🚀
+      content: `Welcome! I'm your AI Business Assistant 🚀
 
-**Ready to help with strategy, deals, documents, and finance.**
+Ready to help with strategy, deals, documents, and finance.
 
-**🎯 What I can do:**
-• **📈 Strategy** — Market insights, growth planning, competitive analysis
-• **🤝 Deals** — Term analysis, negotiation tactics, deal structuring  
-• **📄 Contracts** — Clause summaries, risk assessment, compliance checks
-• **💰 Finance** — Projections, valuation models, ROI analysis
+🎯 What I can do:
+📈 Strategy — Market insights, growth planning, competitive analysis
+🤝 Deals — Term analysis, negotiation tactics, deal structuring  
+📄 Contracts — Clause summaries, risk assessment, compliance checks
+💰 Finance — Projections, valuation models, ROI analysis
 
-**✨ Get started:**  
-Ask me anything like **"What's the risk in this contract?"** or upload a document for instant insights.
+✨ Get started:  
+Ask me anything like "What's the risk in this contract?" or upload a document for instant insights.
 
-**What can I help you with today?**`,
+What can I help you with today?`,
       role: 'assistant',
       timestamp: new Date(),
       category: 'strategy'
