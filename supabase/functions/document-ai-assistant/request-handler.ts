@@ -30,18 +30,21 @@ export async function handleRequest(
       return createErrorResponse(operationValidation.error!, 400);
     }
     
-    // Validate user's access to the deal
-    try {
-      await validateDealAccess(payload.dealId!, payload.userId, supabaseUrl, supabaseKey);
-    } catch (error) {
-      return createErrorResponse(error.message, 403);
+    // Skip deal validation for contract analysis operations
+    if (payload.dealId !== 'contract-analysis') {
+      // Validate user's access to the deal
+      try {
+        await validateDealAccess(payload.dealId!, payload.userId, supabaseUrl, supabaseKey);
+      } catch (error) {
+        return createErrorResponse(error.message, 403);
+      }
     }
     
     // Route to appropriate operation handler
     const result = await routeOperation(payload, openai);
     
-    // Save analysis result if it's an analyze_document operation
-    if (payload.operation === 'analyze_document' && result && payload.context?.saveAnalysis !== false) {
+    // Save analysis result if it's an analyze_document operation (but not for contract analysis)
+    if (payload.operation === 'analyze_document' && result && payload.context?.saveAnalysis !== false && payload.dealId !== 'contract-analysis') {
       await saveAnalysisResult(
         payload.documentId!,
         payload.documentVersionId!,
