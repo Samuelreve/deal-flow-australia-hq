@@ -2,9 +2,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDocuments } from "./documents/useDocuments";
+import { useDocuments } from "@/hooks/documents/useDocuments";
 import { toast } from "sonner";
-import { useLocation, useSearchParams } from "react-router-dom";
 
 interface UseDocumentManagementProps {
   dealId: string;
@@ -12,82 +11,104 @@ interface UseDocumentManagementProps {
   isParticipant?: boolean;
 }
 
-export const useDocumentManagement = ({
-  dealId,
+export const useDocumentManagement = ({ 
+  dealId, 
   initialDocuments = [],
-  isParticipant = false,
+  isParticipant = false 
 }: UseDocumentManagementProps) => {
   const { user } = useAuth();
-  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  
+  // Document state and operations
+  const {
+    documents,
+    isLoading,
+    uploading,
+    uploadDocument,
+    deleteDocument,
+    selectedDocument,
+    selectDocument,
+    documentVersions,
+    loadingVersions,
+    deleteDocumentVersion,
+    selectedVersionId,
+    selectedVersionUrl,
+    selectVersion,
+    refreshDocuments,
+    refreshVersions
+  } = useDocuments(dealId, initialDocuments);
+
+  // UI state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const [versionToDelete, setVersionToDelete] = useState<DocumentVersion | null>(null);
   const [showVersionDeleteDialog, setShowVersionDeleteDialog] = useState(false);
+  const [versionToDelete, setVersionToDelete] = useState<DocumentVersion | null>(null);
   const [isDeletingVersion, setIsDeletingVersion] = useState(false);
   
-  const [versionToShare, setVersionToShare] = useState<DocumentVersion | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [versionToShare, setVersionToShare] = useState<DocumentVersion | null>(null);
   
-  // Document state for inline analyzer
   const [lastUploadedDocument, setLastUploadedDocument] = useState<{
     id: string;
     versionId: string;
     name: string;
   } | null>(null);
-  
-  // Get URL search params to determine if we're in analyze mode
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-  const analyzeModeActive = searchParams.get("analyze") === "true";
-  const docIdToAnalyze = searchParams.get("docId");
-  
-  // Initialize document hooks
-  const {
-    documents,
-    isLoading,
-    selectedDocument,
-    selectDocument,
-    documentVersions,
-    loadingVersions,
-    selectedVersionId,
-    selectedVersionUrl,
-    selectVersion,
-    uploading,
-    uploadDocument,
-    deleteDocument,
-    deleteDocumentVersion,
-    refreshDocuments,
-    refreshVersions
-  } = useDocuments(dealId, initialDocuments);
-
-  // When in analyze mode, select the document to analyze
-  useEffect(() => {
-    if (analyzeModeActive && docIdToAnalyze) {
-      const docToSelect = documents.find(doc => doc.id === docIdToAnalyze);
-      if (docToSelect) {
-        selectDocument(docToSelect);
-      }
-    }
-  }, [analyzeModeActive, docIdToAnalyze, documents, selectDocument]);
 
   // Handle document selection
-  const handleSelectDocument = useCallback(
-    async (document: Document) => {
-      selectDocument(document);
-    },
-    [selectDocument]
-  );
-  
-  // Handle version selection
-  const handleSelectVersion = useCallback(
-    (version: DocumentVersion) => {
-      selectVersion(version);
-    },
-    [selectVersion]
-  );
+  const handleSelectDocument = useCallback(async (document: Document) => {
+    console.log("Selecting document:", document);
+    try {
+      await selectDocument(document);
+    } catch (error) {
+      console.error("Error selecting document:", error);
+      toast.error("Failed to load document versions");
+    }
+  }, [selectDocument]);
 
-  // Handle document deletion dialog
+  // Handle file upload
+  const handleUpload = useCallback(async (
+    file: File, 
+    category: string, 
+    documentId?: string
+  ): Promise<Document | null> => {
+    console.log("Starting upload:", { fileName: file.name, category, documentId });
+    
+    try {
+      const result = await uploadDocument(file, category, documentId);
+      
+      if (result) {
+        console.log("Upload successful:", result);
+        
+        // Set as last uploaded document to trigger inline analyzer
+        setLastUploadedDocument({
+          id: result.id,
+          versionId: result.latestVersionId || '',
+          name: result.name
+        });
+        
+        // Refresh documents list
+        await refreshDocuments();
+        
+        toast.success(
+          documentId ? "Version added successfully" : "Document uploaded successfully",
+          {
+            description: `${file.name} has been processed.`
+          }
+        );
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Upload failed", {
+        description: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+      return null;
+    }
+  }, [uploadDocument, refreshDocuments]);
+
+  // Document deletion handlers
   const openDeleteDialog = useCallback((document: Document) => {
     setDocumentToDelete(document);
     setShowDeleteDialog(true);
@@ -103,19 +124,18 @@ export const useDocumentManagement = ({
     
     setIsDeleting(true);
     try {
-      await deleteDocument(documentToDelete);
+      await deleteDocument(documentToDelete.id);
       toast.success("Document deleted successfully");
-      refreshDocuments();
+      closeDeleteDialog();
     } catch (error) {
-      console.error("Error deleting document:", error);
+      console.error("Delete failed:", error);
       toast.error("Failed to delete document");
     } finally {
       setIsDeleting(false);
-      closeDeleteDialog();
     }
-  }, [documentToDelete, deleteDocument, refreshDocuments, closeDeleteDialog]);
+  }, [documentToDelete, deleteDocument, closeDeleteDialog]);
 
-  // Handle version deletion dialog
+  // Version deletion handlers
   const openVersionDeleteDialog = useCallback((version: DocumentVersion) => {
     setVersionToDelete(version);
     setShowVersionDeleteDialog(true);
@@ -131,21 +151,22 @@ export const useDocumentManagement = ({
     
     setIsDeletingVersion(true);
     try {
-      await deleteDocumentVersion(versionToDelete);
+      await deleteDocumentVersion(versionToDelete.id);
       toast.success("Version deleted successfully");
-      if (selectedDocument) {
-        refreshVersions(selectedDocument.id);
-      }
+      closeVersionDeleteDialog();
     } catch (error) {
-      console.error("Error deleting version:", error);
+      console.error("Version delete failed:", error);
       toast.error("Failed to delete version");
     } finally {
       setIsDeletingVersion(false);
-      closeVersionDeleteDialog();
     }
-  }, [versionToDelete, deleteDocumentVersion, refreshVersions, selectedDocument, closeVersionDeleteDialog]);
+  }, [versionToDelete, deleteDocumentVersion, closeVersionDeleteDialog]);
 
-  // Handle version sharing dialog
+  // Version operations
+  const handleSelectVersion = useCallback((version: DocumentVersion) => {
+    selectVersion(version);
+  }, [selectVersion]);
+
   const handleShareVersion = useCallback((version: DocumentVersion) => {
     setVersionToShare(version);
     setShowShareDialog(true);
@@ -156,35 +177,7 @@ export const useDocumentManagement = ({
     setVersionToShare(null);
   }, []);
 
-  // Handle document upload
-  const handleUpload = useCallback(async (file: File, category: string, documentId?: string): Promise<Document | null> => {
-    try {
-      const uploadedDoc = await uploadDocument(file, category, documentId);
-      
-      if (uploadedDoc && uploadedDoc.latestVersion) {
-        // Store the last uploaded document for analysis
-        setLastUploadedDocument({
-          id: uploadedDoc.id,
-          versionId: uploadedDoc.latestVersion.id,
-          name: uploadedDoc.name
-        });
-        
-        // Select the uploaded document
-        selectDocument(uploadedDoc);
-        if (uploadedDoc.latestVersion) {
-          selectVersion(uploadedDoc.latestVersion);
-        }
-      }
-      
-      return uploadedDoc;
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload document");
-      return null;
-    }
-  }, [uploadDocument, selectDocument, selectVersion]);
-
-  // Clear inline analyzer state
+  // Clear last uploaded document
   const clearLastUploadedDocument = useCallback(() => {
     setLastUploadedDocument(null);
   }, []);
@@ -197,7 +190,7 @@ export const useDocumentManagement = ({
   }, [selectedDocument, refreshVersions]);
 
   return {
-    // Document list state
+    // Document list state and handlers
     documents,
     isLoading,
     uploading,
