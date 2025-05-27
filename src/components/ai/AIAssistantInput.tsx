@@ -50,17 +50,14 @@ const AIAssistantInput: React.FC<AIAssistantInputProps> = ({
           <Send className="h-4 w-4" />
         </Button>
       </div>
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-xs text-gray-500">
-          Powered by OpenAI GPT-4o-mini • Professional business guidance • Not a substitute for professional advice
-        </p>
-        {uploadedDocument && (
+      {uploadedDocument && (
+        <div className="flex items-center justify-end mt-2">
           <div className="flex items-center gap-1 text-xs text-green-600">
             <FileText className="h-3 w-3" />
             Document context active
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
