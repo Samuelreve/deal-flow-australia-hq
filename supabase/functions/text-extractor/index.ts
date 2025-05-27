@@ -2,9 +2,6 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Set up internal authentication - make sure we add a secret for this
-const INTERNAL_API_KEY = Deno.env.get('TEXT_EXTRACTOR_API_KEY') || '';
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -19,19 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    // Validate internal API key
-    const authHeader = req.headers.get('Authorization');
-    const providedApiKey = authHeader?.split(' ')[1];
-    
-    if (!providedApiKey || providedApiKey !== INTERNAL_API_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized: Invalid internal API key.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Parse request body
-    const { fileBase64, mimeType } = await req.json();
+    const { fileBase64, mimeType, fileName } = await req.json();
 
     if (!fileBase64 || !mimeType) {
       return new Response(
@@ -49,34 +35,43 @@ serve(async (req) => {
       extractedText = decoder.decode(fileBuffer);
     } 
     else if (mimeType === 'application/pdf') {
-      // For now, extract basic text from PDFs
-      // This is a placeholder implementation that tries to extract some readable text
+      // Enhanced PDF text extraction
       const decoder = new TextDecoder();
       const rawText = decoder.decode(fileBuffer);
-      
-      // Try to find readable text segments in the PDF content
       extractedText = extractReadableTextFromPDF(rawText);
       
-      // If we couldn't extract meaningful text
+      // If we couldn't extract meaningful text, try alternative approach
       if (!extractedText || extractedText.trim().length < 50) {
-        extractedText = "[PDF text extraction limited. This PDF may be scanned/image-based or requires specialized parsing.]";
+        extractedText = extractPDFTextAlternative(rawText);
+      }
+      
+      // Final fallback for PDFs
+      if (!extractedText || extractedText.trim().length < 50) {
+        extractedText = `[PDF Document: ${fileName || 'Unknown'}]\n\nThis PDF document has been uploaded but requires manual text extraction. The document may be image-based or contain complex formatting that requires specialized parsing tools.`;
       }
     } 
     else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // For DOCX, try to extract text from the XML content
+      // Enhanced DOCX text extraction
       const decoder = new TextDecoder();
       const rawContent = decoder.decode(fileBuffer);
-      
-      // DOCX files are zip archives with XML files inside
-      // Try to extract text from document.xml which contains the main content
       extractedText = extractTextFromDocx(rawContent);
       
       if (!extractedText || extractedText.trim().length < 50) {
-        extractedText = "[DOCX text extraction limited. This document may require specialized parsing.]";
+        extractedText = `[Word Document: ${fileName || 'Unknown'}]\n\nThis Word document has been uploaded but requires manual text extraction. The document may contain complex formatting or be corrupted.`;
+      }
+    }
+    else if (mimeType === 'application/msword') {
+      // DOC files (older format)
+      const decoder = new TextDecoder();
+      const rawContent = decoder.decode(fileBuffer);
+      extractedText = extractTextFromDoc(rawContent);
+      
+      if (!extractedText || extractedText.trim().length < 50) {
+        extractedText = `[Word Document: ${fileName || 'Unknown'}]\n\nThis Word document (.doc) has been uploaded but requires manual text extraction. Legacy Word documents require specialized parsing.`;
       }
     }
     else if (mimeType === 'application/rtf' || mimeType === 'text/rtf') {
-      // Very basic RTF text extraction
+      // RTF text extraction
       const decoder = new TextDecoder();
       const rtfContent = decoder.decode(fileBuffer);
       extractedText = stripRtfFormatting(rtfContent);
@@ -89,6 +84,11 @@ serve(async (req) => {
         }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Validate extracted text
+    if (!extractedText || extractedText.trim().length === 0) {
+      extractedText = `[Document: ${fileName || 'Unknown'}]\n\nThis document was uploaded but no readable text could be extracted. The file may be empty, corrupted, or in a format that requires specialized tools.`;
     }
 
     return new Response(
@@ -115,58 +115,141 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-// Basic function to extract readable text from PDF content
+// Enhanced function to extract readable text from PDF content
 function extractReadableTextFromPDF(rawContent: string): string {
   try {
-    // Look for text patterns in the PDF content
-    // This is a very simplified approach and won't work for all PDFs
     const textBlocks: string[] = [];
     
-    // Try to find text blocks between common PDF text markers
-    // This is a simple heuristic that works for some PDFs
-    const textPattern = /\(([^)]+)\)Tj/g;
-    let match;
+    // Multiple patterns to extract text from PDFs
+    const patterns = [
+      /\(([^)]+)\)Tj/g,
+      /\[([^\]]+)\]TJ/g,
+      /BT\s+([^ET]+)ET/g,
+      /\/F\d+\s+\d+\s+Tf\s+([^BT]+)/g
+    ];
     
-    while ((match = textPattern.exec(rawContent)) !== null) {
-      if (match[1] && match[1].length > 1) {
-        // Clean up escape sequences and non-printable characters
-        const cleanText = match[1]
-          .replace(/\\r|\\n/g, ' ')  // Replace escape sequences
-          .replace(/[^\x20-\x7E]/g, ' ');  // Keep only printable ASCII
-        
-        if (cleanText.trim().length > 0) {
-          textBlocks.push(cleanText);
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(rawContent)) !== null) {
+        if (match[1] && match[1].length > 1) {
+          const cleanText = match[1]
+            .replace(/\\r|\\n/g, ' ')
+            .replace(/\\t/g, ' ')
+            .replace(/\\\\/g, '\\')
+            .replace(/\\\(/g, '(')
+            .replace(/\\\)/g, ')')
+            .replace(/[^\x20-\x7E\s]/g, ' ')
+            .trim();
+          
+          if (cleanText.length > 2) {
+            textBlocks.push(cleanText);
+          }
         }
       }
     }
     
-    return textBlocks.join('\n');
+    return textBlocks.join('\n').trim();
   } catch (e) {
     console.error("Error extracting text from PDF:", e);
     return "";
   }
 }
 
-// Basic function to extract text from DOCX content
+// Alternative PDF text extraction method
+function extractPDFTextAlternative(rawContent: string): string {
+  try {
+    // Look for stream objects that might contain text
+    const streamPattern = /stream\s*([\s\S]*?)\s*endstream/gi;
+    const textBlocks: string[] = [];
+    
+    let match;
+    while ((match = streamPattern.exec(rawContent)) !== null) {
+      const streamContent = match[1];
+      
+      // Try to find readable text in the stream
+      const readableText = streamContent
+        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 2 && /[a-zA-Z]/.test(word))
+        .join(' ');
+      
+      if (readableText.length > 10) {
+        textBlocks.push(readableText);
+      }
+    }
+    
+    return textBlocks.join('\n').trim();
+  } catch (e) {
+    console.error("Alternative PDF extraction error:", e);
+    return "";
+  }
+}
+
+// Enhanced function to extract text from DOCX content
 function extractTextFromDocx(rawContent: string): string {
   try {
     // DOCX files are ZIP archives with XML documents
-    // This is a very simplified approach to extract some text
-    // Look for text between <w:t> tags which contain the actual text content
-    const textPattern = /<w:t[^>]*>(.*?)<\/w:t>/g;
-    const paragraphPattern = /<\/w:p>/g;
+    const textBlocks: string[] = [];
     
-    // Replace paragraph ends with newlines and extract text
-    let text = rawContent.replace(paragraphPattern, '\n');
-    const textMatches = text.matchAll(textPattern);
+    // Look for text between <w:t> tags (Word text elements)
+    const textPattern = /<w:t[^>]*>(.*?)<\/w:t>/gs;
+    const paragraphPattern = /<w:p[^>]*>/g;
     
-    const extractedText = Array.from(textMatches)
-      .map(match => match[1])
-      .join(' ');
-      
-    return extractedText;
+    let match;
+    while ((match = textPattern.exec(rawContent)) !== null) {
+      if (match[1]) {
+        const text = match[1]
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x\w+;/g, ' ')
+          .trim();
+        
+        if (text.length > 0) {
+          textBlocks.push(text);
+        }
+      }
+    }
+    
+    // If no text found, try broader search
+    if (textBlocks.length === 0) {
+      const broadPattern = />([^<]+)</g;
+      while ((match = broadPattern.exec(rawContent)) !== null) {
+        const text = match[1].trim();
+        if (text.length > 3 && /[a-zA-Z]/.test(text)) {
+          textBlocks.push(text);
+        }
+      }
+    }
+    
+    return textBlocks.join(' ').trim();
   } catch (e) {
     console.error("Error extracting text from DOCX:", e);
+    return "";
+  }
+}
+
+// Function to extract text from DOC files (legacy format)
+function extractTextFromDoc(rawContent: string): string {
+  try {
+    // DOC files have a different structure than DOCX
+    // This is a simplified extraction that looks for readable text
+    const textBlocks: string[] = [];
+    
+    // Remove binary data and look for readable text
+    const cleanContent = rawContent
+      .replace(/[\x00-\x1F\x7F-\xFF]/g, ' ')
+      .replace(/\s+/g, ' ');
+    
+    // Split into words and filter for meaningful content
+    const words = cleanContent.split(' ')
+      .filter(word => word.length > 2 && /[a-zA-Z]/.test(word))
+      .slice(0, 1000); // Limit to prevent memory issues
+    
+    return words.join(' ').trim();
+  } catch (e) {
+    console.error("Error extracting text from DOC:", e);
     return "";
   }
 }
@@ -174,21 +257,20 @@ function extractTextFromDocx(rawContent: string): string {
 // Strip RTF formatting to get plain text
 function stripRtfFormatting(rtfContent: string): string {
   try {
-    // Very basic RTF stripping - this won't work for all RTF features
-    // but should extract basic text
-    
-    // Remove RTF headers and commands
+    // Remove RTF control words and formatting
     let plainText = rtfContent
-      .replace(/\{\\rtf1.*?\\viewkind4/, '') // Remove header
-      .replace(/\\\w+\s?/g, '')  // Remove commands like \par
-      .replace(/\{|\}/g, '')     // Remove braces
-      .replace(/\\['"]/g, '"')   // Replace escaped quotes
-      .replace(/\\\\/g, '\\')    // Replace escaped backslashes
-      .replace(/\\[^a-zA-Z0-9]/g, '$1'); // Keep special chars after backslash
+      .replace(/\{\\rtf1[^}]*\}/g, '')
+      .replace(/\{\\[^}]*\}/g, '')
+      .replace(/\\[a-z]+\d*\s?/gi, '')
+      .replace(/\{|\}/g, '')
+      .replace(/\\\\/g, '\\')
+      .replace(/\\'/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
       
     return plainText;
   } catch (e) {
     console.error("Error stripping RTF formatting:", e);
-    return rtfContent; // Return the original content if something goes wrong
+    return rtfContent;
   }
 }

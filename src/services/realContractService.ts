@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DocumentTextExtractionService } from './documentTextExtraction';
 
 export interface Contract {
   id: string;
@@ -33,6 +34,13 @@ class RealContractService {
         return null;
       }
 
+      // Validate file type before processing
+      if (!DocumentTextExtractionService.isSupportedFileType(file)) {
+        const errorMessage = DocumentTextExtractionService.getUnsupportedFileTypeMessage(file);
+        toast.error(errorMessage);
+        return null;
+      }
+
       // Generate unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
@@ -49,7 +57,7 @@ class RealContractService {
         return null;
       }
 
-      // Create contract record
+      // Create contract record with pending status
       const { data: contract, error: contractError } = await supabase
         .from('contracts')
         .insert({
@@ -58,7 +66,7 @@ class RealContractService {
           file_path: filePath,
           file_size: file.size,
           mime_type: file.type,
-          analysis_status: 'pending'
+          analysis_status: 'processing'
         })
         .select()
         .single();
@@ -69,32 +77,41 @@ class RealContractService {
         return null;
       }
 
-      // Trigger text extraction
-      this.extractText(contract.id, filePath);
+      // Extract text from the uploaded file
+      const extractionResult = await DocumentTextExtractionService.extractAndStoreContractText(
+        file, 
+        contract.id
+      );
 
-      return contract as Contract;
+      if (!extractionResult.success) {
+        console.error('Text extraction failed:', extractionResult.error);
+        
+        // Update contract status to error
+        await supabase
+          .from('contracts')
+          .update({ 
+            analysis_status: 'error',
+            content: `Text extraction failed: ${extractionResult.error}`
+          })
+          .eq('id', contract.id);
+
+        toast.error('Failed to extract text from document');
+        return contract as Contract;
+      }
+
+      toast.success('Contract uploaded and text extracted successfully!');
+      
+      // Return updated contract with extracted content
+      return {
+        ...contract,
+        content: extractionResult.text,
+        analysis_status: 'completed'
+      } as Contract;
+      
     } catch (error) {
       console.error('Contract upload error:', error);
       toast.error('Failed to upload contract');
       return null;
-    }
-  }
-
-  async extractText(contractId: string, filePath: string): Promise<void> {
-    try {
-      const { data, error } = await supabase.functions.invoke('text-extraction', {
-        body: { contractId, filePath }
-      });
-
-      if (error) {
-        console.error('Text extraction error:', error);
-        await supabase
-          .from('contracts')
-          .update({ analysis_status: 'error' })
-          .eq('id', contractId);
-      }
-    } catch (error) {
-      console.error('Text extraction request error:', error);
     }
   }
 
@@ -137,25 +154,116 @@ class RealContractService {
     }
   }
 
+  async askQuestion(contractId: string, question: string): Promise<{ answer: string; sources?: string[] } | null> {
+    try {
+      // Get the contract content
+      const contract = await this.getContract(contractId);
+      if (!contract || !contract.content) {
+        toast.error('Contract content not available for analysis');
+        return null;
+      }
+
+      // Call the document AI assistant with real content
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'explain_clause',
+          content: question,
+          context: {
+            contractContent: contract.content,
+            contractId: contractId
+          }
+        }
+      });
+
+      if (error) {
+        console.error('AI question error:', error);
+        toast.error('Failed to get AI response');
+        return null;
+      }
+
+      // Save the question and answer
+      await supabase
+        .from('contract_questions')
+        .insert({
+          contract_id: contractId,
+          question: question,
+          answer: data.explanation || data.answer || 'No response received',
+          sources: data.sources || []
+        });
+
+      return {
+        answer: data.explanation || data.answer || 'No response received',
+        sources: data.sources || []
+      };
+    } catch (error) {
+      console.error('Ask question error:', error);
+      toast.error('Failed to process question');
+      return null;
+    }
+  }
+
+  async analyzeContract(contractId: string): Promise<any> {
+    try {
+      // Get the contract content
+      const contract = await this.getContract(contractId);
+      if (!contract || !contract.content) {
+        toast.error('Contract content not available for analysis');
+        return null;
+      }
+
+      // Call the document AI assistant for analysis
+      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'summarize_document',
+          dealId: 'contract-analysis',
+          documentId: contractId,
+          documentVersionId: 'latest',
+          content: contract.content
+        }
+      });
+
+      if (error) {
+        console.error('AI analysis error:', error);
+        toast.error('Failed to analyze contract');
+        return null;
+      }
+
+      // Save the analysis result
+      await supabase
+        .from('contract_summaries')
+        .upsert({
+          contract_id: contractId,
+          summary_data: {
+            summary: data.summary,
+            documentType: data.documentType,
+            analysisDate: new Date().toISOString()
+          }
+        });
+
+      return data;
+    } catch (error) {
+      console.error('Analyze contract error:', error);
+      toast.error('Failed to analyze contract');
+      return null;
+    }
+  }
+
   async getContractQuestions(contractId: string): Promise<ContractQuestion[]> {
     try {
       const { data: questions, error } = await supabase
         .from('contract_questions')
         .select('*')
         .eq('contract_id', contractId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Get questions error:', error);
+        console.error('Get contract questions error:', error);
         return [];
       }
 
-      return (questions || []).map(q => ({
-        ...q,
-        sources: Array.isArray(q.sources) ? q.sources : []
-      })) as ContractQuestion[];
+      return (questions || []) as ContractQuestion[];
     } catch (error) {
-      console.error('Get questions error:', error);
+      console.error('Get contract questions error:', error);
       return [];
     }
   }

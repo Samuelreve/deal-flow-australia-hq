@@ -1,30 +1,47 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { realContractService, Contract } from '@/services/realContractService';
 import { toast } from 'sonner';
-import { Contract } from '@/services/realContractService';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useRealContracts = () => {
+  const { user } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
-  const uploadContract = async (file: File) => {
+  // Load user contracts
+  const loadContracts = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const userContracts = await realContractService.getUserContracts();
+      setContracts(userContracts);
+    } catch (error: any) {
+      console.error('Failed to load contracts:', error);
+      setError('Failed to load contracts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Upload a new contract with real text extraction
+  const uploadContract = async (file: File): Promise<Contract | null> => {
     if (!user) {
-      throw new Error('User must be logged in to upload contracts');
+      toast.error('You must be logged in to upload contracts');
+      return null;
     }
 
-    setUploading(true);
-    setUploadProgress(0);
-    setError(null);
-
     try {
-      // Simulate upload progress
+      setUploading(true);
+      setUploadProgress(0);
+      setError(null);
+
+      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -33,73 +50,94 @@ export const useRealContracts = () => {
           }
           return prev + 10;
         });
-      }, 200);
+      }, 300);
 
-      // Extract text based on file type
-      let content = '';
-      if (file.type === 'text/plain') {
-        content = await file.text();
-      } else {
-        // For other file types, use demo content
-        content = `Sample contract content extracted from ${file.name}. This would contain the actual contract text in a real implementation.`;
-      }
-
+      const uploadedContract = await realContractService.uploadContract(file);
+      
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // Create new contract with all required properties
-      const newContract: Contract = {
-        id: `contract-${Date.now()}`,
-        name: file.name,
-        file_path: `contracts/${file.name}`,
-        file_size: file.size,
-        mime_type: file.type,
-        content,
-        upload_date: new Date().toISOString(),
-        analysis_status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      setContracts(prev => [...prev, newContract]);
-      setSelectedContract(newContract);
-      
-      toast.success('Contract uploaded successfully');
+      if (uploadedContract) {
+        // Add to contracts list
+        setContracts(prev => [uploadedContract, ...prev]);
+        
+        // Auto-select the uploaded contract
+        setSelectedContract(uploadedContract);
+        
+        toast.success('Contract uploaded and analyzed successfully!', {
+          description: 'You can now ask questions about this contract.'
+        });
+        
+        return uploadedContract;
+      } else {
+        throw new Error('Upload failed');
+      }
     } catch (error: any) {
-      setError(error.message);
-      throw error;
+      console.error('Upload error:', error);
+      setError(error.message || 'Failed to upload contract');
+      toast.error('Upload failed', {
+        description: error.message || 'Please try again'
+      });
+      return null;
     } finally {
       setUploading(false);
       setUploadProgress(0);
     }
   };
 
+  // Select a contract for analysis
   const selectContract = (contractId: string) => {
     const contract = contracts.find(c => c.id === contractId);
     if (contract) {
       setSelectedContract(contract);
+      setError(null);
     }
   };
 
-  // Load contracts on mount
-  useEffect(() => {
-    const loadContracts = async () => {
+  // Analyze the selected contract
+  const analyzeSelectedContract = async () => {
+    if (!selectedContract) return null;
+    
+    try {
       setLoading(true);
-      try {
-        // In a real implementation, this would load from Supabase
-        // For now, we'll use demo data
-        setContracts([]);
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const analysis = await realContractService.analyzeContract(selectedContract.id);
+      return analysis;
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setError('Failed to analyze contract');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Ask a question about the selected contract
+  const askQuestion = async (question: string) => {
+    if (!selectedContract) {
+      toast.error('No contract selected');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      const response = await realContractService.askQuestion(selectedContract.id, question);
+      return response;
+    } catch (error: any) {
+      console.error('Question error:', error);
+      setError('Failed to process question');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load contracts when user changes
+  useEffect(() => {
     if (user) {
       loadContracts();
     } else {
-      setLoading(false);
+      setContracts([]);
+      setSelectedContract(null);
     }
   }, [user]);
 
@@ -111,6 +149,9 @@ export const useRealContracts = () => {
     uploadProgress,
     error,
     uploadContract,
-    selectContract
+    selectContract,
+    analyzeSelectedContract,
+    askQuestion,
+    refreshContracts: loadContracts
   };
 };
