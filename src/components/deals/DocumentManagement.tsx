@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Document } from "@/types/documentVersion";
-import { useDocumentManagement } from "@/hooks/useDocumentManagement";
+import { useDocumentManagement } from "@/hooks/document-management";
 import DocumentManagementHeader from "./document/DocumentManagementHeader";
 import DocumentManagementGrid from "./document/DocumentManagementGrid";
 import DocumentDialogs from "./document/DocumentDialogs";
