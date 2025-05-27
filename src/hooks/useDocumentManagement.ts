@@ -124,7 +124,7 @@ export const useDocumentManagement = ({
     
     setIsDeleting(true);
     try {
-      await deleteDocument(documentToDelete.id);
+      await deleteDocument(documentToDelete);
       toast.success("Document deleted successfully");
       closeDeleteDialog();
     } catch (error) {
@@ -151,7 +151,7 @@ export const useDocumentManagement = ({
     
     setIsDeletingVersion(true);
     try {
-      await deleteDocumentVersion(versionToDelete.id);
+      await deleteDocumentVersion(versionToDelete);
       toast.success("Version deleted successfully");
       closeVersionDeleteDialog();
     } catch (error) {
