@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { FileText, Brain, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Brain, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from 'react-router-dom';
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import SummaryTab from './contract-assistant/SummaryTab';
 import ExplanationTab from './contract-assistant/ExplanationTab';
 import DisclaimerAlert from './contract-assistant/DisclaimerAlert';
+import AIConnectionManager from './contract-assistant/AIConnectionManager';
+import ContractAssistantButton from './contract-assistant/ContractAssistantButton';
 
 interface SmartContractAssistantProps {
   dealId: string;
@@ -43,29 +45,6 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
     error: aiError
   } = useDocumentAI({ dealId, documentId });
 
-  // Test AI connection when component mounts
-  useEffect(() => {
-    const testAIConnection = async () => {
-      try {
-        // Simple test to verify AI is working
-        setAiConnectionStatus('checking');
-        
-        // The hooks should be available if AI is properly configured
-        if (summarizeContract && explainContractClause) {
-          setAiConnectionStatus('connected');
-          console.log('✅ Smart Contract Assistant: AI services connected successfully');
-        } else {
-          throw new Error('AI services not available');
-        }
-      } catch (error) {
-        console.error('❌ Smart Contract Assistant: AI connection failed', error);
-        setAiConnectionStatus('error');
-      }
-    };
-
-    testAIConnection();
-  }, [summarizeContract, explainContractClause]);
-
   // Check URL search params for auto-analysis flag
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -74,7 +53,6 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
     const verId = searchParams.get('versionId');
     
     if (shouldAnalyze && docId === documentId && verId) {
-      // Auto-open the dialog and start analysis
       setIsDialogOpen(true);
       handleSummarize();
       toast.success("AI Analysis Started", {
@@ -92,7 +70,7 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
   
   const handleSummarize = async () => {
     setActiveTab("summary");
-    setSummaryResult(null); // Clear previous result
+    setSummaryResult(null);
     
     try {
       console.log('📋 Starting contract summarization...');
@@ -126,7 +104,7 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
     }
     
     setActiveTab("explanation");
-    setExplanationResult(null); // Clear previous result
+    setExplanationResult(null);
     
     try {
       console.log('🔍 Starting clause explanation...');
@@ -160,50 +138,19 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
   
   const handleClose = () => {
     setIsDialogOpen(false);
-    // Reset state after dialog closes
     setTimeout(() => {
       setSummaryResult(null);
       setExplanationResult(null);
     }, 300);
   };
-
-  const getConnectionStatusIcon = () => {
-    switch (aiConnectionStatus) {
-      case 'checking':
-        return <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />;
-      case 'connected':
-        return <CheckCircle className="h-3 w-3 text-green-500" />;
-      case 'error':
-        return <AlertCircle className="h-3 w-3 text-red-500" />;
-    }
-  };
-
-  const getConnectionStatusText = () => {
-    switch (aiConnectionStatus) {
-      case 'checking':
-        return 'Connecting to AI...';
-      case 'connected':
-        return 'AI Ready';
-      case 'error':
-        return 'AI Unavailable';
-    }
-  };
   
   return (
     <>
-      <Button 
-        variant="outline"
+      <ContractAssistantButton
         onClick={handleOpen}
-        className={`gap-2 ${className || ''}`}
-        size="sm"
-        disabled={aiConnectionStatus === 'error'}
-      >
-        <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4" />
-          <span>Contract Assistant</span>
-          {getConnectionStatusIcon()}
-        </div>
-      </Button>
+        aiConnectionStatus={aiConnectionStatus}
+        className={className}
+      />
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
@@ -211,10 +158,11 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
             <DialogTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-blue-600" />
               Smart Contract Assistant
-              <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                {getConnectionStatusIcon()}
-                <span>{getConnectionStatusText()}</span>
-              </div>
+              <AIConnectionManager
+                summarizeContract={summarizeContract}
+                explainContractClause={explainContractClause}
+                onStatusChange={setAiConnectionStatus}
+              />
             </DialogTitle>
           </DialogHeader>
           
@@ -238,7 +186,6 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
                     onClick={handleSummarize}
                     className="flex items-center gap-2"
                   >
-                    <FileText className="h-4 w-4" />
                     Contract Summary
                   </TabsTrigger>
                   <TabsTrigger 
@@ -247,7 +194,6 @@ const SmartContractAssistant: React.FC<SmartContractAssistantProps> = ({
                     disabled={!selectedText}
                     className="flex items-center gap-2"
                   >
-                    <Brain className="h-4 w-4" />
                     Explain Selected Clause
                   </TabsTrigger>
                 </TabsList>
