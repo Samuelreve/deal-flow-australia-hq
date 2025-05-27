@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
 
 interface ContractAnalysisActionsProps {
@@ -10,25 +9,25 @@ interface ContractAnalysisActionsProps {
   isProcessing: boolean;
 }
 
-const ContractAnalysisActions: React.FC<ContractAnalysisActionsProps> = ({
+export const useContractAnalysisActions = ({
   contractText,
   onAskQuestion,
   onAnalyzeContract,
   questionHistory,
   isProcessing
-}) => {
+}: ContractAnalysisActionsProps) => {
   const handleQuestionSubmission = async (question: string) => {
     if (!contractText) {
       return null;
     }
-    return onAskQuestion(question, contractText);
+    return onAskQuestion(question);
   };
   
   const handleContractAnalysis = async (analysisType: string) => {
     if (!contractText) {
       return null;
     }
-    return onAnalyzeContract(analysisType, contractText);
+    return onAnalyzeContract(analysisType);
   };
 
   return {
@@ -36,5 +35,3 @@ const ContractAnalysisActions: React.FC<ContractAnalysisActionsProps> = ({
     handleContractAnalysis
   };
 };
-
-export default ContractAnalysisActions;
