@@ -44,7 +44,7 @@ export const useNavigationState = () => {
     // 3. Not loading and have a user profile
     const hasProfile = !!user?.profile;
     const onboardingComplete = user?.profile?.onboarding_complete || false;
-    const isOnboardingPath = path.startsWith('/onboarding');
+    const isOnboardingPath = path.startsWith('/onboarding') || path.startsWith('/profile/professional-setup');
     
     const canNavigate = isAuthenticated && hasProfile && 
       (onboardingComplete || isOnboardingPath);
@@ -56,7 +56,8 @@ export const useNavigationState = () => {
       isOnboardingPath,
       canNavigate,
       path,
-      loading
+      loading,
+      userRole: user?.profile?.role
     });
     
     setNavState({
@@ -67,7 +68,7 @@ export const useNavigationState = () => {
       isDeals: path.startsWith('/deals'),
       isSettings: path.startsWith('/settings'),
       isProfile: path === '/profile',
-      isOnboarding: path.startsWith('/onboarding'),
+      isOnboarding: isOnboardingPath,
       canNavigate,
       breadcrumbs
     });
@@ -91,8 +92,14 @@ export const useNavigationState = () => {
         case 'advanced-health-monitoring':
           label = 'Advanced Health';
           break;
+        case 'create-deal':
+          label = 'Create Deal';
+          break;
         case 'onboarding':
           label = 'Setup';
+          break;
+        case 'professional-setup':
+          label = 'Professional Setup';
           break;
         default:
           label = label.replace(/-/g, ' ');
@@ -106,7 +113,7 @@ export const useNavigationState = () => {
 
   const navigateWithCheck = (path: string) => {
     // Allow navigation to onboarding routes even if onboarding is incomplete
-    if (!navState.canNavigate && !path.startsWith('/onboarding')) {
+    if (!navState.canNavigate && !path.startsWith('/onboarding') && !path.startsWith('/profile/professional-setup')) {
       console.log('Navigation blocked, redirecting to onboarding');
       navigate('/onboarding/intent');
       return;

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import DealsPage from "@/pages/DealsPage";
 import DealDetailsPage from "@/pages/DealDetailsPage";
@@ -18,13 +18,15 @@ import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import CookiePolicyPage from "@/pages/CookiePolicyPage";
 import AccessibilityPage from "@/pages/AccessibilityPage";
 import AIAssistantPage from "@/pages/AIAssistantPage";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/toaster";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import DealHealthPage from "@/pages/DealHealthPage";
 import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
 import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
 import ProfilePage from "@/pages/ProfilePage";
+import AcceptInvitePage from "@/pages/AcceptInvitePage";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "@/components/ui/toaster";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import OnboardingCheck from "@/components/auth/OnboardingCheck";
 
 function App() {
   return (
@@ -53,6 +55,7 @@ function App() {
             />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
             
             {/* Legal and Policy Pages */}
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
@@ -66,87 +69,34 @@ function App() {
             {/* Contract Analysis - accessible to everyone */}
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
             
-            {/* Protected routes */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/deals" 
-              element={
-                <ProtectedRoute>
-                  <DealsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/create-deal" 
-              element={
-                <ProtectedRoute>
-                  <CreateDealPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/deals/:dealId" 
-              element={
-                <ProtectedRoute>
-                  <DealDetailsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/notifications" 
-              element={
-                <ProtectedRoute>
-                  <NotificationsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/deal-health" 
-              element={
-                <ProtectedRoute>
-                  <DealHealthPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/health-monitoring" 
-              element={
-                <ProtectedRoute>
-                  <DealHealthMonitoring />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/advanced-health-monitoring" 
-              element={
-                <ProtectedRoute>
-                  <AdvancedHealthMonitoring />
-                </ProtectedRoute>
-              } 
-            />
+            {/* Protected routes - require authentication */}
+            <Route element={<ProtectedRoute />}>
+              {/* Routes that require onboarding completion */}
+              <Route element={<OnboardingCheck />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/deals" element={<DealsPage />} />
+                <Route path="/deals/:dealId" element={<DealDetailsPage />} />
+                <Route path="/create-deal" element={<CreateDealPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/deal-health" element={<DealHealthPage />} />
+                <Route path="/health-monitoring" element={<DealHealthMonitoring />} />
+                <Route path="/advanced-health-monitoring" element={<AdvancedHealthMonitoring />} />
+                
+                {/* Fallback for authenticated, onboarded users to dashboard */}
+                <Route path="/app/*" element={<Navigate to="/dashboard" replace />} />
+              </Route>
+              
+              {/* Onboarding routes - accessible if authenticated but onboarding incomplete */}
+              {/* These are outside OnboardingCheck so users can access them during onboarding */}
+              {/* Note: These would need to be implemented as separate page components */}
+              {/* <Route path="/onboarding/intent" element={<IntentCapturePage />} /> */}
+              {/* <Route path="/profile/professional-setup" element={<ProfessionalProfileSetupPage />} /> */}
+            </Route>
+            
+            {/* Catch-all for 404 Not Found (ensure it's the last route) */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
       </div>
