@@ -12,6 +12,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import ContractAnalysisPage from "@/pages/ContractAnalysisPage";
 import Index from "@/pages/Index";
+import CreateDealPage from "@/pages/CreateDealPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -65,6 +66,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DealsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/create-deal" 
+              element={
+                <ProtectedRoute>
+                  <CreateDealPage />
                 </ProtectedRoute>
               } 
             />
