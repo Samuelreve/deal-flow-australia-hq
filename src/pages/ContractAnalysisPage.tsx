@@ -22,14 +22,13 @@ const ContractAnalysisPage: React.FC = () => {
 
   const questionAnswerState = useContractQuestionAnswer();
 
-  // Fetch uploaded contracts (using contracts table instead of documents)
+  // Fetch uploaded contracts
   useEffect(() => {
     const fetchContracts = async () => {
       if (!user) return;
       
       setLoading(true);
       try {
-        // Fetch contracts from the contracts table
         const { data: contractsData, error: contractsError } = await supabase
           .from('contracts')
           .select('*')
@@ -41,7 +40,6 @@ const ContractAnalysisPage: React.FC = () => {
         }
 
         if (contractsData && contractsData.length > 0) {
-          // Map to DocumentMetadata format
           const mappedDocuments: DocumentMetadata[] = contractsData.map(contract => ({
             id: contract.id,
             name: contract.name,
@@ -56,18 +54,16 @@ const ContractAnalysisPage: React.FC = () => {
 
           setDocuments(mappedDocuments);
           
-          // Auto-select the first document if available
           if (mappedDocuments.length > 0) {
             const firstDoc = mappedDocuments[0];
             setSelectedDocument(firstDoc);
-            
-            // Try to load contract content
             await loadContractContent(firstDoc.id);
           }
         }
       } catch (error: any) {
         console.error('Error fetching contracts:', error);
         setError(error.message || 'Failed to load contracts');
+        toast.error('Failed to load contracts');
       } finally {
         setLoading(false);
       }
@@ -78,7 +74,8 @@ const ContractAnalysisPage: React.FC = () => {
 
   const loadContractContent = async (contractId: string) => {
     try {
-      // Get contract content from contracts table
+      setLoading(true);
+      
       const { data: contractData } = await supabase
         .from('contracts')
         .select('content, name')
@@ -88,25 +85,80 @@ const ContractAnalysisPage: React.FC = () => {
       if (contractData) {
         if (contractData.content) {
           setContractText(contractData.content);
+          
+          // Generate AI-powered summary
+          toast.info('Generating AI summary...', {
+            description: 'Our AI is analyzing your contract to create a summary.'
+          });
+          
+          try {
+            const { data: summaryData, error: summaryError } = await supabase.functions.invoke('document-ai-assistant', {
+              body: {
+                operation: 'summarize_contract',
+                content: contractData.content,
+                dealId: 'contract-analysis',
+                userId: user?.id || 'anonymous',
+                documentId: contractId,
+              }
+            });
+
+            if (!summaryError && summaryData) {
+              setDocumentSummary({
+                category: 'CONTRACT',
+                title: 'AI Contract Analysis Complete',
+                message: summaryData.summary || 'Your contract has been analyzed by our AI system.',
+                analysisDate: new Date().toISOString(),
+                keyPoints: summaryData.keyPoints || [
+                  'Contract successfully uploaded and analyzed',
+                  'AI-powered analysis tools are now available',
+                  'You can ask questions about specific clauses'
+                ],
+                aiGenerated: true
+              });
+              
+              toast.success('AI summary generated!', {
+                description: 'Your contract has been analyzed and is ready for questions.'
+              });
+            } else {
+              throw new Error('Failed to generate AI summary');
+            }
+          } catch (summaryError) {
+            console.error('Error generating AI summary:', summaryError);
+            // Fallback to basic summary
+            setDocumentSummary({
+              category: 'CONTRACT',
+              title: 'Contract Successfully Uploaded',
+              message: 'Your contract has been uploaded and is ready for AI analysis.',
+              analysisDate: new Date().toISOString(),
+              keyPoints: [
+                'Contract is available for AI analysis',
+                'You can now ask questions about the content',
+                'Analysis tools are enabled for this document'
+              ],
+              aiGenerated: false
+            });
+            
+            toast.warning('Using basic summary', {
+              description: 'AI summary generation failed, but you can still analyze the contract.'
+            });
+          }
         } else {
           setContractText('Contract content is being processed...');
+          setDocumentSummary({
+            category: 'CONTRACT',
+            title: 'Contract Processing',
+            message: 'Your contract is being processed. Please wait a moment.',
+            analysisDate: new Date().toISOString(),
+            keyPoints: ['Document uploaded successfully', 'Content extraction in progress'],
+            aiGenerated: false
+          });
         }
-        
-        // Create a summary for the contract
-        setDocumentSummary({
-          category: 'CONTRACT',
-          title: 'Contract Successfully Uploaded',
-          message: 'Your contract has been uploaded and is ready for analysis.',
-          analysisDate: new Date().toISOString(),
-          keyPoints: [
-            'Contract is available for AI analysis',
-            'You can now ask questions about the content',
-            'Analysis tools are enabled for this document'
-          ]
-        });
       }
     } catch (error) {
       console.error('Error loading contract content:', error);
+      toast.error('Failed to load contract content');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,17 +168,17 @@ const ContractAnalysisPage: React.FC = () => {
 
     try {
       setLoading(true);
+      toast.info('Uploading contract...', {
+        description: 'Your contract is being uploaded and processed.'
+      });
       
-      // Read file content
       let content = '';
       if (file.type === 'text/plain') {
         content = await file.text();
       } else {
-        // For other file types, simulate content extraction
         content = `Contract content extracted from ${file.name}. This is a placeholder for the actual extracted text content.`;
       }
       
-      // Create contract record directly in contracts table
       const { data: contractData, error: contractError } = await supabase
         .from('contracts')
         .insert({
@@ -143,7 +195,6 @@ const ContractAnalysisPage: React.FC = () => {
 
       if (contractError) throw contractError;
 
-      // Create new document metadata
       const newDocument: DocumentMetadata = {
         id: contractData.id,
         name: file.name,
@@ -160,20 +211,55 @@ const ContractAnalysisPage: React.FC = () => {
       setSelectedDocument(newDocument);
       setContractText(content);
       
-      // Create summary
-      setDocumentSummary({
-        category: 'CONTRACT',
-        title: 'Contract Successfully Uploaded',
-        message: 'Your contract has been uploaded and is ready for analysis.',
-        analysisDate: new Date().toISOString(),
-        keyPoints: [
-          'Contract is available for AI analysis',
-          'You can now ask questions about the content',
-          'Analysis tools are enabled for this document'
-        ]
+      // Generate AI summary for new upload
+      toast.info('Generating AI analysis...', {
+        description: 'Our AI is analyzing your contract.'
       });
+
+      try {
+        const { data: summaryData, error: summaryError } = await supabase.functions.invoke('document-ai-assistant', {
+          body: {
+            operation: 'summarize_contract',
+            content: content,
+            dealId: 'contract-analysis',
+            userId: user.id,
+            documentId: contractData.id,
+          }
+        });
+
+        if (!summaryError && summaryData) {
+          setDocumentSummary({
+            category: 'CONTRACT',
+            title: 'AI Contract Analysis Complete',
+            message: summaryData.summary || 'Your contract has been analyzed by our AI system.',
+            analysisDate: new Date().toISOString(),
+            keyPoints: summaryData.keyPoints || [
+              'Contract successfully uploaded and analyzed',
+              'AI-powered analysis tools are now available',
+              'You can ask questions about specific clauses'
+            ],
+            aiGenerated: true
+          });
+        }
+      } catch (summaryError) {
+        console.error('Error generating AI summary:', summaryError);
+        setDocumentSummary({
+          category: 'CONTRACT',
+          title: 'Contract Successfully Uploaded',
+          message: 'Your contract has been uploaded and is ready for analysis.',
+          analysisDate: new Date().toISOString(),
+          keyPoints: [
+            'Contract is available for AI analysis',
+            'You can now ask questions about the content',
+            'Analysis tools are enabled for this document'
+          ],
+          aiGenerated: false
+        });
+      }
       
-      toast.success('Contract uploaded successfully');
+      toast.success('Contract uploaded successfully!', {
+        description: 'Your contract is now ready for AI-powered analysis.'
+      });
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error('Failed to upload contract');
@@ -184,10 +270,18 @@ const ContractAnalysisPage: React.FC = () => {
   };
 
   const handleQuestionSubmission = async (question: string) => {
+    if (!contractText) {
+      toast.error('No contract content available for analysis');
+      return null;
+    }
     return questionAnswerState.handleAskQuestion(question, contractText);
   };
   
   const handleContractAnalysis = async (analysisType: string) => {
+    if (!contractText) {
+      toast.error('No contract content available for analysis');
+      return null;
+    }
     return questionAnswerState.handleAnalyzeContract(analysisType, contractText);
   };
 
@@ -201,7 +295,6 @@ const ContractAnalysisPage: React.FC = () => {
         <ContractAnalysisHeader />
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - Document Info and Upload */}
           <div className="lg:col-span-1">
             <ErrorBoundary>
               <ContractSidebar
@@ -214,7 +307,6 @@ const ContractAnalysisPage: React.FC = () => {
             </ErrorBoundary>
           </div>
           
-          {/* Main Column - Analysis and Interactive Features */}
           <div className="lg:col-span-3 space-y-6">
             <ContractAnalysisContent
               documentMetadata={selectedDocument}
