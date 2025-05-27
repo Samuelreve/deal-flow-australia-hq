@@ -13,6 +13,10 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import ContractAnalysisPage from "@/pages/ContractAnalysisPage";
 import Index from "@/pages/Index";
 import CreateDealPage from "@/pages/CreateDealPage";
+import TermsOfServicePage from "@/pages/TermsOfServicePage";
+import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
+import CookiePolicyPage from "@/pages/CookiePolicyPage";
+import AccessibilityPage from "@/pages/AccessibilityPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -48,6 +52,12 @@ function App() {
             />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            
+            {/* Legal and Policy Pages */}
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+            <Route path="/accessibility" element={<AccessibilityPage />} />
             
             {/* Contract Analysis - accessible to everyone */}
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />

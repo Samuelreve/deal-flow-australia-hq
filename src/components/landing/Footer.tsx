@@ -100,10 +100,10 @@ const Footer = () => {
           className="flex flex-col sm:flex-row justify-center items-center mt-12 pt-6 border-t border-border/40"
         >
           <div className="flex flex-wrap justify-center gap-6">
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Cookie Policy</Link>
-            <Link to="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Accessibility</Link>
+            <Link to="/terms-of-service" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link>
+            <Link to="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors text-sm">Privacy Policy</Link>
+            <Link to="/cookie-policy" className="text-muted-foreground hover:text-primary transition-colors text-sm">Cookie Policy</Link>
+            <Link to="/accessibility" className="text-muted-foreground hover:text-primary transition-colors text-sm">Accessibility</Link>
           </div>
         </motion.div>
       </div>
