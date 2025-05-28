@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisState';
-import { useContractQuestionAnswer, QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
 import { mockQuestionHistory, mockSummaryData, mockDocumentMetadata, sampleContractText } from '@/hooks/contract-analysis/mockData';
 
 export const useDemoContractState = () => {
@@ -29,11 +29,13 @@ export const useDemoContractState = () => {
     
     // In demo mode, pre-populate with mock data if no real data exists
     if (!questionAnswerState.questionHistory || questionAnswerState.questionHistory.length === 0) {
-      const mockHistoryWithType = mockQuestionHistory.map(item => ({
-        ...item,
-        type: 'question' as const,
+      const mockHistoryWithType = mockQuestionHistory.map((item, index) => ({
+        id: `mock-${index}`,
+        question: item.question,
         answer: typeof item.answer === 'string' ? item.answer : item.answer.answer,
-        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now()
+        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now(),
+        type: 'question' as const,
+        sources: typeof item.answer === 'object' ? item.answer.sources : undefined
       }));
       questionAnswerState.setQuestionHistory(mockHistoryWithType);
     }

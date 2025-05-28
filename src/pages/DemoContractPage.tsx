@@ -43,8 +43,8 @@ const DemoContractPage: React.FC = () => {
   // Fix the handleAnalyzeContract function call to match the expected signature
   const handleContractAnalysis = async (analysisType: string) => {
     return handleAnalyzeContract(
-      questionAnswerState.setQuestionHistory,
-      analysisType
+      analysisType,
+      questionAnswerState.setQuestionHistory
     );
   };
 

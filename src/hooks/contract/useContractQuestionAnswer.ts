@@ -198,6 +198,7 @@ export const useContractQuestionAnswer = () => {
 
   return {
     questionHistory,
+    setQuestionHistory,
     isProcessing,
     handleAskQuestion,
     handleAnalyzeContract

@@ -26,7 +26,7 @@ const ContractAnalysisPage: React.FC = () => {
     setDocuments,
     setSelectedDocument,
     setContractText,
-    setError
+    resetData
   } = contractDataState;
 
   // Call upload hook with stable dependencies
@@ -64,6 +64,10 @@ const ContractAnalysisPage: React.FC = () => {
     toast.info('Export functionality not implemented yet');
   }, []);
 
+  const handleRetryAnalysis = React.useCallback(() => {
+    resetData();
+  }, [resetData]);
+
   return (
     <AppLayout>
       <div className="container py-6 max-w-7xl">
@@ -91,7 +95,7 @@ const ContractAnalysisPage: React.FC = () => {
               questionHistory={questionAnswerState.questionHistory}
               onAskQuestion={handleQuestionSubmission}
               onAnalyzeContract={handleContractAnalysis}
-              onRetryAnalysis={() => setError(null)}
+              onRetryAnalysis={handleRetryAnalysis}
               documentSummary={documentSummary}
             />
           </div>
