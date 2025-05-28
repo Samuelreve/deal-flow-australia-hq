@@ -12,11 +12,10 @@ export const useContractSummary = (contractText: string, selectedDocumentId?: st
     const generateSummary = async () => {
       if (!contractText || !selectedDocumentId || !user) return;
 
-      toast.info('Generating AI summary...', {
-        description: 'Our AI is analyzing your contract to create a summary.'
-      });
+      console.log('Starting AI contract summary generation...');
       
       try {
+        // First try the document-ai-assistant function
         const { data: summaryData, error: summaryError } = await supabase.functions.invoke('document-ai-assistant', {
           body: {
             operation: 'summarize_contract',
@@ -28,6 +27,7 @@ export const useContractSummary = (contractText: string, selectedDocumentId?: st
         });
 
         if (!summaryError && summaryData) {
+          console.log('AI summary generated successfully:', summaryData);
           setDocumentSummary({
             category: 'CONTRACT',
             title: 'AI Contract Analysis Complete',
@@ -38,32 +38,69 @@ export const useContractSummary = (contractText: string, selectedDocumentId?: st
               'AI-powered analysis tools are now available',
               'You can ask questions about specific clauses'
             ],
-            aiGenerated: true
+            aiGenerated: true,
+            fullAnalysis: summaryData
           });
           
           toast.success('AI summary generated!', {
             description: 'Your contract has been analyzed and is ready for questions.'
           });
-        } else {
-          throw new Error('Failed to generate AI summary');
+          return;
         }
-      } catch (summaryError) {
-        console.error('Error generating AI summary:', summaryError);
+
+        // Fallback to contract-assistant if document-ai-assistant fails
+        console.log('Trying fallback contract-assistant function...');
+        const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('contract-assistant', {
+          body: {
+            question: 'Provide a comprehensive summary of this contract',
+            contractText: contractText,
+            contractId: selectedDocumentId
+          }
+        });
+
+        if (!fallbackError && fallbackData) {
+          console.log('Fallback AI summary generated:', fallbackData);
+          setDocumentSummary({
+            category: 'CONTRACT',
+            title: 'AI Contract Analysis Complete',
+            message: fallbackData.answer || 'Your contract has been analyzed by our AI system.',
+            analysisDate: new Date().toISOString(),
+            keyPoints: [
+              'Contract successfully uploaded and analyzed',
+              'AI-powered analysis tools are now available',
+              'You can ask questions about specific clauses'
+            ],
+            aiGenerated: true,
+            sources: fallbackData.sources || []
+          });
+          
+          toast.success('AI summary generated!', {
+            description: 'Your contract has been analyzed and is ready for questions.'
+          });
+          return;
+        }
+
+        throw new Error('Both AI services are unavailable');
+        
+      } catch (error) {
+        console.error('Error generating AI summary:', error);
+        
+        // Provide a basic summary as fallback
         setDocumentSummary({
           category: 'CONTRACT',
           title: 'Contract Successfully Uploaded',
-          message: 'Your contract has been uploaded and is ready for analysis.',
+          message: 'Your contract has been uploaded and is ready for analysis. AI services are temporarily unavailable, but you can still use the basic analysis features.',
           analysisDate: new Date().toISOString(),
           keyPoints: [
-            'Contract is available for AI analysis',
-            'You can now ask questions about the content',
-            'Analysis tools are enabled for this document'
+            'Contract is available for analysis',
+            'You can view the document content',
+            'Basic analysis tools are enabled'
           ],
           aiGenerated: false
         });
         
-        toast.warning('Using basic summary', {
-          description: 'AI summary generation failed, but you can still analyze the contract.'
+        toast.warning('Using basic analysis mode', {
+          description: 'AI services are temporarily unavailable, but you can still analyze the contract.'
         });
       }
     };
