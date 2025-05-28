@@ -1,58 +1,33 @@
 
+import { useCallback } from 'react';
 import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
 
 export const useDemoContractInteractions = () => {
-  const handleAnalyzeContract = async (
-    setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryItem[]>>,
-    analysisType: string
-  ): Promise<{ analysis: string; sources?: string[] } | null> => {
+  const handleAnalyzeContract = useCallback(async (
+    analysisType: string,
+    setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryItem[]>>
+  ) => {
+    console.log('Demo contract analysis:', analysisType);
     
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      let analysis = '';
-      let sources: string[] = [];
-      
-      switch (analysisType) {
-        case 'summary':
-          analysis = `This demo contract establishes clear terms between the parties with focus on confidentiality and mutual obligations. The agreement includes standard termination procedures and governing law provisions.`;
-          sources = ['Full Document Analysis'];
-          break;
-          
-        case 'risks':
-          analysis = `Demo analysis - Potential risks identified: 1) Confidentiality breach penalties, 2) Termination notice requirements, 3) Jurisdiction considerations for dispute resolution.`;
-          sources = ['Risk Assessment', 'Legal Analysis'];
-          break;
-          
-        case 'obligations':
-          analysis = `Demo analysis - Key obligations include: maintaining strict confidentiality, providing timely notifications, adhering to performance standards, and following proper termination procedures.`;
-          sources = ['Obligations Section', 'Performance Requirements'];
-          break;
-          
-        default:
-          analysis = `Demo analysis of type "${analysisType}" completed successfully. This shows how AI can analyze different aspects of your contracts.`;
-          sources = ['General Analysis'];
-      }
-      
-      const historyItem: QuestionHistoryItem = {
-        id: `demo-${Date.now()}`,
-        question: `Demo Contract Analysis: ${analysisType}`,
-        answer: analysis,
-        timestamp: Date.now(),
-        type: 'analysis',
-        analysisType,
-        sources
-      };
-      
-      setQuestionHistory(prev => [...prev, historyItem]);
-      
-      return { analysis, sources };
-      
-    } catch (error) {
-      console.error('Error in demo contract analysis:', error);
-      return null;
-    }
-  };
+    // Create a mock analysis result
+    const mockAnalysisResult: QuestionHistoryItem = {
+      id: `analysis-${Date.now()}`,
+      question: `Analyze contract for: ${analysisType}`,
+      answer: `Demo analysis complete for ${analysisType}. This is a simulated analysis result showing key insights and findings.`,
+      timestamp: Date.now(),
+      type: 'analysis',
+      analysisType,
+      sources: ['Demo Contract Section 1', 'Demo Contract Section 2']
+    };
+
+    // Add to question history
+    setQuestionHistory(prev => [...prev, mockAnalysisResult]);
+    
+    return {
+      analysis: mockAnalysisResult.answer,
+      sources: mockAnalysisResult.sources
+    };
+  }, []);
 
   return {
     handleAnalyzeContract
