@@ -45,7 +45,7 @@ export const useContractQuestionAnswer = () => {
     setQuestionHistory(prev => [...prev, processingItem]);
 
     try {
-      // Try contract-assistant first
+      // Use contract-assistant for questions
       const { data, error } = await supabase.functions.invoke('contract-assistant', {
         body: {
           question,
@@ -132,13 +132,29 @@ export const useContractQuestionAnswer = () => {
     setQuestionHistory(prev => [...prev, processingItem]);
 
     try {
-      const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
+      // Create analysis-specific questions for different analysis types
+      let analysisQuestion = '';
+      
+      switch (analysisType) {
+        case 'risks':
+          analysisQuestion = 'Please identify and analyze all potential risks, liabilities, and legal concerns in this contract. Focus on areas that could cause problems for either party, including liability limitations, penalty clauses, and uncertain terms.';
+          break;
+        case 'obligations':
+          analysisQuestion = 'Please extract and summarize all key obligations and responsibilities for each party in this contract. Include deliverables, deadlines, performance requirements, and compliance obligations.';
+          break;
+        case 'summary':
+          analysisQuestion = 'Please provide a comprehensive summary of this contract, including its purpose, key terms, important dates, financial obligations, and main provisions.';
+          break;
+        default:
+          analysisQuestion = `Please analyze this contract focusing on: ${analysisType}. Provide detailed insights and key findings.`;
+      }
+
+      // Use contract-assistant for analysis by asking targeted questions
+      const { data, error } = await supabase.functions.invoke('contract-assistant', {
         body: {
-          operation: 'analyze_document',
-          content: contractText,
-          dealId: 'contract-analysis',
-          userId: user.id,
-          context: { analysisType }
+          question: analysisQuestion,
+          contractText,
+          contractId: `analysis-${Date.now()}`
         }
       });
 
@@ -147,7 +163,7 @@ export const useContractQuestionAnswer = () => {
         const finalItem: QuestionHistoryItem = {
           id: processingId,
           question: `Analyze contract for: ${analysisType}`,
-          answer: data.analysis || 'Analysis completed',
+          answer: data.answer || 'Analysis completed',
           timestamp: Date.now(),
           type: 'analysis',
           analysisType,
@@ -163,7 +179,7 @@ export const useContractQuestionAnswer = () => {
           description: `Contract ${analysisType} analysis is ready.`
         });
 
-        return { analysis: data.analysis, sources: data.sources };
+        return { analysis: data.answer, sources: data.sources };
       }
 
       throw new Error('Analysis service unavailable');
