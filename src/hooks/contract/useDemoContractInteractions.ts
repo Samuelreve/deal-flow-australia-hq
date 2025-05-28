@@ -1,32 +1,21 @@
 
 import { useCallback } from 'react';
 import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { toast } from 'sonner';
 
 export const useDemoContractInteractions = () => {
   const handleAnalyzeContract = useCallback(async (
     analysisType: string,
     setQuestionHistory: React.Dispatch<React.SetStateAction<QuestionHistoryItem[]>>
   ) => {
-    console.log('Demo contract analysis:', analysisType);
+    console.log('Real contract analysis requested:', analysisType);
     
-    // Create a mock analysis result
-    const mockAnalysisResult: QuestionHistoryItem = {
-      id: `analysis-${Date.now()}`,
-      question: `Analyze contract for: ${analysisType}`,
-      answer: `Demo analysis complete for ${analysisType}. This is a simulated analysis result showing key insights and findings.`,
-      timestamp: Date.now(),
-      type: 'analysis',
-      analysisType,
-      sources: ['Demo Contract Section 1', 'Demo Contract Section 2']
-    };
-
-    // Add to question history
-    setQuestionHistory(prev => [...prev, mockAnalysisResult]);
+    // Don't provide mock analysis - require real contract upload
+    toast.error('No contract available for analysis', {
+      description: 'Please upload a contract document first to enable AI analysis.'
+    });
     
-    return {
-      analysis: mockAnalysisResult.answer,
-      sources: mockAnalysisResult.sources
-    };
+    return null;
   }, []);
 
   return {

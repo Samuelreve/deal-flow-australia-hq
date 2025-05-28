@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useContractAnalysisState } from '@/hooks/contract/useContractAnalysisState';
 import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
-import { mockQuestionHistory, mockSummaryData, mockDocumentMetadata, sampleContractText } from '@/hooks/contract-analysis/mockData';
 
 export const useDemoContractState = () => {
   const [searchParams] = useSearchParams();
@@ -14,43 +13,32 @@ export const useDemoContractState = () => {
   useEffect(() => {
     const shouldAnalyze = searchParams.get("analyze") === "true";
     
-    // Initialize with demo data
+    // Only initialize basic metadata, no mock content
     if (!analysisState.documentMetadata) {
-      analysisState.setDocumentMetadata(mockDocumentMetadata);
-    }
-    
-    if (!analysisState.contractText) {
-      analysisState.setContractText(sampleContractText);
-    }
-    
-    if (!analysisState.customSummary) {
-      analysisState.setCustomSummary(mockSummaryData);
-    }
-    
-    // In demo mode, pre-populate with mock data if no real data exists
-    if (!questionAnswerState.questionHistory || questionAnswerState.questionHistory.length === 0) {
-      const mockHistoryWithType = mockQuestionHistory.map((item, index) => ({
-        id: `mock-${index}`,
-        question: item.question,
-        answer: typeof item.answer === 'string' ? item.answer : item.answer.answer,
-        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now(),
-        type: 'question' as const,
-        sources: typeof item.answer === 'object' ? item.answer.sources : undefined
-      }));
-      questionAnswerState.setQuestionHistory(mockHistoryWithType);
+      analysisState.setDocumentMetadata({
+        id: 'demo-contract',
+        name: 'Upload a contract to begin analysis',
+        type: 'Contract',
+        uploadDate: new Date().toISOString(),
+        status: 'pending' as const,
+        version: '1.0',
+        versionDate: new Date().toISOString(),
+        size: 0,
+        category: 'Legal Agreement'
+      });
     }
     
     if (shouldAnalyze && !analysisState.isAnalyzing) {
-      toast.success("Demo contract analysis complete!", {
-        description: "Explore AI insights, ask questions, and see risk analysis",
+      toast.info("Upload a contract to start AI analysis", {
+        description: "Please upload a document to begin contract analysis",
         duration: 4000
       });
     }
-  }, [searchParams, analysisState, questionAnswerState]);
+  }, [searchParams, analysisState]);
 
   return {
     analysisState,
     questionAnswerState,
-    sampleContractText
+    sampleContractText: '' // Remove sample text
   };
 };

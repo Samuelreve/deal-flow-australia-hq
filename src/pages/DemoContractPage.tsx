@@ -4,7 +4,6 @@ import AppLayout from '@/components/layout/AppLayout';
 import DemoContractHeader from '@/components/contract/DemoContractHeader';
 import ContractSidebar from '@/components/contract/ContractSidebar';
 import DemoContractContent from '@/components/contract/DemoContractContent';
-import InteractiveDemoFeatures from '@/components/contract/InteractiveDemoFeatures';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 import { useContractInteractions } from '@/hooks/contract/useContractInteractions';
@@ -35,17 +34,23 @@ const DemoContractPage: React.FC = () => {
     }
   };
 
-  // Wrap the handleAskQuestion to match the expected interface
+  // Use real question handling that requires contract text
   const handleQuestionSubmission = async (question: string) => {
-    return questionAnswerState.handleAskQuestion(question, '');
+    if (!analysisState.contractText) {
+      return null;
+    }
+    return questionAnswerState.handleAskQuestion(question, analysisState.contractText);
   };
   
-  // Fix the handleAnalyzeContract function call to match the expected signature
+  // Use real contract analysis that requires contract text
   const handleContractAnalysis = async (analysisType: string) => {
-    return handleAnalyzeContract(
-      analysisType,
-      questionAnswerState.setQuestionHistory
-    );
+    if (!analysisState.contractText) {
+      return handleAnalyzeContract(
+        analysisType,
+        questionAnswerState.setQuestionHistory
+      );
+    }
+    return questionAnswerState.handleAnalyzeContract(analysisType, analysisState.contractText);
   };
 
   return (
@@ -69,9 +74,6 @@ const DemoContractPage: React.FC = () => {
           
           {/* Main Column - Analysis and Interactive Features */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Interactive Demo Features */}
-            <InteractiveDemoFeatures onAskQuestion={handleQuestionSubmission} />
-            
             {/* Contract Analysis */}
             <DemoContractContent
               documentMetadata={analysisState.documentMetadata}
