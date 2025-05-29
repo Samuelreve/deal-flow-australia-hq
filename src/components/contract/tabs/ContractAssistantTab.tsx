@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, AlertCircle, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuestionHistoryItem } from '@/types/contract';
 import DocumentStatusAlert from './components/DocumentStatusAlert';
 import QuestionInputSection from './components/QuestionInputSection';
@@ -56,9 +57,19 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
           setCurrentSources(response.sources);
         }
         setQuestion("");
+        
+        toast.success("Question processed", {
+          description: "AI analysis complete"
+        });
+      } else {
+        toast.error("No response received", {
+          description: "Please try your question again"
+        });
       }
     } catch (error) {
-      toast.error("Failed to process your question");
+      toast.error("Failed to process your question", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
       console.error("Error processing question:", error);
     } finally {
       setLoading(false);
@@ -67,6 +78,15 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Implementation Status Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Zap className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>AI Assistant Status:</strong> This system provides enhanced contract analysis responses. 
+          For full AI-powered functionality, additional service integration is required.
+        </AlertDescription>
+      </Alert>
+
       <DocumentStatusAlert 
         documentSummary={documentSummary}
         contractText={contractText}
@@ -79,7 +99,7 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
             Legal Contract Assistant
           </CardTitle>
           <p className="text-sm text-slate-600 mt-2">
-            Ask specific questions about the uploaded contract to receive detailed legal analysis and answers based on the document content.
+            Ask specific questions about the uploaded contract to receive detailed legal analysis and guidance based on the document content.
           </p>
         </CardHeader>
         
@@ -93,6 +113,16 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
             contractText={contractText}
           />
           
+          {/* Show current processing status */}
+          {(loading || isProcessing) && (
+            <Alert className="mb-6 border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Processing your question... This may take a moment while we analyze the contract.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <QuestionHistoryDisplay
             questionHistory={questionHistory}
             currentAnswer={currentAnswer}
@@ -100,7 +130,10 @@ const ContractAssistantTab: React.FC<ContractAssistantTabProps> = ({
             question={question}
           />
           
-          <LegalSuggestions />
+          {/* Show suggestions only when no recent activity */}
+          {!currentAnswer && questionHistory.length === 0 && !loading && !isProcessing && (
+            <LegalSuggestions />
+          )}
         </CardContent>
       </Card>
       

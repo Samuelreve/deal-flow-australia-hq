@@ -29,14 +29,27 @@ class RealContractService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('You must be logged in to upload contracts');
+        toast.error('Authentication required', {
+          description: 'You must be logged in to upload contracts'
+        });
         return null;
       }
 
       // Validate file type before processing
       if (!DocumentTextExtractionService.isSupportedFileType(file)) {
         const errorMessage = DocumentTextExtractionService.getUnsupportedFileTypeMessage(file);
-        toast.error(errorMessage);
+        toast.error('Unsupported file type', {
+          description: errorMessage
+        });
+        return null;
+      }
+
+      // Check file size (limit to 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error('File too large', {
+          description: 'Please upload a file smaller than 10MB'
+        });
         return null;
       }
 
@@ -52,7 +65,9 @@ class RealContractService {
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        toast.error('Failed to upload file');
+        toast.error('Upload failed', {
+          description: 'Failed to upload file to storage'
+        });
         return null;
       }
 
@@ -74,11 +89,17 @@ class RealContractService {
         console.error('Contract creation error:', contractError);
         // Clean up uploaded file if database insert fails
         await supabase.storage.from('contracts').remove([filePath]);
-        toast.error('Failed to create contract record');
+        toast.error('Database error', {
+          description: 'Failed to create contract record'
+        });
         return null;
       }
 
       // Extract text from the uploaded file
+      toast.info('Processing document', {
+        description: 'Extracting text from your contract...'
+      });
+
       const extractionResult = await DocumentTextExtractionService.extractAndStoreContractText(
         file, 
         contract.id
@@ -96,11 +117,15 @@ class RealContractService {
           })
           .eq('id', contract.id);
 
-        toast.error('Failed to extract text from document');
+        toast.error('Text extraction failed', {
+          description: extractionResult.error || 'Could not extract text from document'
+        });
         return contract as Contract;
       }
 
-      toast.success('Contract uploaded and text extracted successfully!');
+      toast.success('Contract uploaded successfully!', {
+        description: 'Text extracted and ready for analysis'
+      });
       
       // Return updated contract with extracted content
       return {
@@ -111,7 +136,9 @@ class RealContractService {
       
     } catch (error) {
       console.error('Contract upload error:', error);
-      toast.error('Failed to upload contract');
+      toast.error('Upload failed', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
       return null;
     }
   }
@@ -120,6 +147,7 @@ class RealContractService {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        toast.error('Authentication required');
         return null;
       }
 
@@ -132,12 +160,18 @@ class RealContractService {
 
       if (error) {
         console.error('Get contract error:', error);
+        if (error.code === 'PGRST116') {
+          toast.error('Contract not found');
+        } else {
+          toast.error('Failed to load contract');
+        }
         return null;
       }
 
       return contract as Contract;
     } catch (error) {
       console.error('Get contract error:', error);
+      toast.error('Failed to load contract');
       return null;
     }
   }
@@ -157,6 +191,7 @@ class RealContractService {
 
       if (error) {
         console.error('Get contracts error:', error);
+        toast.error('Failed to load contracts');
         return [];
       }
 
@@ -172,9 +207,23 @@ class RealContractService {
       // Get the contract content
       const contract = await this.getContract(contractId);
       if (!contract || !contract.content) {
-        toast.error('Contract content not available for analysis');
+        toast.error('Contract unavailable', {
+          description: 'Contract content not available for analysis'
+        });
         return null;
       }
+
+      if (contract.analysis_status === 'error') {
+        toast.error('Contract analysis error', {
+          description: 'This contract has analysis errors and cannot be queried'
+        });
+        return null;
+      }
+
+      // Show processing indicator
+      toast.info('Processing question', {
+        description: 'Analyzing your question...'
+      });
 
       // Call the document AI assistant with real content
       const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
@@ -184,34 +233,47 @@ class RealContractService {
           context: {
             contractContent: contract.content,
             contractId: contractId
-          }
+          },
+          dealId: 'contract-analysis',
+          userId: (await supabase.auth.getUser()).data.user?.id
         }
       });
 
       if (error) {
         console.error('AI question error:', error);
-        toast.error('Failed to get AI response');
+        toast.error('AI processing failed', {
+          description: 'Failed to get AI response for your question'
+        });
         return null;
       }
 
+      const answer = data.explanation || data.answer || 'No response received from AI service';
+
       // Save the question and answer
-      await supabase
-        .from('contract_questions')
-        .insert({
-          contract_id: contractId,
-          question: question,
-          answer: data.explanation || data.answer || 'No response received',
-          sources: data.sources || [],
-          user_id: (await supabase.auth.getUser()).data.user?.id
-        });
+      try {
+        await supabase
+          .from('contract_questions')
+          .insert({
+            contract_id: contractId,
+            question: question,
+            answer: answer,
+            sources: data.sources || [],
+            user_id: (await supabase.auth.getUser()).data.user?.id
+          });
+      } catch (saveError) {
+        console.warn('Failed to save question history:', saveError);
+        // Don't fail the main operation if history saving fails
+      }
 
       return {
-        answer: data.explanation || data.answer || 'No response received',
+        answer,
         sources: data.sources || []
       };
     } catch (error) {
       console.error('Ask question error:', error);
-      toast.error('Failed to process question');
+      toast.error('Question processing failed', {
+        description: error instanceof Error ? error.message : 'Failed to process question'
+      });
       return null;
     }
   }
@@ -232,7 +294,8 @@ class RealContractService {
           dealId: 'contract-analysis',
           documentId: contractId,
           documentVersionId: 'latest',
-          content: contract.content
+          content: contract.content,
+          userId: (await supabase.auth.getUser()).data.user?.id
         }
       });
 
