@@ -102,8 +102,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       {/* Contract Analyzer Dialog */}
       {analyzeModeActive && docIdToAnalyze && versionIdToAnalyze && (
         <ContractAnalyzerDialog
-          isOpen={analyzeModeActive}
-          onClose={handleCloseAnalyzer}
+          open={analyzeModeActive}
+          onOpenChange={handleCloseAnalyzer}
           documentId={docIdToAnalyze}
           versionId={versionIdToAnalyze}
           dealId={dealId}

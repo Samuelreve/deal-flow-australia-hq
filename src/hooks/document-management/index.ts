@@ -7,6 +7,7 @@ import { useDocumentSelectionHandler } from "./useDocumentSelectionHandler";
 import { useDocumentUploadHandler } from "./useDocumentUploadHandler";
 import { useDocumentManagementOperations } from "./useDocumentManagementOperations";
 import { Document } from "@/types/documentVersion";
+import { useState, useCallback } from "react";
 
 export interface UseDocumentManagementProps {
   dealId: string;
@@ -43,14 +44,18 @@ export const useDocumentManagement = ({
     refreshVersions
   } = useDocuments(dealId, initialDocuments);
 
-  // State management
-  const {
-    lastUploadedDocument,
-    setLastUploadedDocument,
-    clearLastUploadedDocument,
-    analyzeModeActive,
-    docIdToAnalyze
-  } = useDocumentManagementState();
+  // State management for analyzer
+  const [lastUploadedDocument, setLastUploadedDocument] = useState<{
+    id: string;
+    versionId: string;
+    name: string;
+  } | null>(null);
+  const [analyzeModeActive] = useState(false);
+  const [docIdToAnalyze] = useState<string | null>(null);
+
+  const clearLastUploadedDocument = useCallback(() => {
+    setLastUploadedDocument(null);
+  }, []);
 
   // Selection handling
   const {
@@ -148,7 +153,10 @@ export const useDocumentManagement = ({
     
     // Inline analyzer
     lastUploadedDocument,
+    setLastUploadedDocument,
     clearLastUploadedDocument,
+    analyzeModeActive,
+    docIdToAnalyze,
     
     // Updates
     handleVersionsUpdated,
