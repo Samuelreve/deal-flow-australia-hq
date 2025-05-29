@@ -8,6 +8,7 @@ export interface DocumentMetadata {
   versionDate: string;
   id?: string;
   size?: number;
+  category?: string;
 }
 
 export interface SummaryItem {

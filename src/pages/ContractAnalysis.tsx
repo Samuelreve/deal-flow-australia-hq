@@ -30,11 +30,19 @@ const ContractAnalysis = () => {
     documentHighlights,
     setDocumentHighlights,
     exportHighlightsToCSV,
-    handleFileUpload,
+    handleFileUpload: originalHandleFileUpload,
     handleAskQuestion: originalHandleAskQuestion
   } = useContractAnalysis();
 
-  const { aiStatus } = useAIStatusManager(handleFileUpload, originalHandleAskQuestion);
+  const { aiStatus } = useAIStatusManager(originalHandleFileUpload, originalHandleAskQuestion);
+
+  // Wrap the file upload handler to match the expected event handler signature
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await originalHandleFileUpload(file);
+    }
+  };
 
   // Wrap the original handleAskQuestion to match the expected interface
   const handleAskQuestion = async (question: string): Promise<{ answer: string; sources?: string[] }> => {
