@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Sparkles, FileText, AlertTriangle, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { TabsContent } from "@/components/ui/tabs";
 import { useDocumentAI } from "@/hooks/document-ai";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import ContractAnalyzerHeader from './contract-analyzer/ContractAnalyzerHeader';
+import ContractAnalyzerTabs from './contract-analyzer/ContractAnalyzerTabs';
+import SummaryTabContent from './contract-analyzer/SummaryTabContent';
+import ExplanationTabContent from './contract-analyzer/ExplanationTabContent';
+import QuestionTabContent from './contract-analyzer/QuestionTabContent';
+import ContractAnalyzerDisclaimer from './contract-analyzer/ContractAnalyzerDisclaimer';
 
 interface ContractAnalyzerDialogProps {
   dealId: string;
@@ -24,7 +26,6 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
   documentId,
   versionId,
   userRole = 'user',
-  className,
   open,
   onOpenChange
 }) => {
@@ -44,16 +45,7 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
   // Check if user role allows contract analysis
   const canAnalyzeContracts = ['admin', 'seller', 'buyer', 'lawyer'].includes(userRole.toLowerCase());
   
-  // Trigger automatic summary when dialog opens
-  useEffect(() => {
-    if (open && !summaryResult && !isAnalyzing) {
-      handleSummarize();
-    }
-  }, [open, summaryResult]);
-  
   const handleSummarize = async () => {
-    setActiveTab("summary");
-    
     try {
       const result = await summarizeContract(documentId, versionId);
       
@@ -80,8 +72,6 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
       });
       return;
     }
-    
-    setActiveTab("explanation");
     
     try {
       const result = await explainContractClause(selectedText, documentId, versionId);
@@ -110,10 +100,7 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
       return;
     }
     
-    setActiveTab("askQuestion");
-    
     try {
-      // Fix: Remove the fourth argument and use the context parameter correctly
       const result = await explainContractClause(selectedText || "The entire contract", documentId, versionId);
       
       if (result) {
@@ -134,164 +121,42 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
     return null;
   }
   
-  const renderSummaryTab = () => {
-    if (isAnalyzing && activeTab === "summary") {
-      return (
-        <div className="py-8 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-muted-foreground">Analyzing contract...</p>
-        </div>
-      );
-    }
-    
-    if (!summaryResult) {
-      return <div className="py-8 text-center">No summary available yet</div>;
-    }
-    
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Summary</h3>
-          <p className="mt-2 whitespace-pre-line">{summaryResult.summary}</p>
-        </div>
-        
-        {/* Additional structured information would be shown here in production */}
-      </div>
-    );
-  };
-  
-  const renderExplanationTab = () => {
-    if (isAnalyzing && activeTab === "explanation") {
-      return (
-        <div className="py-8 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-muted-foreground">Analyzing clause...</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-md font-medium">Enter text to explain</h3>
-          <Textarea 
-            className="mt-2" 
-            value={selectedText} 
-            onChange={(e) => setSelectedText(e.target.value)}
-            placeholder="Copy and paste the clause or section you want explained..."
-            rows={5}
-          />
-          
-          <Button 
-            onClick={handleExplainClause} 
-            className="mt-2"
-            disabled={!selectedText.trim() || isAnalyzing}
-          >
-            {isAnalyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            Explain This Text
-          </Button>
-        </div>
-        
-        {explanationResult && activeTab === "explanation" && (
-          <div>
-            <h3 className="text-lg font-medium">Explanation</h3>
-            <p className="mt-2 whitespace-pre-line">{explanationResult.explanation}</p>
-            
-            {explanationResult.isAmbiguous && (
-              <Alert className="bg-amber-50 border-amber-300 mt-4">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800">
-                  This clause contains potentially ambiguous language that may benefit from clarification.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  const renderAskQuestionTab = () => {
-    if (isAnalyzing && activeTab === "askQuestion") {
-      return (
-        <div className="py-8 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-muted-foreground">Finding answer...</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-md font-medium">Ask a question about this contract</h3>
-          <div className="flex items-center gap-2 mt-2">
-            <Input 
-              value={userQuestion} 
-              onChange={(e) => setUserQuestion(e.target.value)}
-              placeholder="e.g., What happens if I cancel early?"
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleAskQuestion} 
-              disabled={!userQuestion.trim() || isAnalyzing}
-            >
-              {isAnalyzing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Ask
-            </Button>
-          </div>
-        </div>
-        
-        {explanationResult && activeTab === "askQuestion" && (
-          <div>
-            <h3 className="text-lg font-medium">Answer</h3>
-            <p className="mt-2 whitespace-pre-line">{explanationResult.explanation}</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Sparkles className="h-4 w-4 mr-2 text-primary" />
-            Contract Analyzer
-          </DialogTitle>
-          <DialogDescription>
-            Understand this contract with AI assistance
-          </DialogDescription>
-        </DialogHeader>
+        <ContractAnalyzerHeader />
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="summary" onClick={handleSummarize}>Summary</TabsTrigger>
-            <TabsTrigger value="explanation">Explain Text</TabsTrigger>
-            <TabsTrigger value="askQuestion">Ask a Question</TabsTrigger>
-          </TabsList>
-          
+        <ContractAnalyzerTabs activeTab={activeTab} setActiveTab={setActiveTab}>
           <TabsContent value="summary">
-            {renderSummaryTab()}
+            <SummaryTabContent 
+              summaryResult={summaryResult}
+              isAnalyzing={isAnalyzing && activeTab === "summary"}
+              onAnalyze={handleSummarize}
+            />
           </TabsContent>
           
           <TabsContent value="explanation">
-            {renderExplanationTab()}
+            <ExplanationTabContent 
+              selectedText={selectedText}
+              setSelectedText={setSelectedText}
+              explanationResult={activeTab === "explanation" ? explanationResult : null}
+              isAnalyzing={isAnalyzing && activeTab === "explanation"}
+              onExplain={handleExplainClause}
+            />
           </TabsContent>
           
           <TabsContent value="askQuestion">
-            {renderAskQuestionTab()}
+            <QuestionTabContent 
+              userQuestion={userQuestion}
+              setUserQuestion={setUserQuestion}
+              explanationResult={activeTab === "askQuestion" ? explanationResult : null}
+              isAnalyzing={isAnalyzing && activeTab === "askQuestion"}
+              onAskQuestion={handleAskQuestion}
+            />
           </TabsContent>
-        </Tabs>
+        </ContractAnalyzerTabs>
         
-        {disclaimer && (
-          <Alert className="mt-6 bg-blue-50 border-blue-200">
-            <AlertDescription className="text-xs text-blue-700">
-              {disclaimer}
-            </AlertDescription>
-          </Alert>
-        )}
+        <ContractAnalyzerDisclaimer disclaimer={disclaimer} />
       </DialogContent>
     </Dialog>
   );
