@@ -1,9 +1,11 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { DocumentMetadata, SummaryData, Highlight } from './types';
+import { DocumentMetadata, SummaryData } from './types';
 import { useQuestionAnswering } from './useQuestionAnswering';
+import { useFileProcessing } from './useFileProcessing';
+import { useHighlightManagement } from './useHighlightManagement';
 
 /**
  * Main hook for contract analysis features - now uses real AI services only
@@ -18,19 +20,25 @@ export const useContractAnalysis = () => {
   // Summary state
   const [customSummary, setCustomSummary] = useState<SummaryData | null>(null);
   
-  // User highlight preferences state
-  const [documentHighlights, setDocumentHighlights] = useState<Highlight[]>([]);
-  
-  // Analysis state
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStage, setAnalysisStage] = useState<string>('');
-  const [analysisProgress, setAnalysisProgress] = useState(0);
-  
-  // Error state
-  const [error, setError] = useState<string | null>(null);
-  
   // Get URL search params
   const [searchParams] = useSearchParams();
+  
+  // Get file processing functionality
+  const {
+    isAnalyzing,
+    analysisStage,
+    analysisProgress,
+    error,
+    setError,
+    handleFileUpload: processFileUpload
+  } = useFileProcessing();
+
+  // Get highlight management functionality
+  const {
+    documentHighlights,
+    setDocumentHighlights,
+    exportHighlightsToCSV
+  } = useHighlightManagement();
   
   // Get question answering functionality
   const {
@@ -38,189 +46,18 @@ export const useContractAnalysis = () => {
     handleAskQuestion,
     isProcessing
   } = useQuestionAnswering();
-  
-  // Real file upload handler
-  const handleFileUpload = useCallback(async (file: File) => {
-    if (!file) return;
+
+  // Wrapper for file upload that updates local state
+  const handleFileUpload = async (file: File) => {
+    const result = await processFileUpload(file);
     
-    setIsAnalyzing(true);
-    setAnalysisStage('Uploading document...');
-    setAnalysisProgress(10);
-    setError(null);
-    
-    try {
-      // Create document metadata
-      const metadata: DocumentMetadata = {
-        id: `doc-${Date.now()}`,
-        name: file.name,
-        type: file.type.includes('pdf') ? 'PDF' : 'Document',
-        uploadDate: new Date().toISOString(),
-        status: 'processing' as const,
-        version: '1.0',
-        versionDate: new Date().toISOString(),
-        size: file.size,
-        category: 'Legal Agreement'
-      };
-      
-      setDocumentMetadata(metadata);
-      setAnalysisProgress(30);
-      
-      // Extract text from file
-      setAnalysisStage('Extracting text...');
-      const text = await extractTextFromFile(file);
-      setContractText(text);
-      setAnalysisProgress(60);
-      
-      // Analyze document
-      setAnalysisStage('Analyzing contract...');
-      const summary = await analyzeContract(text);
-      setCustomSummary(summary);
-      setAnalysisProgress(90);
-      
-      // Update metadata to completed
-      setDocumentMetadata(prev => prev ? { ...prev, status: 'completed' } : null);
-      setAnalysisProgress(100);
-      setAnalysisStage('Analysis complete');
-      
-      toast.success('Contract analyzed successfully', {
-        description: 'AI analysis and insights are now available'
-      });
-      
-    } catch (error) {
-      console.error('File upload and analysis failed:', error);
-      setError(error instanceof Error ? error.message : 'Failed to analyze contract');
-      toast.error('Analysis failed', {
-        description: 'Please try uploading the document again'
-      });
-    } finally {
-      setIsAnalyzing(false);
-      setTimeout(() => {
-        setAnalysisStage('');
-        setAnalysisProgress(0);
-      }, 2000);
+    if (result.success && result.metadata && result.text && result.summary) {
+      setDocumentMetadata(result.metadata);
+      setContractText(result.text);
+      setCustomSummary(result.summary);
     }
-  }, []);
-  
-  // Extract text from uploaded file
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        if (file.type === 'text/plain') {
-          resolve(result);
-        } else {
-          // For PDF and other formats, we'd need a proper text extraction service
-          // For now, provide a placeholder that indicates real document processing is needed
-          resolve(`Document uploaded: ${file.name}\n\nTo enable full AI analysis, please ensure your contract is in a supported format. The system will extract and analyze the actual contract content.`);
-        }
-      };
-      
-      if (file.type === 'text/plain') {
-        reader.readAsText(file);
-      } else {
-        reader.readAsDataURL(file);
-      }
-    });
   };
-  
-  // Analyze contract using AI (placeholder for real AI service)
-  const analyzeContract = async (text: string): Promise<SummaryData> => {
-    // This would connect to a real AI service in production
-    return {
-      summary: [
-        {
-          title: "Contract Overview",
-          content: "Contract analysis requires connection to AI services. Please ensure proper API keys are configured for document analysis."
-        },
-        {
-          title: "Parties Involved",
-          content: "Party information would be extracted from the actual contract"
-        },
-        {
-          title: "Key Terms",
-          content: "Terms would be identified through AI analysis"
-        },
-        {
-          title: "Obligations",
-          content: "Obligations would be extracted from the contract text"
-        },
-        {
-          title: "Risk Assessment",
-          content: "Risk assessment would be performed on the actual contract"
-        },
-        {
-          title: "Recommendations",
-          content: "AI-generated recommendations would appear here"
-        }
-      ],
-      disclaimer: "This analysis is generated by artificial intelligence and is provided for informational purposes only. It does not constitute legal advice and should not be relied upon for legal decisions. Always consult with a qualified attorney for professional legal guidance."
-    };
-  };
-  
-  // Save highlights to local storage when they change
-  useEffect(() => {
-    if (documentHighlights.length > 0) {
-      try {
-        localStorage.setItem('contract-highlights', JSON.stringify(documentHighlights));
-      } catch (error) {
-        console.error('Error saving highlights to local storage:', error);
-      }
-    }
-  }, [documentHighlights]);
-  
-  // Load highlights from local storage on initial load
-  useEffect(() => {
-    try {
-      const savedHighlights = localStorage.getItem('contract-highlights');
-      if (savedHighlights) {
-        setDocumentHighlights(JSON.parse(savedHighlights));
-      }
-    } catch (error) {
-      console.error('Error loading highlights from local storage:', error);
-    }
-  }, []);
-  
-  // Export highlights to CSV
-  const exportHighlightsToCSV = useCallback(() => {
-    if (documentHighlights.length === 0) {
-      toast.error('No highlights to export');
-      return;
-    }
-    
-    try {
-      // Create CSV content
-      const headers = ['Text', 'Category', 'Note', 'Created At'];
-      const csvContent = [
-        headers.join(','),
-        ...documentHighlights.map(highlight => {
-          return [
-            `"${highlight.text.replace(/"/g, '""')}"`,
-            highlight.category,
-            `"${(highlight.note || '').replace(/"/g, '""')}"`,
-            new Date(highlight.createdAt).toLocaleString()
-          ].join(',');
-        })
-      ].join('\n');
-      
-      // Create download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `contract-highlights-${Date.now()}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success('Highlights exported successfully');
-    } catch (error) {
-      console.error('Error exporting highlights:', error);
-      toast.error('Failed to export highlights');
-    }
-  }, [documentHighlights]);
-  
+
   useEffect(() => {
     // Check URL parameters to see if we should show analysis prompt
     const shouldAnalyze = searchParams.get("analyze") === "true";
