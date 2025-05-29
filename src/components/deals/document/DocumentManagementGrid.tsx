@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Document, DocumentVersion } from "@/types/documentVersion";
-import DocumentSidebar from "./DocumentSidebar";
-import DocumentViewerSection from "./DocumentViewerSection";
+import DocumentManagementMain from "./DocumentManagementMain";
 
 interface DocumentManagementGridProps {
   // Document state
@@ -39,66 +38,8 @@ interface DocumentManagementGridProps {
   onCloseAnalyzer: () => void;
 }
 
-const DocumentManagementGrid: React.FC<DocumentManagementGridProps> = ({
-  documents,
-  isLoading,
-  selectedDocument,
-  documentVersions,
-  loadingVersions,
-  selectedVersionUrl,
-  selectedVersionId,
-  userRole,
-  userId,
-  isParticipant,
-  dealId,
-  uploading,
-  lastUploadedDocument,
-  onSelectDocument,
-  onDeleteDocument,
-  onDeleteVersion,
-  onSelectVersion,
-  onShareVersion,
-  onVersionsUpdated,
-  onUpload,
-  onCloseAnalyzer
-}) => {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* Document sidebar with list and upload functionality */}
-      <DocumentSidebar
-        documents={documents}
-        isLoading={isLoading}
-        onDeleteDocument={onDeleteDocument}
-        userRole={userRole}
-        userId={userId}
-        isParticipant={isParticipant}
-        onSelectDocument={onSelectDocument}
-        selectedDocument={selectedDocument}
-        documentVersions={documentVersions}
-        loadingVersions={loadingVersions}
-        onDeleteVersion={onDeleteVersion}
-        onSelectVersion={onSelectVersion}
-        selectedVersionId={selectedVersionId}
-        onShareVersion={onShareVersion}
-        dealId={dealId}
-        onVersionsUpdated={onVersionsUpdated}
-        uploading={uploading}
-        onUpload={onUpload}
-        lastUploadedDocument={lastUploadedDocument}
-        onCloseAnalyzer={onCloseAnalyzer}
-      />
-      
-      {/* Document Viewer Section */}
-      <DocumentViewerSection 
-        selectedVersionUrl={selectedVersionUrl}
-        documentVersions={documentVersions}
-        dealId={dealId}
-        selectedDocument={selectedDocument}
-        selectedVersionId={selectedVersionId}
-        onVersionsUpdated={onVersionsUpdated}
-      />
-    </div>
-  );
+const DocumentManagementGrid: React.FC<DocumentManagementGridProps> = (props) => {
+  return <DocumentManagementMain {...props} />;
 };
 
 export default DocumentManagementGrid;

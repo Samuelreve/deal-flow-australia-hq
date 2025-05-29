@@ -1,84 +1,80 @@
 
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import { Document } from "@/types/documentVersion";
-import { useDocumentManagement } from "@/hooks/document-management";
-import DocumentManagementHeader from "./document/DocumentManagementHeader";
+import { useAuth } from "@/contexts/AuthContext";
 import DocumentManagementGrid from "./document/DocumentManagementGrid";
+import ContractAnalyzerDialog from "./document/ContractAnalyzerDialog";
 import DocumentDialogs from "./document/DocumentDialogs";
+import { useDocumentManagementState } from "@/hooks/document-management/useDocumentManagementState";
 
-// Define props for the DocumentManagement component
 interface DocumentManagementProps {
   dealId: string;
-  userRole?: string;
-  initialDocuments?: Document[];
-  isParticipant?: boolean;
-  dealTitle?: string;
+  userRole: string;
+  initialDocuments: Document[];
+  isParticipant: boolean;
 }
 
-const DocumentManagement = ({ 
-  dealId, 
-  userRole = "user", 
-  initialDocuments = [],
-  isParticipant = false,
-  dealTitle
-}: DocumentManagementProps) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({
+  dealId,
+  userRole,
+  initialDocuments,
+  isParticipant
+}) => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Check if analyzer should be open
+  const analyzeModeActive = searchParams.get("analyze") === "true";
+  const docIdToAnalyze = searchParams.get("docId");
+  const versionIdToAnalyze = searchParams.get("versionId");
+
+  // Use the document management state hook
   const {
-    // Document list state and handlers
     documents,
     isLoading,
     uploading,
     selectedDocument,
     documentVersions,
     loadingVersions,
-    handleSelectDocument,
+    selectedVersionUrl,
+    selectedVersionId,
     handleUpload,
-    
-    // Document deletion
-    openDeleteDialog,
-    closeDeleteDialog,
-    confirmDelete,
+    handleSelectDocument,
+    handleSelectVersion,
+    lastUploadedDocument,
+    clearLastUploadedDocument,
+    handleVersionsUpdated,
+    handleDocumentsUpdated,
     documentToDelete,
     showDeleteDialog,
     isDeleting,
-    
-    // Version operations
-    handleSelectVersion,
-    selectedVersionUrl,
-    selectedVersionId,
-    
-    // Version deletion
-    openVersionDeleteDialog,
-    closeVersionDeleteDialog,
-    confirmVersionDelete,
+    openDeleteDialog,
+    closeDeleteDialog,
+    confirmDelete,
     versionToDelete,
     showVersionDeleteDialog,
     isDeletingVersion,
-    
-    // Sharing
-    handleShareVersion,
-    closeShareDialog,
+    openVersionDeleteDialog,
+    closeVersionDeleteDialog,
+    confirmVersionDelete,
     showShareDialog,
     versionToShare,
-    
-    // Inline analyzer
-    lastUploadedDocument,
-    clearLastUploadedDocument,
-    
-    // Updates
-    handleVersionsUpdated,
-    
-    // User info
-    user
-  } = useDocumentManagement({ 
-    dealId, 
-    initialDocuments, 
-    isParticipant 
-  });
+    openShareDialog,
+    closeShareDialog
+  } = useDocumentManagementState({ dealId, initialDocuments });
+
+  // Close analyzer handler
+  const handleCloseAnalyzer = () => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete("analyze");
+    newSearchParams.delete("docId");
+    newSearchParams.delete("versionId");
+    setSearchParams(newSearchParams);
+  };
 
   return (
-    <div className="space-y-4">
-      <DocumentManagementHeader dealTitle={dealTitle} />
-      
+    <>
       <DocumentManagementGrid
         documents={documents}
         isLoading={isLoading}
@@ -97,13 +93,25 @@ const DocumentManagement = ({
         onDeleteDocument={openDeleteDialog}
         onDeleteVersion={openVersionDeleteDialog}
         onSelectVersion={handleSelectVersion}
-        onShareVersion={handleShareVersion}
+        onShareVersion={openShareDialog}
         onVersionsUpdated={handleVersionsUpdated}
         onUpload={handleUpload}
         onCloseAnalyzer={clearLastUploadedDocument}
       />
-      
-      {/* All dialog components */}
+
+      {/* Contract Analyzer Dialog */}
+      {analyzeModeActive && docIdToAnalyze && versionIdToAnalyze && (
+        <ContractAnalyzerDialog
+          isOpen={analyzeModeActive}
+          onClose={handleCloseAnalyzer}
+          documentId={docIdToAnalyze}
+          versionId={versionIdToAnalyze}
+          dealId={dealId}
+          userRole={userRole}
+        />
+      )}
+
+      {/* Document Dialogs */}
       <DocumentDialogs
         documentToDelete={documentToDelete}
         showDeleteDialog={showDeleteDialog}
@@ -120,7 +128,7 @@ const DocumentManagement = ({
         versionToShare={versionToShare}
         documentName={selectedDocument?.name}
       />
-    </div>
+    </>
   );
 };
 
