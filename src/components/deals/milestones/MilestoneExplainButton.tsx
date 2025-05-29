@@ -32,7 +32,7 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
   const handleExplain = async () => {
     setIsOpen(true);
     if (!result) {
-      await explainMilestone(milestoneId);
+      await explainMilestone(milestoneId, "");
     }
   };
 

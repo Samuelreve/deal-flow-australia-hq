@@ -21,11 +21,10 @@ const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: 
     setGenerating(true);
     try {
       // Call generateSmartTemplate with the required arguments
-      // documentType, customization, and context object
       await generateSmartTemplate(
-        "Contract", // Document type
-        "Standard agreement", // Customization
-        { dealId } // Context object
+        dealId,
+        "Contract", // Template type
+        "Standard agreement" // Custom requirements
       );
       
       toast({

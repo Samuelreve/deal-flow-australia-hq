@@ -30,6 +30,10 @@ export const useDocumentAI = (props: UseDocumentAICoreProps) => {
   const error = contractOps.error || analysisOps.error || dealOps.error || 
                milestoneOps.error || templateOps.error;
 
+  // Get the most recent result from any operation
+  const result = contractOps.result || analysisOps.result || dealOps.result || 
+                milestoneOps.result || templateOps.result;
+
   return {
     // Contract operations
     summarizeContract: contractOps.summarizeContract,
@@ -61,6 +65,7 @@ export const useDocumentAI = (props: UseDocumentAICoreProps) => {
     // State
     loading,
     error,
+    result,
     
     // Utility functions
     formatInsightsToText,
@@ -72,6 +77,10 @@ export const useDocumentAI = (props: UseDocumentAICoreProps) => {
       dealOps.clearResult();
       milestoneOps.clearResult();
       templateOps.clearResult();
+    },
+    clearError: () => {
+      // Individual operations will clear their own errors
+      // This is a no-op for backward compatibility
     }
   };
 };

@@ -27,7 +27,15 @@ export function useDocumentExplanation({
     
     try {
       const result = await explainClause(selectedText);
-      setExplanationResult(result);
+      if (result && result.explanation) {
+        // Convert AIResponse to ContractClauseExplanationResponse
+        const explanationResponse: ContractClauseExplanationResponse = {
+          explanation: result.explanation,
+          disclaimer: result.disclaimer,
+          isAmbiguous: result.isAmbiguous
+        };
+        setExplanationResult(explanationResponse);
+      }
     } catch (err: any) {
       console.error('Error explaining text:', err);
       setError(err.message || 'Failed to explain the selected text');

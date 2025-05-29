@@ -32,7 +32,7 @@ const NextActionSuggestion: React.FC<NextActionSuggestionProps> = ({
   const handleSuggestAction = async () => {
     setIsOpen(true);
     if (!result) {
-      await suggestNextAction(dealId);
+      await suggestNextAction(dealId, "");
     }
   };
 

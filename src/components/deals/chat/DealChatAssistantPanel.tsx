@@ -58,9 +58,8 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
     setUserQuestion("");
 
     try {
-      // Call the AI assistant method with the most recent 4 messages for context
-      const recentHistory = chatMessages.slice(-4);
-      const result = await dealChatQuery(dealId, userQuestion.trim(), recentHistory);
+      // Call the AI assistant method with just dealId and query
+      const result = await dealChatQuery(dealId, userQuestion.trim());
 
       if (result && 'answer' in result) {
         const answer = (result as DealChatResponse).answer;

@@ -41,15 +41,15 @@ const DealInsightsPanel = () => {
     
     try {
       // Clear any previous errors
-      clearError?.();
+      clearError();
       
-      const result = await getDealInsights();
-      if (result) {
+      const result = await getDealInsights("");
+      if (result && 'insights' in result) {
         // Store the raw insights data
-        setInsightsData(result);
+        setInsightsData(result as DealInsightsResponse);
         
         // Also convert to text for backward compatibility
-        const formattedText = formatInsightsToText(result);
+        const formattedText = formatInsightsToText(result as DealInsightsResponse);
         setInsightsText(formattedText);
         
         // Reset retry count on success
