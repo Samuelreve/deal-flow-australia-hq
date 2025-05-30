@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle } from 'lucide-react';
@@ -32,7 +32,16 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
   
   // Use either isUploading or uploading prop for backward compatibility
   const isProcessing = isUploading || uploading;
-  const [selectedFileName, setSelectedFileName] = React.useState<string>('');
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
+
+  console.log('RealContractUpload render:', {
+    isUploading,
+    uploading,
+    isProcessing,
+    uploadProgress,
+    error,
+    user: user?.id
+  });
 
   const handleUploadClick = () => {
     console.log('Upload button clicked');
@@ -45,11 +54,17 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
     if (file) {
       setSelectedFileName(file.name);
       console.log('Selected file:', file.name, 'Type:', file.type, 'Size:', file.size);
+      
+      try {
+        await onFileUpload(e);
+      } catch (error) {
+        console.error('Error in handleFileChange:', error);
+      }
     }
-    await onFileUpload(e);
   };
 
   if (!user) {
+    console.log('No user, showing auth required');
     return <AuthenticationRequired />;
   }
 

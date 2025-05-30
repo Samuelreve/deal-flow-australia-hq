@@ -9,16 +9,21 @@ export const useContractData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  console.log('useContractData state:', {
+    documentsCount: documents.length,
+    selectedDocument: selectedDocument?.name,
+    contractTextLength: contractText.length,
+    loading,
+    error
+  });
 
   const resetData = useCallback(() => {
+    console.log('Resetting contract data');
     setDocuments([]);
     setSelectedDocument(null);
     setContractText('');
+    setLoading(false);
     setError(null);
-    console.log('Contract data reset - ready for new document');
   }, []);
 
   return {
@@ -31,7 +36,7 @@ export const useContractData = () => {
     setSelectedDocument,
     setContractText,
     setLoading,
-    setError: clearError,
+    setError,
     resetData
   };
 };

@@ -4,7 +4,6 @@ import DocumentDetails from './DocumentDetails';
 import DocumentVersions from './DocumentVersions';
 import RealContractUpload from './RealContractUpload';
 import { DocumentMetadata, DocumentHighlight } from '@/types/contract';
-import { useContractDocumentUpload } from '@/hooks/contract/useContractDocumentUpload';
 
 interface ContractSidebarProps {
   documentMetadata: DocumentMetadata | null;
@@ -21,22 +20,19 @@ const ContractSidebar: React.FC<ContractSidebarProps> = ({
   onFileUpload,
   onExportHighlights
 }) => {
-  const { isUploading, uploadProgress, error } = useContractDocumentUpload({
-    onUploadSuccess: (metadata, text, summary) => {
-      console.log('Upload successful:', metadata);
-    },
-    onUploadError: (error) => {
-      console.error('Upload error:', error);
-    }
+  console.log('ContractSidebar render:', {
+    documentMetadata: documentMetadata?.name,
+    isAnalyzing,
+    documentHighlights: documentHighlights.length
   });
 
   return (
     <div className="space-y-6">
       <RealContractUpload 
         onFileUpload={onFileUpload}
-        isUploading={isUploading || isAnalyzing}
-        uploadProgress={uploadProgress}
-        error={error}
+        isUploading={isAnalyzing}
+        uploadProgress={0}
+        error={null}
       />
       
       {documentMetadata && (
