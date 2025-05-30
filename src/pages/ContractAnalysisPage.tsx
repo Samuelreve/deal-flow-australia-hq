@@ -94,6 +94,20 @@ const ContractAnalysisPage: React.FC = () => {
     toast.info('Export functionality coming soon');
   }, []);
 
+  // Helper function to map analysis status to DocumentMetadata status
+  const mapAnalysisStatus = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'completed' as const;
+      case 'processing':
+        return 'analyzing' as const;
+      case 'failed':
+        return 'error' as const;
+      default:
+        return 'pending' as const;
+    }
+  };
+
   return (
     <AppLayout>
       <div className="container py-6 max-w-7xl">
@@ -108,7 +122,7 @@ const ContractAnalysisPage: React.FC = () => {
                   name: selectedContract.name,
                   type: selectedContract.mime_type,
                   uploadDate: selectedContract.upload_date,
-                  status: selectedContract.analysis_status === 'completed' ? 'completed' : 'processing',
+                  status: mapAnalysisStatus(selectedContract.analysis_status),
                   version: '1.0',
                   versionDate: selectedContract.upload_date,
                   size: selectedContract.file_size,
@@ -129,7 +143,7 @@ const ContractAnalysisPage: React.FC = () => {
                 name: selectedContract.name,
                 type: selectedContract.mime_type,
                 uploadDate: selectedContract.upload_date,
-                status: selectedContract.analysis_status === 'completed' ? 'completed' : 'processing',
+                status: mapAnalysisStatus(selectedContract.analysis_status),
                 version: '1.0',
                 versionDate: selectedContract.upload_date,
                 size: selectedContract.file_size,

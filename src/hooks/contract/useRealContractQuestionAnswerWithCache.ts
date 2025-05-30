@@ -8,7 +8,9 @@ export interface QuestionHistoryItem {
   question: string;
   answer: string;
   timestamp: Date;
+  type: 'question' | 'analysis';
   sources?: string[];
+  analysisType?: string;
 }
 
 export const useRealContractQuestionAnswerWithCache = (contractId: string | null) => {
@@ -53,6 +55,7 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
         question,
         answer: cachedAnswer,
         timestamp: new Date(),
+        type: 'question',
         sources: ['Cached Response']
       };
       
@@ -90,6 +93,7 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
         question,
         answer: data.answer,
         timestamp: new Date(),
+        type: 'question',
         sources: data.sources || ['AI Analysis']
       };
 
@@ -203,6 +207,8 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
         question: `Analysis: ${analysisType}`,
         answer: data.answer,
         timestamp: new Date(),
+        type: 'analysis',
+        analysisType: analysisType,
         sources: data.sources || ['AI Analysis']
       };
       

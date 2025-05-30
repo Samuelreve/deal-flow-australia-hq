@@ -8,7 +8,16 @@ import ProfessionalDisclaimer from './components/ProfessionalDisclaimer';
 import LegalSuggestions from './components/LegalSuggestions';
 import QuestionInputSection from './components/QuestionInputSection';
 import { MessageSquare, FileText, Brain, Sparkles } from 'lucide-react';
-import { QuestionHistoryItem } from '@/hooks/contract/useRealContractQuestionAnswerWithCache';
+
+interface QuestionHistoryItem {
+  id: string;
+  question: string;
+  answer: string;
+  timestamp: Date;
+  type: 'question' | 'analysis';
+  sources?: string[];
+  analysisType?: string;
+}
 
 interface EnhancedContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<any>;
