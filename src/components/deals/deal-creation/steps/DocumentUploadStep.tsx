@@ -99,7 +99,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
     
     // Delete from storage if it has a storage path
     if (doc?.storagePath) {
-      const deleted = await deleteFile(doc.storagePath);
+      const deleted = await deleteFile(doc.storagePath, currentDealId);
       if (!deleted) {
         toast({
           title: "Error",

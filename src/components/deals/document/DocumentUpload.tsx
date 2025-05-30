@@ -8,7 +8,7 @@ import SmartTemplateButton from "./SmartTemplateButton";
 
 interface DocumentUploadProps {
   dealId: string;
-  onUpload?: (document: Document) => void;
+  onUpload?: () => void;
   userRole?: string;
   isParticipant?: boolean;
   documents?: Document[];
@@ -52,6 +52,11 @@ const DocumentUpload = ({
     return null;
   }
 
+  const handleDocumentUpload = (document: Document) => {
+    // Call the onUpload callback if provided
+    onUpload?.();
+  };
+
   return (
     <div className="border-t pt-4 mt-4">
       <h4 className="text-lg font-semibold mb-3">Upload Document</h4>
@@ -59,13 +64,13 @@ const DocumentUpload = ({
       <div className="flex items-center gap-3 mb-4">
         <DocumentUploadForm 
           dealId={dealId}
-          onUpload={onUpload}
+          onUpload={handleDocumentUpload}
           documents={documents}
         />
         
         <SmartTemplateButton 
           dealId={dealId}
-          onDocumentSaved={onUpload}
+          onDocumentSaved={handleDocumentUpload}
           userRole={userRole}
         />
       </div>

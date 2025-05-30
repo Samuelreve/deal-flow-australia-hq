@@ -60,12 +60,10 @@ const DocumentSidebar = ({
   const adaptedDocuments: DealDocument[] = adaptDocumentsToDealType(documents);
   
   // Create an adapter function for onUpload to handle type conversion
-  const handleUpload = async (file: File, category: string, documentId?: string): Promise<DealDocument | null> => {
-    const result = await onUpload(file, category, documentId);
-    if (result) {
-      return adaptDocumentToDealType(result);
-    }
-    return null;
+  const handleUpload = async (document: DealDocument): Promise<void> => {
+    // This function will be called when a document is uploaded
+    // We need to refresh the documents list after upload
+    onVersionsUpdated();
   };
 
   return (
@@ -93,7 +91,6 @@ const DocumentSidebar = ({
       {/* Document Upload Section */}
       <DocumentUpload 
         onUpload={handleUpload}
-        uploading={uploading}
         userRole={userRole}
         isParticipant={isParticipant}
         documents={adaptedDocuments}

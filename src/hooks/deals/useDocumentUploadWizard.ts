@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { unifiedDocumentUploadService } from '@/services/documents/unifiedDocumentUploadService';
 import { UploadedDocument } from '@/components/deals/deal-creation/types';
 
@@ -36,7 +37,7 @@ export const useDocumentUploadWizard = () => {
       }
 
       // Create signed URL for preview
-      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.storage_path || '');
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '');
 
       toast({
         title: "Upload Successful",
@@ -52,7 +53,7 @@ export const useDocumentUploadWizard = () => {
         size: file.size,
         uploadedAt: new Date(),
         url: signedUrl,
-        storagePath: document.latestVersion?.storage_path || ''
+        storagePath: document.latestVersion?.url || ''
       };
 
       return uploadedDoc;
