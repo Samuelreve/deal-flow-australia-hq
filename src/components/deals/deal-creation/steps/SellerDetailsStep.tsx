@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ArrowLeft, User, Info } from 'lucide-react';
+import { ChevronDown, ArrowLeft, User, Info, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,19 +18,19 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
 
   useEffect(() => {
     // Auto-fill seller name from user profile
-    if (user?.name && !data.sellerName) {
+    if (user?.name && !data.primarySellerName) {
       updateData({ 
-        sellerName: user.name,
+        primarySellerName: user.name,
         sellerEntityType: 'Individual'
       });
     }
-  }, [user, data.sellerName, updateData]);
+  }, [user, data.primarySellerName, updateData]);
 
   const validateStep = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!data.sellerName) {
-      newErrors.sellerName = 'Seller name is required';
+    if (!data.primarySellerName) {
+      newErrors.primarySellerName = 'Primary seller name is required';
     }
     
     if (!data.sellerEntityType) {
@@ -55,35 +55,31 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2 mb-4">
-        <User className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Seller Information</h2>
-      </div>
-
       <Alert>
-        <Info className="h-4 w-4" />
+        <UserCheck className="h-4 w-4" />
         <AlertDescription>
-          This information identifies you as the seller and will be used in legal documents.
+          This information identifies you as the seller and will be used in legal documents. 
+          Your details are secure and will only be shared with authorized parties.
         </AlertDescription>
       </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="sellerName">
-            Primary Seller Name *
+          <Label htmlFor="primarySellerName">
+            Primary Seller Contact Name *
           </Label>
           <Input
-            id="sellerName"
-            value={data.sellerName}
-            onChange={(e) => updateData({ sellerName: e.target.value })}
+            id="primarySellerName"
+            value={data.primarySellerName}
+            onChange={(e) => updateData({ primarySellerName: e.target.value })}
             placeholder="John Smith"
-            className={errors.sellerName ? 'border-red-500' : ''}
+            className={errors.primarySellerName ? 'border-red-500' : ''}
           />
-          {errors.sellerName && (
-            <p className="text-sm text-red-500">{errors.sellerName}</p>
+          {errors.primarySellerName && (
+            <p className="text-sm text-red-500">{errors.primarySellerName}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            Auto-filled from your profile
+            Auto-filled from your profile - you can edit if needed
           </p>
         </div>
 
@@ -107,6 +103,9 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
           {errors.sellerEntityType && (
             <p className="text-sm text-red-500">{errors.sellerEntityType}</p>
           )}
+          <p className="text-xs text-muted-foreground">
+            This may differ from the business entity type
+          </p>
         </div>
       </div>
 
@@ -121,7 +120,8 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Add a lawyer or trusted advisor who can represent you in this deal.
+              Adding a lawyer or advisor now streamlines the process. They can be invited to collaborate 
+              on your deal once it's created, giving them secure access to documents and communications.
             </AlertDescription>
           </Alert>
           
@@ -134,8 +134,11 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
                 id="legalRepName"
                 value={data.legalRepName}
                 onChange={(e) => updateData({ legalRepName: e.target.value })}
-                placeholder="Sarah Johnson, Smith & Co Legal"
+                placeholder="Sarah Johnson"
               />
+              <p className="text-xs text-muted-foreground">
+                Lawyer, advisor, or legal representative
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -168,6 +171,16 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
               />
             </div>
           </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-900 mb-2">Why add a legal representative?</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• They can review documents and provide legal guidance</li>
+              <li>• Streamlines communication during negotiations</li>
+              <li>• Helps ensure legal compliance throughout the process</li>
+              <li>• Can be invited to collaborate securely on your deal</li>
+            </ul>
+          </div>
         </CollapsibleContent>
       </Collapsible>
 
@@ -176,7 +189,7 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={handleNext} size="lg">
+        <Button onClick={handleNext} size="lg" className="min-w-[160px]">
           Continue to Documents
         </Button>
       </div>
