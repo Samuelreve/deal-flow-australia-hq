@@ -74,8 +74,13 @@ export const useTempDealCreation = () => {
     }
   };
 
+  const clearTempDeal = () => {
+    setTempDealId(undefined);
+  };
+
   return {
     tempDealId,
-    createTempDealIfNeeded
+    createTempDealIfNeeded,
+    clearTempDeal
   };
 };

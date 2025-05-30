@@ -21,6 +21,10 @@ const DealCreationWizard: React.FC = () => {
 
   const currentStepInfo = WIZARD_STEPS.find(s => s.id === currentStep);
 
+  const handleFinalSubmit = () => {
+    handleSubmit(formData, tempDealId);
+  };
+
   return (
     <WizardAuthGuard>
       <div className="max-w-5xl mx-auto">
@@ -34,7 +38,7 @@ const DealCreationWizard: React.FC = () => {
               updateFormData={updateFormData}
               onNext={nextStep}
               onPrev={prevStep}
-              onSubmit={() => handleSubmit(formData)}
+              onSubmit={handleFinalSubmit}
               isSubmitting={isSubmitting}
               tempDealId={tempDealId}
             />

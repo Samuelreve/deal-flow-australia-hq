@@ -9,11 +9,16 @@ import { DocumentsSummary } from './review-submission/DocumentsSummary';
 import { FinalChecklist } from './review-submission/FinalChecklist';
 import { ReviewSubmissionActions } from './review-submission/ReviewSubmissionActions';
 
-const FinalReviewStep: React.FC<StepProps> = ({ 
+interface FinalReviewStepProps extends StepProps {
+  tempDealId?: string;
+}
+
+const FinalReviewStep: React.FC<FinalReviewStepProps> = ({ 
   data, 
   onPrev, 
   onSubmit, 
-  isSubmitting 
+  isSubmitting,
+  tempDealId
 }) => {
   const [checklist, setChecklist] = useState({
     reviewedDetails: false,
@@ -30,6 +35,13 @@ const FinalReviewStep: React.FC<StepProps> = ({
   const downloadPDF = () => {
     // TODO: Implement PDF generation
     console.log('Downloading PDF summary...');
+  };
+
+  const handleSubmit = () => {
+    if (onSubmit) {
+      console.log('Submitting final deal with temp ID:', tempDealId);
+      onSubmit();
+    }
   };
 
   return (
@@ -51,10 +63,16 @@ const FinalReviewStep: React.FC<StepProps> = ({
 
       <ReviewSubmissionActions
         onPrev={onPrev}
-        onSubmit={onSubmit!}
+        onSubmit={handleSubmit}
         allChecked={allChecked}
         isSubmitting={isSubmitting}
       />
+
+      {tempDealId && (
+        <div className="text-sm text-muted-foreground text-center">
+          Deal ID: {tempDealId} (will be finalized upon submission)
+        </div>
+      )}
     </div>
   );
 };
