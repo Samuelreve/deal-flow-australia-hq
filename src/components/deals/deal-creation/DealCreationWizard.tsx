@@ -5,15 +5,15 @@ import { WizardProgress } from './components/WizardProgress';
 import { WizardStepCard } from './components/WizardStepCard';
 import { WizardAuthGuard } from './components/WizardAuthGuard';
 import { WizardStepRenderer } from './components/WizardStepRenderer';
-import { WizardNavigation } from './components/WizardNavigation';
 import { AITip } from './components/AITip';
 import { useWizardState } from './hooks/useWizardState';
+import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useDealSubmission } from './hooks/useDealSubmission';
 
 const DealCreationWizard: React.FC = () => {
   const { currentStep, setCurrentStep, formData, updateFormData } = useWizardState();
   const { isSubmitting, handleSubmit } = useDealSubmission();
-  const { nextStep, prevStep, tempDealId } = WizardNavigation({
+  const { nextStep, prevStep, tempDealId } = useWizardNavigation({
     currentStep,
     onStepChange: setCurrentStep,
     formData

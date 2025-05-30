@@ -1,19 +1,18 @@
 
-import React from 'react';
+import { useTempDealCreation } from './useTempDealCreation';
 import { WIZARD_STEPS } from '../config/wizardSteps';
-import { useTempDealCreation } from '../hooks/useTempDealCreation';
 
-interface WizardNavigationProps {
+interface UseWizardNavigationProps {
   currentStep: number;
   onStepChange: (step: number) => void;
   formData: any;
 }
 
-export const WizardNavigation: React.FC<WizardNavigationProps> = ({
+export const useWizardNavigation = ({
   currentStep,
   onStepChange,
   formData
-}) => {
+}: UseWizardNavigationProps) => {
   const { tempDealId, createTempDealIfNeeded } = useTempDealCreation();
 
   const nextStep = async () => {
