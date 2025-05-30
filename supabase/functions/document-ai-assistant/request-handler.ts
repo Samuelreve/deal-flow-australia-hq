@@ -1,65 +1,78 @@
 
-import OpenAI from "https://esm.sh/openai@4.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { RequestPayload } from "./types.ts";
-import { validateRequest, validateOperationSpecificFields } from "./utils/request-validator.ts";
-import { validateDealAccess } from "./utils/auth-validator.ts";
-import { createSuccessResponse, createErrorResponse } from "./utils/response-handler.ts";
-import { routeOperation } from "./utils/operation-router.ts";
-import { saveAnalysisResult } from "./utils/analysis-saver.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createCorsResponse, createErrorResponse, createSuccessResponse } from "./utils/response-handler.ts";
+import { handleGenerateTemplate } from "./operations/generate-template.ts";
 
-export async function handleRequest(
-  req: Request,
-  openai: OpenAI,
-  supabaseUrl: string,
-  supabaseKey: string
-): Promise<Response> {
+export async function handleRequest(req: Request, openai: any, supabaseUrl: string, supabaseKey: string) {
   try {
-    // Parse request
-    const payload: RequestPayload = await req.json();
+    const { operation, content, context = {} } = await req.json();
     
-    // Validate basic request structure
-    const basicValidation = validateRequest(payload);
-    if (!basicValidation.isValid) {
-      return createErrorResponse(basicValidation.error!, 400);
+    if (!operation || !content) {
+      return createErrorResponse('Missing required fields: operation and content', 400);
     }
-    
-    // Validate operation-specific fields
-    const operationValidation = validateOperationSpecificFields(payload);
-    if (!operationValidation.isValid) {
-      return createErrorResponse(operationValidation.error!, 400);
+
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return createErrorResponse('Authorization header required', 401);
     }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    // Skip deal validation for contract analysis operations
-    if (payload.dealId !== 'contract-analysis') {
-      // Validate user's access to the deal
-      try {
-        await validateDealAccess(payload.dealId!, payload.userId, supabaseUrl, supabaseKey);
-      } catch (error) {
-        return createErrorResponse(error.message, 403);
-      }
+    if (authError || !user) {
+      return createErrorResponse('Invalid authentication token', 401);
     }
+
+    let result;
     
-    // Route to appropriate operation handler
-    const result = await routeOperation(payload, openai);
-    
-    // Save analysis result if it's an analyze_document operation (but not for contract analysis)
-    if (payload.operation === 'analyze_document' && result && payload.context?.saveAnalysis !== false && payload.dealId !== 'contract-analysis') {
-      await saveAnalysisResult(
-        payload.documentId!,
-        payload.documentVersionId!,
-        payload.context!.analysisType,
-        result.analysis?.content,
-        payload.userId,
-        supabaseUrl,
-        supabaseKey
-      );
+    switch (operation) {
+      case 'generate_template':
+        result = await handleGenerateTemplate(
+          content,
+          context.dealId || '',
+          user.id,
+          context.templateType || 'Contract',
+          context,
+          openai
+        );
+        break;
+        
+      case 'generate_smart_template':
+        // For smart templates, we use enhanced context from the deal
+        if (!context.dealId) {
+          return createErrorResponse('Deal ID required for smart template generation', 400);
+        }
+        
+        // Fetch deal data for enhanced context
+        const { data: dealData, error: dealError } = await supabase
+          .from('deals')
+          .select('*')
+          .eq('id', context.dealId)
+          .single();
+          
+        if (dealError) {
+          return createErrorResponse('Failed to fetch deal information', 404);
+        }
+        
+        result = await handleGenerateTemplate(
+          content || 'Generate a comprehensive contract template',
+          context.dealId,
+          user.id,
+          context.templateType || 'Contract',
+          { ...context, ...dealData },
+          openai
+        );
+        break;
+        
+      default:
+        return createErrorResponse(`Unknown operation: ${operation}`, 400);
     }
-    
+
     return createSuccessResponse(result);
-    
   } catch (error) {
-    console.error("Error in document-ai-assistant function:", error);
-    return createErrorResponse(error.message || "An unexpected error occurred");
+    console.error('Error in handleRequest:', error);
+    return createErrorResponse(error.message || 'Internal server error', 500);
   }
 }

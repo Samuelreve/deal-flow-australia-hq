@@ -1,27 +1,29 @@
 
 import { corsHeaders } from "../../_shared/cors.ts";
-import { OperationResult } from "../types.ts";
 
-export function createSuccessResponse(result: OperationResult): Response {
+export function createCorsResponse() {
+  return new Response(null, {
+    headers: corsHeaders,
+    status: 204
+  });
+}
+
+export function createSuccessResponse(data: any) {
   return new Response(
-    JSON.stringify({
-      success: true,
-      ...result
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    JSON.stringify(data),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    }
   );
 }
 
-export function createErrorResponse(error: string, status: number = 500): Response {
+export function createErrorResponse(message: string, status: number = 500) {
   return new Response(
-    JSON.stringify({
-      success: false,
-      error
-    }),
-    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    JSON.stringify({ error: message }),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status
+    }
   );
-}
-
-export function createCorsResponse(): Response {
-  return new Response(null, { headers: corsHeaders });
 }

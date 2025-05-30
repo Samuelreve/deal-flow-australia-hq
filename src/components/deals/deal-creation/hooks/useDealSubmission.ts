@@ -122,14 +122,55 @@ export const useDealSubmission = () => {
         console.log('Deal created successfully:', newDeal);
       }
 
-      // Link any uploaded documents to the final deal
+      // Create default milestones for the deal
+      const defaultMilestones = [
+        { title: 'Initial Review', description: 'Review deal documentation and requirements', order_index: 1 },
+        { title: 'Due Diligence', description: 'Conduct thorough due diligence process', order_index: 2 },
+        { title: 'Negotiation', description: 'Negotiate terms and conditions', order_index: 3 },
+        { title: 'Legal Review', description: 'Legal review of all documents', order_index: 4 },
+        { title: 'Completion', description: 'Finalize and complete the transaction', order_index: 5 }
+      ];
+
+      const { error: milestonesError } = await supabase
+        .from('milestones')
+        .insert(
+          defaultMilestones.map(milestone => ({
+            ...milestone,
+            deal_id: finalDealId,
+            status: 'not_started'
+          }))
+        );
+
+      if (milestonesError) {
+        console.warn('Error creating default milestones:', milestonesError);
+        // Don't fail the whole operation
+      }
+
+      // Verify all uploaded documents are properly linked to the final deal
       if (formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
-        console.log('Linking documents to deal:', formData.uploadedDocuments);
+        console.log('Verifying document linkage for deal:', finalDealId);
         
-        // Note: Documents are already stored in storage with the tempDealId path
-        // We don't need to move them, just ensure they're properly associated
-        for (const doc of formData.uploadedDocuments) {
-          console.log('Document already uploaded:', doc.filename);
+        // Check if documents need to be updated to point to the final deal
+        const { data: existingDocs } = await supabase
+          .from('documents')
+          .select('id, deal_id')
+          .in('id', formData.uploadedDocuments.map(doc => doc.id));
+
+        if (existingDocs) {
+          const docsToUpdate = existingDocs.filter(doc => doc.deal_id !== finalDealId);
+          
+          if (docsToUpdate.length > 0) {
+            console.log('Updating document deal_id for:', docsToUpdate.length, 'documents');
+            
+            const { error: updateDocsError } = await supabase
+              .from('documents')
+              .update({ deal_id: finalDealId })
+              .in('id', docsToUpdate.map(doc => doc.id));
+
+            if (updateDocsError) {
+              console.warn('Error updating document deal_id:', updateDocsError);
+            }
+          }
         }
       }
 
