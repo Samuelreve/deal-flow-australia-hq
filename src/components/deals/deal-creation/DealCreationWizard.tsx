@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
-import BusinessInformationStep from './steps/BusinessInformationStep';
-import DealInformationStep from './steps/DealInformationStep';
+import BusinessInfoStep from './steps/BusinessInfoStep';
+import DealInfoStep from './steps/DealInfoStep';
 import SellerDetailsStep from './steps/SellerDetailsStep';
 import DocumentUploadStep from './steps/DocumentUploadStep';
 import ReviewSubmissionStep from './steps/ReviewSubmissionStep';
@@ -15,8 +15,8 @@ import ReviewSubmissionStep from './steps/ReviewSubmissionStep';
 import { DealCreationData } from './types';
 
 const STEPS = [
-  { id: 1, title: 'Business Information', component: BusinessInformationStep },
-  { id: 2, title: 'Deal Information', component: DealInformationStep },
+  { id: 1, title: 'Business Information', component: BusinessInfoStep },
+  { id: 2, title: 'Deal Information', component: DealInfoStep },
   { id: 3, title: 'Seller Details', component: SellerDetailsStep },
   { id: 4, title: 'Documents', component: DocumentUploadStep },
   { id: 5, title: 'Review & Submit', component: ReviewSubmissionStep }

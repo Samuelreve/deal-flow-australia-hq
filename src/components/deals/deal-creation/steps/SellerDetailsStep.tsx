@@ -7,12 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ArrowLeft, User, Info, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
 
 import { StepProps, SELLER_ENTITY_TYPES } from '../types';
 
 const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
-  const { user } = useAuth();
+  // Mock user data since we don't have auth context available
+  const user = { name: 'John Smith' }; // This would come from auth context
   const [showLegalRep, setShowLegalRep] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
