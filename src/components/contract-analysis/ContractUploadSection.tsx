@@ -32,21 +32,35 @@ Either party may terminate this Agreement at any time with [NOTICE PERIOD] writt
 
 This is a demo contract for testing purposes.`;
 
-    // Create a proper File object with demo content
-    const demoFile = new File([demoContent], 'demo-employment-contract.txt', { 
+    // Create a proper File object with demo content (using Blob constructor properly)
+    const blob = new Blob([demoContent], { type: 'text/plain' });
+    const demoFile = new File([blob], 'demo-employment-contract.txt', { 
       type: 'text/plain' 
     });
 
-    // Create a synthetic event object that matches the expected interface
+    // Create a proper synthetic event object that matches React.ChangeEvent<HTMLInputElement>
     const syntheticEvent = {
       target: {
-        files: [demoFile],
+        files: [demoFile] as any,
         value: ''
       },
       currentTarget: {
-        files: [demoFile],
+        files: [demoFile] as any,
         value: ''
-      }
+      },
+      nativeEvent: new Event('change'),
+      bubbles: false,
+      cancelable: false,
+      defaultPrevented: false,
+      eventPhase: 0,
+      isTrusted: false,
+      preventDefault: () => {},
+      isDefaultPrevented: () => false,
+      stopPropagation: () => {},
+      isPropagationStopped: () => false,
+      persist: () => {},
+      timeStamp: Date.now(),
+      type: 'change'
     } as React.ChangeEvent<HTMLInputElement>;
 
     // Call the upload handler with the synthetic event
