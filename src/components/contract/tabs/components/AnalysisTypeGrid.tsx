@@ -1,18 +1,18 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, Search, CheckCircle, Loader } from 'lucide-react';
-
-interface AnalysisType {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-}
+import { Badge } from "@/components/ui/badge";
+import { 
+  FileSearch, 
+  AlertTriangle, 
+  Key, 
+  TrendingUp, 
+  CheckCircle,
+  Loader
+} from 'lucide-react';
 
 interface AnalysisTypeGridProps {
-  onAnalysisSelect: (analysisType: string) => void;
+  onAnalysisSelect: (type: string) => void;
   loading: boolean;
   isProcessing: boolean;
   completedAnalyses: Set<string>;
@@ -26,68 +26,69 @@ const AnalysisTypeGrid: React.FC<AnalysisTypeGridProps> = ({
   completedAnalyses,
   contractText
 }) => {
-  const analysisTypes: AnalysisType[] = [
-    { 
-      id: 'risks', 
-      title: 'Risk Analysis', 
-      description: 'AI identifies potential risks and liabilities in your contract',
+  const analysisTypes = [
+    {
+      id: 'summary',
+      title: 'Contract Summary',
+      description: 'Get a comprehensive overview of the contract',
+      icon: FileSearch,
+      color: 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+    },
+    {
+      id: 'risks',
+      title: 'Risk Analysis',
+      description: 'Identify potential risks and liabilities',
       icon: AlertTriangle,
-      color: 'text-red-600'
+      color: 'bg-red-100 text-red-700 hover:bg-red-200'
     },
-    { 
-      id: 'obligations', 
-      title: 'Obligations Summary', 
-      description: 'AI extracts key obligations and responsibilities for each party',
-      icon: FileText,
-      color: 'text-blue-600'
+    {
+      id: 'keyTerms',
+      title: 'Key Terms',
+      description: 'Extract important clauses and definitions',
+      icon: Key,
+      color: 'bg-green-100 text-green-700 hover:bg-green-200'
     },
-    { 
-      id: 'summary', 
-      title: 'Contract Summary', 
-      description: 'AI generates a comprehensive overview of the entire contract',
-      icon: Search,
-      color: 'text-green-600'
+    {
+      id: 'suggestions',
+      title: 'Improvement Suggestions',
+      description: 'Get recommendations for contract improvements',
+      icon: TrendingUp,
+      color: 'bg-purple-100 text-purple-700 hover:bg-purple-200'
     }
   ];
 
+  const isDisabled = loading || isProcessing || !contractText.trim();
+
   return (
-    <div className="grid gap-3">
-      {analysisTypes.map((analysis) => {
-        const IconComponent = analysis.icon;
-        const isCompleted = completedAnalyses.has(analysis.id);
-        const isCurrentlyRunning = loading && isProcessing;
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {analysisTypes.map((type) => {
+        const Icon = type.icon;
+        const isCompleted = completedAnalyses.has(type.id);
         
         return (
           <Button
-            key={analysis.id}
+            key={type.id}
             variant="outline"
-            className={`h-auto p-4 justify-start transition-all ${
-              isCompleted ? 'border-green-200 bg-green-50' : 'hover:border-gray-300'
-            }`}
-            onClick={() => onAnalysisSelect(analysis.id)}
-            disabled={loading || isProcessing || !contractText.trim()}
+            className={`h-auto p-4 text-left justify-start ${type.color} border-2 relative`}
+            onClick={() => onAnalysisSelect(type.id)}
+            disabled={isDisabled}
           >
-            <div className="flex items-center w-full">
-              <div className="flex items-center mr-3">
-                {isCompleted ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <IconComponent className={`h-5 w-5 ${analysis.color}`} />
-                )}
-              </div>
-              <div className="text-left flex-1">
-                <div className="font-medium flex items-center gap-2">
-                  {analysis.title}
+            <div className="flex items-start gap-3 w-full">
+              <Icon className="h-6 w-6 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-medium">{type.title}</h3>
                   {isCompleted && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                      Completed
-                    </span>
+                    <Badge variant="secondary" className="h-5 text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Done
+                    </Badge>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">{analysis.description}</div>
+                <p className="text-sm opacity-80">{type.description}</p>
               </div>
-              {isCurrentlyRunning && (
-                <Loader className="h-4 w-4 animate-spin ml-2" />
+              {loading && (
+                <Loader className="h-4 w-4 animate-spin" />
               )}
             </div>
           </Button>

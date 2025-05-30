@@ -1,70 +1,105 @@
 
 import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { MessageSquare, Bot, ExternalLink } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 import { QuestionHistoryItem } from '@/types/contract';
-import ProfessionalQuestionFormatter from '../../formatting/ProfessionalQuestionFormatter';
 
 interface QuestionHistoryDisplayProps {
   questionHistory: QuestionHistoryItem[];
-  currentAnswer: string | null;
-  currentSources: string[];
-  question: string;
+  currentAnswer?: string | null;
+  currentSources?: string[];
+  question?: string;
 }
 
 const QuestionHistoryDisplay: React.FC<QuestionHistoryDisplayProps> = ({
   questionHistory,
   currentAnswer,
-  currentSources,
+  currentSources = [],
   question
 }) => {
-  const getAnswerText = (answer: string | { answer: string; sources?: string[] }): string => {
-    if (typeof answer === 'string') {
-      return answer;
-    }
-    return answer.answer;
-  };
-
-  const getSources = (item: QuestionHistoryItem): string[] => {
-    if (typeof item.answer !== 'string' && item.answer.sources) {
-      return item.answer.sources;
-    }
-    return item.sources || [];
-  };
-
-  if (currentAnswer) {
-    return (
-      <div className="mb-6">
-        <ProfessionalQuestionFormatter
-          question={question || "Recent Question"}
-          answer={currentAnswer}
-          sources={currentSources}
-          timestamp={Date.now()}
-        />
-      </div>
-    );
+  const allItems = [...questionHistory];
+  
+  // Add current processing item if exists
+  if (currentAnswer && question) {
+    allItems.unshift({
+      id: 'current',
+      question,
+      answer: currentAnswer,
+      timestamp: Date.now(),
+      type: 'question',
+      sources: currentSources
+    });
   }
 
-  if (questionHistory.length > 0) {
-    return (
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-slate-800 border-b border-slate-200 pb-2">
-          Previous Legal Inquiries
-        </h3>
-        <div className="space-y-6 max-h-96 overflow-y-auto">
-          {questionHistory.slice().reverse().map((item, index) => (
-            <ProfessionalQuestionFormatter
-              key={index}
-              question={item.question}
-              answer={getAnswerText(item.answer)}
-              sources={getSources(item)}
-              timestamp={item.timestamp}
-            />
-          ))}
-        </div>
-      </div>
-    );
+  if (allItems.length === 0) {
+    return null;
   }
 
-  return null;
+  return (
+    <div className="space-y-4 max-h-96 overflow-y-auto">
+      {allItems.map((item, index) => (
+        <Card key={item.id || index} className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1">
+                <MessageSquare className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    {typeof item.question === 'string' ? item.question : 'Question'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+              {item.type === 'analysis' && item.analysisType && (
+                <Badge variant="outline" className="text-xs">
+                  {item.analysisType}
+                </Badge>
+              )}
+            </div>
+            
+            <div className="mt-3 ml-7">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-1">
+                  <Bot className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="bg-green-50 rounded-lg p-3">
+                    <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                      {typeof item.answer === 'string' 
+                        ? item.answer 
+                        : typeof item.answer === 'object' && item.answer?.answer
+                        ? item.answer.answer
+                        : 'No answer provided'
+                      }
+                    </p>
+                    
+                    {item.sources && item.sources.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-green-200">
+                        <p className="text-xs font-medium text-slate-600 mb-1">Sources:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {item.sources.map((source, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              {source}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 };
 
 export default QuestionHistoryDisplay;

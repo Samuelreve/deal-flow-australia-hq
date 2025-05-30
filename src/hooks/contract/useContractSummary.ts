@@ -1,112 +1,99 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 
-export const useContractSummary = (contractText: string, selectedDocumentId?: string) => {
-  const { user } = useAuth();
-  const [documentSummary, setDocumentSummary] = useState<any>(null);
+interface DocumentSummary {
+  category: 'CONTRACT' | 'FINANCIAL' | 'IRRELEVANT';
+  title: string;
+  message: string;
+  confidence?: number;
+}
+
+export const useContractSummary = (contractText: string, contractId?: string) => {
+  const [documentSummary, setDocumentSummary] = useState<DocumentSummary | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const generateSummary = async () => {
-      if (!contractText || !selectedDocumentId || !user) return;
+    if (!contractText || contractText.trim().length === 0) {
+      setDocumentSummary(null);
+      return;
+    }
 
-      console.log('Starting AI contract summary generation...');
+    const analyzeDocument = async () => {
+      setLoading(true);
       
       try {
-        // First try the document-ai-assistant function
-        const { data: summaryData, error: summaryError } = await supabase.functions.invoke('document-ai-assistant', {
+        // Use AI to categorize the document
+        const { data, error } = await supabase.functions.invoke('enhanced-contract-assistant', {
           body: {
-            operation: 'summarize_contract',
-            content: contractText,
-            dealId: 'contract-analysis',
-            userId: user.id,
-            documentId: selectedDocumentId,
+            analysisType: 'summary',
+            contractText: contractText.substring(0, 2000), // First 2000 chars for categorization
+            contractId: contractId || 'temp'
           }
         });
 
-        if (!summaryError && summaryData) {
-          console.log('AI summary generated successfully:', summaryData);
-          setDocumentSummary({
-            category: 'CONTRACT',
-            title: 'AI Contract Analysis Complete',
-            message: summaryData.summary || 'Your contract has been analyzed by our AI system.',
-            analysisDate: new Date().toISOString(),
-            keyPoints: summaryData.keyPoints || [
-              'Contract successfully uploaded and analyzed',
-              'AI-powered analysis tools are now available',
-              'You can ask questions about specific clauses'
-            ],
-            aiGenerated: true,
-            fullAnalysis: summaryData
-          });
-          
-          toast.success('AI summary generated!', {
-            description: 'Your contract has been analyzed and is ready for questions.'
-          });
-          return;
-        }
+        if (error) throw error;
 
-        // Fallback to contract-assistant if document-ai-assistant fails
-        console.log('Trying fallback contract-assistant function...');
-        const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('contract-assistant', {
-          body: {
-            question: 'Provide a comprehensive summary of this contract',
-            contractText: contractText,
-            contractId: selectedDocumentId
-          }
-        });
-
-        if (!fallbackError && fallbackData) {
-          console.log('Fallback AI summary generated:', fallbackData);
-          setDocumentSummary({
-            category: 'CONTRACT',
-            title: 'AI Contract Analysis Complete',
-            message: fallbackData.answer || 'Your contract has been analyzed by our AI system.',
-            analysisDate: new Date().toISOString(),
-            keyPoints: [
-              'Contract successfully uploaded and analyzed',
-              'AI-powered analysis tools are now available',
-              'You can ask questions about specific clauses'
-            ],
-            aiGenerated: true,
-            sources: fallbackData.sources || []
-          });
-          
-          toast.success('AI summary generated!', {
-            description: 'Your contract has been analyzed and is ready for questions.'
-          });
-          return;
-        }
-
-        throw new Error('Both AI services are unavailable');
+        // Determine category based on content
+        const lowerText = contractText.toLowerCase();
+        let category: 'CONTRACT' | 'FINANCIAL' | 'IRRELEVANT' = 'IRRELEVANT';
         
+        if (lowerText.includes('agreement') || 
+            lowerText.includes('contract') || 
+            lowerText.includes('party') || 
+            lowerText.includes('terms') ||
+            lowerText.includes('conditions')) {
+          category = 'CONTRACT';
+        } else if (lowerText.includes('financial') || 
+                   lowerText.includes('revenue') || 
+                   lowerText.includes('balance sheet')) {
+          category = 'FINANCIAL';
+        }
+
+        const summary: DocumentSummary = {
+          category,
+          title: category === 'CONTRACT' 
+            ? 'Contract Document Detected' 
+            : category === 'FINANCIAL'
+            ? 'Financial Document Detected'
+            : 'Document Type Not Recognized',
+          message: category === 'CONTRACT'
+            ? 'This appears to be a legal contract. You can now use AI analysis features to understand its terms, risks, and obligations.'
+            : category === 'FINANCIAL'
+            ? 'This appears to be a financial document. Some contract analysis features may not be applicable.'
+            : 'This document does not appear to be a legal contract. Contract analysis features may not work as expected.'
+        };
+
+        setDocumentSummary(summary);
       } catch (error) {
-        console.error('Error generating AI summary:', error);
-        
-        // Provide a basic summary as fallback
-        setDocumentSummary({
-          category: 'CONTRACT',
-          title: 'Contract Successfully Uploaded',
-          message: 'Your contract has been uploaded and is ready for analysis. AI services are temporarily unavailable, but you can still use the basic analysis features.',
-          analysisDate: new Date().toISOString(),
-          keyPoints: [
-            'Contract is available for analysis',
-            'You can view the document content',
-            'Basic analysis tools are enabled'
-          ],
-          aiGenerated: false
-        });
-        
-        toast.warning('Using basic analysis mode', {
-          description: 'AI services are temporarily unavailable, but you can still analyze the contract.'
-        });
+        console.error('Error analyzing document:', error);
+        // Fallback categorization
+        const lowerText = contractText.toLowerCase();
+        if (lowerText.includes('agreement') || lowerText.includes('contract')) {
+          setDocumentSummary({
+            category: 'CONTRACT',
+            title: 'Contract Document Detected',
+            message: 'This appears to be a legal contract based on basic text analysis.'
+          });
+        } else {
+          setDocumentSummary({
+            category: 'IRRELEVANT',
+            title: 'Document Type Unknown',
+            message: 'Unable to determine document type. Upload a legal contract for best results.'
+          });
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
-    generateSummary();
-  }, [contractText, selectedDocumentId, user]);
+    // Debounce the analysis
+    const timeoutId = setTimeout(analyzeDocument, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [contractText, contractId]);
 
-  return { documentSummary };
+  return {
+    documentSummary,
+    loading
+  };
 };

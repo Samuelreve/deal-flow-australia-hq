@@ -1,23 +1,34 @@
 
 import React from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 
 interface DocumentStatusAlertProps {
   documentSummary?: any;
-  contractText?: string;
+  contractText: string;
 }
 
 const DocumentStatusAlert: React.FC<DocumentStatusAlertProps> = ({
   documentSummary,
   contractText
 }) => {
+  if (!contractText) {
+    return (
+      <Alert className="border-blue-200 bg-blue-50">
+        <FileText className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>No Document Uploaded:</strong> Please upload a contract document to begin analysis.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (!documentSummary) {
     return (
-      <Alert className="mb-6 border-amber-200 bg-amber-50">
+      <Alert className="border-amber-200 bg-amber-50">
         <AlertTriangle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-800">
-          No document uploaded yet. Please upload a contract to start asking questions.
+          <strong>Analyzing Document:</strong> Please wait while we analyze your uploaded document.
         </AlertDescription>
       </Alert>
     );
@@ -25,31 +36,20 @@ const DocumentStatusAlert: React.FC<DocumentStatusAlertProps> = ({
 
   if (documentSummary.category === 'CONTRACT') {
     return (
-      <Alert className="mb-6 border-green-200 bg-green-50">
+      <Alert className="border-green-200 bg-green-50">
         <CheckCircle className="h-4 w-4 text-green-600" />
         <AlertDescription className="text-green-800">
-          ✅ Legal contract uploaded successfully! You can now ask questions about this document.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (documentSummary.category === 'FINANCIAL') {
-    return (
-      <Alert className="mb-6 border-amber-200 bg-amber-50">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-800">
-          ⚠️ Financial document detected. Please upload a legal contract for detailed analysis.
+          <strong>Contract Ready:</strong> Your contract document has been analyzed and is ready for AI assistance.
         </AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Alert className="mb-6 border-red-200 bg-red-50">
-      <AlertTriangle className="h-4 w-4 text-red-600" />
-      <AlertDescription className="text-red-800">
-        ❌ Please upload a legal contract for analysis.
+    <Alert className="border-amber-200 bg-amber-50">
+      <AlertTriangle className="h-4 w-4 text-amber-600" />
+      <AlertDescription className="text-amber-800">
+        <strong>Limited Functionality:</strong> This document may not be a standard contract. Some features may be limited.
       </AlertDescription>
     </Alert>
   );
