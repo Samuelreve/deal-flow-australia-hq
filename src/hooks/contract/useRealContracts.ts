@@ -61,6 +61,7 @@ export const useRealContracts = () => {
         // Convert to Contract type
         const contract: Contract = {
           ...uploadedContract,
+          upload_date: uploadedContract.created_at, // Add the missing upload_date property
           analysis_status: 'completed',
           file_path: '',
           user_id: user.id
