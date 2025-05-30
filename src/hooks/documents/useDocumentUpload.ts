@@ -73,7 +73,7 @@ export const useDocumentUpload = () => {
           category: documentType,
           uploaded_by: user.id,
           storage_path: filePath,
-          status: 'active'
+          status: 'draft'
         })
         .select()
         .single();

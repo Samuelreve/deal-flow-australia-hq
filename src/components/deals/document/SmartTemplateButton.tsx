@@ -92,7 +92,7 @@ const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: 
           category: 'contract',
           uploaded_by: user.id,
           storage_path: filePath,
-          status: 'active'
+          status: 'draft'
         })
         .select()
         .single();
