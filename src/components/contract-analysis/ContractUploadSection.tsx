@@ -9,6 +9,50 @@ interface ContractUploadSectionProps {
 }
 
 const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ handleFileUpload }) => {
+  const handleDemoUpload = () => {
+    // Create a demo contract content
+    const demoContent = `EMPLOYMENT AGREEMENT
+
+This Employment Agreement ("Agreement") is entered into on [DATE], between [COMPANY NAME], a corporation organized under the laws of [STATE] ("Company"), and [EMPLOYEE NAME] ("Employee").
+
+1. POSITION AND DUTIES
+Employee agrees to serve as [POSITION TITLE] and to perform such duties as may be assigned by the Company.
+
+2. COMPENSATION
+Company agrees to pay Employee a base salary of $[AMOUNT] per year, payable in accordance with Company's regular payroll practices.
+
+3. TERM
+This Agreement shall commence on [START DATE] and shall continue until terminated in accordance with the provisions herein.
+
+4. CONFIDENTIALITY
+Employee acknowledges that during employment, Employee may have access to confidential information and trade secrets of the Company.
+
+5. TERMINATION
+Either party may terminate this Agreement at any time with [NOTICE PERIOD] written notice.
+
+This is a demo contract for testing purposes.`;
+
+    // Create a proper File object with demo content
+    const demoFile = new File([demoContent], 'demo-employment-contract.txt', { 
+      type: 'text/plain' 
+    });
+
+    // Create a synthetic event object that matches the expected interface
+    const syntheticEvent = {
+      target: {
+        files: [demoFile],
+        value: ''
+      },
+      currentTarget: {
+        files: [demoFile],
+        value: ''
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+
+    // Call the upload handler with the synthetic event
+    handleFileUpload(syntheticEvent);
+  };
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader className="text-center">
@@ -47,7 +91,7 @@ const ContractUploadSection: React.FC<ContractUploadSectionProps> = ({ handleFil
               or try our demo contract
             </p>
             <Button
-              onClick={() => handleFileUpload({ target: { files: [new File([''], 'demo.pdf')] } } as any)}
+              onClick={handleDemoUpload}
               variant="outline"
               className="w-full max-w-xs"
             >
