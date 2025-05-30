@@ -1,129 +1,111 @@
 
-import { useState } from 'react';
-import { Document, DocumentVersion } from '@/types/documentVersion';
-import { ChevronDown, ChevronRight, FileText, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import DocumentVersionList from './DocumentVersionList';
-import { getCommentCount } from '@/hooks/utils/documentCommentUtils';
-import { useDocumentComments } from '@/hooks/documentComments';
-import { mapDbCommentToServiceComment } from '@/services/documentComment/mappers';
+import React, { useState } from "react";
+import { Document, DocumentVersion } from "@/types/documentVersion";
+import { ChevronRight, ChevronDown, FileCog } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { formatDocumentSize } from "@/utils/documentTypeAdapter";
+import { getFileIconByType } from "@/lib/fileIcons";
+import DocumentVersionsList from "./DocumentVersionsList";
 
 interface DocumentListItemProps {
   document: Document;
   isSelected: boolean;
-  onSelect: (document: Document) => void;
-  onDelete?: (document: Document) => void;
-  versions: DocumentVersion[];
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onAnalyze: (document: Document, versionId?: string) => void;
+  documentVersions: DocumentVersion[];
   loadingVersions: boolean;
-  userRole: string;
-  userId?: string;
-  onDeleteVersion?: (version: DocumentVersion) => void;
-  onSelectVersion?: (version: DocumentVersion) => void;
-  onShareVersion?: (version: DocumentVersion) => void;
-  isParticipant?: boolean;
+  onDeleteVersion: (version: DocumentVersion) => void;
+  onSelectVersion: (version: DocumentVersion) => void;
+  selectedVersionId: string;
+  onShareVersion: (version: DocumentVersion) => void;
+  isParticipant: boolean;
   dealId: string;
-  onVersionsUpdated?: () => void;
+  onVersionsUpdated: () => void;
 }
 
-const DocumentListItem = ({
+const DocumentListItem: React.FC<DocumentListItemProps> = ({
   document,
   isSelected,
-  onSelect,
-  onDelete,
-  versions,
+  isExpanded,
+  onToggleExpand,
+  onAnalyze,
+  documentVersions,
   loadingVersions,
-  userRole,
-  userId,
   onDeleteVersion,
   onSelectVersion,
+  selectedVersionId,
   onShareVersion,
-  isParticipant = false,
+  isParticipant,
   dealId,
-  onVersionsUpdated = () => {}
-}: DocumentListItemProps) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  const canDelete = () => {
-    if (!isParticipant) return false;
-    if (userRole === 'admin') return true;
-    if (userRole === 'seller' || userRole === 'buyer') {
-      return document.uploadedBy === userId;
-    }
-    return false;
-  };
-  
-  // Calculate total comments for all versions of this document
-  let commentCount = 0;
-  versions.forEach(version => {
-    const { comments } = useDocumentComments(version.id);
-    // Use service comment type for the count function
-    const serviceComments = comments.map(comment => mapDbCommentToServiceComment(comment));
-    commentCount += getCommentCount(serviceComments);
-  });
-  
-  const handleToggleExpand = () => {
-    setExpanded(!expanded);
-    if (!expanded) {
-      onSelect(document);
-    }
-  };
+  onVersionsUpdated
+}) => {
+  const Icon = getFileIconByType(document.type || "");
   
   return (
-    <div className="border rounded-md overflow-hidden mb-2">
+    <div className="bg-muted/20 rounded-md overflow-hidden">
       <div 
-        className={`flex items-center justify-between p-3 ${isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'} cursor-pointer`}
-        onClick={handleToggleExpand}
+        className={`p-3 flex items-center hover:bg-muted/40 cursor-pointer ${
+          isSelected ? "bg-muted/40" : ""
+        }`}
+        onClick={onToggleExpand}
       >
-        <div className="flex items-center gap-2">
-          {expanded ? (
+        <div className="mr-3 text-muted-foreground">
+          <Icon className="h-5 w-5" />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center">
+            <div className="flex-1 truncate">
+              <p className="text-sm font-medium truncate">{document.name}</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-2 h-8 w-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnalyze(document, document.latestVersionId);
+              }}
+              title="Analyze document"
+            >
+              <FileCog className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            {document.latestVersion && (
+              <>
+                <span>{formatDocumentSize(document.latestVersion.size)}</span>
+                <span className="mx-1">•</span>
+              </>
+            )}
+            <span>{new Date(document.createdAt || Date.now()).toLocaleDateString()}</span>
+          </div>
+        </div>
+        
+        <div className="ml-2">
+          {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
-          <FileText className="h-5 w-5 text-primary" />
-          <div>
-            <div className="font-medium">{document.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {document.category || document.type} • {versions.length} version{versions.length !== 1 ? 's' : ''}
-              {commentCount > 0 && ` • ${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
-            </div>
-          </div>
         </div>
-        
-        {canDelete() && onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(document);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
       </div>
       
-      {expanded && (
-        <div className="p-3 pt-0 border-t">
-          {onDeleteVersion && onSelectVersion && onShareVersion && (
-            <DocumentVersionList
-              versions={versions}
-              loading={loadingVersions}
-              userRole={userRole}
-              onDeleteVersion={onDeleteVersion}
-              onSelectVersion={onSelectVersion}
-              selectedVersionId=""
-              onShareVersion={onShareVersion}
-              userId={userId}
-              documentOwnerId={document.uploadedBy || ""}
-              dealId={dealId}
-              documentId={document.id}
-              onVersionsUpdated={onVersionsUpdated}
-            />
-          )}
-        </div>
+      {isExpanded && (
+        <DocumentVersionsList
+          documentVersions={documentVersions}
+          loadingVersions={loadingVersions}
+          onDeleteVersion={onDeleteVersion}
+          onSelectVersion={onSelectVersion}
+          selectedVersionId={selectedVersionId}
+          onShareVersion={onShareVersion}
+          onAnalyze={onAnalyze}
+          document={document}
+          isParticipant={isParticipant}
+          dealId={dealId}
+          onVersionsUpdated={onVersionsUpdated}
+        />
       )}
     </div>
   );
