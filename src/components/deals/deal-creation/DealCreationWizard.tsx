@@ -8,7 +8,7 @@ import BusinessInfoStep from './steps/BusinessInfoStep';
 import DealInfoStep from './steps/DealInfoStep';
 import SellerDetailsStep from './steps/SellerDetailsStep';
 import DocumentUploadStep from './steps/DocumentUploadStep';
-import ReviewSubmissionStep from './steps/ReviewSubmissionStep';
+import FinalReviewStep from './steps/FinalReviewStep';
 
 import { WizardProgress } from './components/WizardProgress';
 import { WizardStepCard } from './components/WizardStepCard';
@@ -51,7 +51,7 @@ const STEPS = [
     id: 5, 
     title: 'Review & Submit', 
     icon: ClipboardCheck,
-    component: ReviewSubmissionStep,
+    component: FinalReviewStep,
     description: 'Final check and create'
   }
 ];
