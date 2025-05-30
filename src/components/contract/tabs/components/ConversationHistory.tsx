@@ -25,8 +25,13 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
   };
 
   const getSources = (item: QuestionHistoryItem) => {
+    // First check if answer exists and is not null
+    if (!item.answer) {
+      return item.sources || [];
+    }
+    
     // Handle the case where answer is an object with sources
-    if (typeof item.answer === 'object' && item.answer !== null && 'sources' in item.answer) {
+    if (typeof item.answer === 'object' && 'sources' in item.answer) {
       return (item.answer as { sources?: string[] }).sources || [];
     }
     // Fallback to item.sources if it exists
