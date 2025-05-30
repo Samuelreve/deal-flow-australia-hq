@@ -1,12 +1,14 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import AnalysisOptions from './components/AnalysisOptions';
-import EmptyState from './components/EmptyState';
-import ConversationHistory from './components/ConversationHistory';
-import QuestionInput from './components/QuestionInput';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from 'lucide-react';
+import { Separator } from "@/components/ui/separator";
+import DocumentStatusAlert from './components/DocumentStatusAlert';
+import ProfessionalDisclaimer from './components/ProfessionalDisclaimer';
+import LegalSuggestions from './components/LegalSuggestions';
+import QuestionInputSection from './components/QuestionInputSection';
+import { MessageSquare, FileText, Brain, Sparkles } from 'lucide-react';
+import { QuestionHistoryItem } from '@/hooks/contract/useRealContractQuestionAnswerWithCache';
 
 interface EnhancedContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<any>;
@@ -26,78 +28,171 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
   isMobile = false
 }) => {
   const [question, setQuestion] = useState('');
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [autoSummaryGenerated, setAutoSummaryGenerated] = useState(false);
 
-  // Scroll to bottom when history updates
+  console.log('🎯 EnhancedContractAssistantTab render:', {
+    contractTextLength: contractText.length,
+    questionHistoryLength: questionHistory.length,
+    isProcessing,
+    autoSummaryGenerated
+  });
+
+  // Auto-generate summary when contract text is available
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [questionHistory]);
+    const generateAutoSummary = async () => {
+      if (contractText && contractText.length > 100 && !autoSummaryGenerated && !isProcessing) {
+        console.log('🤖 Auto-generating contract summary...');
+        setAutoSummaryGenerated(true);
+        
+        try {
+          await onAnalyzeContract('summary');
+          console.log('✅ Auto-summary generated successfully');
+        } catch (error) {
+          console.error('❌ Failed to auto-generate summary:', error);
+          setAutoSummaryGenerated(false);
+        }
+      }
+    };
 
-  const handleAskQuestion = async () => {
+    // Small delay to ensure UI is ready
+    const timer = setTimeout(generateAutoSummary, 1000);
+    return () => clearTimeout(timer);
+  }, [contractText, autoSummaryGenerated, isProcessing, onAnalyzeContract]);
+
+  const handleSubmit = async () => {
     if (!question.trim()) return;
+    
+    console.log('📝 Submitting question:', question);
+    setQuestion('');
     
     try {
       await onAskQuestion(question);
-      setQuestion('');
     } catch (error) {
-      console.error('Error asking question:', error);
+      console.error('❌ Error submitting question:', error);
     }
   };
 
-  const handleAnalysisSelect = async (analysisType: string) => {
+  const handleQuickAnalysis = async (analysisType: string) => {
+    console.log('⚡ Quick analysis:', analysisType);
+    
     try {
       await onAnalyzeContract(analysisType);
     } catch (error) {
-      console.error('Error analyzing contract:', error);
+      console.error('❌ Error in quick analysis:', error);
     }
   };
 
-  const hasContract = contractText && contractText.trim().length > 0;
+  const hasContent = contractText && contractText.length > 50;
+  const hasHistory = questionHistory.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* AI Info Alert */}
-      <Alert className="mb-4 bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-700">
-          🤖 <strong>AI-Powered Assistant:</strong> Ask questions about your contract or request analysis. 
-          Our AI uses advanced language models to provide detailed insights and explanations.
-        </AlertDescription>
-      </Alert>
-
-      {/* Analysis Options */}
-      {hasContract && (
-        <AnalysisOptions
-          onAnalysisSelect={handleAnalysisSelect}
-          isProcessing={isProcessing}
-        />
-      )}
-
-      {/* Empty State */}
-      {questionHistory.length === 0 && !isProcessing && (
-        <EmptyState hasContract={hasContract} />
-      )}
-
-      {/* Q&A History */}
-      <ConversationHistory
-        questionHistory={questionHistory}
-        isProcessing={isProcessing}
+    <div className="space-y-6">
+      {/* Document Status */}
+      <DocumentStatusAlert 
+        contractText={contractText}
+        documentSummary={null}
       />
-      
-      <div ref={bottomRef} />
+
+      {/* Quick Analysis Actions */}
+      {hasContent && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+              <Brain className="h-5 w-5" />
+              Quick Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => handleQuickAnalysis('key_terms')}
+                disabled={isProcessing}
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
+              >
+                <FileText className="h-5 w-5 text-blue-600" />
+                <div>
+                  <div className="font-medium text-blue-900">Key Terms</div>
+                  <div className="text-sm text-blue-700">Extract important clauses</div>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => handleQuickAnalysis('risks')}
+                disabled={isProcessing}
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left disabled:opacity-50"
+              >
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                <div>
+                  <div className="font-medium text-blue-900">Risk Analysis</div>
+                  <div className="text-sm text-blue-700">Identify potential issues</div>
+                </div>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Question Input */}
-      <div className="mt-auto">
-        <QuestionInput
-          question={question}
-          onQuestionChange={setQuestion}
-          onSubmit={handleAskQuestion}
-          isProcessing={isProcessing}
-          contractText={contractText}
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Ask About This Contract
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <QuestionInputSection
+            question={question}
+            setQuestion={setQuestion}
+            onSubmit={handleSubmit}
+            loading={isProcessing}
+            isProcessing={isProcessing}
+            contractText={contractText}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Question History */}
+      {hasHistory && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis History</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {questionHistory.map((item, index) => (
+              <div key={item.id} className="space-y-2">
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="font-medium text-sm">{item.question}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.timestamp.toLocaleString()}
+                  </p>
+                </div>
+                <div className="bg-background p-3 rounded-md border">
+                  <div className="prose prose-sm max-w-none">
+                    <div className="whitespace-pre-wrap">{item.answer}</div>
+                  </div>
+                  {item.sources && item.sources.length > 0 && (
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Sources: {item.sources.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {index < questionHistory.length - 1 && <Separator />}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Legal Suggestions */}
+      {!hasHistory && hasContent && (
+        <LegalSuggestions />
+      )}
+
+      {/* Professional Disclaimer */}
+      <ProfessionalDisclaimer />
     </div>
   );
 };

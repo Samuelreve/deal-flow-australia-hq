@@ -5,96 +5,94 @@ import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader
 import ContractSidebar from '@/components/contract/ContractSidebar';
 import ContractAnalysisContent from '@/components/contract/ContractAnalysisContent';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionAnswer';
-import { useContractData } from '@/hooks/contract/useContractData';
-import { useContractUpload } from '@/hooks/contract/useContractUpload';
-import { useContractSummary } from '@/hooks/contract/useContractSummary';
+import { useRealContracts } from '@/hooks/contract/useRealContracts';
+import { useRealContractQuestionAnswerWithCache } from '@/hooks/contract/useRealContractQuestionAnswerWithCache';
 import { toast } from 'sonner';
 
 const ContractAnalysisPage: React.FC = () => {
   console.log('🏠 ContractAnalysisPage rendering...');
   
-  // Initialize contract data state first
-  const contractDataState = useContractData();
+  // Initialize real contracts state
   const {
-    documents,
-    selectedDocument,
-    contractText,
+    contracts,
+    selectedContract,
     loading,
+    uploading,
+    uploadProgress,
     error,
-    setDocuments,
-    setSelectedDocument,
-    setContractText,
-    resetData
-  } = contractDataState;
+    uploadContract,
+    selectContract
+  } = useRealContracts();
 
-  console.log('📊 Contract data state:', {
-    documentsCount: documents.length,
-    selectedDocument: selectedDocument?.name,
-    contractTextLength: contractText.length,
+  // Initialize question/answer state with the selected contract ID
+  const questionAnswerState = useRealContractQuestionAnswerWithCache(selectedContract?.id || null);
+
+  console.log('📊 Contract page state:', {
+    contractsCount: contracts.length,
+    selectedContract: selectedContract?.name,
+    contractContent: selectedContract?.content?.length || 0,
     loading,
-    error
+    uploading
   });
 
-  // Initialize question/answer state
-  const questionAnswerState = useContractQuestionAnswer();
+  // Handle file upload
+  const handleFileUpload = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🚀 File upload initiated');
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Initialize upload state with stable dependencies
-  const uploadState = useContractUpload(
-    setDocuments,
-    setSelectedDocument,
-    setContractText
-  );
-
-  // Initialize summary state
-  const summaryState = useContractSummary(contractText, selectedDocument?.id);
-
-  // Extract values to avoid destructuring issues
-  const { uploading, handleFileUpload } = uploadState;
-  const { documentSummary } = summaryState;
-
-  console.log('📤 Upload state:', { uploading });
-
-  // Define handlers as stable functions
-  const handleQuestionSubmission = React.useCallback(async (question: string) => {
-    console.log('❓ Handling question submission:', question);
-    if (!contractText) {
-      toast.error('No contract content available for analysis');
-      return null;
-    }
-    return questionAnswerState.handleAskQuestion(question, contractText);
-  }, [contractText, questionAnswerState.handleAskQuestion]);
-  
-  const handleContractAnalysis = React.useCallback(async (analysisType: string) => {
-    console.log('🔍 Handling contract analysis:', analysisType);
-    if (!contractText) {
-      toast.error('No contract content available for analysis');
-      return null;
-    }
-    return questionAnswerState.handleAnalyzeContract(analysisType, contractText);
-  }, [contractText, questionAnswerState.handleAnalyzeContract]);
-
-  const exportHighlights = React.useCallback(() => {
-    console.log('📁 Export highlights called');
-    toast.info('Export functionality not implemented yet');
-  }, []);
-
-  const handleRetryAnalysis = React.useCallback(() => {
-    console.log('🔄 Retry analysis called');
-    resetData();
-  }, [resetData]);
-
-  // Direct file upload handler - no wrapper
-  const directFileUpload = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🚀 Direct file upload called');
     try {
-      await handleFileUpload(e);
-      console.log('✅ File upload completed successfully');
+      console.log('📤 Uploading file:', file.name);
+      const uploadedContract = await uploadContract(file);
+      
+      if (uploadedContract) {
+        console.log('✅ Upload successful, contract selected automatically');
+        toast.success('Contract uploaded and ready for analysis!');
+      }
     } catch (error) {
-      console.error('❌ Error in direct file upload:', error);
+      console.error('❌ Upload failed:', error);
       toast.error('Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
-  }, [handleFileUpload]);
+  }, [uploadContract]);
+
+  // Handle contract selection
+  const handleContractSelect = React.useCallback((contractId: string) => {
+    console.log('📋 Selecting contract:', contractId);
+    selectContract(contractId);
+  }, [selectContract]);
+
+  // Handle question submission
+  const handleAskQuestion = React.useCallback(async (question: string) => {
+    console.log('❓ Question asked:', question);
+    
+    if (!selectedContract?.content) {
+      toast.error('No contract content available for analysis');
+      return null;
+    }
+
+    return questionAnswerState.handleAskQuestion(question, selectedContract.content);
+  }, [selectedContract, questionAnswerState]);
+
+  // Handle contract analysis
+  const handleAnalyzeContract = React.useCallback(async (analysisType: string) => {
+    console.log('🔍 Analysis requested:', analysisType);
+    
+    if (!selectedContract?.content) {
+      toast.error('No contract content available for analysis');
+      return null;
+    }
+
+    return questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
+  }, [selectedContract, questionAnswerState]);
+
+  const handleRetryAnalysis = React.useCallback(() => {
+    console.log('🔄 Retry analysis');
+    questionAnswerState.invalidateCache();
+  }, [questionAnswerState]);
+
+  const exportHighlights = React.useCallback(() => {
+    toast.info('Export functionality coming soon');
+  }, []);
 
   return (
     <AppLayout>
@@ -105,10 +103,20 @@ const ContractAnalysisPage: React.FC = () => {
           <div className="lg:col-span-1">
             <ErrorBoundary>
               <ContractSidebar
-                documentMetadata={selectedDocument}
+                documentMetadata={selectedContract ? {
+                  id: selectedContract.id,
+                  name: selectedContract.name,
+                  type: selectedContract.mime_type,
+                  uploadDate: selectedContract.upload_date,
+                  status: selectedContract.analysis_status === 'completed' ? 'completed' : 'processing',
+                  version: '1.0',
+                  versionDate: selectedContract.upload_date,
+                  size: selectedContract.file_size,
+                  category: 'contract'
+                } : null}
                 isAnalyzing={loading || uploading}
                 documentHighlights={[]}
-                onFileUpload={directFileUpload}
+                onFileUpload={handleFileUpload}
                 onExportHighlights={exportHighlights}
               />
             </ErrorBoundary>
@@ -116,15 +124,25 @@ const ContractAnalysisPage: React.FC = () => {
           
           <div className="lg:col-span-3 space-y-6">
             <ContractAnalysisContent
-              documentMetadata={selectedDocument}
-              contractText={contractText}
+              documentMetadata={selectedContract ? {
+                id: selectedContract.id,
+                name: selectedContract.name,
+                type: selectedContract.mime_type,
+                uploadDate: selectedContract.upload_date,
+                status: selectedContract.analysis_status === 'completed' ? 'completed' : 'processing',
+                version: '1.0',
+                versionDate: selectedContract.upload_date,
+                size: selectedContract.file_size,
+                category: 'contract'
+              } : null}
+              contractText={selectedContract?.content || ''}
               error={error}
               isProcessing={questionAnswerState.isProcessing}
               questionHistory={questionAnswerState.questionHistory}
-              onAskQuestion={handleQuestionSubmission}
-              onAnalyzeContract={handleContractAnalysis}
+              onAskQuestion={handleAskQuestion}
+              onAnalyzeContract={handleAnalyzeContract}
               onRetryAnalysis={handleRetryAnalysis}
-              documentSummary={documentSummary}
+              documentSummary={null}
             />
           </div>
         </div>
