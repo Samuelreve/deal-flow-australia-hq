@@ -1,5 +1,5 @@
 
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { QuestionHistoryItem } from '@/types/contract';
 
 interface ContractAnalysisActionsProps {
   contractText: string;

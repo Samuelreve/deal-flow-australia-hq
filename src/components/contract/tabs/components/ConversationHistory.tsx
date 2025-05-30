@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { MinimalLoadingSpinner } from '../../loading/ContractLoadingStates';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { QuestionHistoryItem } from '@/types/contract';
 import ProfessionalQuestionFormatter from '../../formatting/ProfessionalQuestionFormatter';
 
 interface ConversationHistoryProps {

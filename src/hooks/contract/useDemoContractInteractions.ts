@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { QuestionHistoryItem } from '@/types/contract';
 import { toast } from 'sonner';
 
 export const useDemoContractInteractions = () => {
