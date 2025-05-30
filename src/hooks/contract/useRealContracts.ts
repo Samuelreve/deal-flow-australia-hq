@@ -58,17 +58,25 @@ export const useRealContracts = () => {
       setUploadProgress(100);
 
       if (uploadedContract) {
+        // Convert to Contract type
+        const contract: Contract = {
+          ...uploadedContract,
+          analysis_status: 'completed',
+          file_path: '',
+          user_id: user.id
+        };
+        
         // Add to contracts list
-        setContracts(prev => [uploadedContract, ...prev]);
+        setContracts(prev => [contract, ...prev]);
         
         // Auto-select the uploaded contract
-        setSelectedContract(uploadedContract);
+        setSelectedContract(contract);
         
         toast.success('Contract uploaded and analyzed successfully!', {
           description: 'You can now ask questions about this contract.'
         });
         
-        return uploadedContract;
+        return contract;
       } else {
         throw new Error('Upload failed');
       }
