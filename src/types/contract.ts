@@ -14,8 +14,8 @@ export interface DocumentMetadata {
 export interface QuestionHistoryItem {
   id: string;
   question: string;
-  answer: string | { answer: string; sources?: string[] };
-  timestamp: number;
+  answer: string;
+  timestamp: Date;
   type: 'question' | 'analysis';
   analysisType?: string;
   sources?: string[];

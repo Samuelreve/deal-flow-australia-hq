@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,16 +7,7 @@ import ProfessionalDisclaimer from './components/ProfessionalDisclaimer';
 import LegalSuggestions from './components/LegalSuggestions';
 import QuestionInputSection from './components/QuestionInputSection';
 import { MessageSquare, FileText, Brain, Sparkles } from 'lucide-react';
-
-interface QuestionHistoryItem {
-  id: string;
-  question: string;
-  answer: string;
-  timestamp: Date;
-  type: 'question' | 'analysis';
-  sources?: string[];
-  analysisType?: string;
-}
+import { QuestionHistoryItem } from '@/types/contract';
 
 interface EnhancedContractAssistantTabProps {
   onAskQuestion: (question: string) => Promise<any>;

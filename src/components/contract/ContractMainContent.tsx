@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,7 +5,7 @@ import { FileText } from "lucide-react";
 import { ContractAnalysisLoading } from './loading/ContractLoadingStates';
 import { ContractAnalysisError } from './error/ContractErrorStates';
 import { contractAriaLabels } from './accessibility/ContractAccessibility';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { QuestionHistoryItem } from '@/types/contract';
 
 // Lazy load heavy components
 const EnhancedContractAssistantTab = React.lazy(() => 

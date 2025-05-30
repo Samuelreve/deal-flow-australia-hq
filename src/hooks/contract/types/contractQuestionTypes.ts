@@ -1,13 +1,6 @@
 
-export interface QuestionHistoryItem {
-  id?: string;
-  question: string;
-  answer: string;
-  timestamp: number;
-  type: 'question' | 'analysis';
-  analysisType?: string;
-  isProcessing?: boolean;
-}
+// Re-export the standardized interface from the main types file
+export { QuestionHistoryItem } from '@/types/contract';
 
 export interface DealHealthPrediction {
   prediction: string;

@@ -1,17 +1,7 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-export interface QuestionHistoryItem {
-  id: string;
-  question: string;
-  answer: string;
-  timestamp: Date;
-  type: 'question' | 'analysis';
-  sources?: string[];
-  analysisType?: string;
-}
+import { QuestionHistoryItem } from '@/types/contract';
 
 export const useRealContractQuestionAnswerWithCache = (contractId: string | null) => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
