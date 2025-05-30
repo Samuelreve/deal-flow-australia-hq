@@ -34,7 +34,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
   const isProcessing = isUploading || uploading;
   const [selectedFileName, setSelectedFileName] = useState<string>('');
 
-  console.log('RealContractUpload render:', {
+  console.log('📤 RealContractUpload render:', {
     isUploading,
     uploading,
     isProcessing,
@@ -44,27 +44,31 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
   });
 
   const handleUploadClick = () => {
-    console.log('Upload button clicked');
+    console.log('🖱️ Upload button clicked');
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File input changed:', e.target.files?.length);
+    console.log('📁 File input changed:', e.target.files?.length);
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFileName(file.name);
-      console.log('Selected file:', file.name, 'Type:', file.type, 'Size:', file.size);
+      console.log('📄 Selected file:', file.name, 'Type:', file.type, 'Size:', file.size);
       
       try {
+        console.log('🚀 Calling onFileUpload...');
         await onFileUpload(e);
+        console.log('✅ onFileUpload completed');
       } catch (error) {
-        console.error('Error in handleFileChange:', error);
+        console.error('❌ Error in handleFileChange:', error);
       }
+    } else {
+      console.log('⚠️ No file selected');
     }
   };
 
   if (!user) {
-    console.log('No user, showing auth required');
+    console.log('🚫 No user, showing auth required');
     return <AuthenticationRequired />;
   }
 

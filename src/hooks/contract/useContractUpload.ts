@@ -16,28 +16,36 @@ export const useContractUpload = (
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('🔧 useContractUpload initialized with user:', user?.id);
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🚀 Starting file upload process...');
+    console.log('🚀 useContractUpload.handleFileUpload started');
+    
     const file = e.target.files?.[0];
-    if (!file || !user) {
-      const errorMsg = 'Please select a file and ensure you are logged in';
-      console.error('❌ Upload validation failed:', errorMsg);
+    if (!file) {
+      console.log('❌ No file selected');
+      return;
+    }
+    
+    if (!user) {
+      const errorMsg = 'Please ensure you are logged in';
+      console.error('❌ No user logged in');
       toast.error(errorMsg);
       return;
     }
 
-    console.log('📄 File selected:', {
+    console.log('📄 Processing file:', {
       name: file.name,
       type: file.type,
       size: file.size,
       userId: user.id
     });
 
-    // Validate file type with enhanced support
+    // Validate file type first
     const supportedTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
       'text/plain',
       'application/rtf',
       'text/rtf'
@@ -53,36 +61,41 @@ export const useContractUpload = (
       return;
     }
 
+    console.log('✅ File type validation passed');
+
     setUploading(true);
     setUploadProgress(0);
     setError(null);
     
     try {
       console.log('⏳ Starting upload progress simulation...');
-      // Enhanced progress simulation for different file types
+      
+      // Progress simulation
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 85) {
             clearInterval(progressInterval);
             return prev;
           }
-          // Slower progress for PDF/Word files to account for text extraction
           const increment = file.type === 'text/plain' ? Math.random() * 20 : Math.random() * 10;
           return prev + increment;
         });
       }, 300);
 
-      console.log(`📤 Uploading ${file.type} file: ${file.name}`);
+      console.log('📤 Calling realContractService.uploadContract...');
 
-      // Upload contract using the enhanced service
+      // Upload contract using the service
       const contract = await realContractService.uploadContract(file);
       
       // Complete progress
       clearInterval(progressInterval);
       setUploadProgress(100);
-      console.log('✅ Upload completed, contract data:', contract);
+      
+      console.log('📥 Upload service returned:', contract ? 'Success' : 'Null');
 
       if (contract) {
+        console.log('🏗️ Creating document metadata...');
+        
         // Create document metadata from contract
         const contractMetadata: DocumentMetadata = {
           id: contract.id,
@@ -98,13 +111,15 @@ export const useContractUpload = (
 
         // Update state with extracted text content
         const textContent = contract.text_content || contract.content || '';
-        console.log('📝 Text content extracted:', textContent.length, 'characters');
+        console.log('📝 Updating state with text content:', textContent.length, 'characters');
         
+        console.log('🔄 Calling state setters...');
         setDocuments([contractMetadata]);
         setSelectedDocument(contractMetadata);
         setContractText(textContent);
+        console.log('✅ State setters called');
 
-        // Show file type specific success message
+        // Show success message
         const fileTypeLabel = getFileTypeLabel(file.type);
         if (contract.extraction_status === 'completed') {
           toast.success(`${fileTypeLabel} uploaded successfully!`, {
@@ -122,6 +137,7 @@ export const useContractUpload = (
 
       // Clear the input
       e.target.value = '';
+      console.log('🧹 Input cleared');
       
     } catch (error) {
       console.error('❌ Error uploading contract:', error);
