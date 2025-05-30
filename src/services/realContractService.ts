@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -37,23 +36,24 @@ class RealContractService {
         return null;
       }
 
-      // Validate file type
+      // Validate file type with enhanced support
       const supportedTypes = [
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
         'application/msword', // .doc
         'text/plain',
-        'application/rtf'
+        'application/rtf',
+        'text/rtf'
       ];
 
       if (!supportedTypes.includes(file.type)) {
         toast.error('Unsupported file type', {
-          description: 'Please upload a PDF, Word document, RTF, or text file'
+          description: 'Please upload a PDF, Word document (.docx/.doc), RTF, or text file'
         });
         return null;
       }
 
-      // Check file size (limit to 25MB for enhanced file types)
+      // Check file size (increased limit to 25MB for enhanced file types)
       const maxSize = 25 * 1024 * 1024; // 25MB
       if (file.size > maxSize) {
         toast.error('File too large', {
@@ -66,6 +66,8 @@ class RealContractService {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
+
+      console.log(`Uploading ${file.type} file: ${file.name} (${file.size} bytes)`);
 
       // Upload file to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -80,7 +82,9 @@ class RealContractService {
         return null;
       }
 
-      // Create contract record with pending extraction status
+      console.log('File uploaded successfully to:', filePath);
+
+      // Create contract record with processing extraction status
       const { data: contract, error: contractError } = await supabase
         .from('contracts')
         .insert({
@@ -105,20 +109,25 @@ class RealContractService {
         return null;
       }
 
+      console.log('Contract record created:', contract.id);
+
       // Process text extraction based on file type
       toast.info('Processing document', {
         description: 'Extracting text from your contract...'
       });
 
       let extractedText = '';
-      let extractionStatus = 'completed';
+      let extractionStatus: 'completed' | 'error' = 'completed';
 
       try {
-        if (file.type === 'text/plain' || file.type === 'application/rtf') {
-          // Handle text files directly
+        if (file.type === 'text/plain' || file.type === 'application/rtf' || file.type === 'text/rtf') {
+          // Handle text files directly on client
           extractedText = await file.text();
+          console.log(`Text file processed: ${extractedText.length} characters`);
         } else {
-          // For PDF and Word files, call the text extraction service
+          // For PDF and Word files, call the enhanced text extraction service
+          console.log('Calling text extraction service for:', file.type);
+          
           const { data: extractionData, error: extractionError } = await supabase.functions.invoke('text-extraction', {
             body: {
               filePath: filePath,
@@ -127,12 +136,18 @@ class RealContractService {
             }
           });
 
-          if (extractionError || !extractionData?.success) {
-            console.error('Text extraction failed:', extractionError || extractionData?.error);
+          if (extractionError) {
+            console.error('Text extraction service error:', extractionError);
             extractionStatus = 'error';
-            extractedText = `Text extraction failed for ${file.type} file. Please try uploading a text file for immediate processing.`;
+            extractedText = `Text extraction service error for ${file.type} file: ${extractionError.message}. File uploaded successfully but text analysis may be limited.`;
+          } else if (!extractionData?.success) {
+            console.error('Text extraction failed:', extractionData?.error);
+            extractionStatus = 'error';
+            // Use fallback text if provided
+            extractedText = extractionData?.fallbackText || `Text extraction failed for ${file.type} file. File uploaded successfully but text analysis is limited. Try uploading a text file for immediate processing.`;
           } else {
             extractedText = extractionData.text || '';
+            console.log(`Advanced extraction successful: ${extractedText.length} characters`);
           }
         }
 
@@ -150,13 +165,14 @@ class RealContractService {
           console.error('Failed to update contract with extracted text:', updateError);
         }
 
+        // Show appropriate success message
         if (extractionStatus === 'completed') {
-          toast.success('Contract uploaded successfully!', {
-            description: 'Text extracted and ready for analysis'
+          toast.success('Contract uploaded and processed successfully!', {
+            description: `Text extracted (${extractedText.length} characters) and ready for AI analysis`
           });
         } else {
           toast.warning('Contract uploaded with limited functionality', {
-            description: 'Text extraction failed, but file is saved'
+            description: 'File saved but text extraction had issues. Some AI features may be limited.'
           });
         }
         
@@ -171,23 +187,25 @@ class RealContractService {
       } catch (extractionError) {
         console.error('Text extraction error:', extractionError);
         
-        // Update contract status to error
+        // Update contract status to error but keep file
+        const fallbackText = `Text extraction failed: ${extractionError instanceof Error ? extractionError.message : 'Unknown error'}. File "${file.name}" is saved but text analysis features are limited.`;
+        
         await supabase
           .from('contracts')
           .update({ 
             extraction_status: 'error',
             analysis_status: 'error',
-            text_content: `Text extraction failed: ${extractionError instanceof Error ? extractionError.message : 'Unknown error'}`
+            text_content: fallbackText
           })
           .eq('id', contract.id);
 
         toast.error('Text extraction failed', {
-          description: 'Could not extract text from document'
+          description: 'File uploaded but text extraction encountered an error'
         });
         
         return {
           ...contract,
-          text_content: '',
+          text_content: fallbackText,
           extraction_status: 'error',
           analysis_status: 'error'
         } as Contract;

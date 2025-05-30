@@ -23,21 +23,44 @@ export const useContractUpload = (
       return;
     }
 
+    // Validate file type with enhanced support
+    const supportedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/msword', // .doc
+      'text/plain',
+      'application/rtf',
+      'text/rtf'
+    ];
+
+    if (!supportedTypes.includes(file.type)) {
+      const errorMsg = `Unsupported file type: ${file.type}. Please upload a PDF, Word document (.docx/.doc), RTF, or text file.`;
+      setError(errorMsg);
+      toast.error('Unsupported file type', {
+        description: 'Please upload a PDF, Word document, RTF, or text file'
+      });
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(0);
     setError(null);
     
     try {
-      // Simulate upload progress
+      // Enhanced progress simulation for different file types
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 90) {
+          if (prev >= 85) {
             clearInterval(progressInterval);
             return prev;
           }
-          return prev + Math.random() * 15;
+          // Slower progress for PDF/Word files to account for text extraction
+          const increment = file.type === 'text/plain' ? Math.random() * 20 : Math.random() * 10;
+          return prev + increment;
         });
-      }, 200);
+      }, 300);
+
+      console.log(`Starting upload for ${file.type} file: ${file.name}`);
 
       // Upload contract using the enhanced service
       const contract = await realContractService.uploadContract(file);
@@ -67,13 +90,15 @@ export const useContractUpload = (
         setSelectedDocument(contractMetadata);
         setContractText(textContent);
 
+        // Show file type specific success message
+        const fileTypeLabel = getFileTypeLabel(file.type);
         if (contract.extraction_status === 'completed') {
-          toast.success('Contract uploaded successfully', {
-            description: 'Your contract is ready for analysis'
+          toast.success(`${fileTypeLabel} uploaded successfully!`, {
+            description: `Text extracted (${textContent.length} characters) and ready for AI analysis`
           });
         } else {
-          toast.warning('Contract uploaded with limited functionality', {
-            description: 'Text extraction failed but file is saved'
+          toast.warning(`${fileTypeLabel} uploaded with limited functionality`, {
+            description: 'Text extraction failed but file is saved. Some AI features may be limited.'
           });
         }
       }
@@ -102,3 +127,22 @@ export const useContractUpload = (
     handleFileUpload
   };
 };
+
+// Helper function to get user-friendly file type labels
+function getFileTypeLabel(mimeType: string): string {
+  switch (mimeType) {
+    case 'application/pdf':
+      return 'PDF document';
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return 'Word document (.docx)';
+    case 'application/msword':
+      return 'Word document (.doc)';
+    case 'application/rtf':
+    case 'text/rtf':
+      return 'RTF document';
+    case 'text/plain':
+      return 'Text file';
+    default:
+      return 'Document';
+  }
+}
