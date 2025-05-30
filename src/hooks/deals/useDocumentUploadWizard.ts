@@ -28,9 +28,9 @@ export const useDocumentUploadWizard = () => {
       const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${dealId}/${fileName}`;
 
-      console.log('Uploading file to:', filePath);
+      console.log('Uploading file to deal-documents bucket:', filePath);
 
-      // Try to upload to Supabase Storage deal-documents bucket
+      // Upload to Supabase Storage deal-documents bucket
       const { error: uploadError } = await supabase.storage
         .from('deal-documents')
         .upload(filePath, file);
@@ -38,7 +38,7 @@ export const useDocumentUploadWizard = () => {
       if (uploadError) {
         console.error('Upload error:', uploadError);
         
-        // If bucket doesn't exist, show helpful error message
+        // Show more specific error messages
         if (uploadError.message.includes('Bucket not found')) {
           toast({
             title: "Storage Not Ready",
@@ -48,13 +48,22 @@ export const useDocumentUploadWizard = () => {
           return null;
         }
         
+        if (uploadError.message.includes('Policy')) {
+          toast({
+            title: "Permission Error",
+            description: "You don't have permission to upload documents to this deal.",
+            variant: "destructive"
+          });
+          return null;
+        }
+        
         throw uploadError;
       }
 
-      // Create signed URL for preview (optional, may fail if bucket policies aren't set)
+      // Create signed URL for preview (1 hour expiry)
       const { data: signedUrlData } = await supabase.storage
         .from('deal-documents')
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
+        .createSignedUrl(filePath, 3600);
 
       console.log('File uploaded successfully, signed URL:', signedUrlData?.signedUrl);
 
