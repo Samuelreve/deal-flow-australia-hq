@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import ContractMainContent from '@/components/contract/ContractMainContent';
 import InteractiveDemoFeatures from '@/components/contract/InteractiveDemoFeatures';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { DocumentMetadata } from '@/types/contract';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { DocumentMetadata, QuestionHistoryItem } from '@/types/contract';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText } from "lucide-react";
 

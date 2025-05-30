@@ -18,15 +18,12 @@ const QuestionHistoryDisplay: React.FC<QuestionHistoryDisplayProps> = ({
   currentSources = [],
   question
 }) => {
-  const formatAnswer = (answer: string | { answer: string; sources?: string[] }) => {
-    if (typeof answer === 'string') {
-      return answer;
-    }
-    return answer.answer;
+  const formatAnswer = (answer: string) => {
+    return answer;
   };
 
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+  const formatTimestamp = (timestamp: Date) => {
+    return timestamp.toLocaleString();
   };
 
   if (questionHistory.length === 0 && !currentAnswer) {

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader } from 'lucide-react';
 import { toast } from 'sonner';
-import { QuestionHistoryItem } from '@/hooks/contract/useContractQuestionAnswer';
+import { QuestionHistoryItem } from '@/types/contract';
 import ContractAnalysisHeader from './components/ContractAnalysisHeader';
 import AnalysisTypeGrid from './components/AnalysisTypeGrid';
 import AnalysisResults from './components/AnalysisResults';
