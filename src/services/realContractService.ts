@@ -19,10 +19,11 @@ export interface Contract {
   file_size: number;
   mime_type: string;
   created_at: string;
+  upload_date: string; // Added this property
   text_content?: string;
   content?: string;
   extraction_status: 'completed' | 'failed' | 'pending';
-  analysis_status?: 'completed' | 'failed' | 'pending';
+  analysis_status: 'completed' | 'failed' | 'pending'; // Made this required
   file_path: string;
   user_id: string;
 }
@@ -199,10 +200,11 @@ class RealContractService {
         file_size: contract.file_size,
         mime_type: contract.mime_type,
         created_at: contract.created_at,
+        upload_date: contract.created_at, // Map created_at to upload_date
         text_content: contract.text_content,
         content: contract.content,
         extraction_status: contract.extraction_status as 'completed' | 'failed' | 'pending',
-        analysis_status: contract.analysis_status as 'completed' | 'failed' | 'pending',
+        analysis_status: (contract.analysis_status || 'pending') as 'completed' | 'failed' | 'pending', // Ensure it's never undefined
         file_path: contract.file_path,
         user_id: contract.user_id
       }));
