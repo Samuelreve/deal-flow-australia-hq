@@ -1647,6 +1647,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_profile_owner: {
+        Args: { profile_id: string }
+        Returns: boolean
+      }
       save_notification_settings: {
         Args: {
           p_user_id: string
