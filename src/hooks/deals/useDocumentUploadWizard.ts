@@ -48,7 +48,7 @@ export const useDocumentUploadWizard = () => {
           return null;
         }
         
-        if (uploadError.message.includes('Policy')) {
+        if (uploadError.message.includes('Policy') || uploadError.message.includes('permission')) {
           toast({
             title: "Permission Error",
             description: "You don't have permission to upload documents to this deal.",
@@ -60,12 +60,19 @@ export const useDocumentUploadWizard = () => {
         throw uploadError;
       }
 
-      // Create signed URL for preview (1 hour expiry)
-      const { data: signedUrlData } = await supabase.storage
-        .from('deal-documents')
-        .createSignedUrl(filePath, 3600);
+      // Try to create signed URL for preview (graceful fallback if it fails)
+      let signedUrl: string | undefined;
+      try {
+        const { data: signedUrlData } = await supabase.storage
+          .from('deal-documents')
+          .createSignedUrl(filePath, 3600);
+        signedUrl = signedUrlData?.signedUrl;
+      } catch (urlError) {
+        console.warn('Could not create signed URL, continuing without preview:', urlError);
+        // Don't fail the upload if signed URL creation fails
+      }
 
-      console.log('File uploaded successfully, signed URL:', signedUrlData?.signedUrl);
+      console.log('File uploaded successfully', signedUrl ? 'with signed URL' : 'without signed URL');
 
       // Return uploaded document object
       const uploadedDoc: UploadedDocument = {
@@ -75,7 +82,7 @@ export const useDocumentUploadWizard = () => {
         category: 'Other', // Default category - user can change later
         size: file.size,
         uploadedAt: new Date(),
-        url: signedUrlData?.signedUrl,
+        url: signedUrl,
         storagePath: filePath
       };
 

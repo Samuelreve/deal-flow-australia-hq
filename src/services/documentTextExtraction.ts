@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TextExtractionResult {
@@ -9,8 +8,8 @@ export interface TextExtractionResult {
 
 /**
  * Service for extracting text from uploaded documents
- * Note: This is a simplified implementation that only handles plain text files
- * In production, you would implement proper PDF/Word parsing
+ * Uses client-side extraction for simple text files
+ * For production use, implement server-side PDF/Word parsing
  */
 export class DocumentTextExtractionService {
   
@@ -19,18 +18,21 @@ export class DocumentTextExtractionService {
    */
   static async extractTextFromFile(file: File): Promise<TextExtractionResult> {
     try {
-      // For now, only handle plain text files
+      // Handle plain text files directly on client
       if (file.type === 'text/plain') {
         const text = await file.text();
         return {
           success: true,
           text
         };
-      } else {
-        // For other file types, return a placeholder message
+      } 
+      
+      // For other file types, return a placeholder message
+      // In production, you would send the file to a server-side service
+      else {
         return {
           success: true,
-          text: `[Document uploaded: ${file.name}] - Text extraction for ${file.type} files is not yet implemented. Please upload a plain text file for full text extraction.`
+          text: `[Document uploaded: ${file.name}] - Text extraction for ${file.type} files requires server-side processing. Please use plain text files for immediate text extraction.`
         };
       }
     } catch (error: any) {
@@ -100,6 +102,8 @@ export class DocumentTextExtractionService {
       'text/rtf'
     ];
 
+    // Only text/plain is currently supported for client-side extraction
+    // Others are marked as supported but require server-side processing
     return supportedTypes.includes(file.type);
   }
 
@@ -107,6 +111,6 @@ export class DocumentTextExtractionService {
    * Get user-friendly error message for unsupported file types
    */
   static getUnsupportedFileTypeMessage(file: File): string {
-    return `The file "${file.name}" (${file.type}) is not supported. Please upload a PDF, Word document (.doc/.docx), RTF, or plain text file.`;
+    return `The file "${file.name}" (${file.type}) is not supported for text extraction. Please upload a plain text file for immediate processing, or PDF/Word documents for basic upload (text extraction requires server-side processing).`;
   }
 }

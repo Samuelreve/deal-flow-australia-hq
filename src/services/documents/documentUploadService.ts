@@ -1,3 +1,4 @@
+
 import { Document } from "@/types/deal";
 import { documentDatabaseService } from "./documentDatabaseService";
 import { documentStorageService } from "./documentStorageService";
@@ -81,7 +82,13 @@ export const documentUploadService = {
         description: 'Initial version'
       });
       
-      // 4. Map to domain model
+      // 4. Update document with latest version ID
+      await supabase
+        .from('documents')
+        .update({ latest_version_id: versionData.id })
+        .eq('id', documentData.id);
+      
+      // 5. Map to domain model
       return await documentMapperService.mapToDocument({
         ...documentData,
         latest_version_id: versionData.id

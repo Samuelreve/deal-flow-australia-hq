@@ -76,22 +76,28 @@ export const documentStorageService = {
   },
 
   /**
-   * Create a signed URL for a file
+   * Create a signed URL for a file with error handling
    */
   async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
-    const fullPath = `${dealId}/${filePath}`;
-    console.log('Creating signed URL for:', fullPath);
-    
-    const { data: urlData, error } = await supabase.storage
-      .from('deal-documents')
-      .createSignedUrl(fullPath, expiresIn);
-    
-    if (error) {
-      console.error('Error creating signed URL:', error);
+    try {
+      const fullPath = `${dealId}/${filePath}`;
+      console.log('Creating signed URL for:', fullPath);
+      
+      const { data: urlData, error } = await supabase.storage
+        .from('deal-documents')
+        .createSignedUrl(fullPath, expiresIn);
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        // Return null instead of throwing to allow graceful fallback
+        return null;
+      }
+      
+      return urlData?.signedUrl || null;
+    } catch (error) {
+      console.error('Unexpected error creating signed URL:', error);
       return null;
     }
-    
-    return urlData?.signedUrl || null;
   },
 
   /**
@@ -103,37 +109,45 @@ export const documentStorageService = {
     versionId: string, 
     expiresIn: number = 3600
   ) {
-    console.log('Getting signed URL for version:', versionId);
-    
-    // First, get the version details from the database
-    const { data: version, error: versionError } = await supabase
-      .from('document_versions')
-      .select('*')
-      .eq('id', versionId)
-      .eq('document_id', documentId)
-      .single();
-    
-    if (versionError) {
-      console.error("Error fetching version:", versionError);
-      return { error: versionError, data: null };
+    try {
+      console.log('Getting signed URL for version:', versionId);
+      
+      // First, get the version details from the database
+      const { data: version, error: versionError } = await supabase
+        .from('document_versions')
+        .select('*')
+        .eq('id', versionId)
+        .eq('document_id', documentId)
+        .single();
+      
+      if (versionError) {
+        console.error("Error fetching version:", versionError);
+        return { error: versionError, data: null };
+      }
+      
+      // Create a signed URL for the version's file
+      const signedUrl = await this.createSignedUrl(dealId, version.storage_path, expiresIn);
+      
+      if (!signedUrl) {
+        return { 
+          error: { message: 'Failed to create signed URL' }, 
+          data: null 
+        };
+      }
+      
+      return { 
+        data: { 
+          version,
+          signedUrl
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error("Unexpected error getting signed URL for version:", error);
+      return { 
+        error: { message: 'Unexpected error occurred' }, 
+        data: null 
+      };
     }
-    
-    // Create a signed URL for the version's file
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from('deal-documents')
-      .createSignedUrl(`${dealId}/${version.storage_path}`, expiresIn);
-    
-    if (urlError) {
-      console.error("Error creating signed URL:", urlError);
-      return { error: urlError, data: null };
-    }
-    
-    return { 
-      data: { 
-        version,
-        signedUrl: urlData?.signedUrl 
-      },
-      error: null
-    };
   }
 };
