@@ -7,18 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ArrowLeft, User, Info, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { StepProps, SELLER_ENTITY_TYPES } from '../types';
 
 const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
-  // Mock user data since we don't have auth context available
-  const user = { name: 'John Smith' }; // This would come from auth context
+  const { user } = useAuth();
   const [showLegalRep, setShowLegalRep] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Auto-fill seller name from user profile
-    if (user?.name && !data.primarySellerName) {
+    // Auto-fill seller name from real user profile
+    if (user?.profile?.name && !data.primarySellerName) {
+      updateData({ 
+        primarySellerName: user.profile.name,
+        sellerEntityType: 'Individual'
+      });
+    } else if (user?.name && !data.primarySellerName) {
       updateData({ 
         primarySellerName: user.name,
         sellerEntityType: 'Individual'
@@ -79,7 +84,10 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
             <p className="text-sm text-red-500">{errors.primarySellerName}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            Auto-filled from your profile - you can edit if needed
+            {user?.profile?.name || user?.name ? 
+              'Auto-filled from your profile - you can edit if needed' : 
+              'This will be your primary contact name for this deal'
+            }
           </p>
         </div>
 

@@ -10,17 +10,24 @@ import { useDocumentUploadWizard } from '@/hooks/deals/useDocumentUploadWizard';
 
 import { StepProps, DOCUMENT_CATEGORIES, REQUIRED_DOCUMENTS, RECOMMENDED_DOCUMENTS } from '../types';
 
-const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
+interface DocumentUploadStepProps extends StepProps {
+  dealId?: string; // Real deal ID passed from parent
+}
+
+const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({ 
+  data, 
+  updateData, 
+  onNext, 
+  onPrev, 
+  dealId 
+}) => {
   const { toast } = useToast();
   const { uploading, uploadFile, deleteFile } = useDocumentUploadWizard();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
 
-  // Generate a temporary deal ID for uploads during creation
-  const tempDealId = React.useMemo(() => 
-    data.dealTitle ? `temp-${data.dealTitle.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}` : `temp-deal-${Date.now()}`,
-    [data.dealTitle]
-  );
+  // Use real deal ID if available, otherwise fall back to temporary ID for creation flow
+  const currentDealId = dealId || `temp-${data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'deal'}-${Date.now()}`;
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
@@ -38,17 +45,28 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
       }
 
       // Validate file type
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const allowedTypes = [
+        'application/pdf', 
+        'image/jpeg', 
+        'image/png', 
+        'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
       if (!allowedTypes.includes(file.type)) {
         errors.push(`${file.name}: File type not supported`);
         continue;
       }
 
       // Upload file to storage
-      const uploadedDoc = await uploadFile(file, tempDealId);
-      if (uploadedDoc) {
-        newDocuments.push(uploadedDoc);
-      } else {
+      try {
+        const uploadedDoc = await uploadFile(file, currentDealId);
+        if (uploadedDoc) {
+          newDocuments.push(uploadedDoc);
+        } else {
+          errors.push(`${file.name}: Upload failed`);
+        }
+      } catch (error) {
+        console.error('Upload error for file:', file.name, error);
         errors.push(`${file.name}: Upload failed`);
       }
     }
@@ -152,6 +170,7 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
         <AlertDescription>
           Upload your business documents securely. Required documents are needed to proceed, 
           while recommended documents help speed up the due diligence process.
+          {dealId ? ' Documents will be associated with your deal.' : ' Documents will be temporarily stored and linked to your deal once created.'}
         </AlertDescription>
       </Alert>
 

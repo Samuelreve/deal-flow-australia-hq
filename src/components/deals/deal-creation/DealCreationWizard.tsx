@@ -5,6 +5,9 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Building2, HandHeart, User, FileText, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { dealsService } from '@/services/dealsService';
+import { tempDealService } from '@/services/tempDealService';
 
 import BusinessInfoStep from './steps/BusinessInfoStep';
 import DealInfoStep from './steps/DealInfoStep';
@@ -55,8 +58,11 @@ const STEPS = [
 const DealCreationWizard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tempDealId, setTempDealId] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<DealCreationData>({
     // Business Information
     businessTradingName: '',
@@ -80,8 +86,8 @@ const DealCreationWizard: React.FC = () => {
     keyAssetsExcluded: '',
     reasonForSelling: '',
     
-    // Seller Details
-    primarySellerName: '',
+    // Seller Details - Initialize with user data
+    primarySellerName: user?.profile?.name || user?.name || '',
     sellerEntityType: '',
     legalRepName: '',
     legalRepEmail: '',
@@ -96,8 +102,36 @@ const DealCreationWizard: React.FC = () => {
     console.log('Form data updated:', { ...formData, ...stepData });
   };
 
-  const nextStep = () => {
+  // Create temporary deal when moving to document upload step
+  const createTempDealIfNeeded = async () => {
+    if (currentStep === 3 && !tempDealId && formData.dealTitle) {
+      try {
+        console.log('Creating temporary deal for document uploads...');
+        const { dealId } = await tempDealService.createTempDeal({
+          title: formData.dealTitle,
+          description: formData.dealDescription,
+          type: 'business_sale'
+        });
+        setTempDealId(dealId);
+        console.log('Temporary deal created:', dealId);
+      } catch (error) {
+        console.error('Failed to create temporary deal:', error);
+        toast({
+          title: "Warning",
+          description: "Could not prepare document upload. Documents will be uploaded after deal creation.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const nextStep = async () => {
     if (currentStep < STEPS.length) {
+      // Create temp deal before moving to document upload step
+      if (currentStep === 3) {
+        await createTempDealIfNeeded();
+      }
+      
       setCurrentStep(prev => prev + 1);
       console.log('Moving to step:', currentStep + 1);
     }
@@ -111,26 +145,60 @@ const DealCreationWizard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to create a deal.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     console.log('Starting deal submission with data:', formData);
     
     try {
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create the deal using the real dealsService
+      const dealData = {
+        title: formData.dealTitle,
+        description: formData.dealDescription,
+        asking_price: formData.askingPrice ? parseFloat(formData.askingPrice) : undefined,
+        business_industry: formData.businessIndustry,
+        target_completion_date: formData.targetCompletionDate,
+        status: 'draft' as const,
+        health_score: 50, // Starting health score
+        // Map additional business details
+        business_legal_name: formData.businessLegalName,
+        business_trading_names: formData.businessTradingName,
+        business_legal_entity_type: formData.legalEntityType,
+        business_abn: formData.abn,
+        business_acn: formData.acn,
+        business_registered_address: formData.registeredAddress,
+        business_principal_place_address: formData.principalAddress,
+        business_state: formData.businessState,
+        business_years_in_operation: formData.yearsInOperation,
+        deal_type: formData.dealType,
+        key_assets_included: formData.keyAssetsIncluded,
+        key_assets_excluded: formData.keyAssetsExcluded,
+        reason_for_selling: formData.reasonForSelling,
+        primary_seller_contact_name: formData.primarySellerName
+      };
+
+      const newDeal = await dealsService.createDeal(dealData);
       
-      console.log('Deal submission successful');
+      console.log('Deal created successfully:', newDeal);
       toast({
         title: "Deal Created Successfully!",
         description: "Your business sale is now live and ready for collaboration.",
       });
       
-      // Navigate to deals dashboard
-      navigate('/deals');
-    } catch (error) {
+      // Navigate to the new deal's page
+      navigate(`/deals/${newDeal.id}`);
+    } catch (error: any) {
       console.error('Error creating deal:', error);
       toast({
         title: "Error Creating Deal",
-        description: "Please try again or contact support if the problem persists.",
+        description: error.message || "Please try again or contact support if the problem persists.",
         variant: "destructive"
       });
     } finally {
@@ -146,6 +214,10 @@ const DealCreationWizard: React.FC = () => {
     }
 
     const StepComponent = step.component;
+    
+    // Pass the temp deal ID to DocumentUploadStep for real uploads
+    const additionalProps = currentStep === 4 && tempDealId ? { dealId: tempDealId } : {};
+    
     return (
       <StepComponent
         data={formData}
@@ -155,12 +227,31 @@ const DealCreationWizard: React.FC = () => {
         isLastStep={currentStep === STEPS.length}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        {...additionalProps}
       />
     );
   };
 
   const progressPercentage = (currentStep / STEPS.length) * 100;
   const currentStepInfo = STEPS.find(s => s.id === currentStep);
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-5xl mx-auto p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+        <p className="text-muted-foreground mb-6">
+          You must be logged in to create a deal. Please log in to continue.
+        </p>
+        <button 
+          onClick={() => navigate('/auth')}
+          className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
