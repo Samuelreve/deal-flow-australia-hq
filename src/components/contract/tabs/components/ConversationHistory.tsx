@@ -17,7 +17,10 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
     return null;
   }
 
-  const formatAnswer = (answer: string | { answer: string; sources?: string[] }) => {
+  const formatAnswer = (answer: string | { answer: string; sources?: string[] } | null) => {
+    if (!answer) {
+      return 'No response available';
+    }
     if (typeof answer === 'string') {
       return answer;
     }
