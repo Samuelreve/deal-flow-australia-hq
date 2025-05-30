@@ -3,17 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
-export interface QuestionHistoryItem {
-  id: string;
-  question: string;
-  answer: string | { answer: string; sources?: string[] };
-  timestamp: number;
-  type: 'question' | 'analysis';
-  analysisType?: string;
-  sources?: string[];
-  isProcessing?: boolean;
-}
+import { QuestionHistoryItem } from '@/types/contract';
 
 export const useContractQuestionAnswer = () => {
   const { user } = useAuth();
@@ -37,7 +27,7 @@ export const useContractQuestionAnswer = () => {
       id: processingId,
       question,
       answer: 'Processing...',
-      timestamp: Date.now(),
+      timestamp: new Date(),
       type: 'question',
       isProcessing: true
     };
@@ -60,7 +50,7 @@ export const useContractQuestionAnswer = () => {
           id: processingId,
           question,
           answer: data.answer || 'No answer provided',
-          timestamp: Date.now(),
+          timestamp: new Date(),
           type: 'question',
           sources: data.sources || [],
           isProcessing: false
@@ -87,7 +77,7 @@ export const useContractQuestionAnswer = () => {
         id: processingId,
         question,
         answer: 'Sorry, I could not process your question at this time. Please try again later.',
-        timestamp: Date.now(),
+        timestamp: new Date(),
         type: 'question',
         isProcessing: false
       };
@@ -123,7 +113,7 @@ export const useContractQuestionAnswer = () => {
       id: processingId,
       question: `Analyze contract for: ${analysisType}`,
       answer: 'Analyzing...',
-      timestamp: Date.now(),
+      timestamp: new Date(),
       type: 'analysis',
       analysisType,
       isProcessing: true
@@ -164,7 +154,7 @@ export const useContractQuestionAnswer = () => {
           id: processingId,
           question: `Analyze contract for: ${analysisType}`,
           answer: data.answer || 'Analysis completed',
-          timestamp: Date.now(),
+          timestamp: new Date(),
           type: 'analysis',
           analysisType,
           sources: data.sources || [],
@@ -192,7 +182,7 @@ export const useContractQuestionAnswer = () => {
         id: processingId,
         question: `Analyze contract for: ${analysisType}`,
         answer: 'Analysis could not be completed at this time. Please try again later.',
-        timestamp: Date.now(),
+        timestamp: new Date(),
         type: 'analysis',
         analysisType,
         isProcessing: false
