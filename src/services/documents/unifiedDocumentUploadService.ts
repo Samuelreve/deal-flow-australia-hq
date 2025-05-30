@@ -1,6 +1,6 @@
+
 import { Document } from "@/types/deal";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 /**
  * Unified document upload service that handles all document upload scenarios
@@ -12,7 +12,7 @@ export class UnifiedDocumentUploadService {
     if (!UnifiedDocumentUploadService.instance) {
       UnifiedDocumentUploadService.instance = new UnifiedDocumentUploadService();
     }
-    return UnifiedDocumentUploadService.getInstance();
+    return UnifiedDocumentUploadService.instance; // Fixed: return the instance, not call getInstance again
   }
 
   /**
