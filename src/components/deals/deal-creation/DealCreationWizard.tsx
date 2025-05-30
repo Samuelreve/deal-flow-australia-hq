@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const STEPS = [
   { id: 5, title: 'Review & Submit', component: ReviewSubmissionStep }
 ];
 
-const DealCreationWizard: React.FC = () => {
+const CreateDealWizard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
@@ -31,12 +30,15 @@ const DealCreationWizard: React.FC = () => {
   const [formData, setFormData] = useState<DealCreationData>({
     // Business Information
     businessTradingName: '',
-    legalEntityName: '',
-    entityType: '',
+    businessLegalName: '',
+    legalEntityType: '',
     abn: '',
     acn: '',
     registeredAddress: '',
     principalAddress: '',
+    businessState: '',
+    businessIndustry: '',
+    yearsInOperation: 0,
     
     // Deal Information
     dealTitle: '',
@@ -44,12 +46,12 @@ const DealCreationWizard: React.FC = () => {
     askingPrice: '',
     targetCompletionDate: '',
     dealDescription: '',
-    assetsIncluded: '',
-    assetsExcluded: '',
+    keyAssetsIncluded: '',
+    keyAssetsExcluded: '',
     reasonForSelling: '',
     
     // Seller Details
-    sellerName: '',
+    primarySellerName: '',
     sellerEntityType: '',
     legalRepName: '',
     legalRepEmail: '',
@@ -185,4 +187,4 @@ const DealCreationWizard: React.FC = () => {
   );
 };
 
-export default DealCreationWizard;
+export default CreateDealWizard;

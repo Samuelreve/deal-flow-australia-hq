@@ -69,11 +69,11 @@ const ReviewSubmissionStep: React.FC<StepProps> = ({
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Legal Entity</p>
-              <p className="font-medium">{data.legalEntityName}</p>
+              <p className="font-medium">{data.businessLegalName}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Entity Type</p>
-              <p className="font-medium">{data.entityType}</p>
+              <p className="font-medium">{data.legalEntityType}</p>
             </div>
             {data.abn && (
               <div>
@@ -145,7 +145,7 @@ const ReviewSubmissionStep: React.FC<StepProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Seller Name</p>
-              <p className="font-medium">{data.sellerName}</p>
+              <p className="font-medium">{data.primarySellerName}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Entity Type</p>

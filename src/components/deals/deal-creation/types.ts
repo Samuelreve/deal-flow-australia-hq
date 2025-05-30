@@ -62,6 +62,9 @@ export const LEGAL_ENTITY_TYPES = [
   'Other'
 ];
 
+// Add ENTITY_TYPES as an alias for backward compatibility
+export const ENTITY_TYPES = LEGAL_ENTITY_TYPES;
+
 export const BUSINESS_STATES = [
   'ACT',
   'NSW', 

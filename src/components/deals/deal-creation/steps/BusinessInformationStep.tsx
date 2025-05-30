@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, Building2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { StepProps, ENTITY_TYPES } from '../types';
+import { StepProps, LEGAL_ENTITY_TYPES } from '../types';
 
 const BusinessInformationStep: React.FC<StepProps> = ({ data, updateData, onNext }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -23,12 +23,12 @@ const BusinessInformationStep: React.FC<StepProps> = ({ data, updateData, onNext
       newErrors.businessTradingName = 'Business trading name is required';
     }
     
-    if (!data.legalEntityName) {
-      newErrors.legalEntityName = 'Legal entity name is required';
+    if (!data.businessLegalName) {
+      newErrors.businessLegalName = 'Business legal name is required';
     }
     
-    if (!data.entityType) {
-      newErrors.entityType = 'Entity type is required';
+    if (!data.legalEntityType) {
+      newErrors.legalEntityType = 'Legal entity type is required';
     }
     
     if (data.abn && !/^\d{11}$/.test(data.abn.replace(/\s/g, ''))) {
@@ -97,40 +97,40 @@ const BusinessInformationStep: React.FC<StepProps> = ({ data, updateData, onNext
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="legalEntityName">
+          <Label htmlFor="businessLegalName">
             Legal Entity Name *
           </Label>
           <Input
-            id="legalEntityName"
-            value={data.legalEntityName}
-            onChange={(e) => updateData({ legalEntityName: e.target.value })}
+            id="businessLegalName"
+            value={data.businessLegalName}
+            onChange={(e) => updateData({ businessLegalName: e.target.value })}
             placeholder="e.g., Smith's Bakery Pty Ltd"
-            className={errors.legalEntityName ? 'border-red-500' : ''}
+            className={errors.businessLegalName ? 'border-red-500' : ''}
           />
-          {errors.legalEntityName && (
-            <p className="text-sm text-red-500">{errors.legalEntityName}</p>
+          {errors.businessLegalName && (
+            <p className="text-sm text-red-500">{errors.businessLegalName}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="entityType">
+          <Label htmlFor="legalEntityType">
             Entity Type *
           </Label>
           <Select 
-            value={data.entityType} 
-            onValueChange={(value) => updateData({ entityType: value })}
+            value={data.legalEntityType} 
+            onValueChange={(value) => updateData({ legalEntityType: value })}
           >
-            <SelectTrigger className={errors.entityType ? 'border-red-500' : ''}>
+            <SelectTrigger className={errors.legalEntityType ? 'border-red-500' : ''}>
               <SelectValue placeholder="Select entity type" />
             </SelectTrigger>
             <SelectContent>
-              {ENTITY_TYPES.map((type) => (
+              {LEGAL_ENTITY_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {errors.entityType && (
-            <p className="text-sm text-red-500">{errors.entityType}</p>
+          {errors.legalEntityType && (
+            <p className="text-sm text-red-500">{errors.legalEntityType}</p>
           )}
         </div>
 
@@ -151,7 +151,7 @@ const BusinessInformationStep: React.FC<StepProps> = ({ data, updateData, onNext
           )}
         </div>
 
-        {data.entityType === 'Pty Ltd' && (
+        {data.legalEntityType === 'Pty Ltd' && (
           <div className="space-y-2">
             <Label htmlFor="acn">
               ACN

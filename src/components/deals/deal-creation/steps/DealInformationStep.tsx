@@ -202,26 +202,26 @@ const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, on
         <CollapsibleContent className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="assetsIncluded">
+              <Label htmlFor="keyAssetsIncluded">
                 Key Assets Included
               </Label>
               <Textarea
-                id="assetsIncluded"
-                value={data.assetsIncluded}
-                onChange={(e) => updateData({ assetsIncluded: e.target.value })}
+                id="keyAssetsIncluded"
+                value={data.keyAssetsIncluded}
+                onChange={(e) => updateData({ keyAssetsIncluded: e.target.value })}
                 placeholder="e.g., Equipment, Inventory, Customer List, Lease, Brand Name"
                 rows={4}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assetsExcluded">
+              <Label htmlFor="keyAssetsExcluded">
                 Assets Excluded
               </Label>
               <Textarea
-                id="assetsExcluded"
-                value={data.assetsExcluded}
-                onChange={(e) => updateData({ assetsExcluded: e.target.value })}
+                id="keyAssetsExcluded"
+                value={data.keyAssetsExcluded}
+                onChange={(e) => updateData({ keyAssetsExcluded: e.target.value })}
                 placeholder="e.g., Personal vehicles, Specific equipment, Cash reserves"
                 rows={4}
               />
