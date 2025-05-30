@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { CheckCircle, Building2, HandHeart, User, FileText, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import BusinessInfoStep from './steps/BusinessInfoStep';
@@ -15,14 +15,44 @@ import ReviewSubmissionStep from './steps/ReviewSubmissionStep';
 import { DealCreationData } from './types';
 
 const STEPS = [
-  { id: 1, title: 'Business Information', component: BusinessInfoStep },
-  { id: 2, title: 'Deal Information', component: DealInfoStep },
-  { id: 3, title: 'Seller Details', component: SellerDetailsStep },
-  { id: 4, title: 'Documents', component: DocumentUploadStep },
-  { id: 5, title: 'Review & Submit', component: ReviewSubmissionStep }
+  { 
+    id: 1, 
+    title: 'Business Information', 
+    icon: Building2,
+    component: BusinessInfoStep,
+    description: 'Tell us about your business'
+  },
+  { 
+    id: 2, 
+    title: 'Deal Information', 
+    icon: HandHeart,
+    component: DealInfoStep,
+    description: 'Define your deal terms'
+  },
+  { 
+    id: 3, 
+    title: 'Seller & Legal Details', 
+    icon: User,
+    component: SellerDetailsStep,
+    description: 'Your contact information'
+  },
+  { 
+    id: 4, 
+    title: 'Upload Documents', 
+    icon: FileText,
+    component: DocumentUploadStep,
+    description: 'Secure document upload'
+  },
+  { 
+    id: 5, 
+    title: 'Review & Submit', 
+    icon: ClipboardCheck,
+    component: ReviewSubmissionStep,
+    description: 'Final check and create'
+  }
 ];
 
-const CreateDealWizard: React.FC = () => {
+const DealCreationWizard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
@@ -63,29 +93,35 @@ const CreateDealWizard: React.FC = () => {
 
   const updateFormData = (stepData: Partial<DealCreationData>) => {
     setFormData(prev => ({ ...prev, ...stepData }));
+    console.log('Form data updated:', { ...formData, ...stepData });
   };
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(prev => prev + 1);
+      console.log('Moving to step:', currentStep + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      console.log('Moving back to step:', currentStep - 1);
     }
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    console.log('Starting deal submission with data:', formData);
+    
     try {
-      // TODO: Submit to API
-      console.log('Submitting deal:', formData);
+      // Simulate API call for now
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
+      console.log('Deal submission successful');
       toast({
-        title: "Deal Created Successfully",
-        description: "Your deal has been created and is now draft status.",
+        title: "Deal Created Successfully!",
+        description: "Your business sale is now live and ready for collaboration.",
       });
       
       // Navigate to deals dashboard
@@ -94,7 +130,7 @@ const CreateDealWizard: React.FC = () => {
       console.error('Error creating deal:', error);
       toast({
         title: "Error Creating Deal",
-        description: "Please try again later.",
+        description: "Please try again or contact support if the problem persists.",
         variant: "destructive"
       });
     } finally {
@@ -104,7 +140,10 @@ const CreateDealWizard: React.FC = () => {
 
   const getCurrentStepComponent = () => {
     const step = STEPS.find(s => s.id === currentStep);
-    if (!step) return null;
+    if (!step) {
+      console.error('Step not found:', currentStep);
+      return null;
+    }
 
     const StepComponent = step.component;
     return (
@@ -121,70 +160,114 @@ const CreateDealWizard: React.FC = () => {
   };
 
   const progressPercentage = (currentStep / STEPS.length) * 100;
+  const currentStepInfo = STEPS.find(s => s.id === currentStep);
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
+    <div className="max-w-5xl mx-auto">
+      {/* Progress Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/deals')}
-            className="text-muted-foreground"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Deals
-          </Button>
           <div className="text-sm text-muted-foreground">
             Step {currentStep} of {STEPS.length}
           </div>
+          <div className="text-sm font-medium text-primary">
+            {Math.round(progressPercentage)}% Complete
+          </div>
         </div>
         
-        <h1 className="text-3xl font-bold mb-2">Create New Deal</h1>
-        <p className="text-muted-foreground">
-          Let's set up your business sale. We'll guide you through each step.
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="mb-8">
-        <Progress value={progressPercentage} className="h-2 mb-4" />
-        <div className="flex justify-between text-sm">
-          {STEPS.map((step) => (
-            <div 
-              key={step.id}
-              className={`flex items-center ${
-                step.id <= currentStep ? 'text-primary font-medium' : 'text-muted-foreground'
-              }`}
-            >
-              {step.id < currentStep ? (
-                <CheckCircle className="mr-1 h-4 w-4" />
-              ) : (
-                <div className={`mr-1 h-4 w-4 rounded-full border-2 ${
-                  step.id === currentStep 
-                    ? 'border-primary bg-primary' 
-                    : 'border-muted-foreground'
-                }`} />
-              )}
-              <span className="hidden sm:inline">{step.title}</span>
-            </div>
-          ))}
+        <Progress value={progressPercentage} className="h-3 mb-6" />
+        
+        {/* Step indicators */}
+        <div className="flex justify-between">
+          {STEPS.map((step) => {
+            const StepIcon = step.icon;
+            const isCompleted = step.id < currentStep;
+            const isCurrent = step.id === currentStep;
+            
+            return (
+              <div 
+                key={step.id}
+                className={`flex flex-col items-center text-center flex-1 ${
+                  isCompleted || isCurrent ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <div className={`mb-2 p-3 rounded-full border-2 ${
+                  isCompleted 
+                    ? 'border-primary bg-primary text-primary-foreground' 
+                    : isCurrent 
+                    ? 'border-primary bg-background' 
+                    : 'border-muted bg-background'
+                }`}>
+                  {isCompleted ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <StepIcon className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className={`text-sm font-medium ${
+                    isCompleted || isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                  }`}>
+                    {step.title}
+                  </div>
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    {step.description}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Step Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            {STEPS.find(s => s.id === currentStep)?.title}
-          </CardTitle>
+      {/* Current Step Content */}
+      <Card className="shadow-lg">
+        <CardHeader className="pb-4">
+          <div className="flex items-center space-x-3">
+            {currentStepInfo && (
+              <>
+                <currentStepInfo.icon className="h-6 w-6 text-primary" />
+                <div>
+                  <CardTitle className="text-2xl">{currentStepInfo.title}</CardTitle>
+                  <p className="text-muted-foreground mt-1">{currentStepInfo.description}</p>
+                </div>
+              </>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {getCurrentStepComponent()}
         </CardContent>
       </Card>
+
+      {/* AI Assistant Tip */}
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-blue-100 rounded-full">
+            <span className="text-blue-600 font-bold text-sm">AI</span>
+          </div>
+          <div>
+            <p className="text-sm text-blue-800">
+              <strong>Smart Tip:</strong> {getAITipForStep(currentStep)}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default CreateDealWizard;
+// AI Tips for each step
+const getAITipForStep = (step: number): string => {
+  const tips = {
+    1: "Complete business details help generate accurate legal documents and milestone planning. Don't worry about getting everything perfect - you can always edit later.",
+    2: "A clear deal description attracts serious buyers. Consider highlighting what makes your business unique and profitable.",
+    3: "Adding a legal representative now streamlines the process later. They can be invited to collaborate on your deal once it's created.",
+    4: "Upload core documents now to speed up due diligence. Financial statements and asset lists are particularly valuable for buyers.",
+    5: "Review everything carefully - this creates your official deal listing. You can always make changes from the deal dashboard after submission."
+  };
+  
+  return tips[step as keyof typeof tips] || "Complete this step to continue with your deal creation.";
+};
+
+export default DealCreationWizard;

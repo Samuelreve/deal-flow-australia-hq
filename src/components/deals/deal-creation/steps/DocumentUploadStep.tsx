@@ -3,308 +3,286 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Upload, FileText, CheckCircle, AlertTriangle, X, Shield, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Check, AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
-import { StepProps, DOCUMENT_CATEGORIES, REQUIRED_DOCUMENTS, RECOMMENDED_DOCUMENTS, UploadedDocument } from '../types';
+import { StepProps, DOCUMENT_CATEGORIES, REQUIRED_DOCUMENTS, RECOMMENDED_DOCUMENTS } from '../types';
 
 const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
-  const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
 
-  const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleFileUpload = (files: FileList | null) => {
+    if (!files) return;
 
-    setUploading(true);
-    const newDocuments: UploadedDocument[] = [];
+    const newDocuments = [];
+    const errors = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newDoc: UploadedDocument = {
-        id: Math.random().toString(36).substr(2, 9),
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        errors.push(`${file.name}: File size must be under 10MB`);
+        continue;
+      }
+
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(`${file.name}: File type not supported`);
+        continue;
+      }
+
+      const newDoc = {
+        id: crypto.randomUUID(),
         filename: file.name,
-        type: 'Other',
-        category: detectDocumentCategory(file.name),
+        type: file.type,
+        category: 'Other', // Default category
         size: file.size,
         uploadedAt: new Date(),
-        url: URL.createObjectURL(file) // Temporary URL for demo
+        url: URL.createObjectURL(file) // For preview purposes
       };
-      
+
       newDocuments.push(newDoc);
     }
 
-    updateData({ 
-      uploadedDocuments: [...data.uploadedDocuments, ...newDocuments] 
-    });
-    setUploading(false);
-  };
+    setUploadErrors(errors);
+    
+    if (newDocuments.length > 0) {
+      updateData({
+        uploadedDocuments: [...data.uploadedDocuments, ...newDocuments]
+      });
+      
+      toast({
+        title: "Documents Uploaded",
+        description: `${newDocuments.length} document(s) uploaded successfully.`,
+      });
+    }
 
-  const detectDocumentCategory = (filename: string): string => {
-    const name = filename.toLowerCase();
-    if (name.includes('certificate') || name.includes('registration')) return 'Certificate of Registration';
-    if (name.includes('abn') || name.includes('acn')) return 'ABN/ACN Confirmation';
-    if (name.includes('financial') || name.includes('p&l') || name.includes('balance')) return 'Financial Statements';
-    if (name.includes('lease')) return 'Lease Agreements';
-    if (name.includes('asset') || name.includes('inventory')) return 'Asset List';
-    if (name.includes('valuation')) return 'Business Valuation';
-    if (name.includes('contract')) return 'Key Contracts';
-    if (name.includes('id') || name.includes('license') || name.includes('passport')) return 'Seller ID';
-    return 'Other';
+    if (errors.length > 0) {
+      toast({
+        title: "Upload Errors",
+        description: `${errors.length} file(s) failed to upload.`,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(false);
+    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(true);
+    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(false);
+    setIsDragging(false);
   };
 
   const removeDocument = (docId: string) => {
-    const filtered = data.uploadedDocuments.filter(doc => doc.id !== docId);
-    updateData({ uploadedDocuments: filtered });
+    updateData({
+      uploadedDocuments: data.uploadedDocuments.filter(doc => doc.id !== docId)
+    });
   };
 
   const updateDocumentCategory = (docId: string, category: string) => {
-    const updated = data.uploadedDocuments.map(doc => 
-      doc.id === docId ? { ...doc, category } : doc
-    );
-    updateData({ uploadedDocuments: updated });
-  };
-
-  const getRequiredDocStatus = () => {
-    const uploaded = data.uploadedDocuments.map(doc => doc.category);
-    const missingRequired = REQUIRED_DOCUMENTS.filter(req => !uploaded.includes(req));
-    const hasRecommended = RECOMMENDED_DOCUMENTS.filter(rec => uploaded.includes(rec));
-    
-    return { 
-      missingRequired, 
-      hasRecommended,
-      totalUploaded: uploaded.length 
-    };
+    updateData({
+      uploadedDocuments: data.uploadedDocuments.map(doc => 
+        doc.id === docId ? { ...doc, category } : doc
+      )
+    });
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getAIMissingDocumentTip = () => {
-    const status = getRequiredDocStatus();
-    
-    if (data.dealType === 'Asset Sale' && !status.hasRecommended.includes('Asset List')) {
-      return "Most buyers expect to see a detailed asset list for an Asset Sale. Uploading it now can speed up due diligence.";
-    }
-    
-    if (!status.hasRecommended.includes('Financial Statements')) {
-      return "Financial statements greatly increase buyer confidence and can help you achieve a better price.";
-    }
-    
-    if (!status.hasRecommended.includes('Business Valuation')) {
-      return "A professional business valuation strengthens your negotiating position and validates your asking price.";
-    }
-    
-    return null;
+  const hasRequiredDocuments = () => {
+    return REQUIRED_DOCUMENTS.every(reqDoc => 
+      data.uploadedDocuments.some(doc => doc.category === reqDoc)
+    );
   };
 
-  const status = getRequiredDocStatus();
-  const canProceed = status.missingRequired.length === 0;
-  const aiTip = getAIMissingDocumentTip();
+  const getDocumentStatusBadge = (category: string) => {
+    if (REQUIRED_DOCUMENTS.includes(category)) {
+      return <Badge variant="destructive">Required</Badge>;
+    }
+    if (RECOMMENDED_DOCUMENTS.includes(category)) {
+      return <Badge variant="secondary">Recommended</Badge>;
+    }
+    return <Badge variant="outline">Optional</Badge>;
+  };
 
   return (
     <div className="space-y-6">
       <Alert>
-        <Shield className="h-4 w-4" />
+        <FileText className="h-4 w-4" />
         <AlertDescription>
-          Your documents are encrypted and stored securely. They're only visible to authorized parties 
-          you invite to your deal. Upload core documents now to speed up the due diligence process.
+          Upload your business documents securely. Required documents are needed to proceed, 
+          while recommended documents help speed up the due diligence process.
         </AlertDescription>
       </Alert>
+
+      {/* Document Categories Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Document Requirements</CardTitle>
+          <CardDescription>
+            Here's what we need to get your deal ready
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="font-medium text-sm mb-2 text-red-600">Required Documents</h4>
+              <ul className="text-sm space-y-1">
+                {REQUIRED_DOCUMENTS.map(doc => (
+                  <li key={doc} className="flex items-center space-x-2">
+                    {data.uploadedDocuments.some(d => d.category === doc) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span>{doc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-sm mb-2 text-blue-600">Recommended Documents</h4>
+              <ul className="text-sm space-y-1">
+                {RECOMMENDED_DOCUMENTS.map(doc => (
+                  <li key={doc} className="flex items-center space-x-2">
+                    {data.uploadedDocuments.some(d => d.category === doc) ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <div className="h-4 w-4" />
+                    )}
+                    <span>{doc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-sm mb-2 text-gray-600">Other Documents</h4>
+              <p className="text-sm text-muted-foreground">
+                Additional documents that may be relevant to your business sale
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Upload Area */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <Upload className="mr-2 h-5 w-5" />
-            Document Upload
-          </CardTitle>
-          <CardDescription>
-            Drag and drop files here, or click to browse. Accepted: PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
-          </CardDescription>
+          <CardTitle className="text-lg">Upload Documents</CardTitle>
         </CardHeader>
         <CardContent>
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              dragOver 
-                ? 'border-primary bg-primary/10' 
-                : 'border-muted-foreground hover:border-primary hover:bg-muted/50'
-            }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => document.getElementById('file-input')?.click()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDragging 
+                ? 'border-primary bg-primary/5' 
+                : 'border-muted-foreground/25 hover:border-primary/50'
+            }`}
           >
-            <Upload className={`h-12 w-12 mx-auto mb-4 ${dragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-            <p className="text-lg font-medium mb-2">
-              {dragOver ? 'Drop files here' : 'Choose files or drag them here'}
-            </p>
+            <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              Drag and drop files here, or click to browse
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Multiple files supported • Auto-categorization • Secure encryption
+              Supports PDF, Word documents, and images up to 10MB each
             </p>
-            <Button variant="outline" className="mt-2">
-              Browse Files
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+                input.onchange = (e) => {
+                  const target = e.target as HTMLInputElement;
+                  handleFileUpload(target.files);
+                };
+                input.click();
+              }}
+            >
+              Choose Files
             </Button>
-            
-            <input
-              id="file-input"
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              className="hidden"
-            />
           </div>
 
-          {uploading && (
-            <div className="mt-4">
-              <Progress value={70} className="w-full" />
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                Uploading and encrypting documents...
-              </p>
-            </div>
+          {uploadErrors.length > 0 && (
+            <Alert className="mt-4" variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc list-inside">
+                  {uploadErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>
 
-      {/* Document Status Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-              Required Documents
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <HelpCircle className="h-4 w-4 ml-2 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>These documents are required to create your deal listing</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {REQUIRED_DOCUMENTS.map(docType => {
-              const hasDoc = data.uploadedDocuments.some(doc => doc.category === docType);
-              return (
-                <div key={docType} className="flex items-center justify-between">
-                  <span className="text-sm">{docType}</span>
-                  <Badge variant={hasDoc ? "default" : "destructive"}>
-                    {hasDoc ? 'Uploaded' : 'Missing'}
-                  </Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center">
-              <FileText className="h-4 w-4 mr-2 text-blue-500" />
-              Recommended Documents
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <HelpCircle className="h-4 w-4 ml-2 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>These documents help buyers evaluate your business and can speed up the sale</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {RECOMMENDED_DOCUMENTS.map(docType => {
-              const hasDoc = data.uploadedDocuments.some(doc => doc.category === docType);
-              return (
-                <div key={docType} className="flex items-center justify-between">
-                  <span className="text-sm">{docType}</span>
-                  <Badge variant={hasDoc ? "default" : "outline"}>
-                    {hasDoc ? 'Uploaded' : 'Optional'}
-                  </Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* AI Missing Document Tip */}
-      {aiTip && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>AI Tip:</strong> {aiTip}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Uploaded Documents List */}
+      {/* Uploaded Documents */}
       {data.uploadedDocuments.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Uploaded Documents ({data.uploadedDocuments.length})</span>
-              <Badge variant="outline">{status.totalUploaded} files</Badge>
+            <CardTitle className="text-lg">
+              Uploaded Documents ({data.uploadedDocuments.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {data.uploadedDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">{doc.filename}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatFileSize(doc.size)} • {doc.uploadedAt.toLocaleDateString()}
+                        {formatFileSize(doc.size)} • {new Date(doc.uploadedAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
+                  
                   <div className="flex items-center space-x-2">
                     <select
                       value={doc.category}
                       onChange={(e) => updateDocumentCategory(doc.id, e.target.value)}
-                      className="text-sm border rounded px-3 py-1 bg-background"
+                      className="text-sm border rounded px-2 py-1"
                     >
                       {DOCUMENT_CATEGORIES.map(category => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </select>
+                    
+                    {getDocumentStatusBadge(doc.category)}
+                    
                     <Button
-                      size="sm"
                       variant="ghost"
+                      size="sm"
                       onClick={() => removeDocument(doc.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -316,25 +294,18 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
         </Card>
       )}
 
-      {/* Missing Required Documents Warning */}
-      {!canProceed && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Required documents missing:</strong> {status.missingRequired.join(', ')}
-            <br />
-            Please upload these documents to continue with your deal creation.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex justify-between pt-6">
         <Button onClick={onPrev} variant="outline" size="lg">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={onNext} size="lg" disabled={!canProceed} className="min-w-[160px]">
-          Continue to Review
+        <Button 
+          onClick={onNext} 
+          size="lg" 
+          className="min-w-[160px]"
+          disabled={!hasRequiredDocuments()}
+        >
+          {hasRequiredDocuments() ? 'Review & Submit' : 'Upload Required Documents'}
         </Button>
       </div>
     </div>
