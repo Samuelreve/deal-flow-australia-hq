@@ -32,8 +32,8 @@ Either party may terminate this Agreement at any time with [NOTICE PERIOD] writt
 
 This is a demo contract for testing purposes.`;
 
-    // Create a proper File object with demo content using correct constructor
-    const demoFile = new File([demoContent], 'demo-employment-contract.txt', { 
+    // Create a proper File object using the global File constructor
+    const demoFile = new (globalThis.File || window.File)([demoContent], 'demo-employment-contract.txt', { 
       type: 'text/plain' 
     });
 
