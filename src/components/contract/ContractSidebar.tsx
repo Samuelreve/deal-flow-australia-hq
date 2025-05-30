@@ -34,7 +34,7 @@ const ContractSidebar: React.FC<ContractSidebarProps> = ({
     <div className="space-y-6">
       <RealContractUpload 
         onFileUpload={onFileUpload}
-        isUploading={isUploading}
+        isUploading={isUploading || isAnalyzing}
         uploadProgress={uploadProgress}
         error={error}
       />

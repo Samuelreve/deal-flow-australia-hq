@@ -44,6 +44,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFileName(file.name);
+      console.log('Selected file:', file.name, 'Type:', file.type, 'Size:', file.size);
     }
     await onFileUpload(e);
   };
@@ -55,11 +56,12 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
   return (
     <div className="space-y-4">
       {/* Upload Progress Indicator - Show prominently when uploading */}
-      {(isProcessing || uploadProgress > 0) && (
+      {(isProcessing || uploadProgress > 0 || error) && (
         <UploadProgressIndicator
           isUploading={isProcessing}
           uploadProgress={uploadProgress}
           fileName={selectedFileName}
+          error={error}
         />
       )}
 
@@ -70,14 +72,14 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
             Upload your contract document for AI-powered analysis. Now supports enhanced file types with advanced text extraction.
           </p>
 
-          {error && (
+          {error && !isProcessing && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          {uploadProgress === 100 && !isProcessing && (
+          {uploadProgress === 100 && !isProcessing && !error && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">

@@ -17,11 +17,21 @@ export const useContractUpload = (
   const [error, setError] = useState<string | null>(null);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🚀 Starting file upload process...');
     const file = e.target.files?.[0];
     if (!file || !user) {
-      toast.error('Please select a file and ensure you are logged in');
+      const errorMsg = 'Please select a file and ensure you are logged in';
+      console.error('❌ Upload validation failed:', errorMsg);
+      toast.error(errorMsg);
       return;
     }
+
+    console.log('📄 File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      userId: user.id
+    });
 
     // Validate file type with enhanced support
     const supportedTypes = [
@@ -35,6 +45,7 @@ export const useContractUpload = (
 
     if (!supportedTypes.includes(file.type)) {
       const errorMsg = `Unsupported file type: ${file.type}. Please upload a PDF, Word document (.docx/.doc), RTF, or text file.`;
+      console.error('❌ File type validation failed:', errorMsg);
       setError(errorMsg);
       toast.error('Unsupported file type', {
         description: 'Please upload a PDF, Word document, RTF, or text file'
@@ -47,6 +58,7 @@ export const useContractUpload = (
     setError(null);
     
     try {
+      console.log('⏳ Starting upload progress simulation...');
       // Enhanced progress simulation for different file types
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -60,7 +72,7 @@ export const useContractUpload = (
         });
       }, 300);
 
-      console.log(`Starting upload for ${file.type} file: ${file.name}`);
+      console.log(`📤 Uploading ${file.type} file: ${file.name}`);
 
       // Upload contract using the enhanced service
       const contract = await realContractService.uploadContract(file);
@@ -68,6 +80,7 @@ export const useContractUpload = (
       // Complete progress
       clearInterval(progressInterval);
       setUploadProgress(100);
+      console.log('✅ Upload completed, contract data:', contract);
 
       if (contract) {
         // Create document metadata from contract
@@ -85,6 +98,7 @@ export const useContractUpload = (
 
         // Update state with extracted text content
         const textContent = contract.text_content || contract.content || '';
+        console.log('📝 Text content extracted:', textContent.length, 'characters');
         
         setDocuments([contractMetadata]);
         setSelectedDocument(contractMetadata);
@@ -101,19 +115,24 @@ export const useContractUpload = (
             description: 'Text extraction failed but file is saved. Some AI features may be limited.'
           });
         }
+      } else {
+        console.error('❌ Contract upload returned null');
+        throw new Error('Contract upload failed - no data returned');
       }
 
       // Clear the input
       e.target.value = '';
       
     } catch (error) {
-      console.error('Error uploading contract:', error);
-      setError(error instanceof Error ? error.message : 'Upload failed');
+      console.error('❌ Error uploading contract:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      setError(errorMessage);
       toast.error('Failed to upload contract', {
         description: 'Please try again with a valid document'
       });
     } finally {
       setUploading(false);
+      console.log('🏁 Upload process completed');
       setTimeout(() => {
         setUploadProgress(0);
       }, 2000);

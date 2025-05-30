@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader } from 'lucide-react';
+import { Upload, Loader2, FileText } from 'lucide-react';
 
 interface FileUploadButtonProps {
   onClick: () => void;
@@ -18,7 +18,7 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onClick, isProcessi
     >
       {isProcessing ? (
         <>
-          <Loader className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Processing Document...
         </>
       ) : (
