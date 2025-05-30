@@ -8,7 +8,7 @@ import { Alert } from '@/components/ui/alert';
 
 interface DocumentUploadFormProps {
   dealId: string;
-  onUpload?: (document: Document) => void;
+  onUpload?: () => void;
   documents?: Document[];
 }
 
@@ -79,7 +79,7 @@ const DocumentUploadForm = ({
         if (fileInput) fileInput.value = '';
         
         // Notify parent component
-        onUpload?.(result);
+        onUpload?.();
       }
     } catch (error: any) {
       setUploadError(error.message || 'File upload failed');

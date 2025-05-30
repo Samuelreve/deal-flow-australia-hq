@@ -4,7 +4,7 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import DocumentList from "./DocumentList";
 import DocumentUpload from "./DocumentUpload";
 import InlineDocumentAnalyzer from "./InlineDocumentAnalyzer";
-import { adaptDocumentsToDealType, adaptDocumentToDealType } from "@/utils/documentTypeAdapter";
+import { adaptDocumentsToDealType } from "@/utils/documentTypeAdapter";
 import { Document as DealDocument } from "@/types/deal";
 
 interface DocumentSidebarProps {
@@ -60,7 +60,7 @@ const DocumentSidebar = ({
   const adaptedDocuments: DealDocument[] = adaptDocumentsToDealType(documents);
   
   // Create an adapter function for onUpload to handle type conversion
-  const handleUpload = async (document: DealDocument): Promise<void> => {
+  const handleUpload = () => {
     // This function will be called when a document is uploaded
     // We need to refresh the documents list after upload
     onVersionsUpdated();

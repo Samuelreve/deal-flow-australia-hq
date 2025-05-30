@@ -52,7 +52,7 @@ const DocumentUpload = ({
     return null;
   }
 
-  const handleDocumentUpload = (document: Document) => {
+  const handleDocumentUpload = () => {
     // Call the onUpload callback if provided
     onUpload?.();
   };
