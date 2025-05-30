@@ -25,9 +25,11 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
   };
 
   const getSources = (item: QuestionHistoryItem) => {
-    if (typeof item.answer !== 'string' && item.answer.sources) {
-      return item.answer.sources;
+    // Handle the case where answer is an object with sources
+    if (typeof item.answer === 'object' && item.answer !== null && 'sources' in item.answer) {
+      return item.answer.sources || [];
     }
+    // Fallback to item.sources if it exists
     return item.sources || [];
   };
 
@@ -39,7 +41,7 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
           question={item.question}
           answer={formatAnswer(item.answer)}
           sources={getSources(item)}
-          timestamp={item.timestamp}
+          timestamp={item.timestamp.getTime()}
         />
       ))}
       
