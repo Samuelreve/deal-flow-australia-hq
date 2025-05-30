@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { DocumentMetadata } from '@/types/contract';
+import { realContractService } from '@/services/realContractService';
 
 export const useContractUpload = (
   setDocuments: (docs: DocumentMetadata[]) => void,
@@ -12,6 +13,8 @@ export const useContractUpload = (
 ) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -21,48 +24,81 @@ export const useContractUpload = (
     }
 
     setUploading(true);
+    setUploadProgress(0);
+    setError(null);
     
     try {
-      // Read file content
-      const text = await file.text();
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
+      // Upload contract using the enhanced service
+      const contract = await realContractService.uploadContract(file);
       
-      // Create contract metadata
-      const contractMetadata: DocumentMetadata = {
-        id: `contract-${Date.now()}`,
-        name: file.name,
-        type: file.type,
-        uploadDate: new Date().toISOString(),
-        status: 'completed',
-        version: '1.0',
-        versionDate: new Date().toISOString(),
-        size: file.size,
-        category: 'contract'
-      };
+      // Complete progress
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
-      // Update state
-      setDocuments([contractMetadata]);
-      setSelectedDocument(contractMetadata);
-      setContractText(text);
+      if (contract) {
+        // Create document metadata from contract
+        const contractMetadata: DocumentMetadata = {
+          id: contract.id,
+          name: contract.name,
+          type: contract.mime_type,
+          uploadDate: contract.created_at,
+          status: contract.extraction_status === 'completed' ? 'completed' : 'error',
+          version: '1.0',
+          versionDate: contract.created_at,
+          size: contract.file_size,
+          category: 'contract'
+        };
 
-      toast.success('Contract uploaded successfully', {
-        description: 'Your contract is ready for analysis'
-      });
+        // Update state with extracted text content
+        const textContent = contract.text_content || contract.content || '';
+        
+        setDocuments([contractMetadata]);
+        setSelectedDocument(contractMetadata);
+        setContractText(textContent);
+
+        if (contract.extraction_status === 'completed') {
+          toast.success('Contract uploaded successfully', {
+            description: 'Your contract is ready for analysis'
+          });
+        } else {
+          toast.warning('Contract uploaded with limited functionality', {
+            description: 'Text extraction failed but file is saved'
+          });
+        }
+      }
 
       // Clear the input
       e.target.value = '';
       
     } catch (error) {
       console.error('Error uploading contract:', error);
+      setError(error instanceof Error ? error.message : 'Upload failed');
       toast.error('Failed to upload contract', {
-        description: 'Please try again with a valid text file'
+        description: 'Please try again with a valid document'
       });
     } finally {
       setUploading(false);
+      setTimeout(() => {
+        setUploadProgress(0);
+      }, 2000);
     }
   }, [user, setDocuments, setSelectedDocument, setContractText]);
 
   return {
     uploading,
+    uploadProgress,
+    error,
     handleFileUpload
   };
 };

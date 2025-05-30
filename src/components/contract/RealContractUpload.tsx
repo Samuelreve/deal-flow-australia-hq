@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Loader, CheckCircle, AlertCircle, File } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -81,7 +81,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-muted-foreground text-sm">
-          Upload your contract document to analyze it with AI assistance.
+          Upload your contract document to analyze it with AI assistance. Supports PDF, Word, RTF, and text files.
         </p>
 
         {error && (
@@ -105,16 +105,39 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              Contract uploaded and analyzed successfully!
+              Contract uploaded and processed successfully!
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Enhanced file type indicators */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <h4 className="text-sm font-medium text-blue-900 mb-2">Supported File Types:</h4>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <File className="h-3 w-3 text-red-600" />
+              <span>PDF Documents</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <File className="h-3 w-3 text-blue-600" />
+              <span>Word (.docx, .doc)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <File className="h-3 w-3 text-green-600" />
+              <span>Text Files (.txt)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <File className="h-3 w-3 text-purple-600" />
+              <span>RTF Documents</span>
+            </div>
+          </div>
+        </div>
         
         <input
           ref={fileInputRef}
           type="file"
           onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.txt"
+          accept=".pdf,.doc,.docx,.txt,.rtf"
           className="hidden"
           disabled={isProcessing}
         />
@@ -138,8 +161,8 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
         </Button>
         
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>Supported formats: PDF, Word documents, Text files</p>
-          <p>Maximum file size: 10MB</p>
+          <p>Maximum file size: 25MB</p>
+          <p>Advanced text extraction for PDF and Word documents</p>
         </div>
       </CardContent>
     </Card>

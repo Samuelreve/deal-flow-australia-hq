@@ -146,11 +146,13 @@ export type Database = {
           analysis_status: string | null
           content: string | null
           created_at: string | null
+          extraction_status: string | null
           file_path: string
           file_size: number
           id: string
           mime_type: string
           name: string
+          text_content: string | null
           updated_at: string | null
           upload_date: string | null
           user_id: string | null
@@ -159,11 +161,13 @@ export type Database = {
           analysis_status?: string | null
           content?: string | null
           created_at?: string | null
+          extraction_status?: string | null
           file_path: string
           file_size: number
           id?: string
           mime_type: string
           name: string
+          text_content?: string | null
           updated_at?: string | null
           upload_date?: string | null
           user_id?: string | null
@@ -172,11 +176,13 @@ export type Database = {
           analysis_status?: string | null
           content?: string | null
           created_at?: string | null
+          extraction_status?: string | null
           file_path?: string
           file_size?: number
           id?: string
           mime_type?: string
           name?: string
+          text_content?: string | null
           updated_at?: string | null
           upload_date?: string | null
           user_id?: string | null
