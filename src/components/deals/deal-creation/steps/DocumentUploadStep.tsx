@@ -6,15 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Upload, FileText, Check, AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { useDocumentUploadWizard } from '@/hooks/deals/useDocumentUploadWizard';
 
 import { StepProps, DOCUMENT_CATEGORIES, REQUIRED_DOCUMENTS, RECOMMENDED_DOCUMENTS } from '../types';
 
 const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
   const { toast } = useToast();
+  const { uploading, uploadFile, deleteFile } = useDocumentUploadWizard();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
 
-  const handleFileUpload = (files: FileList | null) => {
+  // Generate a temporary deal ID for uploads during creation
+  const tempDealId = React.useMemo(() => 
+    data.dealTitle ? `temp-${data.dealTitle.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}` : `temp-deal-${Date.now()}`,
+    [data.dealTitle]
+  );
+
+  const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
 
     const newDocuments = [];
@@ -36,17 +44,13 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
         continue;
       }
 
-      const newDoc = {
-        id: crypto.randomUUID(),
-        filename: file.name,
-        type: file.type,
-        category: 'Other', // Default category
-        size: file.size,
-        uploadedAt: new Date(),
-        url: URL.createObjectURL(file) // For preview purposes
-      };
-
-      newDocuments.push(newDoc);
+      // Upload file to storage
+      const uploadedDoc = await uploadFile(file, tempDealId);
+      if (uploadedDoc) {
+        newDocuments.push(uploadedDoc);
+      } else {
+        errors.push(`${file.name}: Upload failed`);
+      }
     }
 
     setUploadErrors(errors);
@@ -87,7 +91,23 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
     setIsDragging(false);
   };
 
-  const removeDocument = (docId: string) => {
+  const removeDocument = async (docId: string) => {
+    const doc = data.uploadedDocuments.find(d => d.id === docId);
+    
+    // Delete from storage if it has a storage path
+    if (doc?.storagePath) {
+      const deleted = await deleteFile(doc.storagePath);
+      if (!deleted) {
+        toast({
+          title: "Error",
+          description: "Failed to delete file from storage",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // Remove from local state
     updateData({
       uploadedDocuments: data.uploadedDocuments.filter(doc => doc.id !== docId)
     });
@@ -213,6 +233,7 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
             <Button
               type="button"
               variant="outline"
+              disabled={uploading}
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
@@ -225,7 +246,7 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
                 input.click();
               }}
             >
-              Choose Files
+              {uploading ? 'Uploading...' : 'Choose Files'}
             </Button>
           </div>
 
@@ -283,6 +304,7 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
                       variant="ghost"
                       size="sm"
                       onClick={() => removeDocument(doc.id)}
+                      disabled={uploading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -303,9 +325,9 @@ const DocumentUploadStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
           onClick={onNext} 
           size="lg" 
           className="min-w-[160px]"
-          disabled={!hasRequiredDocuments()}
+          disabled={!hasRequiredDocuments() || uploading}
         >
-          {hasRequiredDocuments() ? 'Review & Submit' : 'Upload Required Documents'}
+          {uploading ? 'Uploading...' : hasRequiredDocuments() ? 'Review & Submit' : 'Upload Required Documents'}
         </Button>
       </div>
     </div>

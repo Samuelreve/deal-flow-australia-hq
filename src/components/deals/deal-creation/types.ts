@@ -41,6 +41,7 @@ export interface UploadedDocument {
   size: number;
   uploadedAt: Date;
   url?: string;
+  storagePath?: string; // Added for storage management
 }
 
 export interface StepProps {
