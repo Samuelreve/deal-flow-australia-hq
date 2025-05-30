@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import CreateDealWizard from '@/components/deals/deal-creation/CreateDealWizard';
+import DealCreationWizard from '@/components/deals/deal-creation/DealCreationWizard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
@@ -35,7 +35,7 @@ const CreateDealPage: React.FC = () => {
             </div>
           </div>
 
-          <CreateDealWizard />
+          <DealCreationWizard />
         </div>
       </div>
     </AppLayout>
