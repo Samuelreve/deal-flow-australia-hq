@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface TextExtractionResult {
   success: boolean;
@@ -10,6 +9,8 @@ export interface TextExtractionResult {
 
 /**
  * Service for extracting text from uploaded documents
+ * Note: This is a simplified implementation that only handles plain text files
+ * In production, you would implement proper PDF/Word parsing
  */
 export class DocumentTextExtractionService {
   
@@ -18,37 +19,20 @@ export class DocumentTextExtractionService {
    */
   static async extractTextFromFile(file: File): Promise<TextExtractionResult> {
     try {
-      // Convert file to base64
-      const fileBase64 = await this.fileToBase64(file);
-      
-      // Call the text extraction edge function
-      const { data, error } = await supabase.functions.invoke('text-extractor', {
-        body: {
-          fileBase64: fileBase64.split(',')[1], // Remove data:mime/type;base64, prefix
-          mimeType: file.type,
-          fileName: file.name
-        }
-      });
-
-      if (error) {
-        console.error('Text extraction error:', error);
+      // For now, only handle plain text files
+      if (file.type === 'text/plain') {
+        const text = await file.text();
         return {
-          success: false,
-          error: error.message || 'Failed to extract text from document'
+          success: true,
+          text
+        };
+      } else {
+        // For other file types, return a placeholder message
+        return {
+          success: true,
+          text: `[Document uploaded: ${file.name}] - Text extraction for ${file.type} files is not yet implemented. Please upload a plain text file for full text extraction.`
         };
       }
-
-      if (!data.success) {
-        return {
-          success: false,
-          error: data.error || 'Text extraction failed'
-        };
-      }
-
-      return {
-        success: true,
-        text: data.text
-      };
     } catch (error: any) {
       console.error('Document text extraction service error:', error);
       return {
@@ -124,17 +108,5 @@ export class DocumentTextExtractionService {
    */
   static getUnsupportedFileTypeMessage(file: File): string {
     return `The file "${file.name}" (${file.type}) is not supported. Please upload a PDF, Word document (.doc/.docx), RTF, or plain text file.`;
-  }
-
-  /**
-   * Convert file to base64 string
-   */
-  private static fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   }
 }

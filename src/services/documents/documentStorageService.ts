@@ -14,13 +14,16 @@ export const documentStorageService = {
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
     const storagePath = `${dealId}/${filePath}`;
     
+    console.log('Uploading file to storage path:', storagePath);
+    
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('deal-documents')
       .upload(storagePath, file);
     
     if (uploadError) {
-      throw uploadError;
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
     
     return filePath;
@@ -41,13 +44,16 @@ export const documentStorageService = {
     const filePath = `${documentId}/v${versionNumber}-${userId}-${Date.now()}.${fileExt}`;
     const storagePath = `${dealId}/${filePath}`;
     
+    console.log('Uploading version file to storage path:', storagePath);
+    
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('deal-documents')
       .upload(storagePath, file);
     
     if (uploadError) {
-      throw uploadError;
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload version file: ${uploadError.message}`);
     }
     
     return filePath;
@@ -57,6 +63,8 @@ export const documentStorageService = {
    * Delete a file from Supabase storage
    */
   async deleteFile(filePath: string, dealId: string): Promise<void> {
+    console.log('Deleting file from storage:', `${dealId}/${filePath}`);
+    
     const { error: storageError } = await supabase.storage
       .from('deal-documents')
       .remove([`${dealId}/${filePath}`]);
@@ -71,9 +79,17 @@ export const documentStorageService = {
    * Create a signed URL for a file
    */
   async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
-    const { data: urlData } = await supabase.storage
+    const fullPath = `${dealId}/${filePath}`;
+    console.log('Creating signed URL for:', fullPath);
+    
+    const { data: urlData, error } = await supabase.storage
       .from('deal-documents')
-      .createSignedUrl(`${dealId}/${filePath}`, expiresIn);
+      .createSignedUrl(fullPath, expiresIn);
+    
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
     
     return urlData?.signedUrl || null;
   },
@@ -87,6 +103,8 @@ export const documentStorageService = {
     versionId: string, 
     expiresIn: number = 3600
   ) {
+    console.log('Getting signed URL for version:', versionId);
+    
     // First, get the version details from the database
     const { data: version, error: versionError } = await supabase
       .from('document_versions')

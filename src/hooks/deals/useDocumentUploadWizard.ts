@@ -30,17 +30,28 @@ export const useDocumentUploadWizard = () => {
 
       console.log('Uploading file to:', filePath);
 
-      // Upload to Supabase Storage deal-documents bucket
+      // Try to upload to Supabase Storage deal-documents bucket
       const { error: uploadError } = await supabase.storage
         .from('deal-documents')
         .upload(filePath, file);
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
+        
+        // If bucket doesn't exist, show helpful error message
+        if (uploadError.message.includes('Bucket not found')) {
+          toast({
+            title: "Storage Not Ready",
+            description: "Document storage is not yet configured. Please contact support.",
+            variant: "destructive"
+          });
+          return null;
+        }
+        
         throw uploadError;
       }
 
-      // Create signed URL for preview
+      // Create signed URL for preview (optional, may fail if bucket policies aren't set)
       const { data: signedUrlData } = await supabase.storage
         .from('deal-documents')
         .createSignedUrl(filePath, 3600); // 1 hour expiry
@@ -97,7 +108,10 @@ export const useDocumentUploadWizard = () => {
 
       if (error) {
         console.error('Delete error:', error);
-        throw error;
+        // Don't throw error if file doesn't exist, just log it
+        if (!error.message.includes('not found')) {
+          throw error;
+        }
       }
 
       console.log('File deleted successfully from storage');
