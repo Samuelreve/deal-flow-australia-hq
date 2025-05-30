@@ -1,52 +1,104 @@
 
-import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import React, { useState } from 'react';
+import { useUnifiedDocumentUpload } from '@/hooks/useUnifiedDocumentUpload';
 import { Document } from '@/types/deal';
 import { Button } from '@/components/ui/button';
 import { Upload, Loader } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 
 interface DocumentUploadFormProps {
-  onUpload: (file: File, category: string, documentId?: string) => Promise<Document | null>;
-  uploading: boolean;
+  dealId: string;
+  onUpload?: (document: Document) => void;
   documents?: Document[];
 }
 
 const DocumentUploadForm = ({ 
-  onUpload, 
-  uploading, 
+  dealId,
+  onUpload,
   documents = [] 
 }: DocumentUploadFormProps) => {
-  const {
-    selectedFile,
-    selectedCategory,
-    uploadType,
-    selectedDocumentId,
-    uploadError,
-    handleFileChange,
-    handleCategoryChange,
-    handleUploadTypeChange,
-    handleDocumentChange,
-    handleUploadClick,
-    isUploadDisabled
-  } = useDocumentUpload({ onUpload, uploading, documents });
+  const { uploading, uploadProgress, uploadDocument } = useUnifiedDocumentUpload();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [uploadType, setUploadType] = useState<'new' | 'version'>('new');
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
   const documentCategories = [
     "Contract",
-    "Agreement",
+    "Agreement", 
     "Financial Statement",
     "Legal Document",
     "Business Plan",
     "Due Diligence",
     "Other"
   ];
-  
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedFile(event.target.files[0]);
+      setUploadError(null);
+    } else {
+      setSelectedFile(null);
+    }
+  };
+
+  const handleUploadClick = async () => {
+    if (!selectedFile) {
+      setUploadError('Please select a file to upload.');
+      return;
+    }
+    
+    if (uploadType === 'new' && !selectedCategory) {
+      setUploadError('Please select a document category.');
+      return;
+    }
+    
+    if (uploadType === 'version' && !selectedDocumentId) {
+      setUploadError('Please select a document to add a version to.');
+      return;
+    }
+    
+    try {
+      const result = await uploadDocument({
+        file: selectedFile,
+        dealId,
+        category: selectedCategory,
+        documentId: uploadType === 'version' ? selectedDocumentId : undefined
+      });
+      
+      if (result) {
+        // Clear form after successful upload
+        setSelectedFile(null);
+        setSelectedCategory("");
+        setSelectedDocumentId("");
+        setUploadError(null);
+        
+        // Clear file input
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+        
+        // Notify parent component
+        onUpload?.(result);
+      }
+    } catch (error: any) {
+      setUploadError(error.message || 'File upload failed');
+    }
+  };
+
+  const isUploadDisabled = 
+    !selectedFile || 
+    (uploadType === 'new' && !selectedCategory) || 
+    (uploadType === 'version' && !selectedDocumentId) || 
+    uploading;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3">
         <div>
           <select 
             className="w-full border rounded p-2 text-sm"
-            onChange={handleUploadTypeChange}
+            onChange={(e) => setUploadType(e.target.value as 'new' | 'version')}
             value={uploadType}
           >
             <option value="new">Upload New Document</option>
@@ -60,7 +112,7 @@ const DocumentUploadForm = ({
           <div>
             <select 
               className="w-full border rounded p-2 text-sm"
-              onChange={handleDocumentChange}
+              onChange={(e) => setSelectedDocumentId(e.target.value)}
               value={selectedDocumentId}
               disabled={documents.length === 0}
             >
@@ -78,7 +130,7 @@ const DocumentUploadForm = ({
           <div>
             <select 
               className="w-full border rounded p-2 text-sm"
-              onChange={handleCategoryChange}
+              onChange={(e) => setSelectedCategory(e.target.value)}
               value={selectedCategory}
             >
               <option value="">Select Category</option>
@@ -97,6 +149,7 @@ const DocumentUploadForm = ({
             id="document-file" 
             className="w-full text-sm" 
             onChange={handleFileChange}
+            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
           />
           
           <Button
@@ -107,13 +160,13 @@ const DocumentUploadForm = ({
             {uploading ? (
               <>
                 <Loader className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
+                {uploadProgress > 0 ? `${uploadProgress}%` : 'Uploading...'}
               </>
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload
-              </>
+              <//>
             )}
           </Button>
         </div>

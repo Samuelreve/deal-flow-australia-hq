@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { unifiedDocumentUploadService } from '@/services/documents/unifiedDocumentUploadService';
 import { UploadedDocument } from '@/components/deals/deal-creation/types';
 
 export const useDocumentUploadWizard = () => {
@@ -23,73 +23,37 @@ export const useDocumentUploadWizard = () => {
     setUploading(true);
     
     try {
-      // Generate unique file path for the deal-documents bucket
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${dealId}/${fileName}`;
+      // Use unified service to upload document
+      const document = await unifiedDocumentUploadService.uploadDocument({
+        file,
+        dealId,
+        category: 'Other', // Default category for wizard uploads
+        userId: user.id
+      });
 
-      console.log('Uploading file to deal-documents bucket:', filePath);
-
-      // Upload to Supabase Storage deal-documents bucket
-      const { error: uploadError } = await supabase.storage
-        .from('deal-documents')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        
-        // Show more specific error messages
-        if (uploadError.message.includes('Bucket not found')) {
-          toast({
-            title: "Storage Not Ready",
-            description: "Document storage is not yet configured. Please contact support.",
-            variant: "destructive"
-          });
-          return null;
-        }
-        
-        if (uploadError.message.includes('Policy') || uploadError.message.includes('permission')) {
-          toast({
-            title: "Permission Error",
-            description: "You don't have permission to upload documents to this deal.",
-            variant: "destructive"
-          });
-          return null;
-        }
-        
-        throw uploadError;
+      if (!document) {
+        throw new Error('Failed to upload document');
       }
 
-      // Try to create signed URL for preview (graceful fallback if it fails)
-      let signedUrl: string | undefined;
-      try {
-        const { data: signedUrlData } = await supabase.storage
-          .from('deal-documents')
-          .createSignedUrl(filePath, 3600);
-        signedUrl = signedUrlData?.signedUrl;
-      } catch (urlError) {
-        console.warn('Could not create signed URL, continuing without preview:', urlError);
-        // Don't fail the upload if signed URL creation fails
-      }
-
-      console.log('File uploaded successfully', signedUrl ? 'with signed URL' : 'without signed URL');
-
-      // Return uploaded document object
-      const uploadedDoc: UploadedDocument = {
-        id: crypto.randomUUID(),
-        filename: file.name,
-        type: file.type,
-        category: 'Other', // Default category - user can change later
-        size: file.size,
-        uploadedAt: new Date(),
-        url: signedUrl,
-        storagePath: filePath
-      };
+      // Create signed URL for preview
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.storage_path || '');
 
       toast({
         title: "Upload Successful",
         description: `${file.name} has been uploaded successfully.`,
       });
+
+      // Return uploaded document object for wizard
+      const uploadedDoc: UploadedDocument = {
+        id: document.id,
+        filename: file.name,
+        type: file.type,
+        category: 'Other',
+        size: file.size,
+        uploadedAt: new Date(),
+        url: signedUrl,
+        storagePath: document.latestVersion?.storage_path || ''
+      };
 
       return uploadedDoc;
     } catch (error: any) {
@@ -105,7 +69,7 @@ export const useDocumentUploadWizard = () => {
     }
   };
 
-  const deleteFile = async (storagePath: string): Promise<boolean> => {
+  const deleteFile = async (storagePath: string, dealId: string): Promise<boolean> => {
     if (!user) {
       toast({
         title: "Authentication Error",
@@ -116,21 +80,16 @@ export const useDocumentUploadWizard = () => {
     }
 
     try {
-      console.log('Deleting file from storage:', storagePath);
-      
+      // For wizard uploads, we need to delete by storage path
+      // This is a simplified version for temporary uploads during deal creation
       const { error } = await supabase.storage
         .from('deal-documents')
-        .remove([storagePath]);
+        .remove([`${dealId}/${storagePath}`]);
 
-      if (error) {
-        console.error('Delete error:', error);
-        // Don't throw error if file doesn't exist, just log it
-        if (!error.message.includes('not found')) {
-          throw error;
-        }
+      if (error && !error.message.includes('not found')) {
+        throw error;
       }
 
-      console.log('File deleted successfully from storage');
       return true;
     } catch (error: any) {
       console.error('File deletion error:', error);

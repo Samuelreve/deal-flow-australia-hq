@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Document } from "@/types/deal";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -6,8 +7,8 @@ import DocumentUploadForm from "./DocumentUploadForm";
 import SmartTemplateButton from "./SmartTemplateButton";
 
 interface DocumentUploadProps {
-  onUpload: (file: File, category: string, documentId?: string) => Promise<Document | null>;
-  uploading: boolean;
+  dealId: string;
+  onUpload?: (document: Document) => void;
   userRole?: string;
   isParticipant?: boolean;
   documents?: Document[];
@@ -17,20 +18,18 @@ interface DocumentUploadProps {
     userRole: string | null;
   };
   dealStatus?: string | null;
-  dealId: string;
 }
 
 const DocumentUpload = ({ 
-  onUpload, 
-  uploading, 
+  dealId,
+  onUpload,
   userRole = 'user',
   isParticipant = true,
   documents = [],
   permissions,
-  dealStatus,
-  dealId
+  dealStatus
 }: DocumentUploadProps) => {
-  // Check if user has permission to upload documents based on passed permissions or fallback to role check
+  // Check if user has permission to upload documents
   const canUploadDocuments = permissions?.canUpload ?? 
     (isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()));
   
@@ -59,18 +58,14 @@ const DocumentUpload = ({
       
       <div className="flex items-center gap-3 mb-4">
         <DocumentUploadForm 
+          dealId={dealId}
           onUpload={onUpload}
-          uploading={uploading}
           documents={documents}
         />
         
-        {/* Add the Smart Template Button */}
         <SmartTemplateButton 
           dealId={dealId}
-          onDocumentSaved={() => {
-            // This function will be called after a document is saved
-            // Could be used to refresh the document list
-          }}
+          onDocumentSaved={onUpload}
           userRole={userRole}
         />
       </div>
