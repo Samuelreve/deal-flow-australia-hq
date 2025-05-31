@@ -9,6 +9,17 @@ interface ConversationHistoryProps {
   isProcessing: boolean;
 }
 
+// Export the formatAnswer function for use in other components
+export const formatAnswer = (answer: string | { answer: string; sources?: string[] } | null): string => {
+  if (answer === null) {
+    return 'No response available';
+  }
+  if (typeof answer === 'string') {
+    return answer;
+  }
+  return answer.answer || 'No response available';
+};
+
 const ConversationHistory: React.FC<ConversationHistoryProps> = ({
   questionHistory,
   isProcessing
@@ -16,16 +27,6 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
   if (questionHistory.length === 0 && !isProcessing) {
     return null;
   }
-
-  const formatAnswer = (answer: string | { answer: string; sources?: string[] } | null): string => {
-    if (answer === null) {
-      return 'No response available';
-    }
-    if (typeof answer === 'string') {
-      return answer;
-    }
-    return answer.answer || 'No response available';
-  };
 
   const getSources = (item: QuestionHistoryItem): string[] => {
     // First check if answer exists and is not null

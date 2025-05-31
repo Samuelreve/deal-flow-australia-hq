@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -6,6 +7,7 @@ import DocumentStatusAlert from './components/DocumentStatusAlert';
 import ProfessionalDisclaimer from './components/ProfessionalDisclaimer';
 import LegalSuggestions from './components/LegalSuggestions';
 import QuestionInputSection from './components/QuestionInputSection';
+import ConversationHistory from './components/ConversationHistory';
 import { MessageSquare, FileText, Brain, Sparkles } from 'lucide-react';
 import { QuestionHistoryItem } from '@/types/contract';
 
@@ -157,30 +159,11 @@ const EnhancedContractAssistantTab: React.FC<EnhancedContractAssistantTabProps> 
           <CardHeader>
             <CardTitle>Analysis History</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {questionHistory.map((item, index) => (
-              <div key={item.id} className="space-y-2">
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="font-medium text-sm">{item.question}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.timestamp.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-background p-3 rounded-md border">
-                  <div className="prose prose-sm max-w-none">
-                    <div className="whitespace-pre-wrap">{item.answer}</div>
-                  </div>
-                  {item.sources && item.sources.length > 0 && (
-                    <div className="mt-2 pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Sources: {item.sources.join(', ')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                {index < questionHistory.length - 1 && <Separator />}
-              </div>
-            ))}
+          <CardContent>
+            <ConversationHistory
+              questionHistory={questionHistory}
+              isProcessing={isProcessing}
+            />
           </CardContent>
         </Card>
       )}

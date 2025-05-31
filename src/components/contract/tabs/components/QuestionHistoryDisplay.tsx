@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Bot, Clock, CheckCircle } from 'lucide-react';
 import { QuestionHistoryItem } from '@/types/contract';
+import { formatAnswer } from './ConversationHistory';
 
 interface QuestionHistoryDisplayProps {
   questionHistory: QuestionHistoryItem[];
@@ -18,10 +19,6 @@ const QuestionHistoryDisplay: React.FC<QuestionHistoryDisplayProps> = ({
   currentSources = [],
   question
 }) => {
-  const formatAnswer = (answer: string) => {
-    return answer;
-  };
-
   const formatTimestamp = (timestamp: Date) => {
     return timestamp.toLocaleString();
   };
