@@ -61,7 +61,7 @@ const ContractAnalysisPage: React.FC = () => {
     selectContract(contractId);
   }, [selectContract]);
 
-  // Handle question submission
+  // Handle question submission - wrapper to transform return type
   const handleAskQuestion = React.useCallback(async (question: string) => {
     console.log('❓ Question asked:', question);
     
@@ -70,10 +70,30 @@ const ContractAnalysisPage: React.FC = () => {
       return null;
     }
 
-    return questionAnswerState.handleAskQuestion(question, selectedContract.content);
+    const result = await questionAnswerState.handleAskQuestion(question, selectedContract.content);
+    
+    // Transform QuestionHistoryItem to expected format
+    if (result) {
+      const answerText = typeof result.answer === 'string' 
+        ? result.answer 
+        : typeof result.answer === 'object' && result.answer !== null
+        ? result.answer.answer
+        : 'No response available';
+      
+      const sources = typeof result.answer === 'object' && result.answer !== null && result.answer.sources
+        ? result.answer.sources
+        : result.sources || [];
+
+      return {
+        answer: answerText,
+        sources: sources
+      };
+    }
+    
+    return null;
   }, [selectedContract, questionAnswerState]);
 
-  // Handle contract analysis
+  // Handle contract analysis - wrapper to transform return type
   const handleAnalyzeContract = React.useCallback(async (analysisType: string) => {
     console.log('🔍 Analysis requested:', analysisType);
     
@@ -82,7 +102,17 @@ const ContractAnalysisPage: React.FC = () => {
       return null;
     }
 
-    return questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
+    const result = await questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
+    
+    // Transform result to expected format
+    if (result && result.analysis) {
+      return {
+        answer: result.analysis,
+        sources: result.sources || []
+      };
+    }
+    
+    return null;
   }, [selectedContract, questionAnswerState]);
 
   const handleRetryAnalysis = React.useCallback(() => {
