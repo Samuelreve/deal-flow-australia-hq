@@ -17,8 +17,8 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
     return null;
   }
 
-  const formatAnswer = (answer: string | { answer: string; sources?: string[] } | null) => {
-    if (!answer) {
+  const formatAnswer = (answer: string | { answer: string; sources?: string[] } | null): string => {
+    if (answer === null) {
       return 'No response available';
     }
     if (typeof answer === 'string') {
@@ -27,9 +27,9 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
     return answer.answer || 'No response available';
   };
 
-  const getSources = (item: QuestionHistoryItem) => {
+  const getSources = (item: QuestionHistoryItem): string[] => {
     // First check if answer exists and is not null
-    if (!item.answer) {
+    if (item.answer === null) {
       return item.sources || [];
     }
     
@@ -47,7 +47,7 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
         <ProfessionalQuestionFormatter
           key={item.id || `item-${index}`}
           question={item.question}
-          answer={formatAnswer(item.answer ?? null)}
+          answer={formatAnswer(item.answer)}
           sources={getSources(item)}
           timestamp={item.timestamp.getTime()}
         />
