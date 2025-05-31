@@ -1,4 +1,3 @@
-
 export interface DocumentMetadata {
   id?: string;
   name: string;
@@ -14,7 +13,7 @@ export interface DocumentMetadata {
 export interface QuestionHistoryItem {
   id: string;
   question: string;
-  answer: string;
+  answer: string | null;
   timestamp: Date;
   type: 'question' | 'analysis';
   analysisType?: string;
