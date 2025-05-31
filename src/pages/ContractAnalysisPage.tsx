@@ -1,4 +1,3 @@
-
 import React from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
@@ -105,9 +104,9 @@ const ContractAnalysisPage: React.FC = () => {
     const result = await questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
     
     // Transform result to expected format
-    if (result && result.analysis) {
+    if (result && result.content) {
       return {
-        answer: result.analysis,
+        analysis: result.content,
         sources: result.sources || []
       };
     }
