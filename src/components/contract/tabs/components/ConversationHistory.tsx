@@ -47,7 +47,7 @@ const ConversationHistory: React.FC<ConversationHistoryProps> = ({
         <ProfessionalQuestionFormatter
           key={item.id || `item-${index}`}
           question={item.question}
-          answer={formatAnswer(item.answer || null)}
+          answer={formatAnswer(item.answer)}
           sources={getSources(item)}
           timestamp={item.timestamp.getTime()}
         />
