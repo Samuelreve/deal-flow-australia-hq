@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Contract {
@@ -25,6 +24,8 @@ export interface UploadedContract {
   created_at?: string;
   updated_at?: string;
   analysis_status?: string;
+  extraction_status?: string;
+  text_content?: string;
 }
 
 class RealContractService {
@@ -146,7 +147,8 @@ class RealContractService {
         file_size: savedContract.file_size,
         created_at: savedContract.created_at,
         updated_at: savedContract.updated_at,
-        analysis_status: savedContract.analysis_status
+        analysis_status: savedContract.analysis_status,
+        text_content: data.text || ''
       };
     } catch (error) {
       console.error('❌ uploadContract error:', error);

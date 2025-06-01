@@ -99,13 +99,13 @@ export const useContractUpload = (
         // Create document metadata from contract
         const contractMetadata: DocumentMetadata = {
           id: contract.id,
-          name: contract.name,
-          type: contract.mime_type,
-          uploadDate: contract.created_at,
-          status: contract.extraction_status === 'completed' ? 'completed' : 'error',
+          name: contract.name || file.name,
+          type: contract.mime_type || file.type,
+          uploadDate: contract.created_at || new Date().toISOString(),
+          status: (contract.extraction_status === 'completed' || contract.analysis_status === 'completed') ? 'completed' : 'error',
           version: '1.0',
-          versionDate: contract.created_at,
-          size: contract.file_size,
+          versionDate: contract.created_at || new Date().toISOString(),
+          size: contract.file_size || file.size,
           category: 'contract'
         };
 
@@ -121,7 +121,7 @@ export const useContractUpload = (
 
         // Show success message
         const fileTypeLabel = getFileTypeLabel(file.type);
-        if (contract.extraction_status === 'completed') {
+        if (contract.extraction_status === 'completed' || contract.analysis_status === 'completed') {
           toast.success(`${fileTypeLabel} uploaded successfully!`, {
             description: `Text extracted (${textContent.length} characters) and ready for AI analysis`
           });
