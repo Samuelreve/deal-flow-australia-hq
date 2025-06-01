@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
 import ContractSidebar from '@/components/contract/ContractSidebar';
@@ -41,7 +41,7 @@ const ContractAnalysisPage: React.FC = () => {
   });
 
   // Handle file upload
-  const handleFileUpload = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('🚀 File upload initiated');
     const file = e.target.files?.[0];
     if (!file) {
@@ -76,13 +76,13 @@ const ContractAnalysisPage: React.FC = () => {
   }, [uploadContract]);
 
   // Handle contract selection
-  const handleContractSelect = React.useCallback((contractId: string) => {
+  const handleContractSelect = useCallback((contractId: string) => {
     console.log('📋 Selecting contract:', contractId);
     selectContract(contractId);
   }, [selectContract]);
 
   // Handle question submission - wrapper to transform return type
-  const handleAskQuestion = React.useCallback(async (question: string) => {
+  const handleAskQuestion = useCallback(async (question: string) => {
     console.log('❓ Question asked:', question);
     
     if (!selectedContract?.content) {
@@ -123,7 +123,7 @@ const ContractAnalysisPage: React.FC = () => {
   }, [selectedContract, questionAnswerState]);
 
   // Handle contract analysis - wrapper to transform return type
-  const handleAnalyzeContract = React.useCallback(async (analysisType: string) => {
+  const handleAnalyzeContract = useCallback(async (analysisType: string) => {
     console.log('🔍 Analysis requested:', analysisType);
     
     if (!selectedContract?.content) {
@@ -153,12 +153,12 @@ const ContractAnalysisPage: React.FC = () => {
     return null;
   }, [selectedContract, questionAnswerState]);
 
-  const handleRetryAnalysis = React.useCallback(() => {
+  const handleRetryAnalysis = useCallback(() => {
     console.log('🔄 Retry analysis');
     questionAnswerState.invalidateCache();
   }, [questionAnswerState]);
 
-  const exportHighlights = React.useCallback(() => {
+  const exportHighlights = useCallback(() => {
     console.log('📊 Export highlights requested');
     toast.info('Export functionality coming soon');
   }, []);

@@ -1,239 +1,197 @@
-import { useState, useCallback, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+
+import { useState, useCallback } from 'react';
+import { realContractService } from '@/services/realContractService';
 import { QuestionHistoryItem } from '@/types/contract';
+import { toast } from 'sonner';
 
 export const useRealContractQuestionAnswerWithCache = (contractId: string | null) => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cache, setCache] = useState<Map<string, string>>(new Map());
+  const [error, setError] = useState<string | null>(null);
 
-  console.log('🔧 useRealContractQuestionAnswerWithCache initialized:', { contractId });
+  console.log('🤖 useRealContractQuestionAnswerWithCache initialized with contractId:', contractId);
 
-  // Generate cache key for questions
-  const getCacheKey = useCallback((question: string, contractId: string) => {
-    return `${contractId}-${question.toLowerCase().trim()}`;
-  }, []);
-
-  // Handle asking questions about the contract
+  // Handle asking a question
   const handleAskQuestion = useCallback(async (question: string, contractText: string) => {
     if (!contractId) {
-      toast.error('No contract selected');
+      console.log('❌ No contract ID available for question');
       return null;
     }
 
-    if (!question.trim()) {
-      toast.error('Please enter a question');
-      return null;
-    }
-
-    if (!contractText.trim()) {
-      toast.error('No contract content available for analysis');
-      return null;
-    }
-
-    console.log('❓ Processing question:', question, 'for contract:', contractId);
-
-    // Check cache first
-    const cacheKey = getCacheKey(question, contractId);
-    const cachedAnswer = cache.get(cacheKey);
-    
-    if (cachedAnswer) {
-      console.log('💾 Using cached answer for question');
-      const cachedItem: QuestionHistoryItem = {
-        id: Date.now().toString(),
-        question,
-        answer: cachedAnswer,
-        timestamp: new Date(),
-        type: 'question',
-        sources: ['Cached Response']
-      };
-      
-      setQuestionHistory(prev => [cachedItem, ...prev]);
-      return cachedItem;
-    }
+    console.log('❓ Processing question:', {
+      contractId,
+      questionLength: question.length,
+      contractTextLength: contractText.length
+    });
 
     setIsProcessing(true);
-    
+    setError(null);
+
     try {
-      console.log('🤖 Calling contract-assistant edge function...');
-      
-      const { data, error } = await supabase.functions.invoke('contract-assistant', {
-        body: {
-          question: question,
-          contractText: contractText,
-          contractId: contractId
-        }
-      });
-
-      if (error) {
-        console.error('❌ Contract assistant error:', error);
-        throw new Error(error.message || 'Failed to process question');
-      }
-
-      if (!data || !data.answer) {
-        console.error('❌ No answer received from contract assistant');
-        throw new Error('No answer received from AI service');
-      }
-
-      console.log('✅ Received answer from contract assistant:', data.answer.substring(0, 100) + '...');
-
-      const historyItem: QuestionHistoryItem = {
-        id: Date.now().toString(),
+      // Create optimistic history item
+      const newItem: QuestionHistoryItem = {
+        id: `question-${Date.now()}`,
         question,
-        answer: data.answer,
+        answer: null,
         timestamp: new Date(),
         type: 'question',
-        sources: data.sources || ['AI Analysis']
+        isProcessing: true
       };
 
-      // Cache the answer
-      setCache(prev => new Map(prev).set(cacheKey, data.answer));
-      
-      // Add to history
-      setQuestionHistory(prev => [historyItem, ...prev]);
-      
-      toast.success('Question answered successfully');
-      return historyItem;
+      setQuestionHistory(prev => [...prev, newItem]);
 
-    } catch (error) {
-      console.error('❌ Error processing question:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to process question';
-      toast.error('Failed to answer question', {
-        description: errorMessage
-      });
-      return null;
+      // Call the service
+      const response = await realContractService.askQuestion(contractId, question);
+
+      console.log('✅ Question response received:', response);
+
+      // Update the history item with the response
+      const updatedItem: QuestionHistoryItem = {
+        ...newItem,
+        answer: response.answer,
+        sources: response.sources,
+        isProcessing: false
+      };
+
+      setQuestionHistory(prev => 
+        prev.map(item => item.id === newItem.id ? updatedItem : item)
+      );
+
+      return updatedItem;
+    } catch (error: any) {
+      console.error('❌ Error asking question:', error);
+      const errorMessage = error.message || 'Failed to process question';
+      setError(errorMessage);
+
+      // Update the history item with error state
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === `question-${Date.now()}` 
+            ? { ...item, answer: 'Error processing question', isProcessing: false }
+            : item
+        )
+      );
+
+      throw error;
     } finally {
       setIsProcessing(false);
     }
-  }, [contractId, cache, getCacheKey]);
-
-  // Handle contract analysis (like summarization)
-  const handleAnalyzeContract = useCallback(async (analysisType: string, contractText: string) => {
-    if (!contractId) {
-      toast.error('No contract selected');
-      return null;
-    }
-
-    if (!contractText.trim()) {
-      toast.error('No contract content available for analysis');
-      return null;
-    }
-
-    console.log('🔍 Processing analysis:', analysisType, 'for contract:', contractId);
-
-    // Check cache for analysis
-    const cacheKey = getCacheKey(analysisType, contractId);
-    const cachedResult = cache.get(cacheKey);
-    
-    if (cachedResult) {
-      console.log('💾 Using cached analysis result');
-      try {
-        return JSON.parse(cachedResult);
-      } catch {
-        // If parsing fails, proceed with new analysis
-      }
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      let question = '';
-      
-      switch (analysisType) {
-        case 'summary':
-        case 'summarize':
-          question = 'Please provide a comprehensive summary of this contract, including key terms, obligations, and important dates.';
-          break;
-        case 'key_terms':
-          question = 'What are the key terms and conditions in this contract?';
-          break;
-        case 'risks':
-        case 'risk_analysis':
-          question = 'What are the potential risks and liabilities in this contract?';
-          break;
-        case 'obligations':
-          question = 'What are the main obligations and responsibilities for each party in this contract?';
-          break;
-        default:
-          question = `Please analyze this contract for: ${analysisType}`;
-      }
-
-      console.log('🤖 Calling contract-assistant for analysis with question:', question);
-      
-      const { data, error } = await supabase.functions.invoke('contract-assistant', {
-        body: {
-          question: question,
-          contractText: contractText,
-          contractId: contractId
-        }
-      });
-
-      if (error) {
-        console.error('❌ Contract analysis error:', error);
-        throw new Error(error.message || 'Failed to analyze contract');
-      }
-
-      if (!data || !data.answer) {
-        console.error('❌ No analysis result received');
-        throw new Error('No analysis result received from AI service');
-      }
-
-      console.log('✅ Received analysis result:', data.answer.substring(0, 100) + '...');
-
-      const analysisResult = {
-        type: analysisType,
-        content: data.answer,
-        sources: data.sources || ['AI Analysis'],
-        timestamp: new Date()
-      };
-
-      // Cache the result
-      setCache(prev => new Map(prev).set(cacheKey, JSON.stringify(analysisResult)));
-      
-      // Add to history as a question
-      const historyItem: QuestionHistoryItem = {
-        id: Date.now().toString(),
-        question: `Analysis: ${analysisType}`,
-        answer: data.answer,
-        timestamp: new Date(),
-        type: 'analysis',
-        analysisType: analysisType,
-        sources: data.sources || ['AI Analysis']
-      };
-      
-      setQuestionHistory(prev => [historyItem, ...prev]);
-      
-      toast.success(`${analysisType} analysis completed`);
-      return analysisResult;
-
-    } catch (error) {
-      console.error('❌ Error analyzing contract:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze contract';
-      toast.error('Analysis failed', {
-        description: errorMessage
-      });
-      return null;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [contractId, cache, getCacheKey]);
-
-  // Invalidate cache when contract changes
-  const invalidateCache = useCallback(() => {
-    console.log('🗑️ Invalidating cache for contract:', contractId);
-    setCache(new Map());
-    setQuestionHistory([]);
   }, [contractId]);
 
-  // Memoized return value to prevent unnecessary re-renders
-  const returnValue = useMemo(() => ({
+  // Handle contract analysis
+  const handleAnalyzeContract = useCallback(async (analysisType: string, contractText: string) => {
+    if (!contractId) {
+      console.log('❌ No contract ID available for analysis');
+      return null;
+    }
+
+    console.log('🔍 Processing analysis:', {
+      contractId,
+      analysisType,
+      contractTextLength: contractText.length
+    });
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Create analysis question based on type
+      const analysisQuestion = getAnalysisQuestion(analysisType);
+      
+      // Create optimistic history item
+      const newItem: QuestionHistoryItem = {
+        id: `analysis-${Date.now()}`,
+        question: analysisQuestion,
+        answer: null,
+        timestamp: new Date(),
+        type: 'analysis',
+        analysisType,
+        isProcessing: true
+      };
+
+      setQuestionHistory(prev => [...prev, newItem]);
+
+      // Call the service with the analysis question
+      const response = await realContractService.askQuestion(contractId, analysisQuestion);
+
+      console.log('✅ Analysis response received:', response);
+
+      // Update the history item with the response
+      const updatedItem: QuestionHistoryItem = {
+        ...newItem,
+        answer: response.answer,
+        sources: response.sources,
+        isProcessing: false
+      };
+
+      setQuestionHistory(prev => 
+        prev.map(item => item.id === newItem.id ? updatedItem : item)
+      );
+
+      return {
+        content: response.answer,
+        sources: response.sources || []
+      };
+    } catch (error: any) {
+      console.error('❌ Error analyzing contract:', error);
+      const errorMessage = error.message || 'Failed to analyze contract';
+      setError(errorMessage);
+
+      // Update the history item with error state
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === `analysis-${Date.now()}` 
+            ? { ...item, answer: 'Error processing analysis', isProcessing: false }
+            : item
+        )
+      );
+
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [contractId]);
+
+  // Clear cache/history
+  const invalidateCache = useCallback(() => {
+    console.log('🧹 Clearing question history cache');
+    setQuestionHistory([]);
+    setError(null);
+  }, []);
+
+  console.log('📊 useRealContractQuestionAnswerWithCache state:', {
+    contractId,
+    questionHistoryLength: questionHistory.length,
+    isProcessing,
+    error
+  });
+
+  return {
     questionHistory,
     isProcessing,
+    error,
     handleAskQuestion,
     handleAnalyzeContract,
     invalidateCache
-  }), [questionHistory, isProcessing, handleAskQuestion, handleAnalyzeContract, invalidateCache]);
-
-  return returnValue;
+  };
 };
+
+// Helper function to generate analysis questions based on type
+function getAnalysisQuestion(analysisType: string): string {
+  switch (analysisType) {
+    case 'summary':
+      return 'Please provide a comprehensive summary of this contract, highlighting the key terms, parties involved, and main obligations.';
+    case 'risks':
+      return 'Please analyze this contract for potential risks, liabilities, and areas of concern that should be reviewed carefully.';
+    case 'obligations':
+      return 'Please identify and list all the key obligations and responsibilities of each party in this contract.';
+    case 'financial-terms':
+      return 'Please extract and explain all financial terms, payment schedules, costs, and monetary obligations mentioned in this contract.';
+    case 'key-clauses':
+      return 'Please identify and explain the most important clauses in this contract, including any special terms or conditions.';
+    case 'legal-compliance':
+      return 'Please review this contract for legal compliance issues, regulatory requirements, and potential legal concerns.';
+    default:
+      return `Please provide a ${analysisType} analysis of this contract.`;
+  }
+}
