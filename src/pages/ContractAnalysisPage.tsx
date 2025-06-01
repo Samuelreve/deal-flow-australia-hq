@@ -1,3 +1,4 @@
+
 import React from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
@@ -28,28 +29,48 @@ const ContractAnalysisPage: React.FC = () => {
 
   console.log('📊 Contract page state:', {
     contractsCount: contracts.length,
-    selectedContract: selectedContract?.name,
-    contractContent: selectedContract?.content?.length || 0,
+    selectedContract: selectedContract ? {
+      id: selectedContract.id,
+      name: selectedContract.name,
+      contentLength: selectedContract.content?.length || 0
+    } : null,
     loading,
-    uploading
+    uploading,
+    error,
+    uploadProgress
   });
 
   // Handle file upload
   const handleFileUpload = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('🚀 File upload initiated');
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('❌ No file selected');
+      return;
+    }
 
     try {
-      console.log('📤 Uploading file:', file.name);
+      console.log('📤 Uploading file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
       const uploadedContract = await uploadContract(file);
       
       if (uploadedContract) {
-        console.log('✅ Upload successful, contract selected automatically');
+        console.log('✅ Upload successful, contract details:', {
+          id: uploadedContract.id,
+          name: uploadedContract.name,
+          contentLength: uploadedContract.content?.length || 0
+        });
         toast.success('Contract uploaded and ready for analysis!');
+      } else {
+        console.error('❌ Upload failed: No contract returned');
+        toast.error('Upload failed: No contract data received');
       }
     } catch (error) {
-      console.error('❌ Upload failed:', error);
+      console.error('❌ Upload failed with error:', error);
       toast.error('Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }, [uploadContract]);
@@ -65,14 +86,22 @@ const ContractAnalysisPage: React.FC = () => {
     console.log('❓ Question asked:', question);
     
     if (!selectedContract?.content) {
+      console.log('❌ No contract content available for analysis');
       toast.error('No contract content available for analysis');
       return null;
     }
+
+    console.log('📝 Processing question with contract:', {
+      contractId: selectedContract.id,
+      contentLength: selectedContract.content.length,
+      questionLength: question.length
+    });
 
     const result = await questionAnswerState.handleAskQuestion(question, selectedContract.content);
     
     // Transform QuestionHistoryItem to expected format
     if (result) {
+      console.log('✅ Question processed successfully');
       const answerText = typeof result.answer === 'string' 
         ? result.answer 
         : typeof result.answer === 'object' && result.answer !== null
@@ -89,6 +118,7 @@ const ContractAnalysisPage: React.FC = () => {
       };
     }
     
+    console.log('❌ Question processing failed');
     return null;
   }, [selectedContract, questionAnswerState]);
 
@@ -97,20 +127,29 @@ const ContractAnalysisPage: React.FC = () => {
     console.log('🔍 Analysis requested:', analysisType);
     
     if (!selectedContract?.content) {
+      console.log('❌ No contract content available for analysis');
       toast.error('No contract content available for analysis');
       return null;
     }
+
+    console.log('📝 Processing analysis with contract:', {
+      contractId: selectedContract.id,
+      contentLength: selectedContract.content.length,
+      analysisType
+    });
 
     const result = await questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
     
     // Transform result to expected format
     if (result && result.content) {
+      console.log('✅ Analysis completed successfully');
       return {
         analysis: result.content,
         sources: result.sources || []
       };
     }
     
+    console.log('❌ Analysis failed');
     return null;
   }, [selectedContract, questionAnswerState]);
 
@@ -120,6 +159,7 @@ const ContractAnalysisPage: React.FC = () => {
   }, [questionAnswerState]);
 
   const exportHighlights = React.useCallback(() => {
+    console.log('📊 Export highlights requested');
     toast.info('Export functionality coming soon');
   }, []);
 
@@ -137,6 +177,37 @@ const ContractAnalysisPage: React.FC = () => {
     }
   };
 
+  // Create document metadata from selected contract
+  const documentMetadata = React.useMemo(() => {
+    if (!selectedContract) {
+      console.log('📄 No selected contract, no document metadata');
+      return null;
+    }
+
+    const metadata = {
+      id: selectedContract.id,
+      name: selectedContract.name,
+      type: selectedContract.mime_type,
+      uploadDate: selectedContract.upload_date,
+      status: mapAnalysisStatus(selectedContract.analysis_status),
+      version: '1.0',
+      versionDate: selectedContract.upload_date,
+      size: selectedContract.file_size,
+      category: 'contract'
+    };
+
+    console.log('📄 Created document metadata:', metadata);
+    return metadata;
+  }, [selectedContract]);
+
+  console.log('🎨 Rendering ContractAnalysisPage with:', {
+    hasDocumentMetadata: !!documentMetadata,
+    hasContractText: !!(selectedContract?.content),
+    contractTextLength: selectedContract?.content?.length || 0,
+    questionHistoryLength: questionAnswerState.questionHistory.length,
+    isProcessing: questionAnswerState.isProcessing
+  });
+
   return (
     <AppLayout>
       <div className="container py-6 max-w-7xl">
@@ -146,17 +217,7 @@ const ContractAnalysisPage: React.FC = () => {
           <div className="lg:col-span-1">
             <ErrorBoundary>
               <ContractSidebar
-                documentMetadata={selectedContract ? {
-                  id: selectedContract.id,
-                  name: selectedContract.name,
-                  type: selectedContract.mime_type,
-                  uploadDate: selectedContract.upload_date,
-                  status: mapAnalysisStatus(selectedContract.analysis_status),
-                  version: '1.0',
-                  versionDate: selectedContract.upload_date,
-                  size: selectedContract.file_size,
-                  category: 'contract'
-                } : null}
+                documentMetadata={documentMetadata}
                 isAnalyzing={loading || uploading}
                 documentHighlights={[]}
                 onFileUpload={handleFileUpload}
@@ -167,17 +228,7 @@ const ContractAnalysisPage: React.FC = () => {
           
           <div className="lg:col-span-3 space-y-6">
             <ContractAnalysisContent
-              documentMetadata={selectedContract ? {
-                id: selectedContract.id,
-                name: selectedContract.name,
-                type: selectedContract.mime_type,
-                uploadDate: selectedContract.upload_date,
-                status: mapAnalysisStatus(selectedContract.analysis_status),
-                version: '1.0',
-                versionDate: selectedContract.upload_date,
-                size: selectedContract.file_size,
-                category: 'contract'
-              } : null}
+              documentMetadata={documentMetadata}
               contractText={selectedContract?.content || ''}
               error={error}
               isProcessing={questionAnswerState.isProcessing}
