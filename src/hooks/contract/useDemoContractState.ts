@@ -8,7 +8,7 @@ import { useContractQuestionAnswer } from '@/hooks/contract/useContractQuestionA
 export const useDemoContractState = () => {
   const [searchParams] = useSearchParams();
   const analysisState = useContractAnalysisState();
-  const questionAnswerState = useContractQuestionAnswer();
+  const questionAnswerState = useContractQuestionAnswer(null); // Pass null as contractId for demo
   
   useEffect(() => {
     const shouldAnalyze = searchParams.get("analyze") === "true";

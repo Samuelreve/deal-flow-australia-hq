@@ -39,7 +39,7 @@ const DemoContractPage: React.FC = () => {
     if (!analysisState.contractText) {
       return null;
     }
-    return questionAnswerState.handleAskQuestion(question, analysisState.contractText);
+    return questionAnswerState.askQuestion(question, analysisState.contractText);
   };
   
   // Use real contract analysis that requires contract text
@@ -47,10 +47,13 @@ const DemoContractPage: React.FC = () => {
     if (!analysisState.contractText) {
       return handleAnalyzeContract(
         analysisType,
-        questionAnswerState.setQuestionHistory
+        (history) => {
+          // Since we can't set question history directly, we'll handle this in the component
+          console.log('Demo analysis requested without contract text');
+        }
       );
     }
-    return questionAnswerState.handleAnalyzeContract(analysisType, analysisState.contractText);
+    return questionAnswerState.analyzeContract(analysisType, analysisState.contractText);
   };
 
   return (
