@@ -9,8 +9,15 @@ export interface Contract {
   id: string;
   name: string;
   content?: string;
+  mime_type: string;
+  file_size: number;
+  upload_date: string;
   created_at: string;
-  analysis_status?: string;
+  updated_at: string;
+  analysis_status: string;
+  extraction_status?: string;
+  file_path: string;
+  user_id: string;
 }
 
 export const useRealContracts = () => {
@@ -83,7 +90,7 @@ export const useRealContracts = () => {
     setError(null);
 
     try {
-      // Step 1: Create contract record
+      // Step 1: Create contract record with all required fields
       console.log('📝 Creating contract record...');
       setUploadProgress(20);
 
@@ -92,7 +99,11 @@ export const useRealContracts = () => {
         .insert({
           name: file.name,
           user_id: user.id,
-          analysis_status: 'pending'
+          analysis_status: 'pending',
+          mime_type: file.type,
+          file_size: file.size,
+          file_path: '', // Empty for now, will be updated if needed
+          extraction_status: 'pending'
         })
         .select()
         .single();
@@ -129,7 +140,8 @@ export const useRealContracts = () => {
         .from('contracts')
         .update({
           content: extractionResult.text,
-          analysis_status: 'completed'
+          analysis_status: 'completed',
+          extraction_status: 'completed'
         })
         .eq('id', contractData.id);
 
@@ -145,7 +157,8 @@ export const useRealContracts = () => {
       const finalContract: Contract = {
         ...contractData,
         content: extractionResult.text,
-        analysis_status: 'completed'
+        analysis_status: 'completed',
+        extraction_status: 'completed'
       };
 
       console.log('🎯 Final contract object:', {

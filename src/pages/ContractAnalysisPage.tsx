@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { useRealContracts } from '@/hooks/contract/useRealContracts';
+import { useRealContracts, Contract } from '@/hooks/contract/useRealContracts';
 import { useContractActions } from '@/hooks/contract/useContractActions';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

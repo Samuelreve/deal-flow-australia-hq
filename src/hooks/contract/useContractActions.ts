@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { Contract } from '@/services/realContractService';
+import { Contract } from '@/hooks/contract/useRealContracts';
 import { useEnhancedContractAssistant } from './useEnhancedContractAssistant';
 import { toast } from 'sonner';
 
