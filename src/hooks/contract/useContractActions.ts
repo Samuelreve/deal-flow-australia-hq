@@ -52,7 +52,7 @@ export const useContractActions = (selectedContract: Contract | null) => {
       return null;
     } catch (error) {
       console.error('❌ Error in handleAskQuestion:', error);
-      toast.error('Failed to process question');
+      toast.error('Failed to process question: ' + (error instanceof Error ? error.message : 'Unknown error'));
       return null;
     }
   }, [selectedContract, contractAssistant]);
@@ -82,6 +82,13 @@ export const useContractActions = (selectedContract: Contract | null) => {
     try {
       const result = await contractAssistant.analyzeContract(analysisType);
       
+      console.log('📥 Analysis result received:', {
+        hasResult: !!result,
+        hasAnalysis: !!(result?.analysis),
+        analysisLength: result?.analysis?.length || 0,
+        analysisType
+      });
+      
       if (result) {
         console.log('✅ Analysis completed successfully');
         return result;
@@ -91,7 +98,7 @@ export const useContractActions = (selectedContract: Contract | null) => {
       return null;
     } catch (error) {
       console.error('❌ Error in handleAnalyzeContract:', error);
-      toast.error('Failed to complete analysis');
+      toast.error('Failed to complete analysis: ' + (error instanceof Error ? error.message : 'Unknown error'));
       return null;
     }
   }, [selectedContract, contractAssistant]);

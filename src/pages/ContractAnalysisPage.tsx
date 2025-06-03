@@ -24,7 +24,7 @@ const ContractAnalysisPage: React.FC = () => {
     loading,
     uploading,
     uploadProgress,
-    error,
+    error: contractsError,
     uploadContract,
     selectContract
   } = useRealContracts();
@@ -53,42 +53,67 @@ const ContractAnalysisPage: React.FC = () => {
     } : null,
     loading,
     uploading,
-    error,
+    error: contractsError,
     uploadProgress,
     activeTab,
-    hasSummary: !!contractSummary
+    hasSummary: !!contractSummary,
+    loadingSummary,
+    summaryError
   });
 
   // Auto-generate summary when a contract is selected
   useEffect(() => {
-    if (selectedContract && selectedContract.content && !contractSummary && !loadingSummary) {
-      console.log('🔄 Auto-generating contract summary...');
+    if (selectedContract && selectedContract.content && !contractSummary && !loadingSummary && !summaryError) {
+      console.log('🔄 Auto-generating contract summary for:', selectedContract.id);
       generateContractSummary();
     }
-  }, [selectedContract?.id, selectedContract?.content, contractSummary, loadingSummary]);
+  }, [selectedContract?.id]);
+
+  // Reset summary when contract changes
+  useEffect(() => {
+    if (selectedContract?.id) {
+      console.log('🔄 Contract changed, resetting summary state');
+      setContractSummary(null);
+      setSummaryError(null);
+    }
+  }, [selectedContract?.id]);
 
   // Generate contract summary using the enhanced contract assistant
   const generateContractSummary = async () => {
     if (!selectedContract?.content) {
-      toast.error('No contract content available for analysis');
+      console.error('❌ No contract content available for summary');
+      setSummaryError('No contract content available for analysis');
       return;
     }
 
+    console.log('📝 Starting summary generation for contract:', {
+      id: selectedContract.id,
+      contentLength: selectedContract.content.length
+    });
+
     setLoadingSummary(true);
     setSummaryError(null);
+    setContractSummary(null);
     
     try {
-      console.log('📝 Generating summary for contract:', selectedContract.id);
+      console.log('🤖 Calling handleAnalyzeContract with comprehensive_summary...');
       
       // Use the contract analysis function for summarization
       const result = await handleAnalyzeContract('comprehensive_summary');
       
+      console.log('📥 Analysis result received:', {
+        hasResult: !!result,
+        hasAnalysis: !!(result?.analysis),
+        analysisLength: result?.analysis?.length || 0
+      });
+      
       if (result && result.analysis) {
+        console.log('✅ Setting contract summary:', result.analysis.substring(0, 100) + '...');
         setContractSummary(result.analysis);
         toast.success('Contract summary generated successfully!');
-        console.log('✅ Summary generated successfully');
       } else {
-        throw new Error('No summary content received from AI');
+        console.error('❌ No analysis content received:', result);
+        throw new Error('No summary content received from AI analysis');
       }
     } catch (error) {
       console.error('❌ Error generating summary:', error);
@@ -180,7 +205,7 @@ const ContractAnalysisPage: React.FC = () => {
                 onFileUpload={handleFileUpload}
                 isUploading={uploading}
                 uploadProgress={uploadProgress}
-                error={error}
+                error={contractsError}
               />
             </ErrorBoundary>
           </div>
@@ -248,24 +273,27 @@ const ContractAnalysisPage: React.FC = () => {
                         variant="outline" 
                         size="sm"
                         onClick={generateContractSummary}
-                        disabled={loadingSummary}
+                        disabled={loadingSummary || isProcessing}
                       >
-                        {loadingSummary ? (
+                        {loadingSummary || isProcessing ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (
                           <Brain className="h-4 w-4 mr-2" />
                         )}
-                        Regenerate Summary
+                        {loadingSummary || isProcessing ? 'Generating...' : 'Regenerate Summary'}
                       </Button>
                     </div>
 
                     <ScrollArea className="h-[450px] w-full rounded-md border p-4">
-                      {loadingSummary ? (
+                      {loadingSummary || isProcessing ? (
                         <div className="flex items-center justify-center h-full">
                           <div className="text-center">
                             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
                             <p className="text-sm text-muted-foreground">
                               Analyzing contract and generating summary...
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Processing {selectedContract.content?.length || 0} characters of contract text
                             </p>
                           </div>
                         </div>
@@ -306,7 +334,7 @@ const ContractAnalysisPage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           onClick={() => handleAnalyzeContract('key_terms')}
-                          disabled={isProcessing}
+                          disabled={isProcessing || loadingSummary}
                           className="w-full justify-start"
                         >
                           <FileText className="h-4 w-4 mr-2" />
@@ -316,7 +344,7 @@ const ContractAnalysisPage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           onClick={() => handleAnalyzeContract('risk_assessment')}
-                          disabled={isProcessing}
+                          disabled={isProcessing || loadingSummary}
                           className="w-full justify-start"
                         >
                           <Brain className="h-4 w-4 mr-2" />
@@ -326,7 +354,7 @@ const ContractAnalysisPage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           onClick={() => handleAnalyzeContract('obligations')}
-                          disabled={isProcessing}
+                          disabled={isProcessing || loadingSummary}
                           className="w-full justify-start"
                         >
                           <FileText className="h-4 w-4 mr-2" />
@@ -366,14 +394,14 @@ const ContractAnalysisPage: React.FC = () => {
                         placeholder="Ask a question about this contract..."
                         rows={3}
                         className="flex-1 resize-none"
-                        disabled={isProcessing}
+                        disabled={isProcessing || loadingSummary}
                       />
                       <Button 
                         type="submit" 
-                        disabled={!userQuestion.trim() || isProcessing}
+                        disabled={!userQuestion.trim() || isProcessing || loadingSummary}
                         size="lg"
                       >
-                        {isProcessing ? (
+                        {isProcessing || loadingSummary ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Send className="h-4 w-4" />
