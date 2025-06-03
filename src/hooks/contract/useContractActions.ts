@@ -1,11 +1,22 @@
 
 import { useCallback } from 'react';
 import { Contract } from '@/services/realContractService';
-import { useRealContractQuestionAnswerWithCache } from './useRealContractQuestionAnswerWithCache';
+import { useEnhancedContractAssistant } from './useEnhancedContractAssistant';
 import { toast } from 'sonner';
 
 export const useContractActions = (selectedContract: Contract | null) => {
-  const questionAnswerState = useRealContractQuestionAnswerWithCache(selectedContract?.id || null);
+  console.log('🔧 useContractActions initialized with contract:', {
+    contractId: selectedContract?.id,
+    hasContent: !!selectedContract?.content,
+    contentLength: selectedContract?.content?.length || 0
+  });
+
+  // Initialize the enhanced contract assistant
+  const contractAssistant = useEnhancedContractAssistant({
+    dealId: 'demo-deal', // Use demo deal ID for standalone contracts
+    documentId: selectedContract?.id || '',
+    versionId: selectedContract?.id || '' // Use same ID for version
+  });
 
   // Handle question submission
   const handleAskQuestion = useCallback(async (question: string) => {
@@ -17,35 +28,34 @@ export const useContractActions = (selectedContract: Contract | null) => {
       return null;
     }
 
+    if (!selectedContract.id) {
+      console.log('❌ No contract ID available');
+      toast.error('Contract ID not available');
+      return null;
+    }
+
     console.log('📝 Processing question with contract:', {
       contractId: selectedContract.id,
       contentLength: selectedContract.content.length,
       questionLength: question.length
     });
 
-    const result = await questionAnswerState.handleAskQuestion(question, selectedContract.content);
-    
-    if (result) {
-      console.log('✅ Question processed successfully');
-      const answerText = typeof result.answer === 'string' 
-        ? result.answer 
-        : typeof result.answer === 'object' && result.answer !== null
-        ? result.answer.answer
-        : 'No response available';
+    try {
+      const result = await contractAssistant.askQuestion(question);
       
-      const sources = typeof result.answer === 'object' && result.answer !== null && result.answer.sources
-        ? result.answer.sources
-        : result.sources || [];
-
-      return {
-        answer: answerText,
-        sources: sources
-      };
+      if (result) {
+        console.log('✅ Question processed successfully');
+        return result;
+      }
+      
+      console.log('❌ Question processing failed - no result');
+      return null;
+    } catch (error) {
+      console.error('❌ Error in handleAskQuestion:', error);
+      toast.error('Failed to process question');
+      return null;
     }
-    
-    console.log('❌ Question processing failed');
-    return null;
-  }, [selectedContract, questionAnswerState]);
+  }, [selectedContract, contractAssistant]);
 
   // Handle contract analysis
   const handleAnalyzeContract = useCallback(async (analysisType: string) => {
@@ -57,34 +67,43 @@ export const useContractActions = (selectedContract: Contract | null) => {
       return null;
     }
 
+    if (!selectedContract.id) {
+      console.log('❌ No contract ID available');
+      toast.error('Contract ID not available');
+      return null;
+    }
+
     console.log('📝 Processing analysis with contract:', {
       contractId: selectedContract.id,
       contentLength: selectedContract.content.length,
       analysisType
     });
 
-    const result = await questionAnswerState.handleAnalyzeContract(analysisType, selectedContract.content);
-    
-    if (result && result.content) {
-      console.log('✅ Analysis completed successfully');
-      return {
-        analysis: result.content,
-        sources: result.sources || []
-      };
+    try {
+      const result = await contractAssistant.analyzeContract(analysisType);
+      
+      if (result) {
+        console.log('✅ Analysis completed successfully');
+        return result;
+      }
+      
+      console.log('❌ Analysis failed - no result');
+      return null;
+    } catch (error) {
+      console.error('❌ Error in handleAnalyzeContract:', error);
+      toast.error('Failed to complete analysis');
+      return null;
     }
-    
-    console.log('❌ Analysis failed');
-    return null;
-  }, [selectedContract, questionAnswerState]);
+  }, [selectedContract, contractAssistant]);
 
   const handleRetryAnalysis = useCallback(() => {
-    console.log('🔄 Retry analysis');
-    questionAnswerState.invalidateCache();
-  }, [questionAnswerState]);
+    console.log('🔄 Retry analysis requested');
+    toast.info('Please try your analysis again');
+  }, []);
 
   return {
-    questionHistory: questionAnswerState.questionHistory,
-    isProcessing: questionAnswerState.isProcessing,
+    questionHistory: contractAssistant.questionHistory,
+    isProcessing: contractAssistant.isProcessing,
     handleAskQuestion,
     handleAnalyzeContract,
     handleRetryAnalysis
