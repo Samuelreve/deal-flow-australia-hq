@@ -29,7 +29,7 @@ const ContractDebugPage: React.FC = () => {
   } = useContractActions(selectedContract);
 
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [testQuestion, setTestQuestion] = useState('What is the main purpose of this contract?');
+  const [testQuestionText, setTestQuestionText] = useState('What is the main purpose of this contract?');
 
   const addDebugLog = (message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') => {
     const timestamp = new Date().toISOString();
@@ -151,21 +151,21 @@ This is a comprehensive test contract for debugging AI analysis capabilities.`;
     }
   };
 
-  const testQuestion = async () => {
+  const handleTestQuestion = async () => {
     if (!selectedContract) {
       addDebugLog('❌ No contract selected for question', 'error');
       return;
     }
 
-    addDebugLog(`❓ Testing question: "${testQuestion}"`, 'info');
+    addDebugLog(`❓ Testing question: "${testQuestionText}"`, 'info');
     
     try {
-      const result = await handleAskQuestion(testQuestion);
+      const result = await handleAskQuestion(testQuestionText);
       
       if (result && result.answer) {
         addDebugLog(`✅ Question answered successfully: ${result.answer.length} characters`, 'success');
         console.log('✅ Question result:', {
-          question: testQuestion,
+          question: testQuestionText,
           answerLength: result.answer.length,
           answerPreview: result.answer.substring(0, 200) + '...'
         });
@@ -268,17 +268,17 @@ This is a comprehensive test contract for debugging AI analysis capabilities.`;
                   Test Summary Generation
                 </Button>
                 
-                <div className="space-y-2">
-                  <Textarea
-                    value={testQuestion}
-                    onChange={(e) => setTestQuestion(e.target.value)}
-                    placeholder="Enter test question..."
-                    rows={2}
-                  />
-                  <Button onClick={testQuestion} disabled={isProcessing} className="w-full">
-                    Test Q&A
-                  </Button>
-                </div>
+                 <div className="space-y-2">
+                   <Textarea
+                     value={testQuestionText}
+                     onChange={(e) => setTestQuestionText(e.target.value)}
+                     placeholder="Enter test question..."
+                     rows={2}
+                   />
+                   <Button onClick={handleTestQuestion} disabled={isProcessing} className="w-full">
+                     Test Q&A
+                   </Button>
+                 </div>
               </div>
             )}
 
