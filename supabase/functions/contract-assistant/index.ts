@@ -21,6 +21,8 @@ interface ContractAssistantRequest {
 }
 
 serve(async (req) => {
+  console.log('=== CONTRACT ASSISTANT REQUEST START ===');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +31,7 @@ serve(async (req) => {
   try {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      console.error('OPENAI_API_KEY not found');
+      console.error('❌ OPENAI_API_KEY not found in environment');
       return new Response(
         JSON.stringify({ error: 'OpenAI API key not configured' }),
         { 
@@ -43,7 +45,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Supabase configuration missing');
+      console.error('❌ Supabase configuration missing');
       return new Response(
         JSON.stringify({ error: 'Supabase configuration missing' }),
         { 
@@ -54,18 +56,19 @@ serve(async (req) => {
     }
 
     const requestData: ContractAssistantRequest = await req.json();
+    console.log('📥 Contract assistant request:', JSON.stringify(requestData, null, 2));
+
     const supabase = createClient(supabaseUrl, supabaseKey);
     const openai = new OpenAI({ apiKey: openAIApiKey });
 
-    console.log('Contract assistant request:', requestData);
-
     // Handle new request types
     if (requestData.requestType === 'summarize_contract_terms') {
-      console.log('Processing contract terms summarization request');
+      console.log('🔍 Processing contract terms summarization request');
       
       const { dealId, documentId, versionId } = requestData;
       
       if (!documentId || !versionId) {
+        console.error('❌ Missing required parameters: documentId and versionId');
         return new Response(
           JSON.stringify({ error: 'documentId and versionId are required for summarization' }),
           { 
@@ -78,6 +81,7 @@ serve(async (req) => {
       // Get authentication context
       const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
+        console.error('❌ No authorization header found');
         return new Response(
           JSON.stringify({ error: 'Authentication required' }),
           { 
@@ -92,6 +96,7 @@ serve(async (req) => {
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !user) {
+        console.error('❌ Authentication failed:', authError);
         return new Response(
           JSON.stringify({ error: 'Invalid authentication' }),
           { 
@@ -101,11 +106,11 @@ serve(async (req) => {
         );
       }
 
-      console.log('User authenticated:', user.id);
+      console.log('✅ User authenticated:', user.id);
 
       // For demo deals, skip participant check and fetch contract directly from contracts table
       if (dealId === 'demo-deal') {
-        console.log('Processing demo contract, fetching from contracts table');
+        console.log('🎯 Processing demo contract, fetching from contracts table');
         
         // Fetch contract directly from contracts table
         const { data: contract, error: contractError } = await supabase
@@ -116,7 +121,7 @@ serve(async (req) => {
           .single();
 
         if (contractError || !contract) {
-          console.error('Contract not found:', contractError);
+          console.error('❌ Contract not found:', contractError);
           return new Response(
             JSON.stringify({ error: 'Contract not found or access denied' }),
             { 
@@ -128,9 +133,21 @@ serve(async (req) => {
 
         const contractText = contract.content;
         
+        console.log('📄 Contract found:', {
+          name: contract.name,
+          contentType: typeof contractText,
+          contentLength: contractText?.length || 0,
+          contentPreview: contractText ? contractText.substring(0, 100) + '...' : 'No content',
+          hasContent: !!contractText
+        });
+        
         if (!contractText || contractText.length < 50) {
+          console.error('❌ Contract content is too short or empty:', {
+            length: contractText?.length || 0,
+            content: contractText
+          });
           return new Response(
-            JSON.stringify({ error: 'Contract content is too short or empty' }),
+            JSON.stringify({ error: 'Contract content is too short or empty for analysis' }),
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 400 
@@ -138,7 +155,8 @@ serve(async (req) => {
           );
         }
 
-        console.log('Contract found, generating summary. Content length:', contractText.length);
+        console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
+        console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
         // Create summarization prompt
         const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Your task is to provide a comprehensive but accessible summary of contract terms and key provisions.
@@ -162,6 +180,8 @@ ${contractText}
 
 Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
 
+        console.log('🤖 Calling OpenAI API...');
+
         const completion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
@@ -174,7 +194,7 @@ Please structure your summary with clear sections and highlight the most critica
 
         const summary = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
 
-        console.log('Summary generated successfully');
+        console.log('✅ Summary generated successfully, length:', summary.length);
 
         return new Response(
           JSON.stringify({
@@ -197,6 +217,7 @@ Please structure your summary with clear sections and highlight the most critica
         .single();
 
       if (participationError || !participation) {
+        console.error('❌ User not a participant in deal:', participationError);
         return new Response(
           JSON.stringify({ error: 'Access denied: You are not a participant in this deal' }),
           { 
@@ -215,6 +236,7 @@ Please structure your summary with clear sections and highlight the most critica
         .single();
 
       if (docError || !documentVersion) {
+        console.error('❌ Document version not found:', docError);
         return new Response(
           JSON.stringify({ error: 'Document version not found' }),
           { 
@@ -230,6 +252,7 @@ Please structure your summary with clear sections and highlight the most critica
         .download(documentVersion.storage_path);
 
       if (storageError || !fileData) {
+        console.error('❌ Failed to download document:', storageError);
         return new Response(
           JSON.stringify({ error: 'Failed to download document' }),
           { 
@@ -243,7 +266,14 @@ Please structure your summary with clear sections and highlight the most critica
       const fileContent = new Uint8Array(await fileData.arrayBuffer());
       const fullDocumentText = new TextDecoder().decode(fileContent);
 
+      console.log('📄 Real deal document extracted:', {
+        type: documentVersion.type,
+        contentLength: fullDocumentText.length,
+        contentPreview: fullDocumentText.substring(0, 100) + '...'
+      });
+
       if (fullDocumentText.length < 50) {
+        console.error('❌ Document appears to be empty or text extraction failed');
         return new Response(
           JSON.stringify({ error: 'Document appears to be empty or text extraction failed' }),
           { 
@@ -300,11 +330,12 @@ Please structure your summary with clear sections and highlight the most critica
     }
 
     if (requestData.requestType === 'answer_question') {
-      console.log('Processing enhanced Q&A request');
+      console.log('❓ Processing enhanced Q&A request');
       
       const { dealId, documentId, versionId, userQuestion } = requestData;
       
       if (!documentId || !versionId || !userQuestion) {
+        console.error('❌ Missing required parameters for Q&A');
         return new Response(
           JSON.stringify({ error: 'documentId, versionId, and userQuestion are required' }),
           { 
@@ -479,6 +510,7 @@ Please provide a comprehensive answer based on the contract content above.`;
     const { question, contractText, contractId } = requestData;
 
     if (!question || !contractText) {
+      console.error('❌ Missing question or contract text for legacy format');
       return new Response(
         JSON.stringify({ error: 'Question and contract text are required for legacy format' }),
         { 
@@ -488,7 +520,7 @@ Please provide a comprehensive answer based on the contract content above.`;
       );
     }
 
-    console.log('Processing legacy contract question:', question.substring(0, 100));
+    console.log('🔄 Processing legacy contract question:', question.substring(0, 100));
 
     // Create a system prompt for contract analysis
     const systemPrompt = `You are a professional legal document analyst. Your role is to analyze contracts and legal documents to answer questions accurately and professionally.
@@ -536,7 +568,7 @@ Please provide a comprehensive answer based on the contract content above.`;
     );
 
   } catch (error) {
-    console.error('Contract assistant error:', error);
+    console.error('💥 Contract assistant error:', error);
     return new Response(
       JSON.stringify({
         error: 'Failed to process request',
