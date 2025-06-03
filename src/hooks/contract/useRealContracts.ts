@@ -1,24 +1,8 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { realContractService, Contract } from '@/services/realContractService';
 import { toast } from 'sonner';
-import { DocumentTextExtractionService } from '@/services/documentTextExtraction';
-
-export interface Contract {
-  id: string;
-  name: string;
-  content?: string;
-  mime_type: string;
-  file_size: number;
-  upload_date: string;
-  created_at: string;
-  updated_at: string;
-  analysis_status: string;
-  extraction_status?: string;
-  file_path: string;
-  user_id: string;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useRealContracts = () => {
   const { user } = useAuth();
@@ -29,52 +13,39 @@ export const useRealContracts = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🔧 useRealContracts initialized:', {
-    userId: user?.id,
+  console.log('🔧 useRealContracts state:', {
+    user: user?.id,
     contractsCount: contracts.length,
-    selectedContractId: selectedContract?.id
+    selectedContract: selectedContract?.id,
+    loading,
+    uploading
   });
 
-  // Load contracts on mount
-  useEffect(() => {
-    if (user) {
-      loadContracts();
+  // Load user contracts
+  const loadContracts = async () => {
+    if (!user) {
+      console.log('❌ No user, cannot load contracts');
+      return;
     }
-  }, [user]);
-
-  const loadContracts = useCallback(async () => {
-    if (!user) return;
-
-    console.log('📥 Loading contracts for user:', user.id);
-    setLoading(true);
-    setError(null);
-
+    
     try {
-      const { data, error: fetchError } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('❌ Error loading contracts:', fetchError);
-        throw fetchError;
-      }
-
-      console.log('✅ Contracts loaded:', data?.length || 0);
-      setContracts(data || []);
-    } catch (error) {
+      console.log('📥 Loading contracts for user:', user.id);
+      setLoading(true);
+      const userContracts = await realContractService.getUserContracts();
+      console.log('✅ Loaded contracts:', userContracts.length);
+      setContracts(userContracts);
+    } catch (error: any) {
       console.error('❌ Failed to load contracts:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load contracts');
+      setError('Failed to load contracts: ' + error.message);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
-  const uploadContract = useCallback(async (file: File): Promise<Contract | null> => {
+  // Upload a new contract with real text extraction
+  const uploadContract = async (file: File): Promise<Contract | null> => {
     if (!user) {
-      console.error('❌ No user for upload');
-      toast.error('Please log in to upload contracts');
+      toast.error('You must be logged in to upload contracts');
       return null;
     }
 
@@ -85,129 +56,189 @@ export const useRealContracts = () => {
       userId: user.id
     });
 
-    setUploading(true);
-    setUploadProgress(0);
-    setError(null);
-
     try {
-      // Step 1: Create contract record with all required fields
-      console.log('📝 Creating contract record...');
-      setUploadProgress(20);
+      setUploading(true);
+      setUploadProgress(0);
+      setError(null);
 
-      const { data: contractData, error: createError } = await supabase
-        .from('contracts')
-        .insert({
-          name: file.name,
-          user_id: user.id,
-          analysis_status: 'pending',
-          mime_type: file.type,
-          file_size: file.size,
-          file_path: '', // Empty for now, will be updated if needed
-          extraction_status: 'pending'
-        })
-        .select()
-        .single();
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + 15;
+          console.log('📈 Upload progress:', newProgress + '%');
+          if (newProgress >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return newProgress;
+        });
+      }, 300);
 
-      if (createError) {
-        console.error('❌ Error creating contract:', createError);
-        throw createError;
-      }
-
-      console.log('✅ Contract record created:', contractData.id);
-      setUploadProgress(40);
-
-      // Step 2: Extract text from file
-      console.log('🔍 Extracting text from file...');
-      const extractionResult = await DocumentTextExtractionService.extractTextFromFile(file);
+      console.log('📤 Calling realContractService.uploadContract...');
+      const uploadedContract = await realContractService.uploadContract(file);
       
-      console.log('📄 Text extraction result:', {
-        success: extractionResult.success,
-        textLength: extractionResult.text?.length || 0,
-        error: extractionResult.error,
-        textPreview: extractionResult.text?.substring(0, 200) || 'NO TEXT'
-      });
-
-      if (!extractionResult.success) {
-        console.error('❌ Text extraction failed:', extractionResult.error);
-        throw new Error(extractionResult.error || 'Failed to extract text from file');
-      }
-
-      setUploadProgress(70);
-
-      // Step 3: Update contract with extracted text
-      console.log('💾 Saving extracted text to contract...');
-      const { error: updateError } = await supabase
-        .from('contracts')
-        .update({
-          content: extractionResult.text,
-          analysis_status: 'completed',
-          extraction_status: 'completed'
-        })
-        .eq('id', contractData.id);
-
-      if (updateError) {
-        console.error('❌ Error updating contract with text:', updateError);
-        throw updateError;
-      }
-
-      console.log('✅ Contract updated with text content');
-      setUploadProgress(90);
-
-      // Create the final contract object
-      const finalContract: Contract = {
-        ...contractData,
-        content: extractionResult.text,
-        analysis_status: 'completed',
-        extraction_status: 'completed'
-      };
-
-      console.log('🎯 Final contract object:', {
-        id: finalContract.id,
-        name: finalContract.name,
-        contentLength: finalContract.content?.length || 0,
-        hasContent: !!finalContract.content
-      });
-
-      // Update state
-      setContracts(prev => [finalContract, ...prev]);
-      setSelectedContract(finalContract);
+      clearInterval(progressInterval);
       setUploadProgress(100);
 
-      console.log('✅ Upload completed successfully');
-      return finalContract;
+      console.log('📋 Upload response:', {
+        success: !!uploadedContract,
+        contractId: uploadedContract?.id,
+        contentLength: uploadedContract?.content?.length || 0
+      });
 
-    } catch (error) {
-      console.error('❌ Upload failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      if (uploadedContract) {
+        // Convert to Contract type with all required fields
+        const contract: Contract = {
+          id: uploadedContract.id,
+          name: uploadedContract.name || file.name,
+          mime_type: uploadedContract.mime_type || file.type,
+          file_size: uploadedContract.file_size || file.size,
+          upload_date: uploadedContract.created_at || new Date().toISOString(),
+          created_at: uploadedContract.created_at || new Date().toISOString(),
+          updated_at: uploadedContract.updated_at || new Date().toISOString(),
+          content: uploadedContract.content || '',
+          analysis_status: uploadedContract.analysis_status || 'completed',
+          extraction_status: 'completed',
+          file_path: '',
+          user_id: user.id
+        };
+        
+        console.log('✅ Created contract object:', {
+          id: contract.id,
+          name: contract.name,
+          contentLength: contract.content.length
+        });
+        
+        // Add to contracts list
+        setContracts(prev => {
+          const newContracts = [contract, ...prev];
+          console.log('📝 Updated contracts list, new count:', newContracts.length);
+          return newContracts;
+        });
+        
+        // Auto-select the uploaded contract
+        console.log('🎯 Auto-selecting uploaded contract');
+        setSelectedContract(contract);
+        
+        toast.success('Contract uploaded and analyzed successfully!', {
+          description: 'You can now ask questions about this contract.'
+        });
+        
+        return contract;
+      } else {
+        console.error('❌ Upload failed: No contract returned from service');
+        throw new Error('Upload failed: No contract data received');
+      }
+    } catch (error: any) {
+      console.error('❌ Upload error details:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      });
+      const errorMessage = error.message || 'Failed to upload contract';
       setError(errorMessage);
-      toast.error('Upload failed: ' + errorMessage);
+      toast.error('Upload failed', {
+        description: errorMessage
+      });
       return null;
     } finally {
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 2000);
+      setTimeout(() => {
+        setUploadProgress(0);
+      }, 2000);
     }
-  }, [user]);
+  };
 
-  const selectContract = useCallback((contractId: string) => {
+  // Select a contract for analysis
+  const selectContract = (contractId: string) => {
     console.log('🎯 Selecting contract:', contractId);
-    
-    if (!contractId) {
-      setSelectedContract(null);
-      return;
-    }
-
     const contract = contracts.find(c => c.id === contractId);
     if (contract) {
-      console.log('✅ Contract selected:', {
+      console.log('✅ Contract found and selected:', {
         id: contract.id,
         name: contract.name,
         contentLength: contract.content?.length || 0
       });
       setSelectedContract(contract);
+      setError(null);
     } else {
-      console.error('❌ Contract not found:', contractId);
+      console.error('❌ Contract not found with ID:', contractId);
+      setError('Contract not found');
     }
-  }, [contracts]);
+  };
+
+  // Analyze the selected contract
+  const analyzeSelectedContract = async () => {
+    if (!selectedContract) {
+      console.log('❌ No contract selected for analysis');
+      return null;
+    }
+    
+    try {
+      console.log('🔍 Analyzing contract:', selectedContract.id);
+      setLoading(true);
+      const analysis = await realContractService.analyzeContract(selectedContract.id);
+      console.log('✅ Analysis completed');
+      return analysis;
+    } catch (error: any) {
+      console.error('❌ Analysis error:', error);
+      setError('Failed to analyze contract: ' + error.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ask a question about the selected contract
+  const askQuestion = async (question: string) => {
+    if (!selectedContract) {
+      console.log('❌ No contract selected for question');
+      toast.error('No contract selected');
+      return null;
+    }
+
+    console.log('❓ Asking question about contract:', {
+      contractId: selectedContract.id,
+      question: question.substring(0, 50) + '...'
+    });
+
+    try {
+      setLoading(true);
+      const response = await realContractService.askQuestion(selectedContract.id, question);
+      console.log('✅ Question answered');
+      return response;
+    } catch (error: any) {
+      console.error('❌ Question error:', error);
+      setError('Failed to process question: ' + error.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load contracts when user changes
+  useEffect(() => {
+    if (user) {
+      console.log('👤 User available, loading contracts');
+      loadContracts();
+    } else {
+      console.log('👤 No user, clearing contracts');
+      setContracts([]);
+      setSelectedContract(null);
+    }
+  }, [user]);
+
+  // Debug effect for state changes
+  useEffect(() => {
+    console.log('🔄 useRealContracts state changed:', {
+      contractsCount: contracts.length,
+      selectedContractId: selectedContract?.id,
+      selectedContractContentLength: selectedContract?.content?.length || 0,
+      loading,
+      uploading,
+      error
+    });
+  }, [contracts.length, selectedContract?.id, loading, uploading, error]);
 
   return {
     contracts,
@@ -218,6 +249,8 @@ export const useRealContracts = () => {
     error,
     uploadContract,
     selectContract,
-    loadContracts
+    analyzeSelectedContract,
+    askQuestion,
+    refreshContracts: loadContracts
   };
 };

@@ -12,7 +12,6 @@ import ContractMobileView from './contract/components/ContractMobileView';
 import ContractSidebarWrapper from './contract/components/ContractSidebarWrapper';
 import ContractMainWrapper from './contract/components/ContractMainWrapper';
 import ContractSidebarContent from '@/components/contract/layout/ContractSidebarContent';
-import { Contract } from '@/hooks/contract/useRealContracts';
 
 const RealContractPage: React.FC = () => {
   const { user } = useAuth();
@@ -46,8 +45,8 @@ const RealContractPage: React.FC = () => {
 
   const sidebarContent = (
     <ContractSidebarContent
-      contracts={contracts as Contract[]}
-      selectedContract={selectedContract as Contract | null}
+      contracts={contracts}
+      selectedContract={selectedContract}
       loading={loading}
       uploading={uploading}
       uploadProgress={uploadProgress}
@@ -64,15 +63,15 @@ const RealContractPage: React.FC = () => {
             <ContractPageHeaderWrapper />
           </div>
           
-          <ContractMobileView selectedContract={selectedContract as Contract | null}>
+          <ContractMobileView selectedContract={selectedContract}>
             {sidebarContent}
           </ContractMobileView>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             {/* Desktop Sidebar */}
             <ContractSidebarWrapper
-              contracts={contracts as Contract[]}
-              selectedContract={selectedContract as Contract | null}
+              contracts={contracts}
+              selectedContract={selectedContract}
               loading={loading}
               uploading={uploading}
               uploadProgress={uploadProgress}
@@ -82,7 +81,7 @@ const RealContractPage: React.FC = () => {
             
             {/* Main Content */}
             <ContractMainWrapper
-              selectedContract={selectedContract as Contract | null}
+              selectedContract={selectedContract}
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onAskQuestion={handleAskQuestion}
