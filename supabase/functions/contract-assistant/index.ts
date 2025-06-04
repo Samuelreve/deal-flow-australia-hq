@@ -198,7 +198,7 @@ Please structure your summary with clear sections and highlight the most critica
 
         return new Response(
           JSON.stringify({
-            summary,
+            analysis: summary,
             timestamp: new Date().toISOString()
           }),
           {
@@ -319,7 +319,7 @@ Please structure your summary with clear sections and highlight the most critica
 
       return new Response(
         JSON.stringify({
-          summary,
+          analysis: summary,
           timestamp: new Date().toISOString()
         }),
         {
