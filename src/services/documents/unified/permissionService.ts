@@ -9,6 +9,12 @@ export class DocumentPermissionService {
    * Check if user can upload to deal
    */
   async checkUserCanUploadToDeal(dealId: string, userId: string): Promise<boolean> {
+    // Handle temporary deal IDs during creation flow
+    if (dealId.startsWith('temp-')) {
+      // During deal creation, allow the authenticated user to upload documents
+      return true;
+    }
+
     const { data, error } = await supabase
       .from('deal_participants')
       .select('role')
