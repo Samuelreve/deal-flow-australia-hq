@@ -160,9 +160,9 @@ export const useEnhancedContractAssistant = ({
         throw new Error(functionError.message || 'Failed to generate summary');
       }
 
-      if (!data?.summary) {
-        console.error('❌ No summary received:', data);
-        throw new Error('No summary received from AI service');
+      if (!data?.analysis) {
+        console.error('❌ No analysis received:', data);
+        throw new Error('No analysis received from AI service');
       }
 
       console.log('✅ Summary generated successfully');
@@ -171,7 +171,7 @@ export const useEnhancedContractAssistant = ({
       const summaryItem: QuestionHistoryItem = {
         id: `summary-${Date.now()}`,
         question: 'Contract Summary',
-        answer: data.summary,
+        answer: data.analysis,
         timestamp: new Date(),
         type: 'analysis',
         analysisType: 'summary',
@@ -180,7 +180,7 @@ export const useEnhancedContractAssistant = ({
 
       setQuestionHistory(prev => [summaryItem, ...prev]);
 
-      return data.summary;
+      return data.analysis;
 
     } catch (error) {
       console.error('❌ Error generating summary:', error);
