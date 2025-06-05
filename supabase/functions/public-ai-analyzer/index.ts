@@ -1,8 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
+import { Buffer } from "node:buffer";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
+import OpenAI from "https://esm.sh/openai@4.20.1";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
 
 // CORS headers for public access
 const corsHeaders = {
@@ -13,27 +15,55 @@ const corsHeaders = {
 
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
-  // For simple text files
-  if (mimeType === 'text/plain') {
-    return new TextDecoder().decode(fileBuffer);
-  }
+  const buffer = Buffer.from(fileBuffer);
   
-  // For PDFs - We'll use a simplified approach for the demo
-  // In a production environment, you'd want to use proper PDF extraction libraries
-  if (mimeType === 'application/pdf') {
-    // For demo purposes, return a placeholder text
-    console.log("PDF detected - would normally extract text with pdf-parse");
-    return "This is placeholder text for PDF content. In production, actual PDF text extraction would occur.";
+  if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
+    // Handle plain text files directly
+    return buffer.toString('utf-8');
+  } else if (mimeType === 'application/pdf') {
+    // PDF Text Extraction
+    try {
+      console.log('📄 Extracting text from PDF...');
+      // Use pdf-parse to extract text from the PDF buffer
+      const data = await pdfParse(buffer);
+      if (data && data.text) {
+        // Ensure text is trimmed and has content
+        const extracted = data.text.trim();
+        if (extracted.length < 50) {
+          console.warn('PDF extracted text too short for analysis:', extracted.substring(0, 50));
+          throw new Error("Insufficient text extracted from PDF. Document might be scanned, empty, or unreadable.");
+        }
+        console.log('✅ PDF text extraction successful:', extracted.length, 'characters');
+        return extracted;
+      }
+      throw new Error("No readable text content found in PDF.");
+    } catch (e: any) {
+      console.error('PDF parsing error (pdf-parse):', e.message);
+      throw new Error(`Failed to extract text from PDF. It might be scanned or corrupted: ${e.message}`);
+    }
+  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    // DOCX Text Extraction
+    try {
+      console.log('📄 Extracting text from DOCX...');
+      // mammoth expects an ArrayBuffer, so convert Deno Buffer's underlying ArrayBuffer
+      const result = await mammoth.extractRawText({ arrayBuffer: buffer.buffer });
+      if (result && result.value) {
+        const extracted = result.value.trim();
+        if (extracted.length < 50) {
+          console.warn('DOCX extracted text too short for analysis:', extracted.substring(0, 50));
+          throw new Error("Insufficient text extracted from DOCX. Document might be too short, empty, or unreadable.");
+        }
+        console.log('✅ DOCX text extraction successful:', extracted.length, 'characters');
+        return extracted;
+      }
+      throw new Error("No readable text content found in DOCX.");
+    } catch (e: any) {
+      console.error('DOCX parsing error (mammoth):', e.message);
+      throw new Error(`Failed to extract text from DOCX. It might be corrupted or unsupported format: ${e.message}`);
+    }
   }
-  
-  // For DOCX - Again, simplified for the demo
-  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    console.log("DOCX detected - would normally extract text with mammoth");
-    return "This is placeholder text for DOCX content. In production, actual DOCX text extraction would occur.";
-  }
-  
-  // Default fallback
-  return "Text extraction not supported for this file type.";
+  // Handle any other unsupported MIME types
+  throw new Error(`Unsupported document type for text extraction: ${mimeType}.`);
 }
 
 // Setup OpenAI client
@@ -43,8 +73,7 @@ function setupOpenAI() {
     throw new Error("OPENAI_API_KEY is not set in environment variables");
   }
   
-  const configuration = new Configuration({ apiKey });
-  return new OpenAIApi(configuration);
+  return new OpenAI({ apiKey });
 }
 
 // Helper to analyze contract text with OpenAI
@@ -55,8 +84,8 @@ async function analyzeContractWithAI(text: string): Promise<string> {
     // Limit text length to avoid token limits
     const truncatedText = text.substring(0, 6000);
     
-    const response = await openai.createChatCompletion({
-      model: "gpt-4o",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -80,7 +109,7 @@ Format your response with these sections:
       max_tokens: 1000,
     });
     
-    let analysisText = response.data.choices[0]?.message?.content || "Analysis could not be generated.";
+    let analysisText = completion.choices[0]?.message?.content || "Analysis could not be generated.";
     
     // Add disclaimer
     analysisText += "\n\nDisclaimer: This AI analysis is for informational purposes only and should not be considered legal advice.";
