@@ -125,9 +125,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
   };
 
   const hasRequiredDocuments = () => {
-    return REQUIRED_DOCUMENTS.every(reqDoc => 
-      data.uploadedDocuments.some(doc => doc.category === reqDoc)
-    );
+    return true; // Remove required document validation
   };
 
   return (
@@ -135,8 +133,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
       <Alert>
         <FileText className="h-4 w-4" />
         <AlertDescription>
-          Upload your business documents securely. Required documents are needed to proceed, 
-          while recommended documents help speed up the due diligence process.
+          Upload your business documents securely. Documents help speed up the due diligence process.
           {dealId ? ' Documents will be associated with your deal.' : ' Documents will be temporarily stored and linked to your deal once created.'}
         </AlertDescription>
       </Alert>
@@ -167,7 +164,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
           className="min-w-[160px]"
           disabled={!hasRequiredDocuments() || uploading}
         >
-          {uploading ? 'Uploading...' : hasRequiredDocuments() ? 'Review & Submit' : 'Upload Required Documents'}
+          {uploading ? 'Uploading...' : 'Review & Submit'}
         </Button>
       </div>
     </div>
