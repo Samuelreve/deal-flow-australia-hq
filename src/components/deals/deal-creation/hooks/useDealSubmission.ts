@@ -145,11 +145,45 @@ export const useDealSubmission = () => {
         // Don't fail the whole operation
       }
 
-      // Verify all uploaded documents are properly linked to the final deal
-      if (formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
+      // Migrate temporary documents to the final deal
+      if (tempDealId && formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
+        console.log('Migrating temporary documents to final deal:', finalDealId);
+        
+        try {
+          // Call the migration edge function to move files from temp to real deal paths
+          const { data: migrationResult, error: migrationError } = await supabase.functions.invoke(
+            'migrate-temp-documents',
+            {
+              body: {
+                tempDealId: tempDealId,
+                realDealId: finalDealId
+              }
+            }
+          );
+
+          if (migrationError) {
+            console.error('Error migrating documents:', migrationError);
+            toast({
+              title: "Document Migration Warning",
+              description: "Deal created but some documents may need manual review.",
+              variant: "default"
+            });
+          } else {
+            console.log('Document migration completed:', migrationResult);
+          }
+        } catch (migrationErr) {
+          console.error('Error calling migration function:', migrationErr);
+          // Don't fail the whole operation, just warn the user
+          toast({
+            title: "Document Migration Warning", 
+            description: "Deal created but some documents may need manual review.",
+            variant: "default"
+          });
+        }
+      } else if (formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
+        // For non-temp deals, just verify document linkage
         console.log('Verifying document linkage for deal:', finalDealId);
         
-        // Check if documents need to be updated to point to the final deal
         const { data: existingDocs } = await supabase
           .from('documents')
           .select('id, deal_id')

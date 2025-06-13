@@ -1661,6 +1661,14 @@ export type Database = {
         Args: { profile_id: string }
         Returns: boolean
       }
+      migrate_temp_documents_to_deal: {
+        Args: {
+          p_temp_deal_id: string
+          p_real_deal_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       save_notification_settings: {
         Args: {
           p_user_id: string
