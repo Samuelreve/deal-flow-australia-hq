@@ -3,8 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4.20.1";
 import { Buffer } from "node:buffer";
-import pdfParse from "pdf-parse";
-import mammoth from "mammoth";
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
+import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
