@@ -32,6 +32,33 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
     fetchDocuments();
   }, [dealId]);
 
+  // Real-time subscription for document updates
+  useEffect(() => {
+    if (!dealId) return;
+
+    const channel = supabase
+      .channel('document-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `deal_id=eq.${dealId}`
+        },
+        (payload) => {
+          console.log('Document updated:', payload.new);
+          // Refresh documents when any document in this deal changes
+          fetchDocuments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealId]);
+
   const fetchDocuments = async () => {
     try {
       const { data: documentsData, error: documentsError } = await supabase
@@ -58,6 +85,16 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
 
   const handleReviewSubmit = async (documentId: string, status: 'approved' | 'rejected') => {
     try {
+      // Check if document is already signed to prevent double-approval
+      const currentDoc = documents.find(doc => doc.id === documentId);
+      if (currentDoc?.status === 'signed') {
+        toast({
+          title: "Already Approved",
+          description: "This document has already been approved",
+          variant: "destructive"
+        });
+        return;
+      }
       // Add a comment about the review
       if (reviewComment.trim()) {
         const { error: commentError } = await supabase
