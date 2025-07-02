@@ -3,7 +3,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftCircle } from "lucide-react";
+import { ArrowLeftCircle, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Deal } from "@/types/deal";
 import { StatusBadge } from "@/components/deals/status/StatusBadge";
@@ -29,6 +29,10 @@ const DealHeader: React.FC<DealHeaderProps> = ({
   const goBackToDealsList = () => {
     navigate("/deals");
   };
+
+  const goToDealRoom = () => {
+    navigate(`/deal-room/${deal.id}`);
+  };
   
   return (
     <div className="mb-6">
@@ -43,10 +47,22 @@ const DealHeader: React.FC<DealHeaderProps> = ({
         
         <div className="flex items-center gap-2">
           {isParticipant && (
-            <DealSummaryButton 
-              dealId={deal.id}
-              userRole={userRole}
-            />
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToDealRoom}
+                className="flex items-center gap-1"
+              >
+                <Users className="h-4 w-4" />
+                Deal Room
+              </Button>
+              
+              <DealSummaryButton 
+                dealId={deal.id}
+                userRole={userRole}
+              />
+            </>
           )}
           
           <StatusChangeControl 

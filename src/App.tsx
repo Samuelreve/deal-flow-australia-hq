@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from "react-
 import Dashboard from "@/pages/Dashboard";
 import DealsPage from "@/pages/DealsPage";
 import DealDetailsPage from "@/pages/DealDetailsPage";
+import DealRoomPage from "@/pages/DealRoomPage";
 import SettingsPage from "@/pages/SettingsPage";
 import Login from "@/pages/Login";
 import SignUp from "@/pages/SignUp";
@@ -78,6 +79,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/deals" element={<DealsPage />} />
                 <Route path="/deals/:dealId" element={<DealDetailsPage />} />
+                <Route path="/deal-room/:dealId" element={<DealRoomPage />} />
                 <Route path="/create-deal" element={<CreateDealPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
