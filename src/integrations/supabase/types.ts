@@ -512,6 +512,7 @@ export type Database = {
           invitee_email: string
           invitee_role: Database["public"]["Enums"]["user_role"]
           status: string
+          token_expires_at: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -524,6 +525,7 @@ export type Database = {
           invitee_email: string
           invitee_role: Database["public"]["Enums"]["user_role"]
           status?: string
+          token_expires_at?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -536,6 +538,7 @@ export type Database = {
           invitee_email?: string
           invitee_role?: Database["public"]["Enums"]["user_role"]
           status?: string
+          token_expires_at?: string | null
         }
         Relationships: [
           {
