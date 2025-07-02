@@ -27,6 +27,18 @@ interface ParticipantInvitationsProps {
   onInvitationSent: () => void;
 }
 
+interface InvitationsResponse {
+  success?: boolean;
+  invitations?: Invitation[];
+}
+
+interface CreateInvitationResponse {
+  success?: boolean;
+  message?: string;
+}
+
+type UserRole = 'admin' | 'seller' | 'buyer' | 'lawyer' | 'advisor';
+
 const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
   dealId,
   userRole,
@@ -39,7 +51,7 @@ const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: '',
-    role: 'buyer'
+    role: 'buyer' as UserRole
   });
 
   const canInvite = userRole === 'admin' || userRole === 'seller';
@@ -65,8 +77,11 @@ const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
           description: "Failed to load invitations",
           variant: "destructive"
         });
-      } else if (data?.success) {
-        setInvitations(data.invitations || []);
+      } else if (data) {
+        const response = data as InvitationsResponse;
+        if (response?.success) {
+          setInvitations(response.invitations || []);
+        }
       }
     } catch (error) {
       console.error('Error fetching invitations:', error);
@@ -100,7 +115,8 @@ const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
         throw error;
       }
 
-      if (data?.success) {
+      const response = data as CreateInvitationResponse;
+      if (response?.success) {
         toast({
           title: "Invitation Sent",
           description: `Invitation sent to ${inviteForm.email}`,
@@ -111,7 +127,7 @@ const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
         fetchInvitations();
         onInvitationSent();
       } else {
-        throw new Error(data?.message || 'Failed to send invitation');
+        throw new Error(response?.message || 'Failed to send invitation');
       }
     } catch (error: any) {
       console.error('Error sending invitation:', error);
@@ -195,13 +211,14 @@ const ParticipantInvitations: React.FC<ParticipantInvitationsProps> = ({
                 
                 <div>
                   <Label htmlFor="role">Role</Label>
-                  <Select value={inviteForm.role} onValueChange={(value) => setInviteForm({ ...inviteForm, role: value })}>
+                  <Select value={inviteForm.role} onValueChange={(value: UserRole) => setInviteForm({ ...inviteForm, role: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="buyer">Buyer</SelectItem>
                       <SelectItem value="lawyer">Lawyer</SelectItem>
+                      <SelectItem value="advisor">Advisor</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>

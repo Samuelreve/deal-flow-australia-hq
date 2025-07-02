@@ -21,6 +21,11 @@ interface DealCompletionProps {
   userRole: string | null;
 }
 
+interface UpdateStatusResponse {
+  success?: boolean;
+  message?: string;
+}
+
 const DealCompletion: React.FC<DealCompletionProps> = ({ dealId, deal, userRole }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -45,7 +50,10 @@ const DealCompletion: React.FC<DealCompletionProps> = ({ dealId, deal, userRole 
         throw error;
       }
 
-      if (data?.success) {
+      // Type guard for the response
+      const response = data as UpdateStatusResponse;
+      
+      if (response?.success) {
         // Add completion notes if provided
         if (completionNotes.trim()) {
           await supabase
@@ -67,7 +75,7 @@ const DealCompletion: React.FC<DealCompletionProps> = ({ dealId, deal, userRole 
           navigate('/deals');
         }, 2000);
       } else {
-        throw new Error(data?.message || 'Failed to complete deal');
+        throw new Error(response?.message || 'Failed to complete deal');
       }
     } catch (error: any) {
       console.error('Error completing deal:', error);
