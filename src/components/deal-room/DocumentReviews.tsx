@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,10 +74,14 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
         }
       }
 
+      // Map review status to document status
+      // approved -> signed, rejected -> draft
+      const documentStatus = status === 'approved' ? 'signed' : 'draft';
+
       // Update document status
       const { error: updateError } = await supabase
         .from('documents')
-        .update({ status: status === 'approved' ? 'approved' : 'rejected' })
+        .update({ status: documentStatus })
         .eq('id', documentId);
 
       if (updateError) {
@@ -105,11 +108,11 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'approved':
+      case 'signed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'rejected':
+      case 'draft':
         return <XCircle className="h-5 w-5 text-red-500" />;
-      case 'pending':
+      case 'final':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       default:
         return <Upload className="h-5 w-5 text-gray-500" />;
@@ -118,14 +121,27 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'approved':
+      case 'signed':
         return 'bg-green-100 text-green-800';
-      case 'rejected':
+      case 'draft':
         return 'bg-red-100 text-red-800';
-      case 'pending':
+      case 'final':
         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'signed':
+        return 'Approved';
+      case 'draft':
+        return 'Needs Review';
+      case 'final':
+        return 'Under Review';
+      default:
+        return status;
     }
   };
 
@@ -188,7 +204,7 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
                     <div className="flex items-center space-x-2">
                       {getStatusIcon(document.status)}
                       <Badge className={getStatusColor(document.status)}>
-                        {document.status || 'Uploaded'}
+                        {getStatusLabel(document.status)}
                       </Badge>
                     </div>
                   </div>
@@ -228,7 +244,7 @@ const DocumentReviews: React.FC<DocumentReviewsProps> = ({ dealId, userRole }) =
                     </div>
                   )}
                   
-                  {reviewingDoc !== document.id && document.status !== 'approved' && document.status !== 'rejected' && (
+                  {reviewingDoc !== document.id && document.status !== 'signed' && (
                     <div className="mt-4">
                       <Button
                         variant="outline"
