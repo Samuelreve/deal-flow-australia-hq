@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -1500,7 +1524,12 @@ export type Database = {
     Functions: {
       accept_invitation: {
         Args: { p_token: string; p_user_id: string }
-        Returns: boolean
+        Returns: {
+          success: boolean
+          deal_id: string
+          invitee_role: Database["public"]["Enums"]["user_role"]
+          message: string
+        }[]
       }
       create_custom_metric: {
         Args: {

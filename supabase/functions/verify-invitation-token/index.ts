@@ -37,7 +37,8 @@ const handler = async (req: Request): Promise<Response> => {
         created_at,
         status,
         deal_id,
-        invited_by_user_id
+        invited_by_user_id,
+        token_expires_at
       `)
       .eq("invitation_token", token)
       .single();
@@ -55,6 +56,14 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "This invitation has already been used or cancelled" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if invitation has expired
+    if (invitation.token_expires_at && new Date(invitation.token_expires_at) < new Date()) {
+      return new Response(
+        JSON.stringify({ error: "This invitation has expired. Please request a new invitation." }),
+        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

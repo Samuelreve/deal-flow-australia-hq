@@ -114,15 +114,37 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     // Transaction: Add the user as a participant and update the invitation status
-    const { error: transactionError } = await supabaseAdmin.rpc("accept_invitation", {
+    const { data: acceptResult, error: transactionError } = await supabaseAdmin.rpc("accept_invitation", {
       p_token: invitationToken,
       p_user_id: user.id
     });
     
     if (transactionError) {
       console.error("Transaction error:", transactionError);
+      
+      // Handle specific error codes for better frontend error handling
+      let errorMessage = transactionError.message || "Failed to accept invitation";
+      let statusCode = 500;
+      
+      if (transactionError.code === '22007') {
+        errorMessage = "This invitation has expired. Please request a new invitation.";
+        statusCode = 410; // Gone - resource no longer available
+      } else if (transactionError.code === '22000') {
+        errorMessage = "Invalid or already used invitation token.";
+        statusCode = 404;
+      }
+      
       return new Response(
-        JSON.stringify({ error: transactionError.message || "Failed to accept invitation" }),
+        JSON.stringify({ error: errorMessage, errorCode: transactionError.code }),
+        { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Extract result data
+    const result = acceptResult?.[0];
+    if (!result?.success) {
+      return new Response(
+        JSON.stringify({ error: "Failed to accept invitation" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -144,8 +166,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Invitation accepted successfully",
-        dealId: invitation.deal_id
+        message: result.message,
+        dealId: result.deal_id,
+        inviteeRole: result.invitee_role
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
