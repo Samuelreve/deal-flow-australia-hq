@@ -135,7 +135,13 @@ serve(async (req) => {
     console.log("✅ Handling OPTIONS preflight request");
     return new Response('ok', {
       status: 200,
-      headers: corsHeaders
+      // headers: corsHeaders
+      headers: {
+      'Access-Control-Allow-Origin': 'https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     });
   }
   
