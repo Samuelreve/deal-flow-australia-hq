@@ -91,21 +91,33 @@ class RealContractService {
       console.log('📝 Session available:', !!session);
       console.log('📝 Session token length:', session?.access_token?.length || 0);
 
-      // Call the public AI analyzer edge function
-      const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
-        body: formData
+      // Call the public AI analyzer edge function directly with fetch
+      // Using direct fetch to avoid automatic auth headers since this is a public endpoint
+      const response = await fetch(`https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/public-ai-analyzer`, {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header - let browser set it with boundary for FormData
       });
 
       console.log('📤 Request headers debug:', {
         hasSession: !!session,
         tokenPresent: !!session?.access_token,
-        functionName: 'public-ai-analyzer'
+        functionName: 'public-ai-analyzer',
+        responseStatus: response.status,
+        responseOk: response.ok
       });
 
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw new Error(`AI analysis failed: ${error.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Edge function error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`AI analysis failed: ${response.statusText}`);
       }
+
+      const data = await response.json();
 
       if (!data || !data.success) {
         console.error('❌ AI analysis failed:', data);
