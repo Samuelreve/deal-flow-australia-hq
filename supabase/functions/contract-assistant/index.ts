@@ -78,7 +78,7 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+    return new Response(null, { headers: corsHeaders, status: 200 });
   }
 
   try {
@@ -248,7 +248,7 @@ Please provide a detailed answer based on the contract content.`;
         // Fetch contract directly from contracts table
         const { data: contract, error: contractError } = await supabase
           .from('contracts')
-          .select('content, name')
+          .select('content, name, mime_type')
           .eq('id', documentId)
           .eq('user_id', user.id)
           .single();
@@ -264,7 +264,29 @@ Please provide a detailed answer based on the contract content.`;
           );
         }
 
-        const contractText = contract.content;
+        let contractText: string;
+        
+        // Check if content is binary data that needs extraction
+        if (contract.content.startsWith('N docProps PKN') || contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          console.log('📄 Detected binary DOCX content, extracting text...');
+          try {
+            // Convert content string back to buffer for text extraction
+            const contentBuffer = Buffer.from(contract.content, 'binary');
+            contractText = await extractTextFromFile(contentBuffer, contract.mime_type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            console.log('✅ Text extraction successful for demo contract');
+          } catch (extractionError: any) {
+            console.error('❌ Text extraction failed for demo contract:', extractionError.message);
+            return new Response(
+              JSON.stringify({ error: `Failed to extract text from demo contract: ${extractionError.message}` }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 400 
+              }
+            );
+          }
+        } else {
+          contractText = contract.content;
+        }
         
         console.log('📄 Contract found:', {
           name: contract.name,
@@ -517,7 +539,7 @@ Please structure your summary with clear sections and highlight the most critica
       if (dealId === 'demo-deal') {
         const { data: contract, error: contractError } = await supabase
           .from('contracts')
-          .select('content')
+          .select('content, mime_type')
           .eq('id', documentId)
           .eq('user_id', user.id)
           .single();
@@ -532,7 +554,27 @@ Please structure your summary with clear sections and highlight the most critica
           );
         }
 
-        contractText = contract.content;
+        // Check if content is binary data that needs extraction
+        if (contract.content.startsWith('N docProps PKN') || contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          console.log('📄 Detected binary DOCX content for Q&A, extracting text...');
+          try {
+            // Convert content string back to buffer for text extraction
+            const contentBuffer = Buffer.from(contract.content, 'binary');
+            contractText = await extractTextFromFile(contentBuffer, contract.mime_type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            console.log('✅ Text extraction successful for demo contract Q&A');
+          } catch (extractionError: any) {
+            console.error('❌ Text extraction failed for demo contract Q&A:', extractionError.message);
+            return new Response(
+              JSON.stringify({ error: `Failed to extract text from demo contract: ${extractionError.message}` }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 400 
+              }
+            );
+          }
+        } else {
+          contractText = contract.content;
+        }
       } else {
         // For real deals, check participant access and fetch from storage
         const { data: participation, error: participationError } = await supabase
