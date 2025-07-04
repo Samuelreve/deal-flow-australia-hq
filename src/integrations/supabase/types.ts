@@ -1531,6 +1531,10 @@ export type Database = {
           message: string
         }[]
       }
+      check_deal_participation: {
+        Args: { p_deal_id: string; p_user_id: string }
+        Returns: boolean
+      }
       create_custom_metric: {
         Args: {
           p_deal_id: string
