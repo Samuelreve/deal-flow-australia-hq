@@ -6,12 +6,13 @@ import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 // CORS headers for public access
-const getCorsHeaders = (origin: string | null) => ({
+const corsHeaders = {
     'Access-Control-Allow-Origin': 'https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-});
+};
+
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
   
@@ -126,22 +127,14 @@ Format your response with these sections:
 }
 
 serve(async (req) => {
-  const origin = req.headers.get('origin');
-  const corsHeaders = getCorsHeaders(origin);
-  console.log(`📥 Received ${req.method} request from ${origin}`);
+  console.log(`📥 Received ${req.method} request from ${req.headers.get('origin')}`);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("✅ Handling OPTIONS preflight request");
-    return new Response('ok', {
+    return new Response(null, {
       status: 200,
-      // headers: corsHeaders
-      headers: {
-      'Access-Control-Allow-Origin': 'https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      headers: corsHeaders
     });
   }
   
