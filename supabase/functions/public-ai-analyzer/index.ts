@@ -89,7 +89,7 @@ async function analyzeContractWithAI(text: string): Promise<string> {
     const truncatedText = text.substring(0, 6000);
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-2025-04-14",
       messages: [
         {
           role: "system",
