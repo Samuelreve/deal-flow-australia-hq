@@ -344,14 +344,6 @@ serve(async (req) => {
 
     console.log("✅ File processing successful, text length:", text.length);
     
-    // Clean the text to remove problematic Unicode escape sequences
-    const cleanedText = text
-      .replace(/\\u[0-9a-fA-F]{4}/g, ' ') // Remove Unicode escape sequences like \u0000
-      .replace(/\\[nrtbfv]/g, ' ') // Remove other escape sequences
-      .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
-
     // Generate simple analysis for now (we'll add OpenAI later)
     const analysis = `Document Analysis:
 
@@ -361,7 +353,7 @@ serve(async (req) => {
 4. Key Terms: [Important terms would be extracted here]
 5. Important Dates: [Relevant dates would be identified here]
 
-Content Preview: ${cleanedText.substring(0, 200)}...
+Content Preview: ${text.substring(0, 200)}...
 
 Note: This is a simplified analysis. Full AI analysis will be implemented once basic functionality is confirmed.
 
@@ -377,7 +369,7 @@ Disclaimer: This AI analysis is for informational purposes only and should not b
           size: file.size,
           lastModified: new Date().toISOString(),
         },
-        text: cleanedText.substring(0, 5000), // Truncate text to avoid large responses
+        text: text.substring(0, 5000), // Truncate text to avoid large responses
         analysis: analysis,
       }),
       { 
