@@ -1,9 +1,8 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4.20.1";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
-import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 // CORS headers for public access
 const corsHeaders = {
@@ -14,54 +13,24 @@ const corsHeaders = {
 
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
+  console.log('📄 Extracting text from file type:', mimeType);
   
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
     // Handle plain text files directly
-    return new TextDecoder().decode(fileBuffer);
+    const text = new TextDecoder().decode(fileBuffer);
+    console.log('✅ Text extraction successful:', text.length, 'characters');
+    return text;
   } else if (mimeType === 'application/pdf') {
-    // PDF Text Extraction
-    try {
-      console.log('📄 Extracting text from PDF...');
-      // Use pdf-parse to extract text from the PDF buffer
-      const data = await pdfParse(fileBuffer);
-      if (data && data.text) {
-        // Ensure text is trimmed and has content
-        const extracted = data.text.trim();
-        if (extracted.length < 50) {
-          console.warn('PDF extracted text too short for analysis:', extracted.substring(0, 50));
-          throw new Error("Insufficient text extracted from PDF. Document might be scanned, empty, or unreadable.");
-        }
-        console.log('✅ PDF text extraction successful:', extracted.length, 'characters');
-        return extracted;
-      }
-      throw new Error("No readable text content found in PDF.");
-    } catch (e: any) {
-      console.error('PDF parsing error (pdf-parse):', e.message);
-      throw new Error(`Failed to extract text from PDF. It might be scanned or corrupted: ${e.message}`);
-    }
+    // For now, return a message that PDF processing is not supported
+    // This prevents the function from crashing
+    throw new Error("PDF processing is temporarily disabled. Please convert your document to a text file (.txt) for analysis.");
   } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    // DOCX Text Extraction
-    try {
-      console.log('📄 Extracting text from DOCX...');
-      // mammoth expects an ArrayBuffer, so use the fileBuffer's ArrayBuffer
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer.buffer });
-      if (result && result.value) {
-        const extracted = result.value.trim();
-        if (extracted.length < 50) {
-          console.warn('DOCX extracted text too short for analysis:', extracted.substring(0, 50));
-          throw new Error("Insufficient text extracted from DOCX. Document might be too short, empty, or unreadable.");
-        }
-        console.log('✅ DOCX text extraction successful:', extracted.length, 'characters');
-        return extracted;
-      }
-      throw new Error("No readable text content found in DOCX.");
-    } catch (e: any) {
-      console.error('DOCX parsing error (mammoth):', e.message);
-      throw new Error(`Failed to extract text from DOCX. It might be corrupted or unsupported format: ${e.message}`);
-    }
+    // For now, return a message that DOCX processing is not supported
+    // This prevents the function from crashing
+    throw new Error("DOCX processing is temporarily disabled. Please convert your document to a text file (.txt) for analysis.");
   }
   // Handle any other unsupported MIME types
-  throw new Error(`Unsupported document type for text extraction: ${mimeType}.`);
+  throw new Error(`Unsupported document type: ${mimeType}. Please upload a text file (.txt) for analysis.`);
 }
 
 // Setup OpenAI client
@@ -191,16 +160,17 @@ serve(async (req) => {
       );
     }
 
-    // Validate file type
+    // Validate file type - currently only supporting text files
     const allowedTypes = [
-      "text/plain",
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "text/plain"
     ];
     
     if (!allowedTypes.includes(file.type)) {
       return new Response(
-        JSON.stringify({ error: "Invalid file type. Please upload a .txt, .pdf, or .docx file." }),
+        JSON.stringify({ 
+          error: "Currently only text files (.txt) are supported. PDF and DOCX support is temporarily disabled.",
+          supportedTypes: ["text/plain"]
+        }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
           status: 400 
