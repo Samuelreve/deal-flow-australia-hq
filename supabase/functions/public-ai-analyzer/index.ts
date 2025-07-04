@@ -6,21 +6,10 @@ import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 // CORS headers for public access
-const getCorsHeaders = (origin: string | null) => {
-  // Allow specific Lovable origins
-  const allowedOrigins = [
-    'https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com',
-    'https://id-preview--dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovable.app'
-  ];
-  
-  const allowOrigin = allowedOrigins.includes(origin || '') ? origin : allowedOrigins[0];
-  
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 // Helper function to extract text from different file types
@@ -139,7 +128,6 @@ Format your response with these sections:
 serve(async (req) => {
   // Always set up CORS headers first to ensure they're available for all responses
   const origin = req.headers.get('origin');
-  const corsHeaders = getCorsHeaders(origin);
   console.log(`📥 Received ${req.method} request from ${origin}`);
   
   // Handle CORS preflight requests immediately
