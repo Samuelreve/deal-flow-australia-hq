@@ -113,11 +113,15 @@ serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     
+    
     console.log("📁 File received:", {
       name: file?.name || 'unknown',
       type: file?.type || 'unknown',
       size: file?.size || 0
     });
+    
+    console.log("🔍 DEBUGGING - Current timestamp:", new Date().toISOString());
+    console.log("🔍 DEBUGGING - Function version: v2.0 - PDF/DOCX support enabled");
     
     if (!file) {
       return new Response(
@@ -139,9 +143,10 @@ serve(async (req) => {
     if (!supportedTypes.includes(file.type)) {
       return new Response(
         JSON.stringify({ 
-          error: "Supported file types: .txt, .pdf, .docx",
+          error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .docx (Word documents)",
           receivedType: file.type,
-          supportedTypes
+          supportedTypes,
+          timestamp: new Date().toISOString()
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
