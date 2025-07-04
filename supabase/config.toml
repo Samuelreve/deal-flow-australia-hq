@@ -160,3 +160,6 @@ function_timeout_seconds = 30
 
 [functions.document-analysis]
 verify_jwt = true
+
+[functions.public-ai-analyzer]
+verify_jwt = false
