@@ -120,8 +120,11 @@ Format your response with these sections:
 }
 
 serve(async (req) => {
+  console.log(`📥 Received ${req.method} request from ${req.headers.get('origin')}`);
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("✅ Handling OPTIONS preflight request");
     return new Response('ok', {
       status: 200,
       headers: corsHeaders
@@ -140,9 +143,18 @@ serve(async (req) => {
   }
 
   try {
+    console.log("📝 Processing POST request...");
+    
     // Parse the multipart form data to get the file
+    console.log("📦 Parsing form data...");
     const formData = await req.formData();
     const file = formData.get("file");
+    
+    console.log("📁 File received:", {
+      name: file instanceof File ? file.name : 'unknown',
+      type: file instanceof File ? file.type : 'unknown',
+      size: file instanceof File ? file.size : 0
+    });
     
     if (!file || !(file instanceof File)) {
       return new Response(
