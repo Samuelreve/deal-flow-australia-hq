@@ -7,6 +7,42 @@ async function extractText(file: File): Promise<string> {
   if (fileType === "text/plain") {
     return await file.text();
   } 
+  else if (fileType === "application/rtf" || fileType === "text/rtf") {
+    // RTF (Rich Text Format) extraction
+    try {
+      const text = await file.text();
+      
+      // Basic RTF parsing - remove RTF control codes and extract plain text
+      let cleanText = text
+        // Remove RTF header
+        .replace(/^{\\rtf1[^}]*}/, '')
+        // Remove font table
+        .replace(/{\\fonttbl[^}]*}/g, '')
+        // Remove color table
+        .replace(/{\\colortbl[^}]*}/g, '')
+        // Remove style sheets
+        .replace(/{\\stylesheet[^}]*}/g, '')
+        // Remove info group
+        .replace(/{\\info[^}]*}/g, '')
+        // Remove control words with parameters
+        .replace(/\\[a-z]+\d*\s?/g, '')
+        // Remove control symbols
+        .replace(/\\[^a-z\s]/g, '')
+        // Remove remaining braces and cleanup
+        .replace(/[{}]/g, '')
+        // Normalize whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      if (cleanText.length > 50) {
+        return cleanText;
+      }
+      
+      throw new Error("Could not extract sufficient text from RTF file");
+    } catch (error) {
+      throw new Error(`RTF text extraction failed: ${error.message}`);
+    }
+  }
   else if (fileType === "application/pdf") {
     // For PDF files, we'll try to extract text using a simpler approach
     // Note: Full PDF parsing is complex, this is a basic implementation
@@ -133,17 +169,19 @@ serve(async (req) => {
       );
     }
 
-    // Validate file type - support text, PDF, and DOCX files
+    // Validate file type - support text, PDF, DOCX, and RTF files
     const supportedTypes = [
       "text/plain",
       "application/pdf", 
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/rtf",
+      "text/rtf"
     ];
     
     if (!supportedTypes.includes(file.type)) {
       return new Response(
         JSON.stringify({ 
-          error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .docx (Word documents)",
+          error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .docx (Word documents), .rtf (Rich Text Format)",
           receivedType: file.type,
           supportedTypes,
           timestamp: new Date().toISOString()
