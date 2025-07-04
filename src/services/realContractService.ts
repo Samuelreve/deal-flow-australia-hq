@@ -86,9 +86,20 @@ class RealContractService {
 
       console.log('🤖 Calling public-ai-analyzer edge function...');
 
+      // Get session to debug headers
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('📝 Session available:', !!session);
+      console.log('📝 Session token length:', session?.access_token?.length || 0);
+
       // Call the public AI analyzer edge function
       const { data, error } = await supabase.functions.invoke('public-ai-analyzer', {
         body: formData
+      });
+
+      console.log('📤 Request headers debug:', {
+        hasSession: !!session,
+        tokenPresent: !!session?.access_token,
+        functionName: 'public-ai-analyzer'
       });
 
       if (error) {
