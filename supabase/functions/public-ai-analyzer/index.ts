@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-  "Content-Type": "application/json",
+  "Access-Control-Max-Age": "86400",
 };
 
 // Helper function to extract text from different file types
@@ -123,14 +123,20 @@ Format your response with these sections:
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
   
   // Only allow POST requests
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
-      { headers: corsHeaders, status: 405 }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 405 
+      }
     );
   }
 
@@ -142,7 +148,10 @@ serve(async (req) => {
     if (!file || !(file instanceof File)) {
       return new Response(
         JSON.stringify({ error: "No file provided or invalid file" }),
-        { headers: corsHeaders, status: 400 }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 400 
+        }
       );
     }
 
@@ -156,7 +165,10 @@ serve(async (req) => {
     if (!allowedTypes.includes(file.type)) {
       return new Response(
         JSON.stringify({ error: "Invalid file type. Please upload a .txt, .pdf, or .docx file." }),
-        { headers: corsHeaders, status: 400 }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 400 
+        }
       );
     }
     
@@ -165,7 +177,10 @@ serve(async (req) => {
     if (file.size > MAX_FILE_SIZE) {
       return new Response(
         JSON.stringify({ error: "File too large. Maximum size is 5MB." }),
-        { headers: corsHeaders, status: 400 }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 400 
+        }
       );
     }
     
@@ -194,7 +209,9 @@ serve(async (req) => {
         text: text.substring(0, 10000), // Truncate text to avoid large responses
         analysis,
       }),
-      { headers: corsHeaders }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
     );
     
   } catch (error) {
@@ -205,7 +222,10 @@ serve(async (req) => {
         error: "Failed to analyze document",
         message: error instanceof Error ? error.message : "Unknown error",
       }),
-      { headers: corsHeaders, status: 500 }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 500 
+      }
     );
   }
 });
