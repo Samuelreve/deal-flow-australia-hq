@@ -1,9 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { Buffer } from "node:buffer";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4.20.1";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
-import mammoth from "https://esm.sh/mammoth@1.6.0";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
 
 // CORS headers for public access
 const corsHeaders = {
@@ -15,15 +16,17 @@ const corsHeaders = {
 
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
+  const buffer = Buffer.from(fileBuffer);
+  
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
     // Handle plain text files directly
-    return new TextDecoder().decode(fileBuffer);
+    return buffer.toString('utf-8');
   } else if (mimeType === 'application/pdf') {
     // PDF Text Extraction
     try {
       console.log('📄 Extracting text from PDF...');
       // Use pdf-parse to extract text from the PDF buffer
-      const data = await pdfParse(fileBuffer);
+      const data = await pdfParse(buffer);
       if (data && data.text) {
         // Ensure text is trimmed and has content
         const extracted = data.text.trim();
@@ -43,8 +46,8 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
     // DOCX Text Extraction
     try {
       console.log('📄 Extracting text from DOCX...');
-      // mammoth expects an ArrayBuffer, so use fileBuffer's underlying ArrayBuffer
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer.buffer });
+      // mammoth expects an ArrayBuffer, so convert Deno Buffer's underlying ArrayBuffer
+      const result = await mammoth.extractRawText({ arrayBuffer: buffer.buffer });
       if (result && result.value) {
         const extracted = result.value.trim();
         if (extracted.length < 50) {
