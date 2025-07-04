@@ -6,12 +6,13 @@ import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 // CORS headers for public access
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const getCorsHeaders = (origin: string | null) => ({
+  "Access-Control-Allow-Origin": origin || "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Credentials": "true",
   "Access-Control-Max-Age": "86400",
-};
+});
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
   
@@ -126,7 +127,9 @@ Format your response with these sections:
 }
 
 serve(async (req) => {
-  console.log(`📥 Received ${req.method} request from ${req.headers.get('origin')}`);
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+  console.log(`📥 Received ${req.method} request from ${origin}`);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
