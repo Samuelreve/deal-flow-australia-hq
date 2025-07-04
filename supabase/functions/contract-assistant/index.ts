@@ -111,6 +111,86 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const openai = new OpenAI({ apiKey: openAIApiKey });
 
+    // Handle legacy format (direct question/contractText/contractId)
+    if (requestData.question && requestData.contractText && !requestData.requestType) {
+      console.log('📝 Processing legacy question format');
+      
+      const { question, contractText, contractId } = requestData;
+      
+      if (!contractText || contractText.length < 50) {
+        console.error('❌ Contract text too short or empty');
+        return new Response(
+          JSON.stringify({ error: 'Contract text is too short or empty for analysis' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+
+      console.log('🤖 Processing legacy question with OpenAI');
+      
+      let answer = "";
+      
+      if (question.toLowerCase().includes("summar")) {
+        const systemPrompt = `You are a professional legal document analyst. Provide a comprehensive contract summary focusing on key terms, obligations, financial aspects, and important provisions.`;
+        
+        const userPrompt = `Please provide a comprehensive summary of the following contract:
+
+CONTRACT DOCUMENT:
+${contractText}
+
+Focus on: parties involved, key obligations, financial terms, important dates, termination conditions, and risk factors.`;
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000
+        });
+
+        answer = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
+      } else {
+        const systemPrompt = `You are a professional contract analyst. Answer questions about contract content with accuracy and clarity. Provide specific information when available and note any limitations.`;
+        
+        const userPrompt = `Based on the following contract, please answer this question: ${question}
+
+CONTRACT DOCUMENT:
+${contractText}
+
+Please provide a detailed answer based on the contract content.`;
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 1500
+        });
+
+        answer = completion.choices[0]?.message?.content || "I couldn't answer the question. Please try again.";
+      }
+
+      console.log('✅ Legacy question processed successfully');
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          answer: answer,
+          sources: ["AI Analysis", "Contract Content Review"],
+          contractId: contractId
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
     // Handle new request types
     if (requestData.requestType === 'summarize_contract_terms') {
       console.log('🔍 Processing contract terms summarization request');
