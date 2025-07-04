@@ -100,7 +100,7 @@ async function analyzeContractWithAI(text: string): Promise<string> {
     const truncatedText = text.substring(0, 6000);
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -137,11 +137,12 @@ Format your response with these sections:
 }
 
 serve(async (req) => {
+  // Always set up CORS headers first to ensure they're available for all responses
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
   console.log(`📥 Received ${req.method} request from ${origin}`);
   
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests immediately
   if (req.method === "OPTIONS") {
     console.log("✅ Handling OPTIONS preflight request");
     return new Response(null, {
@@ -152,11 +153,28 @@ serve(async (req) => {
   
   // Only allow POST requests
   if (req.method !== "POST") {
+    console.log(`❌ Method ${req.method} not allowed`);
     return new Response(
       JSON.stringify({ error: "Method not allowed" }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }, 
         status: 405 
+      }
+    );
+  }
+
+  // Check OpenAI API key early to prevent crashes
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    console.error("❌ OPENAI_API_KEY is not set");
+    return new Response(
+      JSON.stringify({
+        error: "Service configuration error",
+        message: "OpenAI API key not configured"
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 500 
       }
     );
   }
