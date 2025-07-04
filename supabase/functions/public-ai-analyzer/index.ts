@@ -3,11 +3,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Text extraction function for different file types
 async function extractText(file: File): Promise<string> {
   const fileType = file.type;
+  const fileExtension = file?.name?.split('.').pop()?.toLowerCase();
   
   if (fileType === "text/plain") {
     return await file.text();
   } 
-  else if (fileType === "application/rtf" || fileType === "text/rtf") {
+  else if (fileType === "application/rtf" || fileType === "text/rtf" || fileType === "text/richtext" || fileExtension === "rtf") {
     // RTF (Rich Text Format) extraction
     try {
       const text = await file.text();
@@ -157,7 +158,9 @@ serve(async (req) => {
     });
     
     console.log("🔍 DEBUGGING - Current timestamp:", new Date().toISOString());
-    console.log("🔍 DEBUGGING - Function version: v2.0 - PDF/DOCX support enabled");
+    console.log("🔍 DEBUGGING - Function version: v3.0 - RTF support enabled");
+    console.log("🔍 DEBUGGING - Detected file type:", file?.type);
+    console.log("🔍 DEBUGGING - File extension:", file?.name?.split('.').pop()?.toLowerCase());
     
     if (!file) {
       return new Response(
@@ -175,15 +178,33 @@ serve(async (req) => {
       "application/pdf", 
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/rtf",
-      "text/rtf"
+      "text/rtf",
+      "text/richtext" // Additional RTF MIME type
     ];
     
-    if (!supportedTypes.includes(file.type)) {
+    // Get file extension as fallback
+    const fileExtension = file?.name?.split('.').pop()?.toLowerCase();
+    const supportedExtensions = ['txt', 'pdf', 'docx', 'rtf'];
+    
+    // Check both MIME type and file extension
+    const isSupported = supportedTypes.includes(file.type) || 
+                       supportedExtensions.includes(fileExtension || '');
+    
+    if (!isSupported) {
+      console.log("❌ Unsupported file:", {
+        mimeType: file.type,
+        extension: fileExtension,
+        supportedTypes,
+        supportedExtensions
+      });
+      
       return new Response(
         JSON.stringify({ 
           error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .docx (Word documents), .rtf (Rich Text Format)",
           receivedType: file.type,
+          receivedExtension: fileExtension,
           supportedTypes,
+          supportedExtensions,
           timestamp: new Date().toISOString()
         }),
         { 
