@@ -179,23 +179,43 @@ serve(async (req) => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/rtf",
       "text/rtf",
-      "text/richtext" // Additional RTF MIME type
+      "text/richtext",
+      "application/x-rtf",
+      "text/x-rtf",
+      // Sometimes RTF files are detected as generic application types
+      "application/octet-stream"
     ];
     
     // Get file extension as fallback
     const fileExtension = file?.name?.split('.').pop()?.toLowerCase();
     const supportedExtensions = ['txt', 'pdf', 'docx', 'rtf'];
     
+    console.log("🔍 DETAILED FILE ANALYSIS:", {
+      fileName: file.name,
+      mimeType: file.type,
+      extension: fileExtension,
+      fileSize: file.size,
+      allSupportedTypes: supportedTypes,
+      allSupportedExtensions: supportedExtensions
+    });
+    
     // Check both MIME type and file extension
-    const isSupported = supportedTypes.includes(file.type) || 
-                       supportedExtensions.includes(fileExtension || '');
+    const isSupportedByMime = supportedTypes.includes(file.type);
+    const isSupportedByExtension = supportedExtensions.includes(fileExtension || '');
+    const isSupported = isSupportedByMime || isSupportedByExtension;
+    
+    console.log("🔍 VALIDATION RESULTS:", {
+      isSupportedByMime,
+      isSupportedByExtension,
+      isSupported,
+      finalDecision: isSupported ? "ACCEPT" : "REJECT"
+    });
     
     if (!isSupported) {
-      console.log("❌ Unsupported file:", {
+      console.log("❌ File rejected - detailed analysis:", {
         mimeType: file.type,
         extension: fileExtension,
-        supportedTypes,
-        supportedExtensions
+        reason: "Neither MIME type nor extension matched supported formats"
       });
       
       return new Response(
@@ -205,7 +225,12 @@ serve(async (req) => {
           receivedExtension: fileExtension,
           supportedTypes,
           supportedExtensions,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          debugInfo: {
+            fileName: file.name,
+            isSupportedByMime,
+            isSupportedByExtension
+          }
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
@@ -213,6 +238,8 @@ serve(async (req) => {
         }
       );
     }
+    
+    console.log("✅ File validation passed!");
     
     // Extract text from the file using appropriate method for file type
     console.log("🔧 Extracting text from file type:", file.type);
