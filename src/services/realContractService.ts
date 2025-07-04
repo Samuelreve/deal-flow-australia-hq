@@ -95,6 +95,7 @@ class RealContractService {
       const response = await fetch(`https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/public-ai-analyzer`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       console.log('📤 Request headers debug:', {
