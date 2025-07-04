@@ -29,23 +29,16 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
         throw new Error("You must be logged in to invite participants");
       }
 
-      const response = await fetch("https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/invite-participant", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`
-        },
-        body: JSON.stringify({
+      const { data: result, error } = await supabase.functions.invoke('invite-participant', {
+        body: {
           dealId,
           inviteeEmail: formData.inviteeEmail,
           inviteeRole: formData.inviteeRole
-        })
+        }
       });
 
-      const result = await response.json() as InvitationResponse;
-      
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to send invitation");
+      if (error) {
+        throw new Error(error.message || "Failed to send invitation");
       }
       
       toast({

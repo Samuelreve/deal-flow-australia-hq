@@ -92,51 +92,37 @@ class RealContractService {
       console.log('📝 Session token length:', session?.access_token?.length || 0);
 
       // Call the public AI analyzer edge function
-      const response = await fetch(`https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/public-ai-analyzer`, {
-        method: 'POST',
-        body: formData,
+      const { data: response, error } = await supabase.functions.invoke('public-ai-analyzer', {
+        body: formData
       });
 
-      console.log('📤 Request headers debug:', {
+      console.log('📤 Request debug:', {
         hasSession: !!session,
         tokenPresent: !!session?.access_token,
         functionName: 'public-ai-analyzer',
-        responseStatus: response.status,
-        responseOk: response.ok
+        hasError: !!error,
+        hasData: !!response
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (error) {
         console.error('❌ Edge function error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
+          errorMessage: error.message,
+          errorDetails: error
         });
         
-        // Try to parse error details from response
-        let errorMessage = 'Unknown error';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorData.error || errorText || response.statusText;
-        } catch {
-          errorMessage = errorText || response.statusText || `HTTP ${response.status}`;
-        }
-        
-        throw new Error(`AI analysis failed: ${errorMessage}`);
+        throw new Error(`AI analysis failed: ${error.message || 'Unknown error'}`);
       }
 
-      const data = await response.json();
-
-      if (!data || !data.success) {
-        console.error('❌ AI analysis failed:', data);
+      if (!response || !response.success) {
+        console.error('❌ AI analysis failed:', response);
         throw new Error('AI analysis failed: No successful response');
       }
 
       console.log('✅ AI analysis successful:', {
-        hasText: !!data.text,
-        textLength: data.text?.length || 0,
-        hasAnalysis: !!data.analysis,
-        hasMetadata: !!data.metadata
+        hasText: !!response.text,
+        textLength: response.text?.length || 0,
+        hasAnalysis: !!response.analysis,
+        hasMetadata: !!response.metadata
       });
 
       // Store the contract in the database
@@ -144,7 +130,7 @@ class RealContractService {
         name: file.name,
         mime_type: file.type,
         file_size: file.size,
-        content: data.text || '',
+        content: response.text || '',
         analysis_status: 'completed',
         extraction_status: 'completed',
         file_path: '',
@@ -179,7 +165,7 @@ class RealContractService {
         created_at: savedContract.created_at,
         updated_at: savedContract.updated_at,
         analysis_status: savedContract.analysis_status,
-        text_content: data.text || ''
+        text_content: response.text || ''
       };
     } catch (error) {
       console.error('❌ uploadContract error:', error);
