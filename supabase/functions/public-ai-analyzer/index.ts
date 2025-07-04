@@ -67,7 +67,13 @@ async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Pr
 // Setup OpenAI client
 function setupOpenAI() {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
+  console.log("🔑 Checking OpenAI API key:", {
+    keyExists: !!apiKey,
+    keyLength: apiKey?.length || 0
+  });
+  
   if (!apiKey) {
+    console.error("❌ OPENAI_API_KEY is not set in environment variables");
     throw new Error("OPENAI_API_KEY is not set in environment variables");
   }
   
