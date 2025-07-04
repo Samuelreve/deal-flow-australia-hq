@@ -1,5 +1,80 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Text extraction function for different file types
+async function extractText(file: File): Promise<string> {
+  const fileType = file.type;
+  
+  if (fileType === "text/plain") {
+    return await file.text();
+  } 
+  else if (fileType === "application/pdf") {
+    // For PDF files, we'll try to extract text using a simpler approach
+    // Note: Full PDF parsing is complex, this is a basic implementation
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      const text = decoder.decode(uint8Array);
+      
+      // Basic PDF text extraction - look for text between BT and ET markers
+      const textMatches = text.match(/BT\s*(.*?)\s*ET/gs);
+      if (textMatches && textMatches.length > 0) {
+        let extractedText = textMatches.join(' ')
+          .replace(/BT|ET/g, '')
+          .replace(/\([^)]*\)\s*Tj/g, '$1')
+          .replace(/Tj/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (extractedText.length > 50) {
+          return extractedText;
+        }
+      }
+      
+      // Fallback: try to find readable text in the PDF
+      const readableText = text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (readableText.length > 100) {
+        return readableText.substring(0, 10000); // Limit size
+      }
+      
+      throw new Error("Could not extract readable text from PDF");
+    } catch (error) {
+      throw new Error(`PDF text extraction failed: ${error.message}. Please try converting to text format first.`);
+    }
+  }
+  else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    // For DOCX files, we'll try basic XML parsing
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Convert to string and look for text content
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      const xmlContent = decoder.decode(uint8Array);
+      
+      // Basic DOCX text extraction - look for text in XML
+      const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+      if (textMatches && textMatches.length > 0) {
+        const extractedText = textMatches
+          .map(match => match.replace(/<[^>]*>/g, ''))
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (extractedText.length > 50) {
+          return extractedText;
+        }
+      }
+      
+      throw new Error("Could not extract readable text from DOCX");
+    } catch (error) {
+      throw new Error(`DOCX text extraction failed: ${error.message}. Please try converting to text format first.`);
+    }
+  }
+  
+  throw new Error(`Unsupported file type: ${fileType}`);
+}
+
 // CORS headers for public access
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,12 +129,19 @@ serve(async (req) => {
       );
     }
 
-    // Validate file type - only text files for now
-    if (file.type !== "text/plain") {
+    // Validate file type - support text, PDF, and DOCX files
+    const supportedTypes = [
+      "text/plain",
+      "application/pdf", 
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+    
+    if (!supportedTypes.includes(file.type)) {
       return new Response(
         JSON.stringify({ 
-          error: "Currently only text files (.txt) are supported.",
-          receivedType: file.type
+          error: "Supported file types: .txt, .pdf, .docx",
+          receivedType: file.type,
+          supportedTypes
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
@@ -68,12 +150,28 @@ serve(async (req) => {
       );
     }
     
-    // Read the file content
-    const text = await file.text();
+    // Extract text from the file using appropriate method for file type
+    console.log("🔧 Extracting text from file type:", file.type);
+    let text: string;
+    try {
+      text = await extractText(file);
+    } catch (extractionError) {
+      console.error("❌ Text extraction failed:", extractionError);
+      return new Response(
+        JSON.stringify({ 
+          error: extractionError instanceof Error ? extractionError.message : "Failed to extract text from file",
+          fileType: file.type
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 400 
+        }
+      );
+    }
     
     if (!text || text.trim().length === 0) {
       return new Response(
-        JSON.stringify({ error: "File appears to be empty." }),
+        JSON.stringify({ error: "No readable text found in the file." }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" }, 
           status: 400 
