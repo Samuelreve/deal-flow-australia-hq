@@ -122,7 +122,7 @@ Format your response with these sections:
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, {
+    return new Response('ok', {
       status: 200,
       headers: corsHeaders
     });
