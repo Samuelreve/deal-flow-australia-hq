@@ -10,7 +10,6 @@ const getCorsHeaders = (origin: string | null) => ({
   "Access-Control-Allow-Origin": origin || "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Credentials": "true",
   "Access-Control-Max-Age": "86400",
 });
 // Helper function to extract text from different file types

@@ -91,10 +91,13 @@ class RealContractService {
       console.log('📝 Session available:', !!session);
       console.log('📝 Session token length:', session?.access_token?.length || 0);
 
-      // Call the public AI analyzer edge function with proper authentication
+      // Call the public AI analyzer edge function
       const response = await fetch(`https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/public-ai-analyzer`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
       });
 
       console.log('📤 Request headers debug:', {
@@ -112,7 +115,17 @@ class RealContractService {
           statusText: response.statusText,
           errorText
         });
-        throw new Error(`AI analysis failed: ${response.statusText}`);
+        
+        // Try to parse error details from response
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorData.error || errorText || response.statusText;
+        } catch {
+          errorMessage = errorText || response.statusText || `HTTP ${response.status}`;
+        }
+        
+        throw new Error(`AI analysis failed: ${errorMessage}`);
       }
 
       const data = await response.json();
