@@ -7,12 +7,11 @@ import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 // CORS headers for public access
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
   "Access-Control-Max-Age": "86400",
 };
-
 // Helper function to extract text from different file types
 async function extractTextFromFile(fileBuffer: Uint8Array, mimeType: string): Promise<string> {
   
