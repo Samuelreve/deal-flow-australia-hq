@@ -142,7 +142,7 @@ ${contractText}
 Focus on: parties involved, key obligations, financial terms, important dates, termination conditions, and risk factors.`;
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-4.1-2025-04-14",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -163,7 +163,7 @@ ${contractText}
 Please provide a detailed answer based on the contract content.`;
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-4.1-2025-04-14",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -334,7 +334,7 @@ Please structure your summary with clear sections and highlight the most critica
         console.log('🤖 Calling OpenAI API...');
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-4.1-2025-04-14",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -464,7 +464,7 @@ ${fullDocumentText}
 Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-2025-04-14",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -677,7 +677,7 @@ ${contractText}
 Please provide a comprehensive answer based on the contract content above.`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-2025-04-14",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -739,7 +739,7 @@ ${contractText}
 Please provide a comprehensive answer based on the contract content above.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-2025-04-14",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

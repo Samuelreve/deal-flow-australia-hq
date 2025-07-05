@@ -158,11 +158,95 @@ enabled = true
 port = 54321
 function_timeout_seconds = 30
 
+[functions.accept-invitation]
+verify_jwt = true
+
+[functions.add-deal-participant]
+verify_jwt = true
+
+[functions.ai-assistant]
+verify_jwt = true
+
 [functions.contract-assistant]
+verify_jwt = true
+
+[functions.create-share-link]
+verify_jwt = true
+
+[functions.create-temp-deal]
+verify_jwt = true
+
+[functions.delete-comment]
+verify_jwt = true
+
+[functions.delete-document-version]
+verify_jwt = true
+
+[functions.delete-document]
+verify_jwt = true
+
+[functions.delete-milestone]
+verify_jwt = true
+
+[functions.document-ai-assistant]
 verify_jwt = true
 
 [functions.document-analysis]
 verify_jwt = true
 
+[functions.document-comments]
+verify_jwt = true
+
+[functions.document-content-retrieval]
+verify_jwt = true
+
+[functions.document-upload]
+verify_jwt = true
+
+[functions.document-version-operations]
+verify_jwt = true
+
+[functions.enhanced-contract-assistant]
+verify_jwt = true
+
+[functions.explain-contract-clause]
+verify_jwt = true
+
+[functions.get-shared-document]
+verify_jwt = false
+
+[functions.invite-participant]
+verify_jwt = true
+
+[functions.manage-share-links]
+verify_jwt = true
+
+[functions.migrate-temp-documents]
+verify_jwt = true
+
+[functions.progress-nudging]
+verify_jwt = true
+
 [functions.public-ai-analyzer]
 verify_jwt = false
+
+[functions.remove-participant]
+verify_jwt = true
+
+[functions.restore-document-version]
+verify_jwt = true
+
+[functions.summarize-contract]
+verify_jwt = true
+
+[functions.text-extraction]
+verify_jwt = true
+
+[functions.text-extractor]
+verify_jwt = true
+
+[functions.update-milestone-status]
+verify_jwt = true
+
+[functions.verify-invitation-token]
+verify_jwt = true
