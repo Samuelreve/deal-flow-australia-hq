@@ -103,7 +103,10 @@ async function extractText(file: File): Promise<string> {
         }
         
         if (readableChunks.length > 0) {
-          const combinedText = readableChunks.join(' ').substring(0, 5000);
+          const combinedText = readableChunks.join(' ')
+            .replace(/\x00/g, '') // Remove null bytes
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
+            .substring(0, 5000);
           if (combinedText.length > extractedContent.length) {
             extractedContent = combinedText;
           }
@@ -114,7 +117,9 @@ async function extractText(file: File): Promise<string> {
       if (extractedContent.length < 50) {
         const meaningfulWords = text.match(/\b[A-Za-z]{3,}\b/g);
         if (meaningfulWords && meaningfulWords.length > 10) {
-          extractedContent = meaningfulWords.slice(0, 200).join(' ');
+          extractedContent = meaningfulWords.slice(0, 200).join(' ')
+            .replace(/\x00/g, '') // Remove null bytes
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove control characters
           console.log("📝 Extracted words from PDF:", meaningfulWords.length, "total words");
         }
       }
@@ -193,6 +198,8 @@ async function extractText(file: File): Promise<string> {
         }
         
         const asciiText = readableChars.join('')
+          .replace(/\x00/g, '') // Remove null bytes
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
           .replace(/\s+/g, ' ')
           .trim();
         
@@ -210,8 +217,10 @@ async function extractText(file: File): Promise<string> {
         }
       }
       
-      // Clean up the extracted text
+      // Clean up the extracted text - Remove null bytes and control characters
       extractedText = extractedText
+        .replace(/\x00/g, '') // Remove null bytes
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
         .replace(/\s+/g, ' ')
         .replace(/[^\w\s.,!?;:'"()-]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -401,6 +410,15 @@ serve(async (req) => {
 
     console.log("✅ File processing successful, text length:", text.length);
     
+    // Final text cleaning to remove any remaining problematic characters
+    const cleanedText = text
+      .replace(/\x00/g, '') // Remove null bytes
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
+      .trim();
+    
+    console.log("🧹 Text cleaned, final length:", cleanedText.length);
+    console.log("📝 Extracted text preview:", cleanedText.substring(0, 500));
+    
     // Generate simple analysis for now (we'll add OpenAI later)
     const analysis = `Document Analysis:
 
@@ -426,7 +444,7 @@ Disclaimer: This AI analysis is for informational purposes only and should not b
           size: file.size,
           lastModified: new Date().toISOString(),
         },
-        text: text.substring(0, 5000), // Truncate text to avoid large responses
+        text: cleanedText.substring(0, 5000), // Truncate text to avoid large responses
         analysis: analysis,
       }),
       { 

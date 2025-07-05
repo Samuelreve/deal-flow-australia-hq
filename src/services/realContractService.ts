@@ -125,12 +125,25 @@ class RealContractService {
         hasMetadata: !!response.metadata
       });
 
+      // Clean the text to remove any null bytes or control characters
+      const cleanedText = response.text ? 
+        response.text
+          .replace(/\x00/g, '') // Remove null bytes
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
+          .trim() : '';
+
+      console.log('🧹 Text cleaned for database storage:', {
+        originalLength: response.text?.length || 0,
+        cleanedLength: cleanedText.length,
+        textPreview: cleanedText.substring(0, 200)
+      });
+
       // Store the contract in the database
       const contractData = {
         name: file.name,
         mime_type: file.type,
         file_size: file.size,
-        content: response.text || '',
+        content: cleanedText,
         analysis_status: 'completed',
         extraction_status: 'completed',
         file_path: '',
@@ -165,7 +178,7 @@ class RealContractService {
         created_at: savedContract.created_at,
         updated_at: savedContract.updated_at,
         analysis_status: savedContract.analysis_status,
-        text_content: response.text || ''
+        text_content: cleanedText
       };
     } catch (error) {
       console.error('❌ uploadContract error:', error);
