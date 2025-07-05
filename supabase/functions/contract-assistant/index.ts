@@ -24,14 +24,33 @@ interface ContractAssistantRequest {
   contractId?: string;
 }
 
-// Simplified text extraction for basic mime types
+// Use the public-ai-analyzer function for text extraction
 async function extractTextFromFile(fileBuffer: any, mimeType: string): Promise<string> {
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
     return fileBuffer.toString('utf-8');
   }
   
-  // For now, return error for unsupported types to avoid import issues
-  throw new Error(`Text extraction for ${mimeType} is temporarily disabled. Please upload plain text files.`);
+  // For other file types, use the public-ai-analyzer function
+  try {
+    const formData = new FormData();
+    const blob = new Blob([fileBuffer], { type: mimeType });
+    formData.append('file', blob);
+    
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/public-ai-analyzer`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Text extraction failed: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    return result.text || '';
+  } catch (error) {
+    console.error('Text extraction error:', error);
+    throw new Error(`Failed to extract text from ${mimeType}: ${error.message}`);
+  }
 }
 
 serve(async (req) => {
