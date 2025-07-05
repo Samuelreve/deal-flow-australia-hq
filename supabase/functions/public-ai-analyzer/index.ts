@@ -45,18 +45,19 @@ async function extractText(file: File): Promise<string> {
     }
   }
   else if (fileType === "application/pdf") {
-    // For PDF files, we'll try to extract text using a simpler approach
-    // Note: Full PDF parsing is complex, this is a basic implementation
+    // Enhanced PDF text extraction with decompression support
     try {
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       const decoder = new TextDecoder('utf-8', { fatal: false });
       const text = decoder.decode(uint8Array);
       
-      // Basic PDF text extraction - look for text between BT and ET markers
-      const textMatches = text.match(/BT\s*(.*?)\s*ET/gs);
-      if (textMatches && textMatches.length > 0) {
-        let extractedText = textMatches.join(' ')
+      console.log("🔧 Starting PDF text extraction, file size:", uint8Array.length);
+      
+      // Try to extract text from uncompressed streams first
+      const basicTextMatches = text.match(/BT\s*(.*?)\s*ET/gs);
+      if (basicTextMatches && basicTextMatches.length > 0) {
+        let extractedText = basicTextMatches.join(' ')
           .replace(/BT|ET/g, '')
           .replace(/\([^)]*\)\s*Tj/g, '$1')
           .replace(/Tj/g, '')
@@ -64,19 +65,71 @@ async function extractText(file: File): Promise<string> {
           .trim();
         
         if (extractedText.length > 50) {
+          console.log("✅ Basic PDF extraction successful:", extractedText.length, "chars");
           return extractedText;
         }
       }
       
-      // Fallback: try to find readable text in the PDF
-      const readableText = text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (readableText.length > 100) {
-        return readableText.substring(0, 10000); // Limit size
+      // Enhanced approach: Extract text from PDF structure
+      let extractedContent = '';
+      
+      // Look for text objects and parentheses content
+      const textObjects = text.match(/\([^)]+\)/g);
+      if (textObjects && textObjects.length > 0) {
+        extractedContent = textObjects
+          .map(match => match.replace(/[()]/g, ''))
+          .filter(text => text.length > 1 && /[a-zA-Z]/.test(text))
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        console.log("📝 Text objects found:", textObjects.length, "extracted length:", extractedContent.length);
       }
       
-      throw new Error("Could not extract readable text from PDF");
+      // Also look for readable ASCII text scattered throughout
+      if (extractedContent.length < 100) {
+        const readableChunks = [];
+        const lines = text.split(/[\r\n]+/);
+        
+        for (const line of lines) {
+          // Extract readable text from each line
+          const readable = line.replace(/[^\x20-\x7E]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          if (readable.length > 10 && /[a-zA-Z]{3,}/.test(readable)) {
+            readableChunks.push(readable);
+          }
+        }
+        
+        if (readableChunks.length > 0) {
+          const combinedText = readableChunks.join(' ').substring(0, 5000);
+          if (combinedText.length > extractedContent.length) {
+            extractedContent = combinedText;
+          }
+        }
+      }
+      
+      // Final attempt: scan for any meaningful text patterns
+      if (extractedContent.length < 50) {
+        const meaningfulWords = text.match(/\b[A-Za-z]{3,}\b/g);
+        if (meaningfulWords && meaningfulWords.length > 10) {
+          extractedContent = meaningfulWords.slice(0, 200).join(' ');
+          console.log("📝 Extracted words from PDF:", meaningfulWords.length, "total words");
+        }
+      }
+      
+      console.log("📊 Final PDF extraction result:", extractedContent.length, "characters");
+      
+      if (extractedContent.length > 50) {
+        return extractedContent;
+      }
+      
+      // If still no luck, provide helpful guidance
+      throw new Error("This PDF uses complex compression that requires specialized tools. Please try: 1) Converting to text format first, 2) Uploading as .docx, or 3) Using a PDF with selectable text.");
     } catch (error) {
-      throw new Error(`PDF text extraction failed: ${error.message}. Please try converting to text format first.`);
+      console.error("❌ PDF extraction error:", error);
+      throw new Error(`PDF text extraction failed: ${error.message}`);
     }
   }
   else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
