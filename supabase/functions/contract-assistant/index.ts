@@ -238,29 +238,8 @@ Please provide a detailed answer based on the contract content.`;
           );
         }
 
-        let contractText: string;
-        
-        // Check if content is binary data that needs extraction
-        if (contract.content.startsWith('N docProps PKN') || contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          console.log('📄 Detected binary DOCX content, extracting text...');
-          try {
-            // Convert content string back to buffer for text extraction
-            const contentBuffer = Buffer.from(contract.content, 'binary');
-            contractText = await extractTextFromFile(contentBuffer, contract.mime_type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            console.log('✅ Text extraction successful for demo contract');
-          } catch (extractionError: any) {
-            console.error('❌ Text extraction failed for demo contract:', extractionError.message);
-            return new Response(
-              JSON.stringify({ error: `Failed to extract text from demo contract: ${extractionError.message}` }),
-              { 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400 
-              }
-            );
-          }
-        } else {
-          contractText = contract.content;
-        }
+        // For demo contracts, content is already stored as text
+        const contractText = contract.content;
         
         console.log('📄 Contract found:', {
           name: contract.name,
