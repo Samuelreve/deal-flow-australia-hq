@@ -37,7 +37,7 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
   const [disclaimer, setDisclaimer] = useState<string>('');
   
   const {
-    analyzeDocument,
+    summarizeContract,
     explainContractClause,
     loading: isAnalyzing,
   } = useDocumentAI({ dealId, documentId });
@@ -47,16 +47,11 @@ const ContractAnalyzerDialog: React.FC<ContractAnalyzerDialogProps> = ({
   
   const handleSummarize = async () => {
     try {
-      // Use the same analysis operation that works in the Analysis tab
-      const result = await analyzeDocument(documentId, versionId, 'Contract Summary');
+      const result = await summarizeContract(documentId, versionId);
       
-      if (result && result.analysis) {
-        // Format the result to match the expected structure
-        setSummaryResult({
-          summary: result.analysis,
-          disclaimer: result.disclaimer || 'This AI-generated summary is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.'
-        });
-        setDisclaimer(result.disclaimer || 'This AI-generated summary is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.');
+      if (result) {
+        setSummaryResult(result);
+        setDisclaimer(result.disclaimer);
       }
     } catch (error) {
       console.error('Contract summarization failed:', error);
