@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// 2025 Best Practice: Multiple PDF extraction libraries for better compatibility
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0";
-// Alternative PDF extraction using pdfjs-dist (Mozilla's PDF.js)
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379";
-// DOCX extraction - industry standard
-import mammoth from "https://esm.sh/mammoth@1.6.0";
+// 2025 Best Practice: Updated Deno-compatible libraries
+import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno";
+// Alternative PDF extraction using pdf-parse (more reliable in Deno)
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1?target=deno";
+// DOCX extraction using JSZip + XML parsing
+import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -106,55 +106,34 @@ serve(async (req) => {
       } catch (unpdfError) {
         console.warn('⚠️ unpdf failed, trying pdfjs-dist fallback:', unpdfError.message);
         
-        // Method 2: Fallback to pdfjs-dist
+      // Method 2: Fallback to pdf-parse
         try {
-          console.log('🔄 Attempting PDF extraction with pdfjs-dist...');
+          console.log('🔄 Attempting PDF extraction with pdf-parse...');
           
-          // Load PDF document
-          const loadingTask = pdfjs.getDocument({ data: fileBuffer });
-          const pdfDocument = await loadingTask.promise;
+          const pdfData = await pdfParse(fileBuffer);
           
-          console.log('📋 PDF document loaded:', {
-            numPages: pdfDocument.numPages,
-            fingerprint: pdfDocument.fingerprint
+          console.log('📋 PDF parsed successfully:', {
+            pages: pdfData.numpages,
+            textLength: pdfData.text?.length || 0,
+            hasText: !!pdfData.text
           });
           
-          let fullText = '';
-          
-          // Extract text from all pages
-          for (let pageNum = 1; pageNum <= Math.min(pdfDocument.numPages, 50); pageNum++) { // Limit to 50 pages for performance
-            try {
-              const page = await pdfDocument.getPage(pageNum);
-              const textContent = await page.getTextContent();
-              const pageText = textContent.items
-                .filter(item => 'str' in item)
-                .map(item => (item as { str: string }).str)
-                .join(' ');
-              
-              if (pageText.trim()) {
-                fullText += pageText + '\n';
-              }
-            } catch (pageError) {
-              console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
-            }
-          }
-          
-          if (fullText.trim().length > 10) {
-            extractedText = enhancedPdfTextCleaning(fullText);
-            console.log(`✅ pdfjs-dist extraction successful: ${extractedText.length} characters`);
+          if (pdfData.text && pdfData.text.trim().length > 10) {
+            extractedText = enhancedPdfTextCleaning(pdfData.text);
+            console.log(`✅ pdf-parse extraction successful: ${extractedText.length} characters`);
           } else {
-            throw new Error('pdfjs-dist returned empty or insufficient text');
+            throw new Error('pdf-parse returned empty or insufficient text');
           }
-        } catch (pdfjsError) {
+        } catch (pdfParseError) {
           console.error('❌ All PDF extraction methods failed:', {
             unpdf: unpdfError.message,
-            pdfjs: pdfjsError.message
+            pdfParse: pdfParseError.message
           });
           
           return new Response(
             JSON.stringify({ 
               success: false, 
-              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdfjs(${pdfjsError.message})` 
+              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdf-parse(${pdfParseError.message})` 
             }),
             { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
@@ -184,66 +163,30 @@ serve(async (req) => {
       }
       
       try {
-        console.log('🔄 Attempting DOCX extraction with mammoth...');
+        console.log('🔄 Attempting DOCX extraction with JSZip...');
         
-        // Try multiple extraction methods for DOCX
-        let result;
+        // Extract DOCX using JSZip and XML parsing
+        const zip = new JSZip();
+        const zipFile = await zip.loadAsync(fileBuffer);
         
-        // Method 1: Try with buffer directly
-        try {
-          result = await mammoth.extractRawText({ buffer: fileBuffer });
-          console.log('✅ Mammoth extraction with buffer successful');
-        } catch (bufferError) {
-          console.warn('⚠️ Mammoth buffer method failed:', bufferError.message);
-          
-          // Method 2: Try with enhanced configuration
-          try {
-            result = await mammoth.extractRawText({
-              buffer: fileBuffer,
-              ignoreEmptyParagraphs: false,
-              convertImage: mammoth.images.imgElement(function(image) {
-                return image.read("base64").then(function(imageBuffer) {
-                  return {
-                    src: "data:" + image.contentType + ";base64," + imageBuffer,
-                    alt: "Image content"
-                  };
-                }).catch(function() {
-                  return { alt: "[Image]" };
-                });
-              }),
-              styleMap: [
-                "p[style-name='Heading 1'] => h1:fresh",
-                "p[style-name='Heading 2'] => h2:fresh",
-                "p[style-name='Heading 3'] => h3:fresh",
-                "r[style-name='Strong'] => strong",
-                "r[style-name='Emphasis'] => em"
-              ]
-            });
-            console.log('✅ Mammoth extraction with enhanced config successful');
-          } catch (configError) {
-            console.error('❌ Both mammoth methods failed:', {
-              bufferError: bufferError.message,
-              configError: configError.message
-            });
-            throw new Error(`DOCX extraction failed: ${bufferError.message}`);
-          }
+        console.log('📋 DOCX ZIP contents:', Object.keys(zipFile.files));
+        
+        // Get the main document content
+        const documentXml = zipFile.files['word/document.xml'];
+        if (!documentXml) {
+          throw new Error('Invalid DOCX file: missing word/document.xml');
         }
         
-        extractedText = result.value || '';
+        const xmlContent = await documentXml.async('text');
+        console.log('📋 XML content length:', xmlContent.length);
+        
+        // Extract text from XML using regex (basic but reliable)
+        extractedText = extractTextFromDocxXml(xmlContent);
         
         console.log('📋 DOCX extraction result:', {
           textLength: extractedText.length,
-          hasMessages: result.messages && result.messages.length > 0,
-          messageCount: result.messages?.length || 0,
-          textPreview: extractedText.substring(0, 200) || 'No text',
-          warningCount: result.messages?.filter(m => m.type === 'warning').length || 0,
-          errorCount: result.messages?.filter(m => m.type === 'error').length || 0
+          textPreview: extractedText.substring(0, 200) || 'No text'
         });
-        
-        // Log detailed messages for debugging
-        if (result.messages && result.messages.length > 0) {
-          console.log('📋 Mammoth messages:', result.messages.map(m => `${m.type}: ${m.message}`));
-        }
         
         if (!extractedText || extractedText.trim().length === 0) {
           throw new Error('No text content found in DOCX file - may be empty or contain only images/tables');
@@ -734,6 +677,43 @@ function parseRtfGroup(groupContent: string): string {
   }
   
   return result;
+}
+
+/**
+ * Extract text from DOCX XML content using regex parsing
+ */
+function extractTextFromDocxXml(xmlContent: string): string {
+  try {
+    // Remove XML tags and extract text content
+    let text = xmlContent
+      // Extract text from <w:t> tags (text runs)
+      .replace(/<w:t[^>]*>([^<]*)<\/w:t>/g, '$1')
+      // Extract text from <w:t> self-closing tags with content
+      .replace(/<w:t[^>]*>([^<]*)/g, '$1')
+      // Add spaces for paragraph breaks
+      .replace(/<\/w:p>/g, '\n')
+      // Add spaces for line breaks
+      .replace(/<w:br[^>]*>/g, '\n')
+      // Add tabs for tab characters
+      .replace(/<w:tab[^>]*>/g, '\t')
+      // Remove all remaining XML tags
+      .replace(/<[^>]*>/g, '')
+      // Decode XML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      // Clean up whitespace
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s+/g, '\n')
+      .trim();
+    
+    return text;
+  } catch (error) {
+    console.error('Error parsing DOCX XML:', error);
+    throw new Error(`Failed to parse DOCX XML: ${error.message}`);
+  }
 }
 
 /**
