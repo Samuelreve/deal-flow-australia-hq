@@ -158,6 +158,9 @@ enabled = true
 port = 54321
 function_timeout_seconds = 30
 
+[functions.contract-assistant]
+verify_jwt = true
+
 [functions.document-analysis]
 verify_jwt = true
 
