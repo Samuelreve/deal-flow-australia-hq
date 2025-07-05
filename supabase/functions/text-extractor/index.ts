@@ -2,11 +2,11 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // 2025 Best Practice: Updated Deno-compatible libraries
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno";
+import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno&external=canvas";
 // Alternative PDF extraction using pdf-parse (more reliable in Deno)
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1?target=deno";
+import pdfParse from "https://esm.sh/pdf-parse@1.1.1?target=deno&no-check";
 // DOCX extraction using JSZip + XML parsing
-import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
+import JSZip from "https://esm.sh/jszip@3.10.1?target=deno&no-check";
 
 serve(async (req) => {
   // Handle CORS preflight requests
