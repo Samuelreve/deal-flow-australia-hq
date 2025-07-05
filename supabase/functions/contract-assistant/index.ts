@@ -161,11 +161,21 @@ Please provide a detailed answer based on the contract content.`;
     // Handle new request types
     if (requestData.requestType === 'summarize_contract_terms') {
       console.log('🔍 Processing contract terms summarization request');
+      console.log('📋 Request data values:', {
+        dealId: requestData.dealId,
+        documentId: requestData.documentId,
+        versionId: requestData.versionId,
+        documentIdType: typeof requestData.documentId,
+        versionIdType: typeof requestData.versionId,
+        documentIdLength: requestData.documentId?.length,
+        versionIdLength: requestData.versionId?.length
+      });
       
       const { dealId, documentId, versionId } = requestData;
       
       if (!documentId || !versionId) {
         console.error('❌ Missing required parameters: documentId and versionId');
+        console.error('❌ Values received:', { documentId, versionId, dealId });
         return new Response(
           JSON.stringify({ error: 'documentId and versionId are required for summarization' }),
           { 
