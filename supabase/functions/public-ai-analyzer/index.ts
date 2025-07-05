@@ -80,7 +80,7 @@ async function extractText(file: File): Promise<string> {
     }
   }
   else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    // For DOCX files, implement comprehensive text extraction with multiple fallbacks
+    // For DOCX files - simplified text extraction that focuses on readable content
     console.log("🔧 Starting DOCX text extraction...");
     
     try {
@@ -88,96 +88,101 @@ async function extractText(file: File): Promise<string> {
       const uint8Array = new Uint8Array(arrayBuffer);
       console.log(`📄 DOCX file size: ${uint8Array.length} bytes`);
       
+      // Convert to string and look for readable text patterns
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      const content = decoder.decode(uint8Array);
+      
+      // Extract text between word processing tags - more comprehensive patterns
       let extractedText = '';
-      let extractionMethod = '';
       
-      // Method 1: Try to find XML text elements (most reliable for DOCX)
-      try {
-        const decoder = new TextDecoder('utf-8', { fatal: false });
-        const content = decoder.decode(uint8Array);
-        
-        // Look for Word document text patterns
-        const patterns = [
-          /<w:t[^>]*?>(.*?)<\/w:t>/gs,
-          /<text[^>]*?>(.*?)<\/text>/gs,
-          />\s*([A-Za-z][A-Za-z0-9\s.,!?;:'"()-]{10,})\s*</g
-        ];
-        
-        for (let i = 0; i < patterns.length && extractedText.length < 100; i++) {
-          const matches = [...content.matchAll(patterns[i])];
-          if (matches.length > 0) {
-            const text = matches
-              .map(match => match[1] || match[0])
-              .map(text => text.replace(/<[^>]*>/g, '').trim())
-              .filter(text => text.length > 3)
-              .join(' ');
-            
-            if (text.length > extractedText.length) {
-              extractedText = text;
-              extractionMethod = `XML pattern ${i + 1}`;
-            }
-          }
-        }
-      } catch (e) {
-        console.log("❌ XML extraction failed:", e.message);
-      }
+      // Try multiple text extraction patterns for Word documents
+      const textPatterns = [
+        /<w:t[^>]*?>(.*?)<\/w:t>/gs,           // Word text elements
+        /<text[^>]*?>(.*?)<\/text>/gs,         // Generic text elements
+        />\s*([A-Z][a-zA-Z0-9\s.,!?;:'"()-]{20,})\s*</g  // Longer text blocks
+      ];
       
-      // Method 2: Binary text extraction if XML failed
-      if (extractedText.length < 50) {
-        try {
-          console.log("🔄 Trying binary text extraction...");
-          const chars = [];
-          for (let i = 0; i < uint8Array.length; i++) {
-            const byte = uint8Array[i];
-            if (byte >= 32 && byte <= 126) {
-              chars.push(String.fromCharCode(byte));
-            } else if (byte === 10 || byte === 13) {
-              chars.push(' ');
-            }
-          }
+      for (const pattern of textPatterns) {
+        const matches = [...content.matchAll(pattern)];
+        if (matches.length > 0) {
+          const patternText = matches
+            .map(match => match[1] || match[0])
+            .map(text => text.replace(/<[^>]*>/g, '').trim())
+            .filter(text => text.length > 10)
+            .join(' ');
           
-          const binaryText = chars.join('');
-          const words = binaryText
-            .split(/\s+/)
-            .filter(word => word.length > 2 && /[a-zA-Z]/.test(word))
-            .slice(0, 500); // Limit words to prevent huge text
-          
-          if (words.length > 0) {
-            extractedText = words.join(' ');
-            extractionMethod = 'binary extraction';
+          if (patternText.length > extractedText.length) {
+            extractedText = patternText;
           }
-        } catch (e) {
-          console.log("❌ Binary extraction failed:", e.message);
         }
       }
       
-      // Clean up extracted text
+      // If XML patterns didn't work, try extracting readable ASCII text
+      if (extractedText.length < 100) {
+        console.log("🔄 Trying ASCII text extraction...");
+        const readableChars = [];
+        let consecutiveReadable = 0;
+        
+        for (let i = 0; i < uint8Array.length; i++) {
+          const byte = uint8Array[i];
+          
+          // Check for readable ASCII characters
+          if ((byte >= 32 && byte <= 126) || byte === 10 || byte === 13 || byte === 9) {
+            readableChars.push(String.fromCharCode(byte));
+            consecutiveReadable++;
+          } else {
+            // Add space to separate words when encountering non-readable bytes
+            if (consecutiveReadable > 3) {
+              readableChars.push(' ');
+            }
+            consecutiveReadable = 0;
+          }
+        }
+        
+        const asciiText = readableChars.join('')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // Extract meaningful words (filter out control codes and short fragments)
+        const words = asciiText.split(/\s+/)
+          .filter(word => 
+            word.length > 2 && 
+            /^[a-zA-Z0-9.,!?;:'"()-]+$/.test(word) &&
+            !/^[^a-zA-Z]*$/.test(word)  // Must contain at least one letter
+          );
+        
+        if (words.length > 10) {
+          extractedText = words.join(' ');
+          console.log(`✅ ASCII extraction found ${words.length} words`);
+        }
+      }
+      
+      // Clean up the extracted text
       extractedText = extractedText
         .replace(/\s+/g, ' ')
         .replace(/[^\w\s.,!?;:'"()-]/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
       
-      console.log(`✅ DOCX extraction result: ${extractedText.length} characters using ${extractionMethod}`);
+      console.log(`✅ DOCX extraction result: ${extractedText.length} characters`);
+      console.log(`📝 First 200 chars: ${extractedText.substring(0, 200)}`);
       
-      // Always return something, never fail
-      if (extractedText.length > 20) {
-        return extractedText.substring(0, 10000);
+      if (extractedText.length > 50) {
+        return extractedText;
       } else {
-        // Provide a useful fallback message
-        const fallbackText = `Microsoft Word Document (${file.name}) - File uploaded successfully. 
+        // Return a clear indication that we couldn't extract meaningful text
+        return `This appears to be a Microsoft Word document (${file.name}) that contains complex formatting or is password protected. 
         
-Document contains formatted content that requires advanced text extraction. The document appears to be a ${Math.round(file.size / 1024)}KB Word document with complex formatting.
+For best results with AI analysis, please:
+1. Save the Word document as a plain text (.txt) file, or
+2. Copy and paste the text content directly into a text file
 
-Note: For optimal text analysis, consider saving the document as a plain text (.txt) file, which provides the most reliable text extraction for AI analysis.`;
-        
-        console.log("📝 Using fallback text for DOCX");
-        return fallbackText;
+This will ensure accurate text extraction and optimal AI analysis.`;
       }
       
     } catch (error) {
       console.error("❌ DOCX processing error:", error);
-      // Never throw - always return a descriptive message
-      return `Microsoft Word Document (${file.name}) - Document uploaded successfully. File size: ${Math.round(file.size / 1024)}KB. The document structure uses advanced formatting that requires specialized text extraction. For immediate analysis, please save as plain text format.`;
+      return `Microsoft Word Document Processing Error: Could not extract text from ${file.name}. Please save the document as a plain text (.txt) file for analysis.`;
     }
   }
   
