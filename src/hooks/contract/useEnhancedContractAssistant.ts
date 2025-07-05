@@ -1,20 +1,22 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { QuestionHistoryItem } from '@/types/contract';
+import { Contract } from '@/services/realContractService';
 
 interface UseEnhancedContractAssistantProps {
   dealId?: string;
   documentId?: string;
   versionId?: string;
+  contract?: Contract; // Use proper Contract type
 }
 
 export const useEnhancedContractAssistant = ({
   dealId,
   documentId,
-  versionId
+  versionId,
+  contract
 }: UseEnhancedContractAssistantProps) => {
   const { user } = useAuth();
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
@@ -25,14 +27,17 @@ export const useEnhancedContractAssistant = ({
     dealId,
     documentId,
     versionId,
+    hasContract: !!contract,
+    contractId: contract?.id,
+    contractContentLength: contract?.content?.length || 0,
     userId: user?.id
   });
 
-  // Ask a question about the contract
+  // Ask a question about the contract using legacy format
   const askQuestion = useCallback(async (question: string) => {
-    if (!documentId || !versionId) {
-      console.error('❌ Missing required IDs for question:', { dealId, documentId, versionId });
-      toast.error('Contract context not available');
+    if (!contract?.content) {
+      console.error('❌ No contract content available for question');
+      toast.error('Contract content not available');
       return null;
     }
 
@@ -42,11 +47,10 @@ export const useEnhancedContractAssistant = ({
       return null;
     }
 
-    console.log('❓ Asking question:', {
+    console.log('❓ Asking question using legacy format:', {
       question: question.substring(0, 100),
-      dealId,
-      documentId,
-      versionId
+      contractId: contract.id,
+      contentLength: contract.content.length
     });
 
     setIsProcessing(true);
@@ -65,13 +69,12 @@ export const useEnhancedContractAssistant = ({
     setQuestionHistory(prev => [...prev, questionItem]);
 
     try {
+      // Use legacy format for standalone contracts
       const { data, error: functionError } = await supabase.functions.invoke('contract-assistant', {
         body: {
-          requestType: 'answer_question',
-          dealId,
-          documentId,
-          versionId,
-          userQuestion: question
+          question: question,
+          contractText: contract.content,
+          contractId: contract.id
         }
       });
 
@@ -123,13 +126,13 @@ export const useEnhancedContractAssistant = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [dealId, documentId, versionId, user]);
+  }, [contract, user]);
 
-  // Summarize contract terms
+  // Summarize contract terms using legacy format
   const summarizeContractTerms = useCallback(async () => {
-    if (!documentId || !versionId) {
-      console.error('❌ Missing required IDs for summarization:', { dealId, documentId, versionId });
-      toast.error('Contract context not available');
+    if (!contract?.content) {
+      console.error('❌ No contract content available for summarization');
+      toast.error('Contract content not available');
       return null;
     }
 
@@ -139,19 +142,20 @@ export const useEnhancedContractAssistant = ({
       return null;
     }
 
-    console.log('📄 Summarizing contract terms:', {
-      dealId,
-      documentId,
-      versionId
+    console.log('📄 Summarizing contract terms using legacy format:', {
+      contractId: contract.id,
+      contentLength: contract.content.length
     });
 
     try {
+      // Use legacy format with summary question
+      const summaryQuestion = 'Please provide a comprehensive summary of this contract, highlighting the key terms, parties involved, main obligations, financial terms, important dates, termination conditions, and risk factors.';
+      
       const { data, error: functionError } = await supabase.functions.invoke('contract-assistant', {
         body: {
-          requestType: 'summarize_contract_terms',
-          dealId,
-          documentId,
-          versionId
+          question: summaryQuestion,
+          contractText: contract.content,
+          contractId: contract.id
         }
       });
 
@@ -160,7 +164,7 @@ export const useEnhancedContractAssistant = ({
         throw new Error(functionError.message || 'Failed to generate summary');
       }
 
-      if (!data?.analysis) {
+      if (!data?.answer) {
         console.error('❌ No analysis received:', data);
         throw new Error('No analysis received from AI service');
       }
@@ -171,16 +175,19 @@ export const useEnhancedContractAssistant = ({
       const summaryItem: QuestionHistoryItem = {
         id: `summary-${Date.now()}`,
         question: 'Contract Summary',
-        answer: data.analysis,
+        answer: data.answer,
         timestamp: new Date(),
         type: 'analysis',
         analysisType: 'summary',
-        sources: []
+        sources: data.sources || []
       };
 
       setQuestionHistory(prev => [summaryItem, ...prev]);
 
-      return data.analysis;
+      return {
+        analysis: data.answer,
+        sources: data.sources || []
+      };
 
     } catch (error) {
       console.error('❌ Error generating summary:', error);
@@ -188,13 +195,17 @@ export const useEnhancedContractAssistant = ({
       setError(errorMessage);
       throw error;
     }
-  }, [dealId, documentId, versionId, user]);
+  }, [contract, user]);
 
-  // Analyze contract with specific analysis type
+  // Analyze contract with specific analysis type using legacy format
   const analyzeContract = useCallback(async (analysisType: string) => {
-    console.log('🔍 Analyzing contract:', { analysisType, dealId, documentId, versionId });
+    console.log('🔍 Analyzing contract using legacy format:', { 
+      analysisType, 
+      contractId: contract?.id,
+      contentLength: contract?.content?.length || 0
+    });
 
-    if (analysisType === 'comprehensive_summary') {
+    if (analysisType === 'comprehensive_summary' || analysisType === 'contract_summary') {
       return summarizeContractTerms();
     }
 
@@ -252,7 +263,7 @@ export const useEnhancedContractAssistant = ({
       setQuestionHistory(prev => prev.filter(item => item.id !== tempId));
       throw error;
     }
-  }, [askQuestion, summarizeContractTerms, dealId, documentId, versionId]);
+  }, [askQuestion, summarizeContractTerms, contract]);
 
   return {
     questionHistory,

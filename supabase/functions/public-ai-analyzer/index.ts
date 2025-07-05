@@ -19,7 +19,13 @@ async function extractTextFromFile(file: File): Promise<string> {
 
     // For other file types, use the text-extractor service
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    // Use Deno's built-in base64 encoding for proper binary data handling
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Import Deno's base64 encoder for proper binary handling
+    const { encode } = await import("https://deno.land/std@0.170.0/encoding/base64.ts");
+    const base64 = encode(bytes);
 
     console.log('📤 Calling text-extractor service...');
 

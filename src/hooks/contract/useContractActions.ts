@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { Contract } from '@/services/realContractService';
 import { useEnhancedContractAssistant } from './useEnhancedContractAssistant';
@@ -11,11 +10,12 @@ export const useContractActions = (selectedContract: Contract | null) => {
     contentLength: selectedContract?.content?.length || 0
   });
 
-  // Initialize the enhanced contract assistant
+  // Initialize the enhanced contract assistant with the contract object
   const contractAssistant = useEnhancedContractAssistant({
     dealId: 'demo-deal', // Use demo deal ID for standalone contracts
     documentId: selectedContract?.id || '',
-    versionId: selectedContract?.id || '' // Use same ID for version
+    versionId: selectedContract?.id || '', // Use same ID for version
+    contract: selectedContract // Pass the contract object for legacy format
   });
 
   // Handle question submission

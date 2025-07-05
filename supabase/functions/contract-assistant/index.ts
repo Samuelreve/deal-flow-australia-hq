@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4.63.0";
@@ -24,29 +23,51 @@ interface ContractAssistantRequest {
   contractId?: string;
 }
 
-// Use the public-ai-analyzer function for text extraction
+// Use the text-extractor service directly for proper DOCX handling
 async function extractTextFromFile(fileBuffer: any, mimeType: string): Promise<string> {
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
     return fileBuffer.toString('utf-8');
   }
   
-  // For other file types, use the public-ai-analyzer function
+  // For other file types, use the text-extractor service directly
   try {
-    const formData = new FormData();
-    const blob = new Blob([fileBuffer], { type: mimeType });
-    formData.append('file', blob);
+    console.log('🔧 Extracting text using text-extractor service for type:', mimeType);
     
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/public-ai-analyzer`, {
+    // Convert buffer to base64 for the text-extractor service
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+    
+    console.log('📤 Calling text-extractor service...');
+    
+    // Call the text-extractor Edge Function directly
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/text-extractor`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({
+        fileBase64: base64,
+        mimeType: mimeType,
+        fileName: 'contract.docx'
+      })
     });
     
     if (!response.ok) {
-      throw new Error(`Text extraction failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ Text extraction service error (${response.status}):`, errorText);
+      throw new Error(`Text extraction service error: ${response.status} ${response.statusText}`);
     }
     
     const result = await response.json();
-    return result.text || '';
+    
+    if (!result.success) {
+      console.error('❌ Text extraction failed:', result.error);
+      throw new Error(result.error || "Text extraction failed");
+    }
+    
+    console.log(`✅ Text extraction successful: ${result.text.length} characters`);
+    return result.text;
+    
   } catch (error) {
     console.error('Text extraction error:', error);
     throw new Error(`Failed to extract text from ${mimeType}: ${error.message}`);
@@ -93,6 +114,19 @@ serve(async (req) => {
 
     const requestData: ContractAssistantRequest = await req.json();
     console.log('📥 Contract assistant request:', JSON.stringify(requestData, null, 2));
+    
+    // Enhanced debugging for all request types
+    console.log('🔍 FULL REQUEST DEBUG:', {
+      requestType: requestData.requestType,
+      dealId: requestData.dealId,
+      documentId: requestData.documentId,
+      versionId: requestData.versionId,
+      hasUserQuestion: !!requestData.userQuestion,
+      hasQuestion: !!requestData.question,
+      hasContractText: !!requestData.contractText,
+      hasContractId: !!requestData.contractId,
+      allKeys: Object.keys(requestData)
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const openai = new OpenAI({ apiKey: openAIApiKey });
