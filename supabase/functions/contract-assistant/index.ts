@@ -262,19 +262,46 @@ Please provide a detailed answer based on the contract content.`;
         
         console.log('📄 Contract found:', {
           name: contract.name,
+          mimeType: contract.mime_type,
           contentType: typeof contractText,
           contentLength: contractText?.length || 0,
-          contentPreview: contractText ? contractText.substring(0, 100) + '...' : 'No content',
-          hasContent: !!contractText
+          contentPreview: contractText ? contractText.substring(0, 200) + '...' : 'No content',
+          hasContent: !!contractText,
+          isDocx: contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
         
-        if (!contractText || contractText.length < 50) {
+        // Enhanced debugging for DOCX files
+        if (contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          console.log('🔍 DOCX DEBUG - Full content analysis:', {
+            contentLength: contractText?.length || 0,
+            contentBytes: contractText ? new TextEncoder().encode(contractText).length : 0,
+            hasTextContent: !!(contractText && contractText.trim()),
+            trimmedLength: contractText ? contractText.trim().length : 0,
+            firstChars: contractText ? Array.from(contractText.substring(0, 10)).map(c => `${c} (${c.charCodeAt(0)})`).join(', ') : 'No content',
+            containsWords: contractText ? /[a-zA-Z]{3,}/.test(contractText) : false,
+            fullContent: contractText || 'NO CONTENT'
+          });
+        }
+        
+        // Temporarily lower threshold for debugging DOCX files
+        const minLength = contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 10 : 50;
+        
+        if (!contractText || contractText.length < minLength) {
           console.error('❌ Contract content is too short or empty:', {
             length: contractText?.length || 0,
-            content: contractText
+            minRequired: minLength,
+            mimeType: contract.mime_type,
+            content: contractText?.substring(0, 200) || 'NO CONTENT'
           });
           return new Response(
-            JSON.stringify({ error: 'Contract content is too short or empty for analysis' }),
+            JSON.stringify({ 
+              error: `Contract content is too short or empty for analysis (${contractText?.length || 0} chars, need ${minLength}+)`,
+              debug: {
+                mimeType: contract.mime_type,
+                contentLength: contractText?.length || 0,
+                contentPreview: contractText?.substring(0, 100) || 'NO CONTENT'
+              }
+            }),
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               status: 400 

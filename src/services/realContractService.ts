@@ -125,12 +125,29 @@ class RealContractService {
         hasMetadata: !!response.metadata
       });
 
-      // Clean the text to remove any null bytes or control characters
-      const cleanedText = response.text ? 
-        response.text
-          .replace(/\x00/g, '') // Remove null bytes
-          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
-          .trim() : '';
+      // Clean the text to remove any null bytes or problematic control characters
+      // Less aggressive cleaning to preserve DOCX content
+      let cleanedText = response.text || '';
+      if (cleanedText) {
+        // Remove null bytes
+        cleanedText = cleanedText.replace(new RegExp(String.fromCharCode(0), 'g'), '');
+        
+        // Remove problematic control characters but preserve tab, line feed, carriage return
+        for (let i = 1; i <= 8; i++) {
+          cleanedText = cleanedText.replace(new RegExp(String.fromCharCode(i), 'g'), '');
+        }
+        for (let i = 14; i <= 31; i++) {
+          cleanedText = cleanedText.replace(new RegExp(String.fromCharCode(i), 'g'), '');
+        }
+        cleanedText = cleanedText.replace(new RegExp(String.fromCharCode(127), 'g'), '');
+        
+        // Remove Windows-1252 control characters
+        for (let i = 128; i <= 159; i++) {
+          cleanedText = cleanedText.replace(new RegExp(String.fromCharCode(i), 'g'), '');
+        }
+        
+        cleanedText = cleanedText.trim();
+      }
 
       console.log('🧹 Text cleaned for database storage:', {
         originalLength: response.text?.length || 0,
