@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import OpenAI from "https://esm.sh/openai@4.20.1";
+import OpenAI from "https://esm.sh/openai@4.63.0";
 import { Buffer } from "node:buffer";
 import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
@@ -149,7 +149,7 @@ ${contractText}
 Focus on: parties involved, key obligations, financial terms, important dates, termination conditions, and risk factors.`;
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4.1-2025-04-14",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -170,7 +170,7 @@ ${contractText}
 Please provide a detailed answer based on the contract content.`;
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4.1-2025-04-14",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -341,7 +341,7 @@ Please structure your summary with clear sections and highlight the most critica
         console.log('🤖 Calling OpenAI API...');
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4.1-2025-04-14",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -471,7 +471,7 @@ ${fullDocumentText}
 Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-2025-04-14",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -684,7 +684,7 @@ ${contractText}
 Please provide a comprehensive answer based on the contract content above.`;
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-2025-04-14",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -746,7 +746,7 @@ ${contractText}
 Please provide a comprehensive answer based on the contract content above.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
