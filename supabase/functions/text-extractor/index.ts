@@ -27,7 +27,12 @@ serve(async (req) => {
     console.log('🔧 Text extraction request:', {
       fileName,
       mimeType,
-      base64Length: fileBase64?.length || 0
+      base64Length: fileBase64?.length || 0,
+      librariesAvailable: {
+        mammoth: typeof mammoth !== 'undefined',
+        unpdf: typeof extractPdfTextUnpdf !== 'undefined', 
+        pdfjs: typeof pdfjs !== 'undefined'
+      }
     });
 
     if (!fileBase64 || !mimeType) {
@@ -104,7 +109,11 @@ serve(async (req) => {
           throw new Error('unpdf returned empty or insufficient text');
         }
       } catch (unpdfError) {
-        console.warn('⚠️ unpdf failed, trying pdfjs-dist fallback:', unpdfError.message);
+        console.error('⚠️ unpdf failed with error:', {
+          message: unpdfError.message,
+          stack: unpdfError.stack,
+          name: unpdfError.name
+        });
         
         // Method 2: Fallback to pdfjs-dist
         try {
@@ -260,8 +269,10 @@ serve(async (req) => {
         console.error('❌ DOCX extraction failed with detailed error:', {
           error: error.message,
           stack: error.stack,
+          name: error.name,
           bufferSize: fileBuffer.length,
-          isMammothAvailable: typeof mammoth !== 'undefined'
+          isMammothAvailable: typeof mammoth !== 'undefined',
+          mammothFunctions: mammoth ? Object.keys(mammoth) : 'N/A'
         });
         
         return new Response(
