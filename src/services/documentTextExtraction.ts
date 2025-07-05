@@ -21,11 +21,12 @@ export class DocumentTextExtractionService {
       // Handle plain text files directly on client
       if (file.type === 'text/plain') {
         const text = await file.text();
+        console.log('📄 EXTRACTED TEXT CONTENT (Plain Text):', text);
         return {
           success: true,
           text
         };
-      } 
+      }
       
       // For other supported file types, use the server-side text extractor
       if (this.isSupportedFileType(file)) {
@@ -67,6 +68,7 @@ export class DocumentTextExtractionService {
         
         if (data?.success && data?.text) {
           console.log('✅ Text extraction successful:', data.text.length, 'characters');
+          console.log('📄 EXTRACTED TEXT CONTENT:', data.text);
           return {
             success: true,
             text: data.text
