@@ -68,8 +68,10 @@ async function extractTextFromFile(fileBuffer: Buffer, mimeType: string): Promis
 
 serve(async (req) => {
   console.log('=== CONTRACT ASSISTANT REQUEST START ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
   
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests FIRST
   if (req.method === 'OPTIONS') {
     console.log("✅ Handling OPTIONS preflight request");
     return new Response(null, { headers: corsHeaders, status: 200 });
