@@ -27,12 +27,47 @@ export class DocumentTextExtractionService {
         };
       } 
       
-      // For other file types, return a placeholder message
-      // In production, you would send the file to a server-side service
-      else {
+      // For other supported file types, use the server-side text extractor
+      if (this.isSupportedFileType(file)) {
+        console.log('🔄 Using server-side text extraction for:', file.name, file.type);
+        
+        // Convert file to base64 for the edge function
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        const { data, error } = await supabase.functions.invoke('text-extractor', {
+          body: {
+            fileBase64: base64,
+            mimeType: file.type,
+            fileName: file.name
+          }
+        });
+        
+        if (error) {
+          console.error('❌ Text extraction error:', error);
+          return {
+            success: false,
+            error: `Text extraction failed: ${error.message || 'Unknown error'}`
+          };
+        }
+        
+        if (data?.success && data?.text) {
+          console.log('✅ Text extraction successful:', data.text.length, 'characters');
+          return {
+            success: true,
+            text: data.text
+          };
+        } else {
+          console.error('❌ Text extraction failed:', data);
+          return {
+            success: false,
+            error: data?.error || 'Failed to extract text from document'
+          };
+        }
+      } else {
         return {
-          success: true,
-          text: `[Document uploaded: ${file.name}] - Text extraction for ${file.type} files requires server-side processing. Please use plain text files for immediate text extraction.`
+          success: false,
+          error: this.getUnsupportedFileTypeMessage(file)
         };
       }
     } catch (error: any) {
@@ -102,8 +137,7 @@ export class DocumentTextExtractionService {
       'text/rtf'
     ];
 
-    // Only text/plain is currently supported for client-side extraction
-    // Others are marked as supported but require server-side processing
+    // All these types are now supported: text/plain (client-side), others (server-side)
     return supportedTypes.includes(file.type);
   }
 
@@ -111,6 +145,6 @@ export class DocumentTextExtractionService {
    * Get user-friendly error message for unsupported file types
    */
   static getUnsupportedFileTypeMessage(file: File): string {
-    return `The file "${file.name}" (${file.type}) is not supported for text extraction. Please upload a plain text file for immediate processing, or PDF/Word documents for basic upload (text extraction requires server-side processing).`;
+    return `The file "${file.name}" (${file.type}) is not supported for text extraction. Supported formats: TXT, PDF, DOCX, DOC, and RTF files.`;
   }
 }
