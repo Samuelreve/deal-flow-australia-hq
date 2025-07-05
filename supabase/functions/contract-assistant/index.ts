@@ -3,8 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4.63.0";
 import { Buffer } from "node:buffer";
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
-import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,51 +24,14 @@ interface ContractAssistantRequest {
   contractId?: string;
 }
 
-// REALISTIC TEXT EXTRACTION HELPER IMPLEMENTATION
-async function extractTextFromFile(fileBuffer: Buffer, mimeType: string): Promise<string> {
+// Simplified text extraction for basic mime types
+async function extractTextFromFile(fileBuffer: any, mimeType: string): Promise<string> {
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
-    // Handle plain text files directly
     return fileBuffer.toString('utf-8');
-  } else if (mimeType === 'application/pdf') {
-    // PDF Text Extraction
-    try {
-      // Use pdf-parse to extract text from the PDF buffer
-      const data = await pdfParse(fileBuffer);
-      if (data && data.text) {
-        // Ensure text is trimmed and has content
-        const extracted = data.text.trim();
-        if (extracted.length < 50) {
-          console.warn('PDF extracted text too short for analysis:', extracted.substring(0, 50));
-          throw new Error("Insufficient text extracted from PDF. Document might be scanned, empty, or unreadable.");
-        }
-        return extracted;
-      }
-      throw new Error("No readable text content found in PDF.");
-    } catch (e: any) {
-      console.error('PDF parsing error (pdf-parse):', e.message);
-      throw new Error(`Failed to extract text from PDF. It might be scanned or corrupted: ${e.message}`);
-    }
-  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    // DOCX Text Extraction
-    try {
-      // mammoth expects an ArrayBuffer, so convert Deno Buffer's underlying ArrayBuffer
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer.buffer });
-      if (result && result.value) {
-        const extracted = result.value.trim();
-        if (extracted.length < 50) {
-          console.warn('DOCX extracted text too short for analysis:', extracted.substring(0, 50));
-          throw new Error("Insufficient text extracted from DOCX. Document might be too short, empty, or unreadable.");
-        }
-        return extracted;
-      }
-      throw new Error("No readable text content found in DOCX.");
-    } catch (e: any) {
-      console.error('DOCX parsing error (mammoth):', e.message);
-      throw new Error(`Failed to extract text from DOCX. It might be corrupted or unsupported format: ${e.message}`);
-    }
   }
-  // Handle any other unsupported MIME types
-  throw new Error(`Unsupported document type for text extraction: ${mimeType}.`);
+  
+  // For now, return error for unsupported types to avoid import issues
+  throw new Error(`Text extraction for ${mimeType} is temporarily disabled. Please upload plain text files.`);
 }
 
 serve(async (req) => {
