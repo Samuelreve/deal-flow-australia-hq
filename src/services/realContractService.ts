@@ -138,6 +138,13 @@ class RealContractService {
         textPreview: cleanedText.substring(0, 200)
       });
 
+      // Log the full extracted text data for debugging
+      console.log('📄 FULL EXTRACTED TEXT DATA:');
+      console.log('='.repeat(50));
+      console.log(cleanedText);
+      console.log('='.repeat(50));
+      console.log(`Total characters: ${cleanedText.length}`);
+
       // Store the contract in the database
       const contractData = {
         name: file.name,

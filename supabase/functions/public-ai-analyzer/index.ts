@@ -419,6 +419,13 @@ serve(async (req) => {
     console.log("🧹 Text cleaned, final length:", cleanedText.length);
     console.log("📝 Extracted text preview:", cleanedText.substring(0, 500));
     
+    // Log the complete extracted text for debugging
+    console.log("📄 COMPLETE EXTRACTED TEXT FROM EDGE FUNCTION:");
+    console.log("=".repeat(60));
+    console.log(cleanedText);
+    console.log("=".repeat(60));
+    console.log(`File: ${file.name}, Type: ${file.type}, Total chars: ${cleanedText.length}`);
+    
     // Generate simple analysis for now (we'll add OpenAI later)
     const analysis = `Document Analysis:
 
