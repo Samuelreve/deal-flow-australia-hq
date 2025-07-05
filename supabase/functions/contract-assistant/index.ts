@@ -5,14 +5,7 @@ import OpenAI from "https://esm.sh/openai@4.20.1";
 import { Buffer } from "node:buffer";
 import pdfParse from "https://esm.sh/pdf-parse@1.1.1";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-requested-with, accept, origin, referer, user-agent',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-  'Access-Control-Max-Age': '86400',
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 interface ContractAssistantRequest {
   requestType: 'answer_question' | 'summarize_contract_terms';
@@ -78,7 +71,8 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    console.log("✅ Handling OPTIONS preflight request");
+    return new Response(null, { headers: corsHeaders, status: 200 });
   }
 
   try {
