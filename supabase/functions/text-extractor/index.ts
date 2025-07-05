@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Use unpdf for better PDF extraction in serverless environments - 2025 best practice
-import { extractText as extractPdfText } from "npm:unpdf@0.12.0";
-// Use mammoth for DOCX extraction - industry standard
+// 2025 Best Practice: Multiple PDF extraction libraries for better compatibility
+import { extractText as extractPdfTextUnpdf } from "npm:unpdf@0.12.0";
+// Alternative PDF extraction using pdfjs-dist (Mozilla's PDF.js)
+import * as pdfjs from "npm:pdfjs-dist@4.8.69";
+// DOCX extraction - industry standard
 import mammoth from "npm:mammoth@1.8.0";
 
 serve(async (req) => {
@@ -63,95 +65,180 @@ serve(async (req) => {
       console.log(`✅ Plain text extraction: ${extractedText.length} characters`);
     }
     else if (mimeType === 'application/pdf') {
-      console.log('📄 Processing PDF with unpdf (2025 best practice)...');
-      try {
-        console.log('🔧 PDF buffer details:', {
-          size: fileBuffer.length,
-          firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
-          isPDF: fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46
-        });
-        
-        // Verify it's actually a PDF file
-        if (!(fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46)) {
-          throw new Error('File does not appear to be a valid PDF (missing PDF header)');
-        }
-        
-        // Use unpdf with enhanced error handling
-        const extractionResult = await extractPdfText(fileBuffer);
-        console.log('📋 PDF extraction result:', {
-          hasText: !!extractionResult?.text,
-          textLength: extractionResult?.text?.length || 0,
-          textPreview: extractionResult?.text?.substring(0, 100) || 'No text'
-        });
-        
-        extractedText = extractionResult?.text || '';
-        
-        if (!extractedText || extractedText.trim().length === 0) {
-          throw new Error('No text content found in PDF - may be image-based or encrypted');
-        }
-        
-        // Enhanced text cleaning for PDFs
-        extractedText = enhancedPdfTextCleaning(extractedText);
-        console.log(`✅ PDF extraction successful: ${extractedText.length} characters after cleaning`);
-        
-        if (extractedText.trim().length < 10) {
-          throw new Error('Insufficient readable text after cleaning - PDF may contain mostly images or formatting');
-        }
-      } catch (error) {
-        console.error('❌ PDF extraction failed:', error);
+      console.log('📄 Processing PDF with multiple extraction methods (2025 best practice)...');
+      
+      // Comprehensive PDF validation
+      console.log('🔧 PDF buffer validation:', {
+        size: fileBuffer.length,
+        firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
+        isPDF: fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46,
+        lastBytes: Array.from(fileBuffer.slice(-8)).map(b => b.toString(16)).join(' ')
+      });
+      
+      // Verify PDF magic number
+      if (!(fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46)) {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `PDF text extraction failed: ${error.message}. This may be a scanned PDF, encrypted, or contain only images.` 
+            error: 'File does not appear to be a valid PDF (missing PDF header)' 
           }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-    }
-    else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      console.log('📄 Processing DOCX with mammoth (industry standard)...');
+      
+      // Method 1: Try unpdf first (optimized for serverless)
       try {
-        console.log('🔧 DOCX buffer details:', {
-          size: fileBuffer.length,
-          firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
-          isZip: fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B
+        console.log('🔄 Attempting PDF extraction with unpdf...');
+        const extractionResult = await extractPdfTextUnpdf(fileBuffer);
+        
+        console.log('📋 unpdf extraction result:', {
+          hasText: !!extractionResult?.text,
+          textLength: extractionResult?.text?.length || 0,
+          textPreview: extractionResult?.text?.substring(0, 150) || 'No text'
         });
         
-        // Verify it's actually a DOCX/ZIP file
-        if (!(fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B)) {
-          throw new Error('File does not appear to be a valid DOCX (missing ZIP header)');
+        if (extractionResult?.text && extractionResult.text.trim().length > 10) {
+          extractedText = enhancedPdfTextCleaning(extractionResult.text);
+          console.log(`✅ unpdf extraction successful: ${extractedText.length} characters`);
+        } else {
+          throw new Error('unpdf returned empty or insufficient text');
         }
+      } catch (unpdfError) {
+        console.warn('⚠️ unpdf failed, trying pdfjs-dist fallback:', unpdfError.message);
         
-        // Use mammoth with enhanced options
-        const result = await mammoth.extractRawText({ 
+        // Method 2: Fallback to pdfjs-dist
+        try {
+          console.log('🔄 Attempting PDF extraction with pdfjs-dist...');
+          
+          // Load PDF document
+          const loadingTask = pdfjs.getDocument({ data: fileBuffer });
+          const pdfDocument = await loadingTask.promise;
+          
+          console.log('📋 PDF document loaded:', {
+            numPages: pdfDocument.numPages,
+            fingerprint: pdfDocument.fingerprint
+          });
+          
+          let fullText = '';
+          
+          // Extract text from all pages
+          for (let pageNum = 1; pageNum <= Math.min(pdfDocument.numPages, 50); pageNum++) { // Limit to 50 pages for performance
+            try {
+              const page = await pdfDocument.getPage(pageNum);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items
+                .filter(item => 'str' in item)
+                .map(item => (item as any).str)
+                .join(' ');
+              
+              if (pageText.trim()) {
+                fullText += pageText + '\n';
+              }
+            } catch (pageError) {
+              console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
+            }
+          }
+          
+          if (fullText.trim().length > 10) {
+            extractedText = enhancedPdfTextCleaning(fullText);
+            console.log(`✅ pdfjs-dist extraction successful: ${extractedText.length} characters`);
+          } else {
+            throw new Error('pdfjs-dist returned empty or insufficient text');
+          }
+        } catch (pdfjsError) {
+          console.error('❌ All PDF extraction methods failed:', {
+            unpdf: unpdfError.message,
+            pdfjs: pdfjsError.message
+          });
+          
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdfjs(${pdfjsError.message})` 
+            }),
+            { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+    else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      console.log('📄 Processing DOCX with enhanced mammoth configuration...');
+      
+      // DOCX file validation
+      console.log('🔧 DOCX buffer validation:', {
+        size: fileBuffer.length,
+        firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
+        isZip: fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B,
+        hasZipSignature: fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B && fileBuffer[2] === 0x03 && fileBuffer[3] === 0x04
+      });
+      
+      // Verify ZIP/DOCX magic number
+      if (!(fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B)) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'File does not appear to be a valid DOCX (missing ZIP header)' 
+          }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      try {
+        // Enhanced mammoth configuration for better text extraction
+        const extractionOptions = {
           buffer: fileBuffer,
-          // Add options for better text extraction
+          // Ignore styles that don't affect text content
+          ignoreEmptyParagraphs: false,
+          // Convert images to alt text if available
           convertImage: mammoth.images.imgElement(function(image) {
             return image.read("base64").then(function(imageBuffer) {
               return {
-                src: "data:" + image.contentType + ";base64," + imageBuffer
+                src: "data:" + image.contentType + ";base64," + imageBuffer,
+                alt: "Image content" // Provide fallback alt text
               };
+            }).catch(function() {
+              return { alt: "[Image]" }; // Fallback for failed image processing
             });
-          })
-        });
+          }),
+          // Enhanced style mapping to preserve important formatting
+          styleMap: [
+            "p[style-name='Heading 1'] => h1:fresh",
+            "p[style-name='Heading 2'] => h2:fresh",
+            "p[style-name='Heading 3'] => h3:fresh",
+            "r[style-name='Strong'] => strong",
+            "r[style-name='Emphasis'] => em"
+          ]
+        };
+        
+        console.log('🔄 Extracting DOCX text with enhanced configuration...');
+        const result = await mammoth.extractRawText(extractionOptions);
         
         extractedText = result.value || '';
+        
         console.log('📋 DOCX extraction result:', {
           textLength: extractedText.length,
           hasMessages: result.messages && result.messages.length > 0,
           messageCount: result.messages?.length || 0,
-          textPreview: extractedText.substring(0, 100) || 'No text'
+          textPreview: extractedText.substring(0, 150) || 'No text',
+          warningCount: result.messages?.filter(m => m.type === 'warning').length || 0,
+          errorCount: result.messages?.filter(m => m.type === 'error').length || 0
         });
         
+        // Log detailed messages for debugging
         if (result.messages && result.messages.length > 0) {
-          console.log('📝 Mammoth messages:', result.messages.map(m => ({
-            type: m.type,
-            message: m.message
-          })));
+          const warnings = result.messages.filter(m => m.type === 'warning');
+          const errors = result.messages.filter(m => m.type === 'error');
+          
+          if (warnings.length > 0) {
+            console.log('⚠️ Mammoth warnings:', warnings.map(m => m.message));
+          }
+          if (errors.length > 0) {
+            console.log('❌ Mammoth errors:', errors.map(m => m.message));
+          }
         }
         
         if (!extractedText || extractedText.trim().length === 0) {
-          throw new Error('No text content found in DOCX file');
+          throw new Error('No text content found in DOCX file - may be empty or contain only images/tables');
         }
         
         // Enhanced text cleaning for DOCX
@@ -159,14 +246,19 @@ serve(async (req) => {
         console.log(`✅ DOCX extraction successful: ${extractedText.length} characters after cleaning`);
         
         if (extractedText.trim().length < 10) {
-          throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images or formatting');
+          throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images, tables, or complex formatting');
         }
       } catch (error) {
-        console.error('❌ DOCX extraction failed:', error);
+        console.error('❌ DOCX extraction failed with detailed error:', {
+          error: error.message,
+          stack: error.stack,
+          bufferSize: fileBuffer.length
+        });
+        
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `DOCX text extraction failed: ${error.message}. File may be corrupted or password-protected.` 
+            error: `DOCX text extraction failed: ${error.message}. File may be corrupted, password-protected, or contain only non-text content.` 
           }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -214,26 +306,55 @@ serve(async (req) => {
       );
     }
 
-    // Final validation
+    // Final validation and quality checks
     if (!extractedText || extractedText.trim().length === 0) {
+      console.error('❌ Final validation failed: No text extracted');
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'No readable text could be extracted from the document.' 
+          error: 'No readable text could be extracted from the document. The file may be empty, corrupted, or contain only images/graphics.' 
         }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🎉 Text extraction completed successfully: ${extractedText.length} characters`);
-    console.log('📋 Text preview:', extractedText.substring(0, 200) + '...');
+    // Quality check: ensure we have meaningful content
+    const trimmedText = extractedText.trim();
+    if (trimmedText.length < 5) {
+      console.error('❌ Quality check failed: Insufficient text content', {
+        extractedLength: extractedText.length,
+        trimmedLength: trimmedText.length
+      });
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Insufficient text content extracted (${trimmedText.length} characters). The document may contain primarily images, graphics, or formatting.`
+        }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`🎉 Text extraction completed successfully!`);
+    console.log('📊 Final extraction stats:', {
+      originalLength: extractedText.length,
+      trimmedLength: trimmedText.length,
+      fileName: fileName || 'Unknown',
+      mimeType: mimeType
+    });
+    console.log('📋 Text preview:', trimmedText.substring(0, 200) + (trimmedText.length > 200 ? '...' : ''));
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         text: extractedText,
         extractedLength: extractedText.length,
-        fileName: fileName
+        fileName: fileName || 'document',
+        mimeType: mimeType,
+        quality: {
+          hasContent: trimmedText.length > 5,
+          wordCount: trimmedText.split(/\s+/).length,
+          avgWordLength: trimmedText.split(/\s+/).reduce((acc, word) => acc + word.length, 0) / trimmedText.split(/\s+/).length
+        }
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
