@@ -18,6 +18,12 @@ serve(async (req) => {
   try {
     // Parse request body
     const { fileBase64, mimeType, fileName } = await req.json();
+    
+    console.log('🔧 Text extraction request:', {
+      fileName,
+      mimeType,
+      base64Length: fileBase64?.length || 0
+    });
 
     if (!fileBase64 || !mimeType) {
       return new Response(
@@ -27,6 +33,8 @@ serve(async (req) => {
     }
 
     const fileBuffer = decodeBase64(fileBase64);
+    console.log('📄 File buffer created, size:', fileBuffer.length, 'bytes');
+    
     let extractedText: string;
 
     // Extract text based on mime type
@@ -51,13 +59,27 @@ serve(async (req) => {
       }
     } 
     else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // Enhanced DOCX text extraction
-      const decoder = new TextDecoder();
-      const rawContent = decoder.decode(fileBuffer);
-      extractedText = extractTextFromDocx(rawContent);
+      // DOCX files are ZIP archives - we can't properly parse them without ZIP library
+      console.log('📄 DOCX file detected, attempting basic text extraction...');
       
-      if (!extractedText || extractedText.trim().length < 50) {
-        extractedText = `[Word Document: ${fileName || 'Unknown'}]\n\nThis Word document has been uploaded but requires manual text extraction. The document may contain complex formatting or be corrupted.`;
+      // Try to extract any readable text from the binary content
+      const decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false });
+      const rawContent = decoder.decode(fileBuffer);
+      
+      // Look for any readable text patterns in the binary content
+      const readableText = rawContent
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/g, ' ') // Remove non-printable chars
+        .split(/\s+/)
+        .filter(word => word.length > 2 && /^[a-zA-Z0-9\.,\!\?\-\'\"]+$/.test(word))
+        .join(' ')
+        .trim();
+      
+      if (readableText.length > 50) {
+        extractedText = readableText;
+        console.log(`📄 DOCX extraction found ${extractedText.length} characters of text`);
+      } else {
+        extractedText = `[Word Document: ${fileName || 'Unknown'}]\n\nThis DOCX document requires proper ZIP extraction and XML parsing. Current extraction found limited readable content. For full text extraction, please convert to TXT format or use a dedicated document processing service.`;
+        console.log('📄 DOCX extraction failed, using fallback message');
       }
     }
     else if (mimeType === 'application/msword') {
@@ -118,37 +140,51 @@ function decodeBase64(base64: string): Uint8Array {
 // Enhanced function to extract readable text from PDF content
 function extractReadableTextFromPDF(rawContent: string): string {
   try {
+    console.log('📄 Attempting PDF text extraction...');
     const textBlocks: string[] = [];
     
-    // Multiple patterns to extract text from PDFs
+    // More comprehensive patterns for PDF text extraction
     const patterns = [
-      /\(([^)]+)\)Tj/g,
-      /\[([^\]]+)\]TJ/g,
-      /BT\s+([^ET]+)ET/g,
-      /\/F\d+\s+\d+\s+Tf\s+([^BT]+)/g
+      // Standard text positioning with parentheses
+      /\(([^)]*)\)\s*Tj/g,
+      // Array-based text positioning  
+      /\[([^\]]*)\]\s*TJ/g,
+      // Text blocks between BT and ET
+      /BT\s+(.*?)\s+ET/gs,
+      // Text after font selection
+      /\/F\d+\s+\d+\.?\d*\s+Tf[^()]*\(([^)]*)\)/g,
+      // Simple parenthetical text
+      /\(([^)]{3,})\)/g
     ];
     
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(rawContent)) !== null) {
-        if (match[1] && match[1].length > 1) {
-          const cleanText = match[1]
-            .replace(/\\r|\\n/g, ' ')
-            .replace(/\\t/g, ' ')
+        if (match[1]) {
+          let cleanText = match[1]
+            .replace(/\\r/g, '\n')
+            .replace(/\\n/g, '\n') 
+            .replace(/\\t/g, '\t')
             .replace(/\\\\/g, '\\')
             .replace(/\\\(/g, '(')
             .replace(/\\\)/g, ')')
-            .replace(/[^\x20-\x7E\s]/g, ' ')
+            .replace(/\\([0-9]{3})/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)))
+            .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, ' ')
+            .replace(/\s+/g, ' ')
             .trim();
           
-          if (cleanText.length > 2) {
+          // Only include meaningful text (not just symbols or very short strings)
+          if (cleanText.length > 2 && /[a-zA-Z]/.test(cleanText)) {
             textBlocks.push(cleanText);
           }
         }
       }
     }
     
-    return textBlocks.join('\n').trim();
+    let result = textBlocks.join(' ').trim();
+    console.log(`📄 PDF extraction result: ${result.length} characters, first 100:`, result.substring(0, 100));
+    
+    return result;
   } catch (e) {
     console.error("Error extracting text from PDF:", e);
     return "";

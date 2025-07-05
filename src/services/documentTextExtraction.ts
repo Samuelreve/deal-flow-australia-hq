@@ -35,12 +35,26 @@ export class DocumentTextExtractionService {
         const arrayBuffer = await file.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
         
+        console.log('📤 Sending to text-extractor edge function:', {
+          fileName: file.name,
+          mimeType: file.type,
+          base64Length: base64.length
+        });
+        
         const { data, error } = await supabase.functions.invoke('text-extractor', {
           body: {
             fileBase64: base64,
             mimeType: file.type,
             fileName: file.name
           }
+        });
+        
+        console.log('📥 Text extraction response:', {
+          success: data?.success,
+          hasText: !!data?.text,
+          textLength: data?.text?.length || 0,
+          error: error?.message || data?.error,
+          textPreview: data?.text?.substring(0, 200) || 'No text'
         });
         
         if (error) {
