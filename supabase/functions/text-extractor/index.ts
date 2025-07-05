@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Use unpdf for better PDF extraction in serverless environments
-import { extractText as extractPdfText } from "npm:unpdf@0.11.0";
-// Use mammoth for DOCX extraction
-import mammoth from "npm:mammoth@1.6.0";
+// Use unpdf for better PDF extraction in serverless environments - 2025 best practice
+import { extractText as extractPdfText } from "npm:unpdf@0.12.0";
+// Use mammoth for DOCX extraction - industry standard
+import mammoth from "npm:mammoth@1.8.0";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -35,14 +35,23 @@ serve(async (req) => {
       );
     }
 
-    // Convert base64 to buffer
-    const fileBuffer = new Uint8Array(
-      atob(fileBase64)
-        .split('')
-        .map(char => char.charCodeAt(0))
-    );
-    
-    console.log('📄 File buffer created, size:', fileBuffer.length, 'bytes');
+    // Convert base64 to proper buffer with enhanced decoding
+    let fileBuffer: Uint8Array;
+    try {
+      // Decode base64 more robustly
+      const binaryString = atob(fileBase64);
+      fileBuffer = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        fileBuffer[i] = binaryString.charCodeAt(i);
+      }
+      console.log('📄 File buffer created successfully, size:', fileBuffer.length, 'bytes');
+    } catch (error) {
+      console.error('❌ Failed to decode base64:', error);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid file encoding' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     let extractedText: string = '';
     
@@ -54,55 +63,110 @@ serve(async (req) => {
       console.log(`✅ Plain text extraction: ${extractedText.length} characters`);
     }
     else if (mimeType === 'application/pdf') {
-      console.log('📄 Processing PDF with unpdf...');
+      console.log('📄 Processing PDF with unpdf (2025 best practice)...');
       try {
-        // Use unpdf which is optimized for edge functions
-        const { text } = await extractPdfText(fileBuffer);
-        extractedText = text || '';
+        console.log('🔧 PDF buffer details:', {
+          size: fileBuffer.length,
+          firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
+          isPDF: fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46
+        });
         
-        console.log(`✅ PDF extraction successful: ${extractedText.length} characters`);
+        // Verify it's actually a PDF file
+        if (!(fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46)) {
+          throw new Error('File does not appear to be a valid PDF (missing PDF header)');
+        }
         
-        // Clean up extracted text
-        extractedText = cleanExtractedText(extractedText);
+        // Use unpdf with enhanced error handling
+        const extractionResult = await extractPdfText(fileBuffer);
+        console.log('📋 PDF extraction result:', {
+          hasText: !!extractionResult?.text,
+          textLength: extractionResult?.text?.length || 0,
+          textPreview: extractionResult?.text?.substring(0, 100) || 'No text'
+        });
         
-        if (!extractedText || extractedText.trim().length < 10) {
-          throw new Error('Insufficient readable text extracted from PDF');
+        extractedText = extractionResult?.text || '';
+        
+        if (!extractedText || extractedText.trim().length === 0) {
+          throw new Error('No text content found in PDF - may be image-based or encrypted');
+        }
+        
+        // Enhanced text cleaning for PDFs
+        extractedText = enhancedPdfTextCleaning(extractedText);
+        console.log(`✅ PDF extraction successful: ${extractedText.length} characters after cleaning`);
+        
+        if (extractedText.trim().length < 10) {
+          throw new Error('Insufficient readable text after cleaning - PDF may contain mostly images or formatting');
         }
       } catch (error) {
         console.error('❌ PDF extraction failed:', error);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `PDF text extraction failed: ${error.message}. This may be a scanned PDF or contain only images.` 
+            error: `PDF text extraction failed: ${error.message}. This may be a scanned PDF, encrypted, or contain only images.` 
           }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
     else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      console.log('📄 Processing DOCX with mammoth...');
+      console.log('📄 Processing DOCX with mammoth (industry standard)...');
       try {
-        const result = await mammoth.extractRawText({ buffer: fileBuffer });
-        extractedText = result.value || '';
+        console.log('🔧 DOCX buffer details:', {
+          size: fileBuffer.length,
+          firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
+          isZip: fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B
+        });
         
-        console.log(`✅ DOCX extraction successful: ${extractedText.length} characters`);
-        
-        if (result.messages && result.messages.length > 0) {
-          console.log('📝 Mammoth messages:', result.messages);
+        // Verify it's actually a DOCX/ZIP file
+        if (!(fileBuffer[0] === 0x50 && fileBuffer[1] === 0x4B)) {
+          throw new Error('File does not appear to be a valid DOCX (missing ZIP header)');
         }
         
-        // Clean up extracted text
-        extractedText = cleanExtractedText(extractedText);
+        // Use mammoth with enhanced options
+        const result = await mammoth.extractRawText({ 
+          buffer: fileBuffer,
+          // Add options for better text extraction
+          convertImage: mammoth.images.imgElement(function(image) {
+            return image.read("base64").then(function(imageBuffer) {
+              return {
+                src: "data:" + image.contentType + ";base64," + imageBuffer
+              };
+            });
+          })
+        });
         
-        if (!extractedText || extractedText.trim().length < 10) {
-          throw new Error('Insufficient readable text extracted from DOCX');
+        extractedText = result.value || '';
+        console.log('📋 DOCX extraction result:', {
+          textLength: extractedText.length,
+          hasMessages: result.messages && result.messages.length > 0,
+          messageCount: result.messages?.length || 0,
+          textPreview: extractedText.substring(0, 100) || 'No text'
+        });
+        
+        if (result.messages && result.messages.length > 0) {
+          console.log('📝 Mammoth messages:', result.messages.map(m => ({
+            type: m.type,
+            message: m.message
+          })));
+        }
+        
+        if (!extractedText || extractedText.trim().length === 0) {
+          throw new Error('No text content found in DOCX file');
+        }
+        
+        // Enhanced text cleaning for DOCX
+        extractedText = enhancedDocxTextCleaning(extractedText);
+        console.log(`✅ DOCX extraction successful: ${extractedText.length} characters after cleaning`);
+        
+        if (extractedText.trim().length < 10) {
+          throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images or formatting');
         }
       } catch (error) {
         console.error('❌ DOCX extraction failed:', error);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `DOCX text extraction failed: ${error.message}` 
+            error: `DOCX text extraction failed: ${error.message}. File may be corrupted or password-protected.` 
           }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -187,7 +251,47 @@ serve(async (req) => {
 });
 
 /**
- * Clean and normalize extracted text
+ * Enhanced PDF text cleaning - 2025 best practices
+ */
+function enhancedPdfTextCleaning(text: string): string {
+  if (!text) return '';
+  
+  return text
+    // Remove PDF-specific artifacts
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Control characters
+    .replace(/[^\x20-\x7E\s\n\r\t]/g, ' ') // Non-printable characters except common whitespace
+    // Fix common PDF text extraction issues
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // Fix missing spaces between words
+    .replace(/(\w)(\d)/g, '$1 $2') // Space between letters and numbers
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2') // Space between numbers and letters
+    // Clean up whitespace
+    .replace(/\s+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\t+/g, ' ')
+    .trim();
+}
+
+/**
+ * Enhanced DOCX text cleaning - 2025 best practices
+ */
+function enhancedDocxTextCleaning(text: string): string {
+  if (!text) return '';
+  
+  return text
+    // Remove control characters
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Clean up DOCX-specific formatting artifacts
+    .replace(/\r\n/g, '\n') // Normalize line breaks
+    .replace(/\r/g, '\n')
+    // Remove excessive whitespace while preserving paragraph structure
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\s+|\s+$/gm, '') // Trim each line
+    .trim();
+}
+
+/**
+ * Basic text cleaning fallback
  */
 function cleanExtractedText(text: string): string {
   if (!text) return '';
