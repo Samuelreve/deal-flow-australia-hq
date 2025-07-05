@@ -78,7 +78,7 @@ const ContractAnalysisPage: React.FC = () => {
     }
   }, [selectedContract?.id]);
 
-  // Generate contract summary using the enhanced contract assistant
+  // Generate contract summary using the same working analysis flow
   const generateContractSummary = async () => {
     if (!selectedContract?.content) {
       console.error('❌ No contract content available for summary');
@@ -96,10 +96,11 @@ const ContractAnalysisPage: React.FC = () => {
     setContractSummary(null);
     
     try {
-      console.log('🤖 Calling handleAnalyzeContract with comprehensive_summary...');
+      console.log('🤖 Using working analysis flow for contract summary...');
       
-      // Use the contract analysis function for summarization
-      const result = await handleAnalyzeContract('comprehensive_summary');
+      // Use the same analysis flow as the working Analysis tab
+      // This is the same mechanism that works for "Analyze Key Terms" etc.
+      const result = await handleAnalyzeContract('contract_summary');
       
       console.log('📥 Analysis result received:', {
         hasResult: !!result,
