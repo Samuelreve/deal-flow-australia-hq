@@ -1,12 +1,15 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// 2025 Best Practice: Multiple PDF extraction libraries for better compatibility
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0";
-// Alternative PDF extraction using pdfjs-dist (Mozilla's PDF.js)
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379";
-// DOCX extraction - industry standard
-import mammoth from "https://esm.sh/mammoth@1.6.0";
+// 2025 Best Practice: Deno-compatible libraries for document extraction
+// PDF extraction using pdf-parse (more Deno compatible)
+import { default as pdfParse } from "https://esm.sh/pdf-parse@1.1.1";
+// Alternative PDF extraction using unpdf with better error handling
+import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.12.0";
+// DOCX extraction using pizzip and docxtemplater approach (more reliable in Deno)
+import JSZip from "https://esm.sh/jszip@3.10.1";
+// XML parser for DOCX content
+import { XMLParser } from "https://esm.sh/fast-xml-parser@4.3.2";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -29,9 +32,10 @@ serve(async (req) => {
       mimeType,
       base64Length: fileBase64?.length || 0,
       librariesAvailable: {
-        mammoth: typeof mammoth !== 'undefined',
+        jszip: typeof JSZip !== 'undefined',
         unpdf: typeof extractPdfTextUnpdf !== 'undefined', 
-        pdfjs: typeof pdfjs !== 'undefined'
+        pdfParse: typeof pdfParse !== 'undefined',
+        xmlParser: typeof XMLParser !== 'undefined'
       }
     });
 
@@ -115,55 +119,35 @@ serve(async (req) => {
           name: unpdfError.name
         });
         
-        // Method 2: Fallback to pdfjs-dist
+        // Method 2: Fallback to pdf-parse (more reliable for Deno)
         try {
-          console.log('🔄 Attempting PDF extraction with pdfjs-dist...');
+          console.log('🔄 Attempting PDF extraction with pdf-parse...');
           
-          // Load PDF document
-          const loadingTask = pdfjs.getDocument({ data: fileBuffer });
-          const pdfDocument = await loadingTask.promise;
+          // Use pdf-parse with buffer
+          const pdfData = await pdfParse(fileBuffer);
           
-          console.log('📋 PDF document loaded:', {
-            numPages: pdfDocument.numPages,
-            fingerprint: pdfDocument.fingerprint
+          console.log('📋 PDF document parsed:', {
+            numPages: pdfData.numpages,
+            textLength: pdfData.text?.length || 0,
+            hasText: !!pdfData.text
           });
           
-          let fullText = '';
-          
-          // Extract text from all pages
-          for (let pageNum = 1; pageNum <= Math.min(pdfDocument.numPages, 50); pageNum++) { // Limit to 50 pages for performance
-            try {
-              const page = await pdfDocument.getPage(pageNum);
-              const textContent = await page.getTextContent();
-              const pageText = textContent.items
-                .filter(item => 'str' in item)
-                .map(item => (item as { str: string }).str)
-                .join(' ');
-              
-              if (pageText.trim()) {
-                fullText += pageText + '\n';
-              }
-            } catch (pageError) {
-              console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
-            }
-          }
-          
-          if (fullText.trim().length > 10) {
-            extractedText = enhancedPdfTextCleaning(fullText);
-            console.log(`✅ pdfjs-dist extraction successful: ${extractedText.length} characters`);
+          if (pdfData.text && pdfData.text.trim().length > 10) {
+            extractedText = enhancedPdfTextCleaning(pdfData.text);
+            console.log(`✅ pdf-parse extraction successful: ${extractedText.length} characters`);
           } else {
-            throw new Error('pdfjs-dist returned empty or insufficient text');
+            throw new Error('pdf-parse returned empty or insufficient text');
           }
-        } catch (pdfjsError) {
+        } catch (pdfParseError) {
           console.error('❌ All PDF extraction methods failed:', {
             unpdf: unpdfError.message,
-            pdfjs: pdfjsError.message
+            pdfParse: pdfParseError.message
           });
           
           return new Response(
             JSON.stringify({ 
               success: false, 
-              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdfjs(${pdfjsError.message})` 
+              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdf-parse(${pdfParseError.message})` 
             }),
             { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
@@ -193,77 +177,62 @@ serve(async (req) => {
       }
       
       try {
-        console.log('🔄 Attempting DOCX extraction with mammoth...');
+        console.log('🔄 Attempting DOCX extraction with JSZip...');
         
-        // Try multiple extraction methods for DOCX
-        let result;
-        
-        // Method 1: Try with buffer directly
+        // Method 1: Use JSZip to extract DOCX content
         try {
-          result = await mammoth.extractRawText({ buffer: fileBuffer });
-          console.log('✅ Mammoth extraction with buffer successful');
-        } catch (bufferError) {
-          console.warn('⚠️ Mammoth buffer method failed:', bufferError.message);
+          const zip = await JSZip.loadAsync(fileBuffer);
+          console.log('✅ DOCX zip loaded successfully');
           
-          // Method 2: Try with enhanced configuration
-          try {
-            result = await mammoth.extractRawText({
-              buffer: fileBuffer,
-              ignoreEmptyParagraphs: false,
-              convertImage: mammoth.images.imgElement(function(image) {
-                return image.read("base64").then(function(imageBuffer) {
-                  return {
-                    src: "data:" + image.contentType + ";base64," + imageBuffer,
-                    alt: "Image content"
-                  };
-                }).catch(function() {
-                  return { alt: "[Image]" };
-                });
-              }),
-              styleMap: [
-                "p[style-name='Heading 1'] => h1:fresh",
-                "p[style-name='Heading 2'] => h2:fresh",
-                "p[style-name='Heading 3'] => h3:fresh",
-                "r[style-name='Strong'] => strong",
-                "r[style-name='Emphasis'] => em"
-              ]
-            });
-            console.log('✅ Mammoth extraction with enhanced config successful');
-          } catch (configError) {
-            console.error('❌ Both mammoth methods failed:', {
-              bufferError: bufferError.message,
-              configError: configError.message
-            });
-            throw new Error(`DOCX extraction failed: ${bufferError.message}`);
+          // Extract the main document content (document.xml)
+          const documentXml = await zip.file("word/document.xml")?.async("string");
+          
+          if (!documentXml) {
+            throw new Error('document.xml not found in DOCX file');
           }
-        }
-        
-        extractedText = result.value || '';
-        
-        console.log('📋 DOCX extraction result:', {
-          textLength: extractedText.length,
-          hasMessages: result.messages && result.messages.length > 0,
-          messageCount: result.messages?.length || 0,
-          textPreview: extractedText.substring(0, 200) || 'No text',
-          warningCount: result.messages?.filter(m => m.type === 'warning').length || 0,
-          errorCount: result.messages?.filter(m => m.type === 'error').length || 0
-        });
-        
-        // Log detailed messages for debugging
-        if (result.messages && result.messages.length > 0) {
-          console.log('📋 Mammoth messages:', result.messages.map(m => `${m.type}: ${m.message}`));
-        }
-        
-        if (!extractedText || extractedText.trim().length === 0) {
-          throw new Error('No text content found in DOCX file - may be empty or contain only images/tables');
-        }
-        
-        // Enhanced text cleaning for DOCX
-        extractedText = enhancedDocxTextCleaning(extractedText);
-        console.log(`✅ DOCX extraction successful: ${extractedText.length} characters after cleaning`);
-        
-        if (extractedText.trim().length < 10) {
-          throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images, tables, or complex formatting');
+          
+          console.log('📋 DOCX document.xml extracted:', {
+            xmlLength: documentXml.length,
+            xmlPreview: documentXml.substring(0, 200)
+          });
+          
+          // Parse XML and extract text content
+          const parser = new XMLParser({
+            ignoreAttributes: false,
+            ignoreNameSpace: true,
+            parseTagValue: false,
+            trimValues: true
+          });
+          
+          const jsonObj = parser.parse(documentXml);
+          
+          // Extract text from parsed XML
+          extractedText = extractTextFromDocxJson(jsonObj);
+          
+          console.log('📋 DOCX text extraction result:', {
+            textLength: extractedText.length,
+            textPreview: extractedText.substring(0, 200) || 'No text'
+          });
+          
+          if (!extractedText || extractedText.trim().length === 0) {
+            throw new Error('No text content found in DOCX file - may be empty or contain only images/tables');
+          }
+          
+          // Enhanced text cleaning for DOCX
+          extractedText = enhancedDocxTextCleaning(extractedText);
+          console.log(`✅ DOCX extraction successful: ${extractedText.length} characters after cleaning`);
+          
+          if (extractedText.trim().length < 10) {
+            throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images, tables, or complex formatting');
+          }
+          
+        } catch (zipError) {
+          console.error('❌ JSZip DOCX extraction failed:', {
+            error: zipError.message,
+            stack: zipError.stack,
+            name: zipError.name
+          });
+          throw new Error(`DOCX extraction failed: ${zipError.message}`);
         }
       } catch (error) {
         console.error('❌ DOCX extraction failed with detailed error:', {
@@ -271,8 +240,8 @@ serve(async (req) => {
           stack: error.stack,
           name: error.name,
           bufferSize: fileBuffer.length,
-          isMammothAvailable: typeof mammoth !== 'undefined',
-          mammothFunctions: mammoth ? Object.keys(mammoth) : 'N/A'
+          isJSZipAvailable: typeof JSZip !== 'undefined',
+          isXMLParserAvailable: typeof XMLParser !== 'undefined'
         });
         
         return new Response(
@@ -806,4 +775,186 @@ function parseRtfControl(content: string, startIndex: number): {
   }
   
   return { endIndex: i, isText: false, isLineBreak: false, isSpace: false, text: '' };
+}
+
+/**
+ * Extract text from DOCX parsed JSON object
+ */
+function extractTextFromDocxJson(jsonObj: any): string {
+  let text = '';
+  
+  try {
+    // Navigate to document body
+    const document = jsonObj.document || jsonObj;
+    const body = document.body || document;
+    
+    if (!body) {
+      console.warn('⚠️ No body found in DOCX JSON structure');
+      return '';
+    }
+    
+    // Extract text from paragraphs
+    const paragraphs = body.p || [];
+    
+    if (Array.isArray(paragraphs)) {
+      for (const paragraph of paragraphs) {
+        const paragraphText = extractTextFromParagraph(paragraph);
+        if (paragraphText.trim()) {
+          text += paragraphText + '\n';
+        }
+      }
+    } else if (paragraphs) {
+      // Single paragraph
+      const paragraphText = extractTextFromParagraph(paragraphs);
+      if (paragraphText.trim()) {
+        text += paragraphText + '\n';
+      }
+    }
+    
+    // Also check for tables
+    const tables = body.tbl || [];
+    if (Array.isArray(tables)) {
+      for (const table of tables) {
+        const tableText = extractTextFromTable(table);
+        if (tableText.trim()) {
+          text += tableText + '\n';
+        }
+      }
+    }
+    
+    console.log('📋 DOCX text extraction from JSON:', {
+      paragraphCount: Array.isArray(paragraphs) ? paragraphs.length : (paragraphs ? 1 : 0),
+      extractedLength: text.length,
+      preview: text.substring(0, 200)
+    });
+    
+  } catch (error) {
+    console.error('❌ Error extracting text from DOCX JSON:', error);
+    
+    // Fallback: try to extract any text values recursively
+    text = extractTextRecursively(jsonObj);
+  }
+  
+  return text.trim();
+}
+
+/**
+ * Extract text from a DOCX paragraph object
+ */
+function extractTextFromParagraph(paragraph: any): string {
+  let text = '';
+  
+  try {
+    const runs = paragraph.r || [];
+    
+    if (Array.isArray(runs)) {
+      for (const run of runs) {
+        const runText = extractTextFromRun(run);
+        if (runText) {
+          text += runText;
+        }
+      }
+    } else if (runs) {
+      // Single run
+      const runText = extractTextFromRun(runs);
+      if (runText) {
+        text += runText;
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Error extracting text from paragraph:', error);
+  }
+  
+  return text;
+}
+
+/**
+ * Extract text from a DOCX run object
+ */
+function extractTextFromRun(run: any): string {
+  try {
+    const textElement = run.t || run['#text'] || run.text;
+    
+    if (typeof textElement === 'string') {
+      return textElement;
+    } else if (textElement && typeof textElement === 'object') {
+      return textElement['#text'] || textElement.value || '';
+    }
+  } catch (error) {
+    console.warn('⚠️ Error extracting text from run:', error);
+  }
+  
+  return '';
+}
+
+/**
+ * Extract text from DOCX table
+ */
+function extractTextFromTable(table: any): string {
+  let text = '';
+  
+  try {
+    const rows = table.tr || [];
+    
+    if (Array.isArray(rows)) {
+      for (const row of rows) {
+        const cells = row.tc || [];
+        let rowText = '';
+        
+        if (Array.isArray(cells)) {
+          for (const cell of cells) {
+            const cellParagraphs = cell.p || [];
+            if (Array.isArray(cellParagraphs)) {
+              for (const p of cellParagraphs) {
+                const cellText = extractTextFromParagraph(p);
+                if (cellText.trim()) {
+                  rowText += cellText + ' ';
+                }
+              }
+            }
+          }
+        }
+        
+        if (rowText.trim()) {
+          text += rowText.trim() + '\n';
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Error extracting text from table:', error);
+  }
+  
+  return text;
+}
+
+/**
+ * Recursive fallback text extraction for any JSON structure
+ */
+function extractTextRecursively(obj: any): string {
+  let text = '';
+  
+  if (typeof obj === 'string') {
+    return obj;
+  } else if (Array.isArray(obj)) {
+    for (const item of obj) {
+      text += extractTextRecursively(item) + ' ';
+    }
+  } else if (obj && typeof obj === 'object') {
+    // Look for common text properties
+    if (obj['#text'] || obj.text || obj.t) {
+      const textValue = obj['#text'] || obj.text || obj.t;
+      if (typeof textValue === 'string') {
+        text += textValue + ' ';
+      }
+    }
+    
+    // Recursively check all properties
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key) && key !== '#text' && key !== 'text' && key !== 't') {
+        text += extractTextRecursively(obj[key]) + ' ';
+      }
+    }
+  }
+  
+  return text.trim();
 }
