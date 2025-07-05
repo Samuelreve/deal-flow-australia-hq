@@ -33,7 +33,15 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
       );
     
     case 'summarize_document':
-      return await handleSummarizeDocument(payload.content, payload.context, openai);
+      return await handleSummarizeDocument(
+        payload.content, 
+        {
+          ...payload.context,
+          documentId: payload.documentId,
+          documentVersionId: payload.documentVersionId
+        }, 
+        openai
+      );
     
     case 'summarize_version_changes':
       return await handleSummarizeVersionChanges(

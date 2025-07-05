@@ -12,12 +12,26 @@ export const useContractOperations = (props: UseDocumentAICoreProps) => {
     versionId: string,
     saveToHistory = false
   ) => {
-    return await processAIRequest('summarize_document', {
+    console.log('📋 summarizeContract called:', {
+      documentId,
+      versionId,
+      saveToHistory
+    });
+    
+    const result = await processAIRequest('summarize_document', {
       content: '',
       documentId,
       documentVersionId: versionId,
       context: { saveToHistory, operationType: 'contract_summary' }
     });
+    
+    console.log('📋 summarizeContract result:', {
+      success: result?.success,
+      hasSummary: !!result?.summary,
+      summaryLength: result?.summary?.length || 0
+    });
+    
+    return result;
   };
 
   const explainContractClause = async (
