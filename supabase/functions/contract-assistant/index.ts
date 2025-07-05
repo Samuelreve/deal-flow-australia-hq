@@ -306,28 +306,35 @@ Please provide a detailed answer based on the contract content.`;
         
         // Enhanced debugging for DOCX files
         if (contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          console.log('🔍 DOCX DEBUG - Content validation:', {
+          console.log('🔍 DOCX DEBUG - Full content analysis:', {
             contentLength: contractText?.length || 0,
+            contentBytes: contractText ? new TextEncoder().encode(contractText).length : 0,
             hasTextContent: !!(contractText && contractText.trim()),
             trimmedLength: contractText ? contractText.trim().length : 0,
+            firstChars: contractText ? Array.from(contractText.substring(0, 10)).map(c => `${c} (${c.charCodeAt(0)})`).join(', ') : 'No content',
             containsWords: contractText ? /[a-zA-Z]{3,}/.test(contractText) : false,
-            contentPreview: contractText ? contractText.substring(0, 200) : 'No content'
+            fullContent: contractText || 'NO CONTENT'
           });
         }
         
-        // Standard validation threshold for all file types
-        const minLength = 50;
+        // Temporarily lower threshold for debugging DOCX files
+        const minLength = contract.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 10 : 50;
         
-        if (!contractText || contractText.trim().length < minLength) {
+        if (!contractText || contractText.length < minLength) {
           console.error('❌ Contract content is too short or empty:', {
             length: contractText?.length || 0,
-            trimmedLength: contractText?.trim().length || 0,
             minRequired: minLength,
-            mimeType: contract.mime_type
+            mimeType: contract.mime_type,
+            content: contractText?.substring(0, 200) || 'NO CONTENT'
           });
           return new Response(
             JSON.stringify({ 
-              error: `Contract content is too short or empty for analysis (${contractText?.trim().length || 0} chars, need ${minLength}+)`
+              error: `Contract content is too short or empty for analysis (${contractText?.length || 0} chars, need ${minLength}+)`,
+              debug: {
+                mimeType: contract.mime_type,
+                contentLength: contractText?.length || 0,
+                contentPreview: contractText?.substring(0, 100) || 'NO CONTENT'
+              }
             }),
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -336,11 +343,8 @@ Please provide a detailed answer based on the contract content.`;
           );
         }
 
-        // Clean the contract text for better OpenAI processing
-        const cleanedText = contractText.trim();
-        
-        console.log('🚀 Sending to OpenAI - Content length:', cleanedText.length);
-        console.log('📝 Content preview (first 200 chars):', cleanedText.substring(0, 200));
+        console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
+        console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
         // Create summarization prompt
         const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Your task is to provide a comprehensive but accessible summary of contract terms and key provisions.
@@ -360,45 +364,25 @@ Provide your summary in clear, professional language that both legal professiona
         const userPrompt = `Please provide a comprehensive summary of the following contract document. Focus on the key terms, obligations, financial aspects, and any notable provisions that parties should be aware of:
 
 CONTRACT DOCUMENT:
-${cleanedText}
+${contractText}
 
 Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
 
         console.log('🤖 Calling OpenAI API...');
 
-        let summary;
-        try {
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.3,
-            max_tokens: 2000
-          });
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000
+        });
 
-          summary = completion.choices[0]?.message?.content;
-          
-          if (!summary) {
-            console.error('❌ OpenAI returned empty response');
-            throw new Error('OpenAI returned empty response');
-          }
+        const summary = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
 
-          console.log('✅ Summary generated successfully, length:', summary.length);
-        } catch (openaiError) {
-          console.error('❌ OpenAI API error:', openaiError);
-          return new Response(
-            JSON.stringify({ 
-              error: 'Failed to generate summary with AI service',
-              details: openaiError.message 
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500 
-            }
-          );
-        }
+        console.log('✅ Summary generated successfully, length:', summary.length);
 
         return new Response(
           JSON.stringify({
