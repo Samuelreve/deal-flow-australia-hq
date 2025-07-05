@@ -2,11 +2,11 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // 2025 Best Practice: Multiple PDF extraction libraries for better compatibility
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0";
+import { extractText as extractPdfTextUnpdf } from "unpdf";
 // Alternative PDF extraction using pdfjs-dist (Mozilla's PDF.js)
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379";
+import * as pdfjs from "pdfjs-dist";
 // DOCX extraction - industry standard
-import mammoth from "https://esm.sh/mammoth@1.6.0";
+import mammoth from "mammoth";
 
 serve(async (req) => {
   // Handle CORS preflight requests
