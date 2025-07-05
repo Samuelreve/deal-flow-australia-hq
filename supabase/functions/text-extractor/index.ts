@@ -2,11 +2,11 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // 2025 Best Practice: Multiple PDF extraction libraries for better compatibility
-import { extractText as extractPdfTextUnpdf } from "npm:unpdf@0.12.0";
+import { extractText as extractPdfTextUnpdf } from "unpdf";
 // Alternative PDF extraction using pdfjs-dist (Mozilla's PDF.js)
-import * as pdfjs from "npm:pdfjs-dist@4.8.69";
+import * as pdfjs from "pdfjs-dist";
 // DOCX extraction - industry standard
-import mammoth from "npm:mammoth@1.8.0";
+import mammoth from "mammoth";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -128,7 +128,7 @@ serve(async (req) => {
               const textContent = await page.getTextContent();
               const pageText = textContent.items
                 .filter(item => 'str' in item)
-                .map(item => (item as any).str)
+                .map(item => (item as { str: string }).str)
                 .join(' ');
               
               if (pageText.trim()) {
@@ -184,34 +184,50 @@ serve(async (req) => {
       }
       
       try {
-        // Enhanced mammoth configuration for better text extraction
-        const extractionOptions = {
-          buffer: fileBuffer,
-          // Ignore styles that don't affect text content
-          ignoreEmptyParagraphs: false,
-          // Convert images to alt text if available
-          convertImage: mammoth.images.imgElement(function(image) {
-            return image.read("base64").then(function(imageBuffer) {
-              return {
-                src: "data:" + image.contentType + ";base64," + imageBuffer,
-                alt: "Image content" // Provide fallback alt text
-              };
-            }).catch(function() {
-              return { alt: "[Image]" }; // Fallback for failed image processing
-            });
-          }),
-          // Enhanced style mapping to preserve important formatting
-          styleMap: [
-            "p[style-name='Heading 1'] => h1:fresh",
-            "p[style-name='Heading 2'] => h2:fresh",
-            "p[style-name='Heading 3'] => h3:fresh",
-            "r[style-name='Strong'] => strong",
-            "r[style-name='Emphasis'] => em"
-          ]
-        };
+        console.log('🔄 Attempting DOCX extraction with mammoth...');
         
-        console.log('🔄 Extracting DOCX text with enhanced configuration...');
-        const result = await mammoth.extractRawText(extractionOptions);
+        // Try multiple extraction methods for DOCX
+        let result;
+        
+        // Method 1: Try with buffer directly
+        try {
+          result = await mammoth.extractRawText({ buffer: fileBuffer });
+          console.log('✅ Mammoth extraction with buffer successful');
+        } catch (bufferError) {
+          console.warn('⚠️ Mammoth buffer method failed:', bufferError.message);
+          
+          // Method 2: Try with enhanced configuration
+          try {
+            result = await mammoth.extractRawText({
+              buffer: fileBuffer,
+              ignoreEmptyParagraphs: false,
+              convertImage: mammoth.images.imgElement(function(image) {
+                return image.read("base64").then(function(imageBuffer) {
+                  return {
+                    src: "data:" + image.contentType + ";base64," + imageBuffer,
+                    alt: "Image content"
+                  };
+                }).catch(function() {
+                  return { alt: "[Image]" };
+                });
+              }),
+              styleMap: [
+                "p[style-name='Heading 1'] => h1:fresh",
+                "p[style-name='Heading 2'] => h2:fresh",
+                "p[style-name='Heading 3'] => h3:fresh",
+                "r[style-name='Strong'] => strong",
+                "r[style-name='Emphasis'] => em"
+              ]
+            });
+            console.log('✅ Mammoth extraction with enhanced config successful');
+          } catch (configError) {
+            console.error('❌ Both mammoth methods failed:', {
+              bufferError: bufferError.message,
+              configError: configError.message
+            });
+            throw new Error(`DOCX extraction failed: ${bufferError.message}`);
+          }
+        }
         
         extractedText = result.value || '';
         
@@ -219,22 +235,14 @@ serve(async (req) => {
           textLength: extractedText.length,
           hasMessages: result.messages && result.messages.length > 0,
           messageCount: result.messages?.length || 0,
-          textPreview: extractedText.substring(0, 150) || 'No text',
+          textPreview: extractedText.substring(0, 200) || 'No text',
           warningCount: result.messages?.filter(m => m.type === 'warning').length || 0,
           errorCount: result.messages?.filter(m => m.type === 'error').length || 0
         });
         
         // Log detailed messages for debugging
         if (result.messages && result.messages.length > 0) {
-          const warnings = result.messages.filter(m => m.type === 'warning');
-          const errors = result.messages.filter(m => m.type === 'error');
-          
-          if (warnings.length > 0) {
-            console.log('⚠️ Mammoth warnings:', warnings.map(m => m.message));
-          }
-          if (errors.length > 0) {
-            console.log('❌ Mammoth errors:', errors.map(m => m.message));
-          }
+          console.log('📋 Mammoth messages:', result.messages.map(m => `${m.type}: ${m.message}`));
         }
         
         if (!extractedText || extractedText.trim().length === 0) {
@@ -252,7 +260,8 @@ serve(async (req) => {
         console.error('❌ DOCX extraction failed with detailed error:', {
           error: error.message,
           stack: error.stack,
-          bufferSize: fileBuffer.length
+          bufferSize: fileBuffer.length,
+          isMammothAvailable: typeof mammoth !== 'undefined'
         });
         
         return new Response(
@@ -267,8 +276,44 @@ serve(async (req) => {
     else if (mimeType === 'application/rtf' || mimeType === 'text/rtf') {
       console.log('📄 Processing RTF file...');
       try {
-        const decoder = new TextDecoder('utf-8');
-        const rtfContent = decoder.decode(fileBuffer);
+        console.log('🔄 Attempting RTF extraction...');
+        
+        // Try multiple decoders for RTF
+        let rtfContent = '';
+        
+        // Method 1: Try UTF-8 first
+        try {
+          const decoder = new TextDecoder('utf-8');
+          rtfContent = decoder.decode(fileBuffer);
+          console.log('✅ RTF decoded with UTF-8');
+        } catch (utf8Error) {
+          console.warn('⚠️ UTF-8 decoding failed, trying Windows-1252:', utf8Error.message);
+          
+          // Method 2: Try Windows-1252 for legacy RTF files
+          try {
+            const decoder = new TextDecoder('windows-1252');
+            rtfContent = decoder.decode(fileBuffer);
+            console.log('✅ RTF decoded with Windows-1252');
+          } catch (cp1252Error) {
+            console.warn('⚠️ Windows-1252 decoding failed, using UTF-8 with replacement:', cp1252Error.message);
+            
+            // Method 3: Fallback to UTF-8 with replacement
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            rtfContent = decoder.decode(fileBuffer);
+            console.log('✅ RTF decoded with UTF-8 (replacement mode)');
+          }
+        }
+        
+        console.log('📋 RTF content info:', {
+          length: rtfContent.length,
+          hasRtfHeader: rtfContent.startsWith('{\\rtf'),
+          preview: rtfContent.substring(0, 100)
+        });
+        
+        if (!rtfContent.startsWith('{\\rtf')) {
+          throw new Error('File does not appear to be a valid RTF document (missing RTF header)');
+        }
+        
         extractedText = extractRtfText(rtfContent);
         
         console.log(`✅ RTF extraction completed: ${extractedText.length} characters`);
@@ -277,7 +322,12 @@ serve(async (req) => {
           throw new Error('Insufficient readable text extracted from RTF');
         }
       } catch (error) {
-        console.error('❌ RTF extraction failed:', error);
+        console.error('❌ RTF extraction failed:', {
+          error: error.message,
+          bufferSize: fileBuffer.length,
+          firstBytes: Array.from(fileBuffer.slice(0, 20)).map(b => String.fromCharCode(b)).join('')
+        });
+        
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -341,7 +391,7 @@ serve(async (req) => {
       fileName: fileName || 'Unknown',
       mimeType: mimeType
     });
-    console.log('📋 Text preview:', trimmedText.substring(0, 200) + (trimmedText.length > 200 ? '...' : ''));
+    console.log('📋 Text preview:', trimmedText.substring(0, 300) + (trimmedText.length > 300 ? '...' : ''));
 
     return new Response(
       JSON.stringify({ 
@@ -379,7 +429,7 @@ function enhancedPdfTextCleaning(text: string): string {
   
   return text
     // Remove PDF-specific artifacts
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Control characters
+    .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + ']', 'g'), '') // Control characters
     .replace(/[^\x20-\x7E\s\n\r\t]/g, ' ') // Non-printable characters except common whitespace
     // Fix common PDF text extraction issues
     .replace(/([a-z])([A-Z])/g, '$1 $2') // Fix missing spaces between words
@@ -400,7 +450,7 @@ function enhancedDocxTextCleaning(text: string): string {
   
   return text
     // Remove control characters
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + ']', 'g'), '')
     // Clean up DOCX-specific formatting artifacts
     .replace(/\r\n/g, '\n') // Normalize line breaks
     .replace(/\r/g, '\n')
@@ -421,7 +471,7 @@ function cleanExtractedText(text: string): string {
     // Remove excessive whitespace
     .replace(/\s+/g, ' ')
     // Remove control characters except newlines and tabs
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + ']', 'g'), '')
     // Clean up multiple consecutive newlines
     .replace(/\n{3,}/g, '\n\n')
     // Trim whitespace
@@ -429,51 +479,320 @@ function cleanExtractedText(text: string): string {
 }
 
 /**
- * Extract text from RTF content using improved parsing
+ * Extract text from RTF content using advanced parsing
  */
 function extractRtfText(rtfContent: string): string {
   try {
-    let text = rtfContent;
+    console.log('🔧 Starting advanced RTF parsing...');
     
-    // Remove RTF header
-    text = text.replace(/^\{\\rtf1[^{}]*\}/, '');
+    if (!rtfContent || !rtfContent.trim()) {
+      throw new Error('Empty RTF content');
+    }
     
-    // Remove font table
-    text = text.replace(/\{\\fonttbl[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, '');
+    let result = '';
+    let i = 0;
+    const len = rtfContent.length;
     
-    // Remove color table
-    text = text.replace(/\{\\colortbl[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, '');
+    console.log('📋 RTF content info:', {
+      length: len,
+      hasRtfHeader: rtfContent.substring(0, 100).includes('\\rtf'),
+      startsWithBrace: rtfContent.trim().startsWith('{')
+    });
     
-    // Remove style sheet
-    text = text.replace(/\{\\stylesheet[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, '');
+    // Advanced RTF parser that handles nested groups and control words properly
+    while (i < len) {
+      const char = rtfContent[i];
+      
+      if (char === '{') {
+        // Start of group - find matching closing brace
+        const groupContent = extractRtfGroup(rtfContent, i);
+        i = groupContent.endIndex;
+        
+        // Check if this group contains actual text content
+        const groupText = parseRtfGroup(groupContent.content);
+        if (groupText && groupText.trim()) {
+          result += groupText + ' ';
+        }
+      } else if (char === '\\') {
+        // Control word or symbol
+        const controlInfo = parseRtfControl(rtfContent, i);
+        i = controlInfo.endIndex;
+        
+        // Handle special control words that contain text
+        if (controlInfo.isText) {
+          result += controlInfo.text;
+        } else if (controlInfo.isLineBreak) {
+          result += '\n';
+        } else if (controlInfo.isSpace) {
+          result += ' ';
+        }
+      } else if (char === '}') {
+        // End of group - skip
+        i++;
+      } else {
+        // Regular text character
+        if (char.charCodeAt(0) >= 32 || char === '\n' || char === '\r' || char === '\t') {
+          result += char;
+        }
+        i++;
+      }
+    }
     
-    // Remove info group
-    text = text.replace(/\{\\info[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, '');
-    
-    // Remove other control groups
-    text = text.replace(/\{\\[^{}]*\}/g, '');
-    
-    // Remove control words with parameters
-    text = text.replace(/\\[a-z]+\d*\s?/gi, ' ');
-    
-    // Remove control symbols
-    text = text.replace(/\\[^a-z]/gi, '');
-    
-    // Remove remaining braces
-    text = text.replace(/[{}]/g, '');
-    
-    // Clean up whitespace
-    text = text.replace(/\s+/g, ' ').trim();
-    
-    return text;
-  } catch (error) {
-    console.error('Error parsing RTF:', error);
-    // Fallback: simple brace and backslash removal
-    return rtfContent
-      .replace(/\{[^}]*\}/g, '')
-      .replace(/\\[a-z]+\d*\s?/gi, ' ')
-      .replace(/[{}\\]/g, ' ')
+         // Clean up the extracted text
+     const cleanedText = result
+      // Handle Unicode escapes
+      .replace(/\\u(\d+)\?/g, (match, code) => {
+        try {
+          return String.fromCharCode(parseInt(code));
+        } catch {
+          return '';
+        }
+      })
+      // Handle Unicode escapes without replacement char
+      .replace(/\\u(\d+)/g, (match, code) => {
+        try {
+          return String.fromCharCode(parseInt(code));
+        } catch {
+          return '';
+        }
+      })
+      // Clean up line breaks and spacing
+      .replace(/\\par\b/g, '\n')
+      .replace(/\\line\b/g, '\n')
+      .replace(/\\tab\b/g, '\t')
+      // Remove any remaining control words
+      .replace(/\\[a-zA-Z]+\d*\s?/g, ' ')
+      .replace(/\\[^a-zA-Z\s]/g, '')
+      // Clean up whitespace
       .replace(/\s+/g, ' ')
+      .replace(/\n\s+/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
+    
+    console.log('📋 RTF parsing result:', {
+      originalLength: rtfContent.length,
+      extractedLength: cleanedText.length,
+      textPreview: cleanedText.substring(0, 200)
+    });
+    
+    if (!cleanedText || cleanedText.length < 5) {
+      throw new Error('Insufficient text extracted from RTF');
+    }
+    
+    return cleanedText;
+    
+  } catch (error) {
+    console.error('❌ Error in advanced RTF parsing:', error);
+    
+    // Enhanced fallback parser
+    console.log('🔄 Using enhanced fallback RTF parser...');
+    
+    try {
+      let fallbackText = rtfContent;
+      
+      // Step 1: Remove known RTF control groups
+      fallbackText = fallbackText
+        // Remove RTF header info
+        .replace(/^\{\\rtf\d+[^{}]*/, '')
+        // Remove font table
+        .replace(/\{\\fonttbl[^{}]*(\{[^{}]*\})*[^{}]*\}/g, '')
+        // Remove color table  
+        .replace(/\{\\colortbl[^{}]*(\{[^{}]*\})*[^{}]*\}/g, '')
+        // Remove style table
+        .replace(/\{\\stylesheet[^{}]*(\{[^{}]*\})*[^{}]*\}/g, '')
+        // Remove info table
+        .replace(/\{\\info[^{}]*(\{[^{}]*\})*[^{}]*\}/g, '')
+        // Remove generator info
+        .replace(/\{\\generator[^{}]*\}/g, '')
+        // Remove page setup
+        .replace(/\\paperw\d+\\paperh\d+[^{}]*/g, '')
+        // Remove margins
+        .replace(/\\margl\d+\\margr\d+\\margt\d+\\margb\d+/g, '');
+      
+      // Step 2: Handle Unicode characters
+      fallbackText = fallbackText
+        .replace(/\\u(\d+)\?/g, (match, code) => {
+          try {
+            const charCode = parseInt(code);
+            return charCode > 0 && charCode < 65536 ? String.fromCharCode(charCode) : '';
+          } catch {
+            return '';
+          }
+        });
+      
+      // Step 3: Handle special RTF commands
+      fallbackText = fallbackText
+        .replace(/\\par\b/g, '\n')
+        .replace(/\\line\b/g, '\n') 
+        .replace(/\\tab\b/g, '\t')
+        .replace(/\\~\b/g, ' ') // Non-breaking space
+        .replace(/\\-\b/g, '') // Optional hyphen
+        .replace(/\\_\b/g, '') // Non-breaking hyphen;
+      
+      // Step 4: Remove all remaining control words and symbols
+      fallbackText = fallbackText
+        .replace(/\\[a-zA-Z]+\d*\s?/g, ' ') // Control words with optional parameters
+        .replace(/\\[^a-zA-Z\s]/g, '') // Control symbols
+        .replace(/[{}]/g, '') // Remove all braces
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      console.log('✅ Fallback RTF parsing completed:', {
+        fallbackLength: fallbackText.length,
+        textPreview: fallbackText.substring(0, 200)
+      });
+      
+      if (!fallbackText || fallbackText.length < 5) {
+        throw new Error('Fallback RTF parser also failed to extract sufficient text');
+      }
+      
+      return fallbackText;
+      
+    } catch (fallbackError) {
+      console.error('❌ Fallback RTF parser also failed:', fallbackError);
+      throw new Error(`RTF parsing failed: ${error.message}`);
+    }
   }
+}
+
+/**
+ * Extract RTF group content and find matching closing brace
+ */
+function extractRtfGroup(content: string, startIndex: number): { content: string; endIndex: number } {
+  let braceLevel = 0;
+  let i = startIndex;
+  const start = i;
+  
+  while (i < content.length) {
+    const char = content[i];
+    if (char === '{') {
+      braceLevel++;
+    } else if (char === '}') {
+      braceLevel--;
+      if (braceLevel === 0) {
+        return {
+          content: content.substring(start + 1, i), // Exclude the braces
+          endIndex: i + 1
+        };
+      }
+    } else if (char === '\\' && i + 1 < content.length) {
+      // Skip escaped characters
+      i++;
+    }
+    i++;
+  }
+  
+  // If we reach here, braces weren't properly closed
+  return {
+    content: content.substring(start + 1),
+    endIndex: content.length
+  };
+}
+
+/**
+ * Parse RTF group content to extract readable text
+ */
+function parseRtfGroup(groupContent: string): string {
+  // Skip known non-text groups
+  if (groupContent.match(/^\\(fonttbl|colortbl|stylesheet|info|generator|field)/)) {
+    return '';
+  }
+  
+  // Extract text while handling control words
+  let result = '';
+  let i = 0;
+  
+  while (i < groupContent.length) {
+    const char = groupContent[i];
+    
+    if (char === '\\') {
+      const controlInfo = parseRtfControl(groupContent, i);
+      i = controlInfo.endIndex;
+      
+      if (controlInfo.isText) {
+        result += controlInfo.text;
+      } else if (controlInfo.isLineBreak) {
+        result += '\n';
+      } else if (controlInfo.isSpace) {
+        result += ' ';
+      }
+    } else if (char === '{') {
+      // Nested group
+      const nestedGroup = extractRtfGroup(groupContent, i);
+      i = nestedGroup.endIndex;
+      const nestedText = parseRtfGroup(nestedGroup.content);
+      if (nestedText) {
+        result += nestedText;
+      }
+    } else {
+      // Regular character
+      if (char.charCodeAt(0) >= 32 || char === '\n' || char === '\r' || char === '\t') {
+        result += char;
+      }
+      i++;
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Parse RTF control word or symbol
+ */
+function parseRtfControl(content: string, startIndex: number): { 
+  endIndex: number; 
+  isText: boolean; 
+  isLineBreak: boolean; 
+  isSpace: boolean; 
+  text: string 
+} {
+  let i = startIndex + 1; // Skip the backslash
+  
+  if (i >= content.length) {
+    return { endIndex: i, isText: false, isLineBreak: false, isSpace: false, text: '' };
+  }
+  
+  const char = content[i];
+  
+  // Handle control symbols (non-alphabetic)
+  if (!((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z'))) {
+    if (char === '\n' || char === '\r') {
+      return { endIndex: i + 1, isText: false, isLineBreak: true, isSpace: false, text: '' };
+    } else if (char === ' ') {
+      return { endIndex: i + 1, isText: false, isLineBreak: false, isSpace: true, text: '' };
+    } else if (char === '\\') {
+      return { endIndex: i + 1, isText: true, isLineBreak: false, isSpace: false, text: '\\' };
+    } else if (char === '{') {
+      return { endIndex: i + 1, isText: true, isLineBreak: false, isSpace: false, text: '{' };
+    } else if (char === '}') {
+      return { endIndex: i + 1, isText: true, isLineBreak: false, isSpace: false, text: '}' };
+    }
+    return { endIndex: i + 1, isText: false, isLineBreak: false, isSpace: false, text: '' };
+  }
+  
+  // Handle control words (alphabetic)
+  while (i < content.length && ((content[i] >= 'a' && content[i] <= 'z') || (content[i] >= 'A' && content[i] <= 'Z'))) {
+    i++;
+  }
+  
+  // Handle optional numeric parameter
+  while (i < content.length && content[i] >= '0' && content[i] <= '9') {
+    i++;
+  }
+  
+  // Handle optional space delimiter
+  if (i < content.length && content[i] === ' ') {
+    i++;
+  }
+  
+  const controlWord = content.substring(startIndex, i);
+  
+  // Check for control words that should produce text or formatting
+  if (controlWord.match(/^\\(par|line)(\d+)?\s?$/)) {
+    return { endIndex: i, isText: false, isLineBreak: true, isSpace: false, text: '' };
+  } else if (controlWord.match(/^\\(tab)(\d+)?\s?$/)) {
+    return { endIndex: i, isText: true, isLineBreak: false, isSpace: false, text: '\t' };
+  }
+  
+  return { endIndex: i, isText: false, isLineBreak: false, isSpace: false, text: '' };
 }

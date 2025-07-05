@@ -1,230 +1,61 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-// Simple PDF text extraction function
-async function extractPDFText(file: File): Promise<string> {
+// Use the proper text-extractor service instead of broken implementations
+async function extractTextFromFile(file: File): Promise<string> {
   try {
+    console.log("🔧 Starting text extraction using text-extractor service:", {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size
+    });
+
+    // For plain text files, extract directly
+    if (file.type === 'text/plain') {
+      const text = await file.text();
+      console.log(`✅ Plain text extraction successful: ${text.length} characters`);
+      return text;
+    }
+
+    // For other file types, use the text-extractor service
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    console.log("🔧 Starting proper PDF text extraction, file size:", uint8Array.length);
-    
-    // Convert binary data to string for analysis
-    const decoder = new TextDecoder('latin1'); // Use latin1 to preserve all bytes
-    const pdfString = decoder.decode(uint8Array);
-    
-    // Check if PDF is encrypted
-    if (pdfString.includes('/Encrypt')) {
-      throw new Error("This PDF is encrypted or password-protected. Please use an unprotected PDF.");
-    }
-    
-    let extractedText = '';
-    
-    // Method 1: Extract text from content streams
-    const streamRegex = /stream\s*(.*?)\s*endstream/gs;
-    const streamMatches = [...pdfString.matchAll(streamRegex)];
-    
-    console.log(`📄 Found ${streamMatches.length} streams in PDF`);
-    
-    for (const streamMatch of streamMatches) {
-      const streamContent = streamMatch[1];
-      
-      // Check if stream contains text operations
-      if (streamContent.includes('Tj') || streamContent.includes('TJ') || streamContent.includes('Td')) {
-        // Extract text from PDF text operations
-        const textMatches = [
-          ...streamContent.matchAll(/\((.*?)\)\s*Tj/g),
-          ...streamContent.matchAll(/\[(.*?)\]\s*TJ/g),
-          ...streamContent.matchAll(/\((.*?)\)/g)
-        ];
-        
-        for (const textMatch of textMatches) {
-          const text = textMatch[1];
-          if (text && text.length > 1) {
-            // Clean the extracted text
-            const cleanText = text
-              .replace(/\\n/g, ' ')
-              .replace(/\\r/g, ' ')
-              .replace(/\\t/g, ' ')
-              .replace(/\\\\/g, '\\')
-              .replace(/\\(.)/g, '$1')
-              .trim();
-            
-            if (cleanText.length > 2 && /[a-zA-Z]/.test(cleanText)) {
-              extractedText += cleanText + ' ';
-            }
-          }
-        }
-      }
-    }
-    
-    // Method 2: Look for uncompressed text content
-    if (extractedText.length < 100) {
-      console.log("🔄 Trying alternative text extraction...");
-      
-      // Look for readable text patterns
-      const readableText = pdfString
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/g, ' ') // Remove non-printable chars
-        .split(/\s+/)
-        .filter(word => 
-          word.length > 2 && 
-          /^[a-zA-Z0-9.,!?;:'"()-]+$/.test(word) &&
-          /[a-zA-Z]/.test(word)
-        )
-        .join(' ');
-      
-      if (readableText.length > extractedText.length) {
-        extractedText = readableText;
-      }
-    }
-    
-    // Clean and validate final text
-    const finalText = extractedText
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    console.log(`✅ PDF text extraction completed: ${finalText.length} characters`);
-    
-    if (finalText.length < 50) {
-      throw new Error("Unable to extract readable text from this PDF. The document may use advanced compression, be image-based, or require OCR processing.");
-    }
-    
-    return finalText;
-    
-  } catch (error) {
-    console.error("❌ PDF extraction error:", error);
-    throw new Error(`PDF text extraction failed: ${error.message}`);
-  }
-}
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-// Enhanced DOCX text extraction
-async function extractDOCXText(file: File): Promise<string> {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    console.log("🔧 Starting DOCX text extraction...");
-    
-    // Convert to string for pattern matching
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const content = decoder.decode(uint8Array);
-    
-    let extractedText = '';
-    
-    // Method 1: Extract from Word XML text elements
-    const xmlTextPatterns = [
-      /<w:t[^>]*?>(.*?)<\/w:t>/gs,
-      /<text[^>]*?>(.*?)<\/text>/gs,
-    ];
-    
-    for (const pattern of xmlTextPatterns) {
-      const matches = [...content.matchAll(pattern)];
-      if (matches.length > 0) {
-        const xmlText = matches
-          .map(match => match[1])
-          .filter(text => text && text.trim().length > 0)
-          .map(text => text.replace(/<[^>]*>/g, '').trim())
-          .join(' ');
-        
-        if (xmlText.length > extractedText.length) {
-          extractedText = xmlText;
-        }
-      }
-    }
-    
-    // Method 2: Byte-by-byte readable text extraction if XML method fails
-    if (extractedText.length < 100) {
-      console.log("🔄 Using byte-level text extraction for DOCX...");
-      
-      const readableChars = [];
-      let consecutiveReadable = 0;
-      
-      for (let i = 0; i < uint8Array.length; i++) {
-        const byte = uint8Array[i];
-        
-        if ((byte >= 32 && byte <= 126) || byte === 10 || byte === 13 || byte === 9) {
-          readableChars.push(String.fromCharCode(byte));
-          consecutiveReadable++;
-        } else {
-          if (consecutiveReadable > 3) {
-            readableChars.push(' ');
-          }
-          consecutiveReadable = 0;
-        }
-      }
-      
-      const rawText = readableChars.join('').replace(/\s+/g, ' ').trim();
-      
-      // Filter meaningful words
-      const words = rawText.split(/\s+/)
-        .filter(word => 
-          word.length > 2 && 
-          /^[a-zA-Z0-9.,!?;:'"()-]+$/.test(word) &&
-          /[a-zA-Z]/.test(word)
-        );
-      
-      if (words.length > 10) {
-        extractedText = words.join(' ');
-      }
-    }
-    
-    const finalText = extractedText
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    console.log(`✅ DOCX extraction result: ${finalText.length} characters`);
-    
-    if (finalText.length < 50) {
-      throw new Error("Unable to extract text from DOCX. Document may be corrupted, encrypted, or contain only images.");
-    }
-    
-    return finalText;
-    
-  } catch (error) {
-    console.error("❌ DOCX extraction error:", error);
-    throw new Error(`DOCX text extraction failed: ${error.message}`);
-  }
-}
+    console.log('📤 Calling text-extractor service...');
 
-// Enhanced RTF text extraction
-async function extractRTFText(file: File): Promise<string> {
-  try {
-    const text = await file.text();
-    
-    console.log("🔧 Starting RTF text extraction...");
-    
-    // Advanced RTF parsing to remove control codes and extract plain text
-    let cleanText = text
-      // Remove RTF header and version info
-      .replace(/^{\\rtf\d+[^{}]*/, '')
-      // Remove font table
-      .replace(/{\\fonttbl[^{}]*({[^{}]*})*[^{}]*}/g, '')
-      // Remove color table
-      .replace(/{\\colortbl[^{}]*}/g, '')
-      // Remove style sheets
-      .replace(/{\\stylesheet[^{}]*({[^{}]*})*[^{}]*}/g, '')
-      // Remove document info
-      .replace(/{\\info[^{}]*({[^{}]*})*[^{}]*}/g, '')
-      // Remove control words with parameters
-      .replace(/\\[a-zA-Z]+\d*\s?/g, ' ')
-      // Remove control symbols
-      .replace(/\\[^a-zA-Z\s]/g, '')
-      // Remove remaining braces
-      .replace(/[{}]/g, '')
-      // Clean up multiple spaces
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    console.log(`✅ RTF extraction result: ${cleanText.length} characters`);
-    
-    if (cleanText.length < 50) {
-      throw new Error("Unable to extract sufficient text from RTF file.");
+    // Call the text-extractor Edge Function
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/text-extractor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({
+        fileBase64: base64,
+        mimeType: file.type,
+        fileName: file.name
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Text extraction service error (${response.status}):`, errorText);
+      throw new Error(`Text extraction service error: ${response.status} ${response.statusText}`);
     }
-    
-    return cleanText;
-    
+
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('❌ Text extraction failed:', result.error);
+      throw new Error(result.error || "Text extraction failed");
+    }
+
+    console.log(`✅ Text extraction successful: ${result.text.length} characters`);
+    return result.text;
+
   } catch (error) {
-    console.error("❌ RTF extraction error:", error);
-    throw new Error(`RTF text extraction failed: ${error.message}`);
+    console.error("❌ Text extraction error:", error);
+    throw new Error(`Text extraction failed: ${error.message}`);
   }
 }
 
@@ -239,26 +70,17 @@ async function extractText(file: File): Promise<string> {
     return await file.text();
   } 
   else if (fileType === "application/rtf" || fileType === "text/rtf" || fileType === "text/richtext" || fileExtension === "rtf") {
-    return await extractRTFText(file);
+    return await extractTextFromFile(file);
   }
   else if (fileType === "application/pdf") {
-    return await extractPDFText(file);
+    return await extractTextFromFile(file);
   }
   else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    return await extractDOCXText(file);
+    return await extractTextFromFile(file);
   }
   
   throw new Error(`Unsupported file type: ${fileType}`);
 }
-
-// CORS headers for public access
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-requested-with, accept, origin, referer, user-agent',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-  'Access-Control-Max-Age': '86400',
-};
 
 serve(async (req) => {
   try {
@@ -379,11 +201,11 @@ serve(async (req) => {
     
     console.log("✅ File validation passed!");
     
-    // Extract text from the file using appropriate method for file type
+    // Extract text from the file using the proper text-extractor service
     console.log("🔧 Extracting text from file type:", file.type);
     let text: string;
     try {
-      text = await extractText(file);
+      text = await extractTextFromFile(file);
     } catch (extractionError) {
       console.error("❌ Text extraction failed:", extractionError);
       return new Response(
@@ -412,8 +234,8 @@ serve(async (req) => {
     
     // Final text cleaning to remove any remaining problematic characters
     const cleanedText = text
-      .replace(/\x00/g, '') // Remove null bytes
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Remove control characters
+      .replace(new RegExp(String.fromCharCode(0), 'g'), '') // Remove null bytes
+      .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + '-' + String.fromCharCode(159) + ']', 'g'), '') // Remove control characters
       .trim();
     
     console.log("🧹 Text cleaned, final length:", cleanedText.length);

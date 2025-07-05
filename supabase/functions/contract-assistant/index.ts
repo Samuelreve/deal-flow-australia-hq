@@ -234,8 +234,8 @@ Please provide a detailed answer based on the contract content.`;
 
       console.log('✅ User authenticated:', user.id);
 
-      // For demo deals, skip participant check and fetch contract directly from contracts table
-      if (dealId === 'demo-deal') {
+      // For direct contract analysis (no dealId) or demo deals, fetch contract directly from contracts table
+      if (!dealId || dealId === 'demo-deal') {
         console.log('🎯 Processing demo contract, fetching from contracts table');
         
         // Fetch contract directly from contracts table

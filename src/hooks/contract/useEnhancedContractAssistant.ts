@@ -30,8 +30,8 @@ export const useEnhancedContractAssistant = ({
 
   // Ask a question about the contract
   const askQuestion = useCallback(async (question: string) => {
-    if (!dealId || !documentId || !versionId) {
-      console.error('❌ Missing required IDs for question');
+    if (!documentId || !versionId) {
+      console.error('❌ Missing required IDs for question:', { dealId, documentId, versionId });
       toast.error('Contract context not available');
       return null;
     }
@@ -127,8 +127,8 @@ export const useEnhancedContractAssistant = ({
 
   // Summarize contract terms
   const summarizeContractTerms = useCallback(async () => {
-    if (!dealId || !documentId || !versionId) {
-      console.error('❌ Missing required IDs for summarization');
+    if (!documentId || !versionId) {
+      console.error('❌ Missing required IDs for summarization:', { dealId, documentId, versionId });
       toast.error('Contract context not available');
       return null;
     }

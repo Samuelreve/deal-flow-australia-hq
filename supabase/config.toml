@@ -153,11 +153,6 @@ vector_port = 54328
 backend = "postgres"
 
 # Enable the Edge Functions API
-[functions]
-enabled = true
-port = 54321
-function_timeout_seconds = 30
-
 [functions.accept-invitation]
 verify_jwt = true
 
