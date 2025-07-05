@@ -1,12 +1,10 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// 2025 Best Practice: Updated Deno-compatible libraries
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno&external=canvas";
-// Alternative PDF extraction using pdf-parse (more reliable in Deno)
-import pdfParse from "https://esm.sh/pdf-parse@1.1.1?target=deno&no-check";
-// DOCX extraction using JSZip + XML parsing
-import JSZip from "https://esm.sh/jszip@3.10.1?target=deno&no-check";
+// 2025 Best Practice: Reliable Deno-compatible libraries
+import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno";
+// Use JSZip for DOCX extraction (reliable in Deno)
+import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -86,7 +84,7 @@ serve(async (req) => {
         );
       }
       
-      // Method 1: Try unpdf first (optimized for serverless)
+      // Method 1: Try unpdf only (remove problematic pdf-parse)
       try {
         console.log('🔄 Attempting PDF extraction with unpdf...');
         const extractionResult = await extractPdfTextUnpdf(fileBuffer);
@@ -104,44 +102,19 @@ serve(async (req) => {
           throw new Error('unpdf returned empty or insufficient text');
         }
       } catch (unpdfError) {
-        console.warn('⚠️ unpdf failed, trying pdfjs-dist fallback:', unpdfError.message);
+        console.error('❌ PDF extraction failed:', unpdfError.message);
         
-      // Method 2: Fallback to pdf-parse
-        try {
-          console.log('🔄 Attempting PDF extraction with pdf-parse...');
-          
-          const pdfData = await pdfParse(fileBuffer);
-          
-          console.log('📋 PDF parsed successfully:', {
-            pages: pdfData.numpages,
-            textLength: pdfData.text?.length || 0,
-            hasText: !!pdfData.text
-          });
-          
-          if (pdfData.text && pdfData.text.trim().length > 10) {
-            extractedText = enhancedPdfTextCleaning(pdfData.text);
-            console.log(`✅ pdf-parse extraction successful: ${extractedText.length} characters`);
-          } else {
-            throw new Error('pdf-parse returned empty or insufficient text');
-          }
-        } catch (pdfParseError) {
-          console.error('❌ All PDF extraction methods failed:', {
-            unpdf: unpdfError.message,
-            pdfParse: pdfParseError.message
-          });
-          
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: `PDF text extraction failed with all methods. This may be a scanned PDF, encrypted, password-protected, or contain only images. Errors: unpdf(${unpdfError.message}), pdf-parse(${pdfParseError.message})` 
-            }),
-            { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `PDF text extraction failed: ${unpdfError.message}. This may be a scanned PDF, encrypted, password-protected, or contain only images.` 
+          }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
     else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      console.log('📄 Processing DOCX with enhanced mammoth configuration...');
+      console.log('📄 Processing DOCX with JSZip...');
       
       // DOCX file validation
       console.log('🔧 DOCX buffer validation:', {
@@ -200,11 +173,10 @@ serve(async (req) => {
           throw new Error('Insufficient readable text after cleaning - DOCX may contain mostly images, tables, or complex formatting');
         }
       } catch (error) {
-        console.error('❌ DOCX extraction failed with detailed error:', {
+        console.error('❌ DOCX extraction failed:', {
           error: error.message,
           stack: error.stack,
-          bufferSize: fileBuffer.length,
-          isMammothAvailable: typeof mammoth !== 'undefined'
+          bufferSize: fileBuffer.length
         });
         
         return new Response(
