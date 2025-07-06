@@ -9,6 +9,7 @@ import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import TemplateGenerationModal from "@/components/deals/document/TemplateGenerationModal";
 import DocumentAnalysisModal from "@/components/deals/document/DocumentAnalysisModal";
+import { Document } from "@/types/deal";
 
 interface DatabaseDocument {
   id: string;
@@ -28,13 +29,31 @@ interface DealDocumentsTabProps {
 }
 
 const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
-  const [documents, setDocuments] = useState<DatabaseDocument[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<DatabaseDocument | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const { toast } = useToast();
+
+  // Map database documents to Document type
+  const mapToDocument = (dbDoc: DatabaseDocument): Document => ({
+    id: dbDoc.id,
+    name: dbDoc.name,
+    url: '', // Will be populated when needed
+    uploadedBy: dbDoc.uploaded_by,
+    uploadedAt: new Date(dbDoc.created_at),
+    size: dbDoc.size,
+    type: dbDoc.type,
+    status: dbDoc.status as "draft" | "final" | "signed",
+    version: dbDoc.version,
+    category: dbDoc.category,
+    comments: [],
+    versions: [],
+    latestVersionId: undefined,
+    latestVersion: undefined
+  });
 
   useEffect(() => {
     fetchDocuments();
@@ -58,9 +77,10 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
-      setDocuments(data || []);
-      if (data && data.length > 0 && !selectedDocument) {
-        setSelectedDocument(data[0]);
+      const mappedDocuments = data ? data.map(mapToDocument) : [];
+      setDocuments(mappedDocuments);
+      if (mappedDocuments.length > 0 && !selectedDocument) {
+        setSelectedDocument(mappedDocuments[0]);
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -97,6 +117,20 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
+
+  // Map Document back to database format for analysis modal
+  const mapToDatabaseDocument = (doc: Document): DatabaseDocument => ({
+    id: doc.id,
+    name: doc.name,
+    category: doc.category,
+    status: doc.status,
+    version: doc.version,
+    size: doc.size,
+    type: doc.type,
+    created_at: doc.uploadedAt.toISOString(),
+    uploaded_by: doc.uploadedBy,
+    storage_path: '' // This field may not be available in the mapped document
+  });
 
   const handleDocumentUpload = () => {
     fetchDocuments();
@@ -202,7 +236,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
                           
                           <div className="text-xs text-muted-foreground">
                             <p>v{doc.version} • {formatFileSize(doc.size)}</p>
-                            <p>{new Date(doc.created_at).toLocaleDateString()}</p>
+                            <p>{doc.uploadedAt.toLocaleDateString()}</p>
                           </div>
                         </div>
                       </div>
@@ -310,7 +344,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       <DocumentAnalysisModal
         isOpen={showAnalysisModal}
         onClose={() => setShowAnalysisModal(false)}
-        document={selectedDocument}
+        document={selectedDocument ? mapToDatabaseDocument(selectedDocument) : null}
         dealId={dealId}
       />
     </div>
