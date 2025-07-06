@@ -63,13 +63,16 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
           </DialogHeader>
           
           {!generatedMilestones.length ? (
-            <DealTypeSelectionForm 
-              dealType={dealType}
-              setDealType={setDealType}
-              onGenerate={handleGenerateMilestones}
-              onClose={closeDialog}
-              isGenerating={isGenerating}
-            />
+              <DealTypeSelectionForm 
+                dealType={dealType}
+                setDealType={setDealType}
+                onGenerate={() => {
+                  console.log('🎯 Generate button clicked!');
+                  handleGenerateMilestones();
+                }}
+                onClose={closeDialog}
+                isGenerating={isGenerating}
+              />
           ) : (
             <MilestoneReviewForm 
               milestones={generatedMilestones}

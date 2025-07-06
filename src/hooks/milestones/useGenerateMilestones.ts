@@ -23,10 +23,14 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
   const { generateMilestones, loading: isGenerating } = useDocumentAI({ dealId });
   
   const handleGenerateMilestones = async () => {
+    console.log('🚀 Starting milestone generation process...');
     try {
+      console.log('📡 Calling generateMilestones with dealType:', dealType);
       const result = await generateMilestones(dealType);
+      console.log('📋 AI Response received:', result);
       
       if (result && 'milestones' in result) {
+        console.log('✅ Valid milestones received, count:', result.milestones.length);
         // Convert to our internal format with all milestones selected
         const milestoneItems = (result as MilestoneGenerationResponse).milestones.map(m => ({
           ...m,
@@ -37,9 +41,11 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         setDisclaimer((result as MilestoneGenerationResponse).disclaimer || '');
         
         // Automatically save all generated milestones
+        console.log('💾 Auto-saving milestones...');
         await autoSaveMilestones(milestoneItems);
         
       } else {
+        console.error('❌ Invalid response format:', result);
         toast({
           title: "Milestone Generation Failed",
           description: "Could not generate milestones. Please try again.",
@@ -47,7 +53,7 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         });
       }
     } catch (error: any) {
-      console.error("Milestone generation error:", error);
+      console.error("💥 Milestone generation error:", error);
       toast({
         title: "Milestone Generation Failed",
         description: error.message || "An error occurred while generating milestones.",
