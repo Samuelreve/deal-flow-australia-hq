@@ -18,7 +18,7 @@ export const documentStorageService = {
     
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('deal-documents')
+      .from('deal_documents')
       .upload(storagePath, file);
     
     if (uploadError) {
@@ -48,7 +48,7 @@ export const documentStorageService = {
     
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('deal-documents')
+      .from('deal_documents')
       .upload(storagePath, file);
     
     if (uploadError) {
@@ -66,7 +66,7 @@ export const documentStorageService = {
     console.log('Deleting file from storage:', `${dealId}/${filePath}`);
     
     const { error: storageError } = await supabase.storage
-      .from('deal-documents')
+      .from('deal_documents')
       .remove([`${dealId}/${filePath}`]);
     
     if (storageError) {
@@ -84,7 +84,7 @@ export const documentStorageService = {
       console.log('Creating signed URL for:', fullPath);
       
       const { data: urlData, error } = await supabase.storage
-        .from('deal-documents')
+        .from('deal_documents')
         .createSignedUrl(fullPath, expiresIn);
       
       if (error) {

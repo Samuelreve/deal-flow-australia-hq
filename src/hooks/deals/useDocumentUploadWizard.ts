@@ -84,7 +84,7 @@ export const useDocumentUploadWizard = () => {
       // For wizard uploads, we need to delete by storage path
       // This is a simplified version for temporary uploads during deal creation
       const { error } = await supabase.storage
-        .from('deal-documents')
+        .from('deal_documents')
         .remove([`${dealId}/${storagePath}`]);
 
       if (error && !error.message.includes('not found')) {
