@@ -14,7 +14,8 @@ export async function handleGenerateMilestones(
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    console.log(`Generating milestones for deal ${dealId}`);
+    console.log(`🎯 Starting milestone generation for deal ${dealId} with context:`, context);
+    console.log(`👤 User ID: ${userId}`);
     
     // Fetch comprehensive deal data
     const dealContext = await fetchDealContextData(dealId);
