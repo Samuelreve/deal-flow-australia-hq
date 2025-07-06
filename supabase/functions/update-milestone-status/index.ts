@@ -16,8 +16,8 @@ serve(async (req) => {
   }
   
   try {
-    // Only allow PUT/PATCH requests
-    if (req.method !== "PUT" && req.method !== "PATCH") {
+    // Only allow POST/PUT/PATCH requests
+    if (!["POST", "PUT", "PATCH"].includes(req.method)) {
       return new Response(
         JSON.stringify({ error: "Method not allowed" }),
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
