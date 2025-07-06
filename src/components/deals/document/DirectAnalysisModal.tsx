@@ -57,11 +57,26 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
 
     setLoading(true);
     try {
+      // Get the latest document version first
+      const { data: versions, error: versionError } = await supabase
+        .from('document_versions')
+        .select('*')
+        .eq('document_id', document.id)
+        .order('version_number', { ascending: false })
+        .limit(1);
+
+      if (versionError || !versions || versions.length === 0) {
+        console.error('No document versions found:', versionError);
+        throw new Error('No document versions found');
+      }
+
+      const latestVersion = versions[0];
+
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: {
           operation: 'analyze_document',
           documentId: document.id,
-          documentVersionId: document.id,
+          documentVersionId: latestVersion.id,
           userId: user.id,
           dealId: dealId,
           context: {
