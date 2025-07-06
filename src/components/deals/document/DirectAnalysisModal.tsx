@@ -55,6 +55,12 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
   const performAnalysis = async () => {
     if (!document || !user) return;
 
+    console.log('Starting analysis for:', { 
+      documentId: document.id, 
+      analysisType, 
+      documentName: document.name 
+    });
+
     setLoading(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
@@ -72,16 +78,22 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
         }
       });
 
+      console.log('Edge function response:', { result, error });
+
       if (error) {
+        console.error('Edge function error:', error);
         throw new Error('Failed to analyze document');
       }
 
       if (result?.success) {
+        console.log('Analysis successful, setting result:', result);
         setResult(result);
       } else {
+        console.error('Analysis failed:', result);
         throw new Error(result?.error || 'Analysis failed');
       }
     } catch (error: any) {
+      console.error('Analysis error:', error);
       toast({
         title: "Analysis failed",
         description: error.message || "Failed to analyze document",
@@ -100,6 +112,8 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
   }, [isOpen, document, analysisType]);
 
   const renderContent = () => {
+    console.log('Rendering content with:', { loading, result, analysisType });
+
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -109,7 +123,17 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
       );
     }
 
-    if (!result) return null;
+    if (!result) {
+      console.log('No result available');
+      return (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No analysis results available</p>
+        </div>
+      );
+    }
+
+    console.log('Result object keys:', Object.keys(result));
+    console.log('Full result:', result);
 
     switch (analysisType) {
       case 'summary':
@@ -117,8 +141,15 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm leading-relaxed">
-                {result.summary || 'No summary available'}
+                {result.summary || result.response || 'No summary available'}
               </p>
+              {/* Debug info */}
+              <details className="mt-4">
+                <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
+                <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </details>
             </CardContent>
           </Card>
         );
@@ -137,6 +168,13 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             ) : (
               <p className="text-muted-foreground">No key terms identified</p>
             )}
+            {/* Debug info */}
+            <details className="mt-4">
+              <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
+              <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </details>
           </div>
         );
 
@@ -153,11 +191,22 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             ) : (
               <p className="text-muted-foreground">No significant risks identified</p>
             )}
+            {/* Debug info */}
+            <details className="mt-4">
+              <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
+              <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </details>
           </div>
         );
 
       default:
-        return null;
+        return (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Analysis type not supported</p>
+          </div>
+        );
     }
   };
 
