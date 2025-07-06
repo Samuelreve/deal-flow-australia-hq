@@ -155,7 +155,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       const filePath = `${dealId}/generated-${user.id}-${Date.now()}.${selectedFileType}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('deal_documents')
+        .from('deal-documents')
         .upload(filePath, file);
 
       if (uploadError) {
