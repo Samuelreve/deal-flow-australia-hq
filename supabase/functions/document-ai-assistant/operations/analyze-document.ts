@@ -126,16 +126,36 @@ export async function handleAnalyzeDocument(
       throw new Error('Document not found in database');
     }
 
-    console.log('Found document:', { name: document.name, type: document.type, storagePath: document.storage_path });
+    // Get document version information for the correct storage path
+    const { data: documentVersion, error: versionError } = await supabase
+      .from('document_versions')
+      .select('*')
+      .eq('id', documentVersionId)
+      .single();
+
+    if (versionError || !documentVersion) {
+      console.error('Document version not found:', versionError);
+      throw new Error('Document version not found in database');
+    }
+
+    console.log('Found document:', { 
+      name: document.name, 
+      type: document.type, 
+      documentStoragePath: document.storage_path,
+      versionStoragePath: documentVersion.storage_path 
+    });
 
     // Download file from storage - try multiple bucket names
     let fileData = null;
     let storageError = null;
     
+    // Use the document version's storage path (not the document's storage path)
+    const storagePath = documentVersion.storage_path;
+    
     // Try deal_documents bucket first
     const { data: fileData1, error: storageError1 } = await supabase.storage
       .from('deal_documents')
-      .download(document.storage_path);
+      .download(storagePath);
     
     if (fileData1 && !storageError1) {
       fileData = fileData1;
@@ -144,7 +164,7 @@ export async function handleAnalyzeDocument(
       // Try Documents bucket
       const { data: fileData2, error: storageError2 } = await supabase.storage
         .from('Documents')
-        .download(document.storage_path);
+        .download(storagePath);
       
       if (fileData2 && !storageError2) {
         fileData = fileData2;
@@ -153,7 +173,7 @@ export async function handleAnalyzeDocument(
         // Try contracts bucket
         const { data: fileData3, error: storageError3 } = await supabase.storage
           .from('contracts')
-          .download(document.storage_path);
+          .download(storagePath);
         
         if (fileData3 && !storageError3) {
           fileData = fileData3;
