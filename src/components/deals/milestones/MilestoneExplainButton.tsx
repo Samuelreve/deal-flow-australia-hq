@@ -69,8 +69,8 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
       </TooltipProvider>
 
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               {result?.milestone?.title ? `About: ${result.milestone.title}` : `About: ${milestoneTitle}`}
             </DialogTitle>
@@ -79,7 +79,7 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="flex-1 overflow-y-auto py-4 pr-2">
             {loading && (
               <div className="flex justify-center items-center py-8">
                 <Spinner size="lg" />
@@ -115,7 +115,7 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button onClick={handleClose}>Close</Button>
           </DialogFooter>
         </DialogContent>
