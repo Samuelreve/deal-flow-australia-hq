@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// 2025 Best Practice: Reliable Deno-compatible libraries
-import { extractText as extractPdfTextUnpdf } from "https://esm.sh/unpdf@0.11.0?target=deno";
+// 2025 Best Practice: Reliable Deno-compatible libraries  
+// Use pdfjs-dist for more reliable PDF extraction in Deno
+import { getDocument } from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs";
 // Use JSZip for DOCX extraction (reliable in Deno)
 import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
 
@@ -84,47 +85,72 @@ serve(async (req) => {
         );
       }
       
-      // Method 1: Try unpdf with enhanced error handling
+      // Method 1: Try pdfjs-dist with enhanced error handling
       try {
-        console.log('🔄 Attempting PDF extraction with unpdf...');
-        console.log('🔧 PDF buffer info for unpdf:', {
+        console.log('🔄 Attempting PDF extraction with pdfjs-dist...');
+        console.log('🔧 PDF buffer info for pdfjs-dist:', {
           bufferType: typeof fileBuffer,
           isUint8Array: fileBuffer instanceof Uint8Array,
           bufferLength: fileBuffer.length,
           firstFewBytes: Array.from(fileBuffer.slice(0, 10)).map(b => b.toString(16)).join(' ')
         });
         
-        // Ensure we pass the buffer correctly to unpdf
-        let extractionResult;
-        try {
-          // Try with the buffer directly first
-          extractionResult = await extractPdfTextUnpdf(fileBuffer);
-        } catch (bufferError) {
-          console.warn('⚠️ Direct buffer failed, trying with ArrayBuffer:', bufferError.message);
-          // Try converting to ArrayBuffer if direct buffer fails
-          const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
-          extractionResult = await extractPdfTextUnpdf(arrayBuffer);
-        }
+        // Use pdfjs-dist to extract text from PDF
+        const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+        const pdfDoc = await getDocument({
+          data: arrayBuffer,
+          useSystemFonts: true,
+          disableFontFace: true,
+          verbosity: 0
+        }).promise;
         
-        console.log('📋 unpdf extraction result:', {
-          resultType: typeof extractionResult,
-          hasText: !!extractionResult?.text,
-          textLength: extractionResult?.text?.length || 0,
-          textPreview: extractionResult?.text?.substring(0, 150) || 'No text',
-          fullResult: extractionResult
+        console.log('📄 PDF loaded successfully:', {
+          numPages: pdfDoc.numPages,
+          fingerprint: pdfDoc.fingerprint
         });
         
-        if (extractionResult?.text && extractionResult.text.trim().length > 10) {
-          extractedText = enhancedPdfTextCleaning(extractionResult.text);
-          console.log(`✅ unpdf extraction successful: ${extractedText.length} characters`);
-        } else {
-          throw new Error(`unpdf returned empty or insufficient text. Result: ${JSON.stringify(extractionResult)}`);
+        let fullText = '';
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+          try {
+            const page = await pdfDoc.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            
+            // Combine text items into a string
+            const pageText = textContent.items
+              .filter(item => 'str' in item)
+              .map(item => (item as any).str)
+              .join(' ');
+            
+            if (pageText.trim()) {
+              fullText += pageText + '\n';
+            }
+            
+            console.log(`📄 Page ${pageNum} extracted: ${pageText.length} characters`);
+          } catch (pageError) {
+            console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
+            // Continue with other pages
+          }
         }
-      } catch (unpdfError) {
+        
+        console.log('📋 pdfjs-dist extraction result:', {
+          totalPages: pdfDoc.numPages,
+          totalTextLength: fullText.length,
+          textPreview: fullText.substring(0, 200) || 'No text'
+        });
+        
+        if (fullText && fullText.trim().length > 10) {
+          extractedText = enhancedPdfTextCleaning(fullText);
+          console.log(`✅ pdfjs-dist extraction successful: ${extractedText.length} characters`);
+        } else {
+          throw new Error(`PDF contains no readable text. This may be a scanned PDF, encrypted, or contain only images.`);
+        }
+      } catch (pdfError) {
         console.error('❌ PDF extraction failed with full error details:', {
-          errorMessage: unpdfError.message,
-          errorStack: unpdfError.stack,
-          errorName: unpdfError.name,
+          errorMessage: pdfError.message,
+          errorStack: pdfError.stack,
+          errorName: pdfError.name,
           bufferInfo: {
             length: fileBuffer.length,
             type: typeof fileBuffer,
@@ -135,7 +161,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `PDF text extraction failed: ${unpdfError.message}. This may be a scanned PDF, encrypted, password-protected, or contain only images.` 
+            error: `PDF text extraction failed: ${pdfError.message}. This may be a scanned PDF, encrypted, password-protected, or contain only images.` 
           }),
           { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
