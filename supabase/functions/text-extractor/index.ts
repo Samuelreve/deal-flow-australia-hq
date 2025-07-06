@@ -2,8 +2,6 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // 2025 Best Practice: Reliable Deno-compatible libraries  
-// Use pdfjs-dist for more reliable PDF extraction in Deno
-import { getDocument } from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs";
 // Use JSZip for DOCX extraction (reliable in Deno)
 import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
 
@@ -64,15 +62,7 @@ serve(async (req) => {
       console.log(`✅ Plain text extraction: ${extractedText.length} characters`);
     }
     else if (mimeType === 'application/pdf') {
-      console.log('📄 Processing PDF with multiple extraction methods (2025 best practice)...');
-      
-      // Comprehensive PDF validation
-      console.log('🔧 PDF buffer validation:', {
-        size: fileBuffer.length,
-        firstBytes: Array.from(fileBuffer.slice(0, 8)).map(b => b.toString(16)).join(' '),
-        isPDF: fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46,
-        lastBytes: Array.from(fileBuffer.slice(-8)).map(b => b.toString(16)).join(' ')
-      });
+      console.log('📄 Processing PDF with unpdf (same as document-ai-assistant)...');
       
       // Verify PDF magic number
       if (!(fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46)) {
@@ -85,86 +75,46 @@ serve(async (req) => {
         );
       }
       
-      // Method 1: Try pdfjs-dist with enhanced error handling
       try {
-        console.log('🔄 Attempting PDF extraction with pdfjs-dist...');
-        console.log('🔧 PDF buffer info for pdfjs-dist:', {
-          bufferType: typeof fileBuffer,
-          isUint8Array: fileBuffer instanceof Uint8Array,
-          bufferLength: fileBuffer.length,
-          firstFewBytes: Array.from(fileBuffer.slice(0, 10)).map(b => b.toString(16)).join(' ')
-        });
+        console.log('🔄 Attempting PDF extraction with unpdf...');
         
-        // Use pdfjs-dist to extract text from PDF
-        const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
-        const pdfDoc = await getDocument({
-          data: arrayBuffer,
-          useSystemFonts: true,
-          disableFontFace: true,
-          verbosity: 0
-        }).promise;
+        // Use unpdf library (same as document-ai-assistant)
+        const { extractText } = await import("https://esm.sh/unpdf@0.11.0");
+        const text = await extractText(fileBuffer);
+        extractedText = typeof text === 'string' ? text : String(text || '');
         
-        console.log('📄 PDF loaded successfully:', {
-          numPages: pdfDoc.numPages,
-          fingerprint: pdfDoc.fingerprint
-        });
+        console.log(`✅ unpdf extraction successful: ${extractedText.length} characters`);
         
-        let fullText = '';
-        
-        // Extract text from each page
-        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-          try {
-            const page = await pdfDoc.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            
-            // Combine text items into a string
-            const pageText = textContent.items
-              .filter(item => 'str' in item)
-              .map(item => (item as any).str)
-              .join(' ');
-            
-            if (pageText.trim()) {
-              fullText += pageText + '\n';
-            }
-            
-            console.log(`📄 Page ${pageNum} extracted: ${pageText.length} characters`);
-          } catch (pageError) {
-            console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
-            // Continue with other pages
-          }
+        if (!extractedText || extractedText.trim().length < 10) {
+          throw new Error('PDF contains no readable text. This may be a scanned PDF, encrypted, or contain only images.');
         }
         
-        console.log('📋 pdfjs-dist extraction result:', {
-          totalPages: pdfDoc.numPages,
-          totalTextLength: fullText.length,
-          textPreview: fullText.substring(0, 200) || 'No text'
-        });
+        // Clean the extracted text
+        extractedText = enhancedPdfTextCleaning(extractedText);
         
-        if (fullText && fullText.trim().length > 10) {
-          extractedText = enhancedPdfTextCleaning(fullText);
-          console.log(`✅ pdfjs-dist extraction successful: ${extractedText.length} characters`);
-        } else {
-          throw new Error(`PDF contains no readable text. This may be a scanned PDF, encrypted, or contain only images.`);
-        }
       } catch (pdfError) {
-        console.error('❌ PDF extraction failed with full error details:', {
-          errorMessage: pdfError.message,
-          errorStack: pdfError.stack,
-          errorName: pdfError.name,
-          bufferInfo: {
-            length: fileBuffer.length,
-            type: typeof fileBuffer,
-            isUint8Array: fileBuffer instanceof Uint8Array
-          }
-        });
+        console.error('❌ PDF extraction failed:', pdfError);
         
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `PDF text extraction failed: ${pdfError.message}. This may be a scanned PDF, encrypted, password-protected, or contain only images.` 
-          }),
-          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Fallback: try to decode as text if PDF parsing fails
+        try {
+          console.log('🔄 Trying fallback text decoding...');
+          const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(fileBuffer);
+          extractedText = fallbackText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
+          
+          if (extractedText.length > 50) {
+            console.log('✅ Fallback text extraction successful');
+          } else {
+            throw new Error('Fallback extraction also failed');
+          }
+        } catch (fallbackError) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `PDF text extraction failed: ${pdfError.message}. This may be a scanned PDF, encrypted, password-protected, or contain only images.` 
+            }),
+            { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
     }
     else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
