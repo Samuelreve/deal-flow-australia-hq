@@ -29,16 +29,16 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
       const result = await generateMilestones(dealType);
       console.log('📋 AI Response received:', result);
       
-      if (result && 'milestones' in result) {
+      if (result && result.success && 'milestones' in result && result.milestones) {
         console.log('✅ Valid milestones received, count:', result.milestones.length);
         // Convert to our internal format with all milestones selected
-        const milestoneItems = (result as MilestoneGenerationResponse).milestones.map(m => ({
+        const milestoneItems = result.milestones.map(m => ({
           ...m,
           selected: true // Auto-select all milestones
         }));
         
         setGeneratedMilestones(milestoneItems);
-        setDisclaimer((result as MilestoneGenerationResponse).disclaimer || '');
+        setDisclaimer(result.disclaimer || '');
         
         // Automatically save all generated milestones
         console.log('💾 Auto-saving milestones...');
