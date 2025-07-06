@@ -27,14 +27,18 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
       const result = await generateMilestones(dealType);
       
       if (result && 'milestones' in result) {
-        // Convert to our internal format with selected flag
+        // Convert to our internal format with all milestones selected
         const milestoneItems = (result as MilestoneGenerationResponse).milestones.map(m => ({
           ...m,
-          selected: true // Default select all milestones
+          selected: true // Auto-select all milestones
         }));
         
         setGeneratedMilestones(milestoneItems);
         setDisclaimer((result as MilestoneGenerationResponse).disclaimer || '');
+        
+        // Automatically save all generated milestones
+        await autoSaveMilestones(milestoneItems);
+        
       } else {
         toast({
           title: "Milestone Generation Failed",
@@ -47,6 +51,58 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
       toast({
         title: "Milestone Generation Failed",
         description: error.message || "An error occurred while generating milestones.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const autoSaveMilestones = async (milestoneItems: MilestoneItem[]) => {
+    try {
+      // Get current highest order_index
+      const { data: existingMilestones, error: fetchError } = await supabase
+        .from('milestones')
+        .select('order_index')
+        .eq('deal_id', dealId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+        
+      if (fetchError) throw fetchError;
+      
+      const startOrderIndex = existingMilestones && existingMilestones.length > 0 
+        ? existingMilestones[0].order_index + 10
+        : 10;
+      
+      // Prepare milestone data for insertion
+      const milestonesToInsert = milestoneItems.map((milestone, index) => ({
+        deal_id: dealId,
+        title: milestone.name,
+        description: milestone.description,
+        status: 'not_started' as MilestoneStatus,
+        order_index: startOrderIndex + (index * 10)
+      }));
+      
+      // Insert milestones to database
+      const { error: insertError } = await supabase
+        .from('milestones')
+        .insert(milestonesToInsert);
+        
+      if (insertError) throw insertError;
+      
+      toast({
+        title: "Success!",
+        description: `Successfully generated ${milestoneItems.length} milestones with AI`,
+      });
+      
+      // Close dialog and refresh milestone list
+      setIsDialogOpen(false);
+      setGeneratedMilestones([]);
+      onMilestonesAdded();
+      
+    } catch (error: any) {
+      console.error("Auto-save milestones error:", error);
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save the generated milestones.",
         variant: "destructive",
       });
     }
