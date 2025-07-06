@@ -65,7 +65,7 @@ Keep the explanation clear, professional, and actionable.`;
 
     // Call OpenAI to generate milestone explanation
     const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -94,6 +94,7 @@ Keep the explanation clear, professional, and actionable.`;
     
   } catch (error) {
     console.error('Error in handleExplainMilestone:', error);
-    throw new Error('Failed to explain milestone');
+    console.error('Error details:', error.message, error.stack);
+    throw new Error(`Failed to explain milestone: ${error.message}`);
   }
 }
