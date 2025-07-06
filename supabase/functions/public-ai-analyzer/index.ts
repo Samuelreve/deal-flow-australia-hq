@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import mammoth from "https://esm.sh/mammoth@1.6.0";
-import { extractText } from "https://esm.sh/unpdf@0.11.0";
+import { extractText as extractPdfText } from "https://esm.sh/unpdf@0.11.0";
 import OpenAI from "https://esm.sh/openai@4.0.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
@@ -12,7 +12,7 @@ async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: str
 
     if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
       // Extract text from PDF using unpdf
-      const text = await extractText(new Uint8Array(fileBuffer));
+      const text = await extractPdfText(new Uint8Array(fileBuffer));
       return text || '';
     } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
       // Extract text from DOCX using mammoth
