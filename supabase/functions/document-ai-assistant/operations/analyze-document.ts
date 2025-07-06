@@ -152,15 +152,15 @@ export async function handleAnalyzeDocument(
     // Use the document version's storage path (not the document's storage path)
     const storagePath = documentVersion.storage_path;
     
-    // Try deal-documents bucket first
+    // Try deal_documents bucket first
     const { data: fileData1, error: storageError1 } = await supabase.storage
-      .from('deal-documents')
+      .from('deal_documents')
       .download(storagePath);
     
     if (fileData1 && !storageError1) {
       fileData = fileData1;
     } else {
-      console.log('deal-documents bucket failed, trying Documents bucket');
+      console.log('deal_documents bucket failed, trying Documents bucket');
       // Try Documents bucket
       const { data: fileData2, error: storageError2 } = await supabase.storage
         .from('Documents')
@@ -185,7 +185,7 @@ export async function handleAnalyzeDocument(
 
     if (!fileData) {
       console.error('All storage download attempts failed:', {
-        'deal-documents': storageError1?.message,
+        'deal_documents': storageError1?.message,
         Documents: 'attempted',
         contracts: 'attempted',
         finalError: storageError?.message
