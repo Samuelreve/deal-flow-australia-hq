@@ -91,11 +91,21 @@ const NextActionSuggestion: React.FC<NextActionSuggestionProps> = ({
 
             {result?.suggestion && !loading && (
               <>
-                <div className="prose max-w-none">
-                  <div className="whitespace-pre-wrap">{result.suggestion}</div>
+                <div className="space-y-3">
+                  <div 
+                    className="text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: result.suggestion
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/\n/g, '<br>')
+                        .replace(/^(.*)$/g, '<p>$1</p>')
+                    }}
+                  />
                 </div>
                 
-                <div className="mt-4 text-xs text-muted-foreground italic">
+                <div className="mt-4 text-xs text-muted-foreground italic border-t pt-3">
                   {result.disclaimer}
                 </div>
               </>
