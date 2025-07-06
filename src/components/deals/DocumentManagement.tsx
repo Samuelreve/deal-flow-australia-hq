@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Document } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
 import DocumentManagementGrid from "./document/DocumentManagementGrid";
+import DocumentManagementHeader from "./document/DocumentManagementHeader";
 import ContractAnalyzerDialog from "./document/ContractAnalyzerDialog";
 import DocumentDialogs from "./document/DocumentDialogs";
 import { useDocumentManagementState } from "@/hooks/document-management/useDocumentManagementState";
@@ -75,6 +76,11 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
 
   return (
     <>
+      <DocumentManagementHeader 
+        dealTitle={`Deal ${dealId}`}
+        dealId={dealId}
+        onDocumentsUpdated={handleDocumentsUpdated}
+      />
       <DocumentManagementGrid
         documents={documents}
         isLoading={isLoading}
