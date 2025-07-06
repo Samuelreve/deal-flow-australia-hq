@@ -20,6 +20,16 @@ interface DashboardRecentDealsProps {
 const DashboardRecentDeals = ({ deals }: DashboardRecentDealsProps) => {
   const navigate = useNavigate();
 
+  const handleDealClick = (deal: Deal) => {
+    if (deal.status === 'draft') {
+      // Navigate to deal creation page with deal data for editing
+      navigate('/create-deal', { state: { editingDeal: deal } });
+    } else {
+      // Navigate to deal details page for active deals
+      navigate(`/deals/${deal.id}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Recent Deals Section */}
@@ -32,7 +42,11 @@ const DashboardRecentDeals = ({ deals }: DashboardRecentDealsProps) => {
           {deals.length > 0 ? (
             <div className="space-y-4">
               {deals.slice(0, 5).map((deal) => (
-                <div key={deal.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                <div 
+                  key={deal.id} 
+                  className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors"
+                  onClick={() => handleDealClick(deal)}
+                >
                   <div className="flex items-start gap-3">
                     <div className="h-2.5 w-2.5 mt-1.5 rounded-full bg-blue-500" />
                     <div>
