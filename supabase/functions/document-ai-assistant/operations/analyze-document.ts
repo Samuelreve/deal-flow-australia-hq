@@ -147,7 +147,9 @@ export async function handleAnalyzeDocument(
 
     // Download file from storage - try multiple bucket names
     let fileData = null;
-    let storageError = null;
+    let storageError1 = null;
+    let storageError2 = null;
+    let storageError3 = null;
     
     // Use the document version's storage path (not the document's storage path)
     const storagePath = documentVersion.storage_path;
@@ -160,47 +162,52 @@ export async function handleAnalyzeDocument(
     });
     
     // Try deal_documents bucket first
-    const { data: fileData1, error: storageError1 } = await supabase.storage
+    const { data: fileData1, error: error1 } = await supabase.storage
       .from('deal_documents')
       .download(storagePath);
     
-    if (fileData1 && !storageError1) {
+    storageError1 = error1;
+    
+    if (fileData1 && !error1) {
       fileData = fileData1;
       console.log('Successfully downloaded from deal_documents bucket');
     } else {
       console.log('deal_documents bucket failed:', {
-        error: storageError1?.message,
+        error: error1?.message,
         storagePath
       });
       
       // Try Documents bucket
-      const { data: fileData2, error: storageError2 } = await supabase.storage
+      const { data: fileData2, error: error2 } = await supabase.storage
         .from('Documents')
         .download(storagePath);
       
-      if (fileData2 && !storageError2) {
+      storageError2 = error2;
+      
+      if (fileData2 && !error2) {
         fileData = fileData2;
         console.log('Successfully downloaded from Documents bucket');
       } else {
         console.log('Documents bucket failed:', {
-          error: storageError2?.message,
+          error: error2?.message,
           storagePath
         });
         
         // Try contracts bucket
-        const { data: fileData3, error: storageError3 } = await supabase.storage
+        const { data: fileData3, error: error3 } = await supabase.storage
           .from('contracts')
           .download(storagePath);
         
-        if (fileData3 && !storageError3) {
+        storageError3 = error3;
+        
+        if (fileData3 && !error3) {
           fileData = fileData3;
           console.log('Successfully downloaded from contracts bucket');
         } else {
           console.log('contracts bucket failed:', {
-            error: storageError3?.message,
+            error: error3?.message,
             storagePath
           });
-          storageError = storageError3 || storageError2 || storageError1;
         }
       }
     }
@@ -209,11 +216,10 @@ export async function handleAnalyzeDocument(
       console.error('All storage download attempts failed:', {
         storagePath,
         deal_documents_error: storageError1?.message || 'No error message',
-        Documents_error: storageError2?.message || 'No error message',
-        contracts_error: storageError3?.message || 'No error message',
-        finalError: storageError?.message || 'No error message'
+        Documents_error: storageError2?.message || 'No error message',  
+        contracts_error: storageError3?.message || 'No error message'
       });
-      throw new Error(`Failed to download document from storage. Path: ${storagePath}. Last error: ${JSON.stringify(storageError)}`);
+      throw new Error(`Failed to download document from storage. Path: ${storagePath}. Errors: deal_documents=${storageError1?.message}, Documents=${storageError2?.message}, contracts=${storageError3?.message}`);
     }
     console.log(`Document downloaded successfully, processing with buffer size: ${fileData.size}`);
     
