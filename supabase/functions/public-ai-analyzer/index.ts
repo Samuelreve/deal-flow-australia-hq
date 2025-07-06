@@ -226,10 +226,11 @@ serve(async (req) => {
       );
     }
 
-    console.log("✅ Text extraction successful, length:", text.length);
+    console.log("✅ Text extraction successful, length:", text?.length || 0);
     
-    // Clean extracted text
-    const cleanedText = text
+    // Ensure text is a string and clean it
+    const textString = typeof text === 'string' ? text : String(text || '');
+    const cleanedText = textString
       .replace(new RegExp(String.fromCharCode(0), 'g'), '') // Remove null bytes
       .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + '-' + String.fromCharCode(159) + ']', 'g'), '') // Remove control characters
       .trim();

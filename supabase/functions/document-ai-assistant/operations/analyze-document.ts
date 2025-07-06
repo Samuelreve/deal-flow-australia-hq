@@ -8,10 +8,21 @@ const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
   try {
+    console.log(`Extracting text from ${fileName} (${contentType}), buffer size: ${fileBuffer.byteLength}`);
+    
     if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
       // Extract text from PDF using unpdf
-      const text = await extractText(new Uint8Array(fileBuffer));
-      return text || '';
+      try {
+        const text = await extractText(new Uint8Array(fileBuffer));
+        const textString = typeof text === 'string' ? text : String(text || '');
+        console.log(`PDF text extracted, length: ${textString.length}`);
+        return textString;
+      } catch (pdfError) {
+        console.error('PDF extraction failed:', pdfError);
+        // Try alternative: decode as text if PDF parsing fails
+        const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(fileBuffer);
+        return fallbackText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
+      }
     } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
       // Extract text from DOCX using mammoth
       const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
@@ -117,40 +128,51 @@ export async function handleAnalyzeDocument(
 
     console.log('Found document:', { name: document.name, type: document.type, storagePath: document.storage_path });
 
-    // Download file from storage
-    const { data: fileData, error: storageError } = await supabase.storage
+    // Download file from storage - try multiple bucket names
+    let fileData = null;
+    let storageError = null;
+    
+    // Try deal_documents bucket first
+    const { data: fileData1, error: storageError1 } = await supabase.storage
       .from('deal_documents')
       .download(document.storage_path);
-
-    if (storageError || !fileData) {
-      console.error('Storage download error:', storageError);
-      // Try alternative bucket names
+    
+    if (fileData1 && !storageError1) {
+      fileData = fileData1;
+    } else {
+      console.log('deal_documents bucket failed, trying Documents bucket');
+      // Try Documents bucket
       const { data: fileData2, error: storageError2 } = await supabase.storage
         .from('Documents')
         .download(document.storage_path);
       
-      if (storageError2 || !fileData2) {
-        throw new Error(`Failed to download document from storage: ${storageError?.message || storageError2?.message}`);
+      if (fileData2 && !storageError2) {
+        fileData = fileData2;
+      } else {
+        console.log('Documents bucket failed, trying contracts bucket');
+        // Try contracts bucket
+        const { data: fileData3, error: storageError3 } = await supabase.storage
+          .from('contracts')
+          .download(document.storage_path);
+        
+        if (fileData3 && !storageError3) {
+          fileData = fileData3;
+        } else {
+          storageError = storageError3 || storageError2 || storageError1;
+        }
       }
-      
-      console.log('Document downloaded from Documents bucket');
-      const fileBuffer = await fileData2.arrayBuffer();
-      const extractedText = await extractTextFromDocument(fileBuffer, document.type, document.name);
-      
-      if (!extractedText || extractedText.trim().length === 0) {
-        throw new Error('No text could be extracted from the document');
-      }
-
-      console.log('Text extracted, length:', extractedText.length);
-      const analysisResult = await analyzeDocumentWithAI(extractedText, analysisType, openai);
-      
-      return {
-        ...analysisResult,
-        disclaimer: 'This analysis is provided by AI and should be reviewed by qualified professionals for accuracy and completeness.'
-      };
     }
 
-    console.log('Document downloaded from deal_documents bucket');
+    if (!fileData) {
+      console.error('All storage download attempts failed:', {
+        deal_documents: storageError1?.message,
+        Documents: 'attempted',
+        contracts: 'attempted',
+        finalError: storageError?.message
+      });
+      throw new Error(`Failed to download document from storage. Tried multiple buckets. Last error: ${storageError?.message}`);
+    }
+    console.log(`Document downloaded successfully, processing with buffer size: ${fileData.size}`);
     
     // Extract text from the document
     const fileBuffer = await fileData.arrayBuffer();
