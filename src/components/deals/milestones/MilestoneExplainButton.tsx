@@ -18,12 +18,16 @@ import { TooltipProvider } from "@radix-ui/react-tooltip";
 interface MilestoneExplainButtonProps {
   dealId: string;
   milestoneId: string;
+  milestoneTitle: string;
+  milestoneDescription?: string;
   userRole?: string;
 }
 
 const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
   dealId,
   milestoneId,
+  milestoneTitle,
+  milestoneDescription,
   userRole = 'user'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +36,9 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
   const handleExplain = async () => {
     setIsOpen(true);
     if (!result) {
-      await explainMilestone(milestoneId, "");
+      // Pass milestone content for context
+      const milestoneContent = `Title: ${milestoneTitle}\nDescription: ${milestoneDescription || 'No description provided'}`;
+      await explainMilestone(milestoneId, milestoneContent);
     }
   };
 
@@ -66,7 +72,7 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {result?.milestone?.title ? `About: ${result.milestone.title}` : 'Milestone Explanation'}
+              {result?.milestone?.title ? `About: ${result.milestone.title}` : `About: ${milestoneTitle}`}
             </DialogTitle>
             <DialogDescription>
               AI-generated explanation of this milestone
@@ -88,11 +94,21 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
 
             {result?.explanation && !loading && (
               <>
-                <div className="prose max-w-none">
-                  <div className="whitespace-pre-wrap">{result.explanation}</div>
+                <div className="space-y-3">
+                  <div 
+                    className="text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: result.explanation
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/\n/g, '<br>')
+                        .replace(/^(.*)$/g, '<p>$1</p>')
+                    }}
+                  />
                 </div>
                 
-                <div className="mt-4 text-xs text-muted-foreground italic">
+                <div className="mt-4 text-xs text-muted-foreground italic border-t pt-3">
                   {result.disclaimer}
                 </div>
               </>

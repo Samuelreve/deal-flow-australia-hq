@@ -45,6 +45,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             <MilestoneExplainButton 
               dealId={dealId}
               milestoneId={milestone.id}
+              milestoneTitle={milestone.title}
+              milestoneDescription={milestone.description}
               userRole={userRole}
             />
           </div>
