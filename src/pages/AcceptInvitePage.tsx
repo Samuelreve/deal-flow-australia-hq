@@ -87,8 +87,8 @@ const AcceptInvitePage = () => {
           description: `You've successfully joined the deal: ${invitation.dealTitle}`,
         });
 
-        // Redirect to the deal room
-        navigate(`/deal-room/${invitation.dealId}`);
+        // Redirect to the deal details
+        navigate(`/deals/${invitation.dealId}`);
       } else {
         throw new Error('Failed to accept invitation');
       }

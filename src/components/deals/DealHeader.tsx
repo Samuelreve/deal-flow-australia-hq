@@ -31,7 +31,7 @@ const DealHeader: React.FC<DealHeaderProps> = ({
   };
 
   const goToDealRoom = () => {
-    navigate(`/deal-room/${deal.id}`);
+    navigate(`/deals/${deal.id}`);
   };
   
   return (
