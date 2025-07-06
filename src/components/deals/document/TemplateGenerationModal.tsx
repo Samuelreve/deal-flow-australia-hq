@@ -28,6 +28,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [disclaimer, setDisclaimer] = useState('');
+  const [selectedFileType, setSelectedFileType] = useState('txt');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -114,15 +115,44 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
     setIsSaving(true);
     try {
-      const fileName = `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}.txt`;
+      // Create file name based on selected type
+      const fileName = `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}.${selectedFileType}`;
+      
+      // Create different content based on file type
+      let fileContent: string | Uint8Array;
+      let mimeType: string;
+      
+      switch (selectedFileType) {
+        case 'txt':
+          fileContent = generatedTemplate;
+          mimeType = 'text/plain';
+          break;
+        case 'rtf':
+          // Create basic RTF format
+          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}\\f0\\fs24 ${generatedTemplate.replace(/\n/g, '\\par ')}}`;
+          mimeType = 'application/rtf';
+          break;
+        case 'pdf':
+          // For PDF, we'll save as text for now (would need a PDF library for proper PDF generation)
+          fileContent = generatedTemplate;
+          mimeType = 'application/pdf';
+          break;
+        case 'docx':
+          // For DOCX, we'll save as text for now (would need a library for proper DOCX generation)
+          fileContent = generatedTemplate;
+          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        default:
+          fileContent = generatedTemplate;
+          mimeType = 'text/plain';
+      }
       
       // Create blob from template content
-      const blob = new Blob([generatedTemplate], { type: 'text/plain' });
-      const file = new File([blob], fileName, { type: 'text/plain' });
+      const blob = new Blob([fileContent], { type: mimeType });
+      const file = new File([blob], fileName, { type: mimeType });
 
       // Upload the generated template as a document
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${dealId}/generated-${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${dealId}/generated-${user.id}-${Date.now()}.${selectedFileType}`;
 
       const { error: uploadError } = await supabase.storage
         .from('deal_documents')
@@ -166,7 +196,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
       toast({
         title: "Template saved successfully",
-        description: "The generated template has been added to your documents",
+        description: `The generated template has been saved as ${selectedFileType.toUpperCase()} and added to your documents`,
       });
       
       // Refresh the documents list first, then close the modal
@@ -189,6 +219,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
     setRequirements('');
     setGeneratedTemplate('');
     setDisclaimer('');
+    setSelectedFileType('txt');
     onClose();
   };
 
@@ -233,13 +264,32 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
           ) : (
             // Template editor
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="generatedTemplate">Generated Template</Label>
+                </div>
+                <div>
+                  <Label htmlFor="fileType">File Type</Label>
+                  <Select value={selectedFileType} onValueChange={setSelectedFileType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select file type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="txt">Text File (.txt)</SelectItem>
+                      <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
+                      <SelectItem value="docx">Word Document (.docx)</SelectItem>
+                      <SelectItem value="rtf">Rich Text Format (.rtf)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
               <div>
-                <Label htmlFor="generatedTemplate">Generated Template</Label>
                 <Textarea
                   id="generatedTemplate"
                   value={generatedTemplate}
                   onChange={(e) => setGeneratedTemplate(e.target.value)}
-                  rows={20}
+                  rows={18}
                   className="font-mono text-sm"
                 />
               </div>
