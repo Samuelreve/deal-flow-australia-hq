@@ -122,28 +122,7 @@ export const useDealSubmission = () => {
         console.log('Deal created successfully:', newDeal);
       }
 
-      // Create default milestones for the deal
-      const defaultMilestones = [
-        { title: 'Initial Review', description: 'Review deal documentation and requirements', order_index: 1, status: 'not_started' as const },
-        { title: 'Due Diligence', description: 'Conduct thorough due diligence process', order_index: 2, status: 'not_started' as const },
-        { title: 'Negotiation', description: 'Negotiate terms and conditions', order_index: 3, status: 'not_started' as const },
-        { title: 'Legal Review', description: 'Legal review of all documents', order_index: 4, status: 'not_started' as const },
-        { title: 'Completion', description: 'Finalize and complete the transaction', order_index: 5, status: 'not_started' as const }
-      ];
-
-      const { error: milestonesError } = await supabase
-        .from('milestones')
-        .insert(
-          defaultMilestones.map(milestone => ({
-            ...milestone,
-            deal_id: finalDealId
-          }))
-        );
-
-      if (milestonesError) {
-        console.warn('Error creating default milestones:', milestonesError);
-        // Don't fail the whole operation
-      }
+      // Milestones will be created only when user explicitly generates them
 
       // Migrate temporary documents to the final deal
       if (tempDealId && formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
