@@ -55,12 +55,6 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
   const performAnalysis = async () => {
     if (!document || !user) return;
 
-    console.log('Starting analysis for:', { 
-      documentId: document.id, 
-      analysisType, 
-      documentName: document.name 
-    });
-
     setLoading(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
@@ -78,18 +72,14 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
         }
       });
 
-      console.log('Edge function response:', { result, error });
-
       if (error) {
         console.error('Edge function error:', error);
         throw new Error('Failed to analyze document');
       }
 
       if (result) {
-        console.log('Analysis successful, setting result:', result);
         setResult(result);
       } else {
-        console.error('Analysis failed:', result);
         throw new Error('Analysis failed - no result received');
       }
     } catch (error: any) {
@@ -112,8 +102,6 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
   }, [isOpen, document, analysisType]);
 
   const renderContent = () => {
-    console.log('Rendering content with:', { loading, result, analysisType });
-
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -124,7 +112,6 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
     }
 
     if (!result) {
-      console.log('No result available');
       return (
         <div className="text-center py-8">
           <p className="text-muted-foreground">No analysis results available</p>
@@ -132,24 +119,24 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
       );
     }
 
-    console.log('Result object keys:', Object.keys(result));
-    console.log('Full result:', result);
-
     switch (analysisType) {
       case 'summary':
         return (
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm leading-relaxed">
-                {result.summary || result.response || 'No summary available'}
+                {result.summary || 'No summary available'}
               </p>
-              {/* Debug info */}
-              <details className="mt-4">
-                <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
-                <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
-                  {JSON.stringify(result, null, 2)}
-                </pre>
-              </details>
+              {result.keyPoints && result.keyPoints.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">Key Points:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {result.keyPoints.map((point: string, index: number) => (
+                      <li key={index} className="text-sm">{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -168,13 +155,6 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             ) : (
               <p className="text-muted-foreground">No key terms identified</p>
             )}
-            {/* Debug info */}
-            <details className="mt-4">
-              <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
-              <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
-                {JSON.stringify(result, null, 2)}
-              </pre>
-            </details>
           </div>
         );
 
@@ -191,13 +171,6 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             ) : (
               <p className="text-muted-foreground">No significant risks identified</p>
             )}
-            {/* Debug info */}
-            <details className="mt-4">
-              <summary className="text-xs text-muted-foreground cursor-pointer">Debug Info</summary>
-              <pre className="text-xs mt-2 bg-muted p-2 rounded overflow-auto">
-                {JSON.stringify(result, null, 2)}
-              </pre>
-            </details>
           </div>
         );
 
@@ -224,6 +197,12 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
 
         <div className="flex-1 overflow-y-auto py-4">
           {renderContent()}
+          
+          {result?.disclaimer && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-600 dark:text-blue-400">{result.disclaimer}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between pt-4 border-t">
