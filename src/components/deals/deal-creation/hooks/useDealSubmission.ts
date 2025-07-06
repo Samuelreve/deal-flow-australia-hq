@@ -36,7 +36,7 @@ export const useDealSubmission = () => {
           .update({
             title: formData.dealTitle,
             description: formData.dealDescription,
-            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice) : null,
+            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice.replace(/,/g, '')) : null,
             business_industry: formData.businessIndustry,
             target_completion_date: formData.targetCompletionDate,
             status: 'active',
@@ -74,7 +74,7 @@ export const useDealSubmission = () => {
           .insert({
             title: formData.dealTitle,
             description: formData.dealDescription,
-            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice) : null,
+            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice.replace(/,/g, '')) : null,
             business_industry: formData.businessIndustry,
             target_completion_date: formData.targetCompletionDate,
             status: 'active',

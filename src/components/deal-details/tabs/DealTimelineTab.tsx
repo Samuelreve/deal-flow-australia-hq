@@ -49,25 +49,30 @@ const DealTimelineTab: React.FC<DealTimelineTabProps> = ({ dealId }) => {
       ] = await Promise.all([
         supabase
           .from('milestones')
-          .select('*, profiles:deal_participants!deal_participants_deal_id_fkey(profiles!deal_participants_user_id_fkey(name))')
+          .select('*')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: false }),
         
         supabase
           .from('documents')
-          .select('*, profiles!documents_uploaded_by_fkey(name)')
+          .select('*')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: false }),
         
         supabase
           .from('deal_participants')
-          .select('*, profiles!deal_participants_user_id_fkey(name)')
+          .select(`
+            *,
+            profiles!deal_participants_user_id_fkey (
+              name
+            )
+          `)
           .eq('deal_id', dealId)
           .order('joined_at', { ascending: false }),
         
         supabase
           .from('messages')
-          .select('*, profiles!messages_sender_user_id_fkey(name)')
+          .select('*')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: false })
           .limit(10), // Limit messages to avoid too many timeline entries
@@ -115,7 +120,7 @@ const DealTimelineTab: React.FC<DealTimelineTabProps> = ({ dealId }) => {
           title: 'Document Uploaded',
           description: `"${doc.name}" was uploaded`,
           created_at: doc.created_at,
-          user_name: doc.profiles?.name || 'Unknown User'
+          user_name: 'System'
         });
       });
 
@@ -141,7 +146,7 @@ const DealTimelineTab: React.FC<DealTimelineTabProps> = ({ dealId }) => {
             ? message.content.substring(0, 50) + '...' 
             : message.content,
           created_at: message.created_at,
-          user_name: message.profiles?.name || 'Unknown User'
+          user_name: 'User'
         });
       });
 
