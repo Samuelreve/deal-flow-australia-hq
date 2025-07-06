@@ -90,7 +90,8 @@ export const useDocumentAICore = ({ dealId, documentId }: UseDocumentAICoreProps
         throw new Error(error.message || 'Error processing AI request');
       }
       
-      if (!data.success) {
+      // Check for explicit error or success field, but don't fail if success field is missing
+      if (data.error || (data.hasOwnProperty('success') && !data.success)) {
         throw new Error(data.error || 'Failed to process AI request');
       }
       
