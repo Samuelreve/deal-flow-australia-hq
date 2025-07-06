@@ -9,7 +9,7 @@ import { getFileIconByType } from "@/lib/fileIcons";
 import { useAuth } from "@/contexts/AuthContext";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import TemplateGenerationModal from "@/components/deals/document/TemplateGenerationModal";
-import DocumentAnalysisResults from "@/components/deals/document/DocumentAnalysisResults";
+import DirectAnalysisModal from "@/components/deals/document/DirectAnalysisModal";
 import { Document } from "@/types/deal";
 
 interface DatabaseDocument {
@@ -35,8 +35,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState<Record<string, any>>({});
-  const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisType, setAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -140,61 +140,10 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     setShowUploadForm(false);
   };
 
-  const handleAnalyzeDocument = async (analysisType: string) => {
-    if (!selectedDocument || !user) return;
-
-    setLoadingAnalysis(prev => ({ ...prev, [analysisType]: true }));
-    
-    try {
-      // Call the document AI assistant edge function for analysis
-      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'analyze_document',
-          documentId: selectedDocument.id,
-          documentVersionId: selectedDocument.id, // Use document ID as version ID for now
-          userId: user.id,
-          dealId: dealId,
-          context: {
-            analysisType: analysisType,
-            documentName: selectedDocument.name,
-            documentType: selectedDocument.type
-          }
-        }
-      });
-
-      if (error) {
-        console.error('AI analysis error:', error);
-        throw new Error('Failed to analyze document');
-      }
-
-      if (result?.success) {
-        const analysisResult = {
-          analysisType,
-          ...result
-        };
-
-        setAnalysisResults(prev => ({
-          ...prev,
-          [analysisType]: analysisResult
-        }));
-
-        toast({
-          title: "Analysis completed",
-          description: `${analysisType.replace('_', ' ')} analysis has been generated`,
-        });
-      } else {
-        throw new Error(result?.error || 'Analysis failed');
-      }
-    } catch (error: any) {
-      console.error("Error performing analysis:", error);
-      toast({
-        title: "Analysis failed",
-        description: error.message || "Failed to analyze document",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingAnalysis(prev => ({ ...prev, [analysisType]: false }));
-    }
+  const handleAnalyzeDocument = (type: 'summary' | 'key_terms' | 'risks') => {
+    if (!selectedDocument) return;
+    setAnalysisType(type);
+    setShowAnalysisModal(true);
   };
 
   if (loading) {
@@ -386,36 +335,6 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
             </CardContent>
           )}
         </Card>
-        
-        {/* Analysis Results */}
-        {selectedDocument && (
-          <div className="space-y-4">
-            {analysisResults.summary && (
-              <DocumentAnalysisResults
-                analysisType="summary"
-                result={analysisResults.summary}
-                isLoading={loadingAnalysis.summary}
-                onRegenerate={() => handleAnalyzeDocument('summary')}
-              />
-            )}
-            {analysisResults.key_terms && (
-              <DocumentAnalysisResults
-                analysisType="key_terms"
-                result={analysisResults.key_terms}
-                isLoading={loadingAnalysis.key_terms}
-                onRegenerate={() => handleAnalyzeDocument('key_terms')}
-              />
-            )}
-            {analysisResults.risks && (
-              <DocumentAnalysisResults
-                analysisType="risks"
-                result={analysisResults.risks}
-                isLoading={loadingAnalysis.risks}
-                onRegenerate={() => handleAnalyzeDocument('risks')}
-              />
-            )}
-          </div>
-        )}
       </div>
       
       {/* Modals */}
@@ -424,6 +343,14 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         onClose={() => setShowTemplateModal(false)}
         dealId={dealId}
         onDocumentSaved={() => fetchDocuments()}
+      />
+      
+      <DirectAnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        document={selectedDocument ? { id: selectedDocument.id, name: selectedDocument.name, type: selectedDocument.type } : null}
+        dealId={dealId}
+        analysisType={analysisType}
       />
     </div>
   );
