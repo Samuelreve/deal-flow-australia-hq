@@ -84,25 +84,53 @@ serve(async (req) => {
         );
       }
       
-      // Method 1: Try unpdf only (remove problematic pdf-parse)
+      // Method 1: Try unpdf with enhanced error handling
       try {
         console.log('🔄 Attempting PDF extraction with unpdf...');
-        const extractionResult = await extractPdfTextUnpdf(fileBuffer);
+        console.log('🔧 PDF buffer info for unpdf:', {
+          bufferType: typeof fileBuffer,
+          isUint8Array: fileBuffer instanceof Uint8Array,
+          bufferLength: fileBuffer.length,
+          firstFewBytes: Array.from(fileBuffer.slice(0, 10)).map(b => b.toString(16)).join(' ')
+        });
+        
+        // Ensure we pass the buffer correctly to unpdf
+        let extractionResult;
+        try {
+          // Try with the buffer directly first
+          extractionResult = await extractPdfTextUnpdf(fileBuffer);
+        } catch (bufferError) {
+          console.warn('⚠️ Direct buffer failed, trying with ArrayBuffer:', bufferError.message);
+          // Try converting to ArrayBuffer if direct buffer fails
+          const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+          extractionResult = await extractPdfTextUnpdf(arrayBuffer);
+        }
         
         console.log('📋 unpdf extraction result:', {
+          resultType: typeof extractionResult,
           hasText: !!extractionResult?.text,
           textLength: extractionResult?.text?.length || 0,
-          textPreview: extractionResult?.text?.substring(0, 150) || 'No text'
+          textPreview: extractionResult?.text?.substring(0, 150) || 'No text',
+          fullResult: extractionResult
         });
         
         if (extractionResult?.text && extractionResult.text.trim().length > 10) {
           extractedText = enhancedPdfTextCleaning(extractionResult.text);
           console.log(`✅ unpdf extraction successful: ${extractedText.length} characters`);
         } else {
-          throw new Error('unpdf returned empty or insufficient text');
+          throw new Error(`unpdf returned empty or insufficient text. Result: ${JSON.stringify(extractionResult)}`);
         }
       } catch (unpdfError) {
-        console.error('❌ PDF extraction failed:', unpdfError.message);
+        console.error('❌ PDF extraction failed with full error details:', {
+          errorMessage: unpdfError.message,
+          errorStack: unpdfError.stack,
+          errorName: unpdfError.name,
+          bufferInfo: {
+            length: fileBuffer.length,
+            type: typeof fileBuffer,
+            isUint8Array: fileBuffer instanceof Uint8Array
+          }
+        });
         
         return new Response(
           JSON.stringify({ 
