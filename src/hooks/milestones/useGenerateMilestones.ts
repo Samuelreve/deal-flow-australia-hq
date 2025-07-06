@@ -110,8 +110,8 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
       if (insertError) throw insertError;
       
       toast({
-        title: "Milestones Added",
-        description: `${selectedMilestones.length} milestone(s) have been added to the deal.`,
+        title: "Success!",
+        description: `Successfully generated ${selectedMilestones.length} milestones with AI`,
       });
       
       // Close dialog and refresh milestone list

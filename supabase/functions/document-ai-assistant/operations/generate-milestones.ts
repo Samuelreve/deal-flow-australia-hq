@@ -1,5 +1,6 @@
 
 import { fetchDealContextData } from './utils/deal-context-fetcher.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function handleGenerateMilestones(
   dealId: string,
@@ -7,6 +8,11 @@ export async function handleGenerateMilestones(
   context: any,
   openai: any
 ) {
+  // Initialize Supabase client
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
     console.log(`Generating milestones for deal ${dealId}`);
     
@@ -69,7 +75,15 @@ Respond with a JSON object containing an array of milestones, each with 'name', 
     // Parse the response and extract milestones
     let generatedMilestones;
     try {
-      const parsed = JSON.parse(response);
+      // Clean the response to handle markdown-wrapped JSON
+      let cleanedResponse = response.trim();
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const parsed = JSON.parse(cleanedResponse);
       generatedMilestones = parsed.milestones || parsed;
       
       // Ensure each milestone has the required properties
