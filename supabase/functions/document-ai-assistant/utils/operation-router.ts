@@ -22,7 +22,7 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
       return await handleSuggestNextAction(payload.dealId!, openai);
     
     case 'generate_milestones':
-      return await handleGenerateMilestones(payload.dealId!, payload.content, openai);
+      return await handleGenerateMilestones(payload.dealId!, payload.userId!, payload.context, openai);
     
     case 'analyze_document':
       return await handleAnalyzeDocument(

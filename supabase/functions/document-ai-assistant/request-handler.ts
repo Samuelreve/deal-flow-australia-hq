@@ -2,14 +2,30 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createCorsResponse, createErrorResponse, createSuccessResponse } from "./utils/response-handler.ts";
 import { handleGenerateTemplate } from "./operations/generate-template.ts";
+import { routeOperation } from "./utils/operation-router.ts";
+import { RequestPayload } from "./types.ts";
 
 export async function handleRequest(req: Request, openai: any, supabaseUrl: string, supabaseKey: string) {
   try {
-    const { operation, content, context = {} } = await req.json();
+    const requestBody = await req.json();
+    const { operation, content = "", context = {}, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory } = requestBody;
     
-    if (!operation || !content) {
-      return createErrorResponse('Missing required fields: operation and content', 400);
+    if (!operation) {
+      return createErrorResponse('Missing required field: operation', 400);
     }
+
+    // Create payload for operation router
+    const payload: RequestPayload = {
+      operation,
+      content: content || "", // Allow empty content for some operations
+      context,
+      dealId: dealId || context.dealId,
+      userId: userId || context.userId,
+      documentId,
+      documentVersionId,
+      milestoneId,
+      chatHistory
+    };
 
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
@@ -25,23 +41,17 @@ export async function handleRequest(req: Request, openai: any, supabaseUrl: stri
       return createErrorResponse('Invalid authentication token', 401);
     }
 
+    // Set user ID in payload for operations that need it
+    payload.userId = user.id;
+
+    // Route the operation using the comprehensive operation router
     let result;
     
-    switch (operation) {
-      case 'generate_template':
-        result = await handleGenerateTemplate(
-          content,
-          context.dealId || '',
-          user.id,
-          context.templateType || 'Contract',
-          context,
-          openai
-        );
-        break;
-        
-      case 'generate_smart_template':
-        // For smart templates, we use enhanced context from the deal
-        if (!context.dealId) {
+    // Handle special cases that need additional context or different handling
+    if (operation === 'generate_template' || operation === 'generate_smart_template') {
+      // Keep existing template generation logic for backward compatibility
+      if (operation === 'generate_smart_template') {
+        if (!payload.dealId) {
           return createErrorResponse('Deal ID required for smart template generation', 400);
         }
         
@@ -49,7 +59,7 @@ export async function handleRequest(req: Request, openai: any, supabaseUrl: stri
         const { data: dealData, error: dealError } = await supabase
           .from('deals')
           .select('*')
-          .eq('id', context.dealId)
+          .eq('id', payload.dealId)
           .single();
           
         if (dealError) {
@@ -58,16 +68,25 @@ export async function handleRequest(req: Request, openai: any, supabaseUrl: stri
         
         result = await handleGenerateTemplate(
           content || 'Generate a comprehensive contract template',
-          context.dealId,
+          payload.dealId,
           user.id,
           context.templateType || 'Contract',
           { ...context, ...dealData },
           openai
         );
-        break;
-        
-      default:
-        return createErrorResponse(`Unknown operation: ${operation}`, 400);
+      } else {
+        result = await handleGenerateTemplate(
+          content,
+          payload.dealId || '',
+          user.id,
+          context.templateType || 'Contract',
+          context,
+          openai
+        );
+      }
+    } else {
+      // Use the operation router for all other operations including generate_milestones
+      result = await routeOperation(payload, openai);
     }
 
     return createSuccessResponse(result);

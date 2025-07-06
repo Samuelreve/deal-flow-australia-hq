@@ -15,7 +15,7 @@ export async function handleGenerateMilestones(
     const { deal, documents, participants, milestones: existingMilestones } = dealContext;
     
     // Get deal type from context (passed from frontend) or deal data
-    const dealType = context || deal.deal_type || 'Asset Sale';
+    const dealType = context?.dealType || deal.deal_type || 'Asset Sale';
     
     // Create a comprehensive prompt for milestone generation
     const prompt = `You are an AI assistant helping to generate appropriate milestones for a business deal. Based on the following deal information, generate a comprehensive list of milestones that are typical for this type of transaction.
@@ -97,7 +97,7 @@ Respond with a JSON object containing an array of milestones, each with 'name', 
     console.error('Error in handleGenerateMilestones:', error);
     
     // Fallback: return default milestones instead of failing
-    const dealType = context || 'Asset Sale';
+    const dealType = context?.dealType || 'Asset Sale';
     const fallbackMilestones = generateDefaultMilestones(dealType);
     
     return {

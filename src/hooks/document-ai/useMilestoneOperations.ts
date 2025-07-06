@@ -7,11 +7,11 @@ import { useDocumentAICore, UseDocumentAICoreProps } from './useDocumentAICore';
 export const useMilestoneOperations = (props: UseDocumentAICoreProps) => {
   const { processAIRequest, loading, error, result, clearResult } = useDocumentAICore(props);
 
-  const generateMilestones = async (dealId: string, dealType?: string) => {
+  const generateMilestones = async (dealType?: string) => {
     return await processAIRequest('generate_milestones', {
       content: dealType || '',
       context: { 
-        dealId,
+        dealType: dealType || 'Asset Sale',
         operationType: 'milestone_generation'
       }
     });
