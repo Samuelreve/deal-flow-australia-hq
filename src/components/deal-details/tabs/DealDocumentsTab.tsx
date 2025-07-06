@@ -6,12 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, Share, FileText, Download, Eye, MessageSquare, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFileIconByType } from "@/lib/fileIcons";
+import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
+import TemplateGenerationModal from "@/components/deals/document/TemplateGenerationModal";
+import DocumentAnalysisModal from "@/components/deals/document/DocumentAnalysisModal";
 
-interface Document {
+interface DatabaseDocument {
   id: string;
   name: string;
   category?: string;
-  status: 'draft' | 'final' | 'signed';
+  status: string;
   version: number;
   size: number;
   type: string;
@@ -25,9 +28,12 @@ interface DealDocumentsTabProps {
 }
 
 const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [documents, setDocuments] = useState<DatabaseDocument[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<DatabaseDocument | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -92,6 +98,16 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const handleDocumentUpload = () => {
+    fetchDocuments();
+    setShowUploadForm(false);
+  };
+
+  const handleAnalyzeDocument = (analysisType: string) => {
+    if (!selectedDocument) return;
+    setShowAnalysisModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -109,11 +125,20 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Deal Documents</CardTitle>
               <div className="flex gap-2">
-                <Button size="sm" className="flex items-center gap-1">
+                <Button 
+                  size="sm" 
+                  className="flex items-center gap-1"
+                  onClick={() => setShowUploadForm(!showUploadForm)}
+                >
                   <Upload className="h-4 w-4" />
                   Upload
                 </Button>
-                <Button size="sm" variant="outline" className="flex items-center gap-1">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={() => setShowTemplateModal(true)}
+                >
                   <Sparkles className="h-4 w-4" />
                   Generate Template
                 </Button>
@@ -122,6 +147,16 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
           </CardHeader>
           
           <CardContent className="p-0 overflow-y-auto">
+            {showUploadForm && (
+              <div className="p-4 border-b bg-muted/30">
+                <DocumentUploadForm 
+                  dealId={dealId}
+                  onUpload={handleDocumentUpload}
+                  documents={documents}
+                />
+              </div>
+            )}
+            
             {documents.length === 0 ? (
               <div className="text-center py-8 px-4">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -192,15 +227,30 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
                     <p className="text-sm text-muted-foreground">Version {selectedDocument.version}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      onClick={() => handleAnalyzeDocument('summary')}
+                    >
                       <Eye className="h-4 w-4" />
                       Summarize
                     </Button>
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      onClick={() => handleAnalyzeDocument('key_terms')}
+                    >
                       <FileText className="h-4 w-4" />
                       Key Terms
                     </Button>
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      onClick={() => handleAnalyzeDocument('risks')}
+                    >
                       <Download className="h-4 w-4" />
                       Risks
                     </Button>
@@ -248,6 +298,21 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
           )}
         </Card>
       </div>
+      
+      {/* Modals */}
+      <TemplateGenerationModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        dealId={dealId}
+        onDocumentSaved={() => fetchDocuments()}
+      />
+      
+      <DocumentAnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        document={selectedDocument}
+        dealId={dealId}
+      />
     </div>
   );
 };

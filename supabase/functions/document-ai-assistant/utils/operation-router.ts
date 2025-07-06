@@ -4,6 +4,7 @@ import { handleExplainClause } from "../operations/explain-clause.ts";
 import { handleExplainMilestone } from "../operations/explain-milestone.ts";
 import { handleSuggestNextAction } from "../operations/suggest-next-action.ts";
 import { handleGenerateMilestones } from "../operations/generate-milestones.ts";
+import { handleGenerateTemplate } from "../operations/generate-template.ts";
 import { handleAnalyzeDocument } from "../operations/analyze-document.ts";
 import { handleSummarizeDocument } from "../operations/summarize-document.ts";
 import { handleSummarizeVersionChanges } from "../operations/summarize-version-changes.ts";
@@ -23,6 +24,16 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
     
     case 'generate_milestones':
       return await handleGenerateMilestones(payload.dealId!, payload.userId!, payload.context, openai);
+    
+    case 'generate_template':
+      return await handleGenerateTemplate(
+        payload.content!,
+        payload.dealId!,
+        payload.userId!,
+        payload.context?.templateType || 'Contract',
+        payload.context,
+        openai
+      );
     
     case 'analyze_document':
       return await handleAnalyzeDocument(
