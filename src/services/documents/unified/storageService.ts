@@ -15,7 +15,7 @@ export class DocumentStorageService {
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('deal_documents')
+      .from('deal-documents')
       .upload(storagePath, file);
 
     if (uploadError) {
@@ -40,7 +40,7 @@ export class DocumentStorageService {
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('deal_documents')
+      .from('deal-documents')
       .upload(storagePath, file);
 
     if (uploadError) {
@@ -57,7 +57,7 @@ export class DocumentStorageService {
     try {
       const fullPath = `${dealId}/${filePath}`;
       const { data: urlData, error } = await supabase.storage
-        .from('deal_documents')
+        .from('deal-documents')
         .createSignedUrl(fullPath, expiresIn);
 
       if (error) {
@@ -78,7 +78,7 @@ export class DocumentStorageService {
   async deleteFiles(dealId: string, filePaths: string[]): Promise<void> {
     const fullPaths = filePaths.map(path => `${dealId}/${path}`);
     await supabase.storage
-      .from('deal_documents')
+      .from('deal-documents')
       .remove(fullPaths);
   }
 }
