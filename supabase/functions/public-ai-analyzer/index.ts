@@ -1,80 +1,91 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import mammoth from "https://esm.sh/mammoth@1.6.0";
-import { extractText as extractPdfText } from "https://esm.sh/unpdf@0.11.0";
-import OpenAI from "https://esm.sh/openai@4.0.0";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
-
-async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
+// Use the proper text-extractor service instead of broken implementations
+async function extractTextFromFile(file: File): Promise<string> {
   try {
-    console.log("🔧 Extracting text from:", { fileName, contentType, size: fileBuffer.byteLength });
+    console.log("🔧 Starting text extraction using text-extractor service:", {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size
+    });
 
-    if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
-      // Extract text from PDF using unpdf
-      const text = await extractPdfText(new Uint8Array(fileBuffer));
-      return text || '';
-    } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
-      // Extract text from DOCX using mammoth
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
-      return result.value || '';
-    } else if (contentType.includes('rtf') || fileName.toLowerCase().endsWith('.rtf')) {
-      // Simple RTF text extraction
-      const text = new TextDecoder().decode(fileBuffer);
-      return text.replace(/\\[a-z0-9]+(\s|-?\d+)?/gi, '').replace(/[{}]/g, '').trim();
-    } else if (contentType.includes('text/plain') || fileName.toLowerCase().endsWith('.txt')) {
-      // Plain text
-      return new TextDecoder().decode(fileBuffer);
-    } else {
-      throw new Error(`Unsupported file type: ${contentType}`);
+    // For plain text files, extract directly
+    if (file.type === 'text/plain') {
+      const text = await file.text();
+      console.log(`✅ Plain text extraction successful: ${text.length} characters`);
+      return text;
     }
+
+    // For other file types, use the text-extractor service
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Use Deno's built-in base64 encoding for proper binary data handling
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Import Deno's base64 encoder for proper binary handling
+    const { encode } = await import("https://deno.land/std@0.170.0/encoding/base64.ts");
+    const base64 = encode(bytes);
+
+    console.log('📤 Calling text-extractor service...');
+
+    // Call the text-extractor Edge Function
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/text-extractor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({
+        fileBase64: base64,
+        mimeType: file.type,
+        fileName: file.name
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Text extraction service error (${response.status}):`, errorText);
+      throw new Error(`Text extraction service error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('❌ Text extraction failed:', result.error);
+      throw new Error(result.error || "Text extraction failed");
+    }
+
+    console.log(`✅ Text extraction successful: ${result.text.length} characters`);
+    return result.text;
+
   } catch (error) {
-    console.error('Text extraction error:', error);
-    throw new Error(`Failed to extract text from ${fileName}: ${error.message}`);
+    console.error("❌ Text extraction error:", error);
+    throw new Error(`Text extraction failed: ${error.message}`);
   }
 }
 
-async function analyzeContractWithAI(text: string, openai: any): Promise<any> {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a legal document analysis AI. Analyze contracts and provide structured insights including key parties, important terms, potential risks, and key dates. Be professional and thorough."
-        },
-        {
-          role: "user",
-          content: `Please analyze this contract and provide a comprehensive summary:\n\n${text}`
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000
-    });
-
-    const analysis = response.choices[0].message.content;
-    
-    // Structure the analysis data
-    return {
-      overview: analysis,
-      keyParties: "Analysis identifies parties based on document content",
-      importantTerms: ["Contract analysis identifies key terms", "Important clauses and provisions", "Key obligations and rights"],
-      risks: ["Potential risks identified in contract review", "Areas requiring legal attention", "Compliance considerations"],
-      keyDates: ["Important dates and deadlines from contract"],
-      recommendations: ["Professional legal review recommended", "Consider all terms carefully", "Verify all parties and signatures"]
-    };
-  } catch (error) {
-    console.error('OpenAI analysis error:', error);
-    // Return basic analysis if AI fails
-    return {
-      overview: "Contract uploaded and processed successfully. AI analysis temporarily unavailable - using basic processing.",
-      keyParties: "Parties identified in document",
-      importantTerms: ["Key contract terms", "Important provisions", "Legal obligations"],
-      risks: ["Standard contract review recommended", "Professional legal consultation advised"],
-      keyDates: ["Review all dates and deadlines"],
-      recommendations: ["Have contract reviewed by legal professional", "Ensure all terms are understood before signing"]
-    };
+// Main text extraction function
+async function extractText(file: File): Promise<string> {
+  const fileType = file.type;
+  const fileExtension = file?.name?.split('.').pop()?.toLowerCase();
+  
+  console.log(`🔧 Starting text extraction for: ${file.name} (${fileType})`);
+  
+  if (fileType === "text/plain") {
+    return await file.text();
+  } 
+  else if (fileType === "application/rtf" || fileType === "text/rtf" || fileType === "text/richtext" || fileExtension === "rtf") {
+    return await extractTextFromFile(file);
   }
+  else if (fileType === "application/pdf") {
+    return await extractTextFromFile(file);
+  }
+  else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    return await extractTextFromFile(file);
+  }
+  
+  throw new Error(`Unsupported file type: ${fileType}`);
 }
 
 serve(async (req) => {
@@ -196,12 +207,11 @@ serve(async (req) => {
     
     console.log("✅ File validation passed!");
     
-    // Extract text from the document
+    // Extract text from the file using the proper text-extractor service
     console.log("🔧 Extracting text from file type:", file.type);
     let text: string;
     try {
-      const fileBuffer = await file.arrayBuffer();
-      text = await extractTextFromDocument(fileBuffer, file.type, file.name);
+      text = await extractTextFromFile(file);
     } catch (extractionError) {
       console.error("❌ Text extraction failed:", extractionError);
       return new Response(
@@ -226,36 +236,40 @@ serve(async (req) => {
       );
     }
 
-    console.log("✅ Text extraction successful, length:", text?.length || 0);
+    console.log("✅ File processing successful, text length:", text.length);
     
-    // Ensure text is a string and clean it
-    const textString = typeof text === 'string' ? text : String(text || '');
-    const cleanedText = textString
+    // Final text cleaning to remove any remaining problematic characters
+    const cleanedText = text
       .replace(new RegExp(String.fromCharCode(0), 'g'), '') // Remove null bytes
       .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + '-' + String.fromCharCode(159) + ']', 'g'), '') // Remove control characters
       .trim();
     
     console.log("🧹 Text cleaned, final length:", cleanedText.length);
-
-    // Initialize OpenAI if we have the API key
-    let analysisResult;
-    if (openAIApiKey) {
-      console.log("🤖 Starting AI analysis...");
-      const openai = new OpenAI({ apiKey: openAIApiKey });
-      analysisResult = await analyzeContractWithAI(cleanedText, openai);
-    } else {
-      console.log("⚠️ No OpenAI API key, using basic analysis");
-      analysisResult = {
-        overview: "Document uploaded and processed successfully. AI analysis requires OpenAI API key configuration.",
-        keyParties: "Parties identified in document",
-        importantTerms: ["Key contract terms", "Important provisions", "Legal obligations"],
-        risks: ["Standard contract review recommended", "Professional legal consultation advised"],
-        keyDates: ["Review all dates and deadlines"],
-        recommendations: ["Have contract reviewed by legal professional", "Ensure all terms are understood before signing"]
-      };
-    }
+    console.log("📝 Extracted text preview:", cleanedText.substring(0, 500));
     
-    // Return the complete result
+    // Log the complete extracted text for debugging
+    console.log("📄 COMPLETE EXTRACTED TEXT FROM EDGE FUNCTION:");
+    console.log("=".repeat(60));
+    console.log(cleanedText);
+    console.log("=".repeat(60));
+    console.log(`File: ${file.name}, Type: ${file.type}, Total chars: ${cleanedText.length}`);
+    
+    // Generate simple analysis for now (we'll add OpenAI later)
+    const analysis = `Document Analysis:
+
+1. Document Type: Text document
+2. Key Parties: [Analysis would identify parties here]
+3. Main Purpose: [Contract purpose would be analyzed here]
+4. Key Terms: [Important terms would be extracted here]
+5. Important Dates: [Relevant dates would be identified here]
+
+Content Preview: ${text.substring(0, 200)}...
+
+Note: This is a simplified analysis. Full AI analysis will be implemented once basic functionality is confirmed.
+
+Disclaimer: This AI analysis is for informational purposes only and should not be considered legal advice.`;
+    
+    // Return the result
     return new Response(
       JSON.stringify({
         success: true,
@@ -264,10 +278,9 @@ serve(async (req) => {
           type: file.type,
           size: file.size,
           lastModified: new Date().toISOString(),
-          status: 'completed'
         },
-        text: cleanedText,
-        analysis: analysisResult,
+        text: cleanedText.substring(0, 5000), // Truncate text to avoid large responses
+        analysis: analysis,
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }
