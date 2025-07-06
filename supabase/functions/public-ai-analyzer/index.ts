@@ -13,11 +13,20 @@ async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: str
     if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
       // Extract text from PDF using unpdf
       const text = await extractPdfText(new Uint8Array(fileBuffer));
-      return text || '';
+      // Handle different return types from unpdf
+      if (typeof text === 'string') {
+        return text;
+      } else if (Array.isArray(text)) {
+        return text.join(' ');
+      } else if (text && typeof text === 'object' && 'text' in text) {
+        return String(text.text || '');
+      } else {
+        return String(text || '');
+      }
     } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
       // Extract text from DOCX using mammoth
       const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
-      return result.value || '';
+      return String(result.value || '');
     } else if (contentType.includes('rtf') || fileName.toLowerCase().endsWith('.rtf')) {
       // Simple RTF text extraction
       const text = new TextDecoder().decode(fileBuffer);
