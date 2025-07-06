@@ -10,56 +10,52 @@ export async function handleAnalyzeDocument(
     // For now, providing a more realistic response structure
     
     const analysisResults = {
+      // Handle frontend analysis types
+      'summary': {
+        summary: 'This is a sample document summary. The document appears to be a contract containing standard legal provisions and terms. Key elements include party information, obligations, and standard contract clauses.',
+        keyPoints: [
+          'Contains standard contractual provisions',
+          'Includes party obligations and responsibilities', 
+          'Has typical legal clauses and terms'
+        ]
+      },
+      'key_terms': {
+        keyTerms: [
+          'Contract Terms',
+          'Party Obligations', 
+          'Legal Provisions',
+          'Agreement Clauses',
+          'Terms and Conditions',
+          'Legal Agreement'
+        ]
+      },
+      'risks': {
+        risks: [
+          'Standard contract risks may apply',
+          'Review all terms and conditions carefully',
+          'Ensure compliance with applicable laws',
+          'Consider consulting legal counsel for complex provisions'
+        ]
+      },
+      // Handle legacy backend analysis types for compatibility
       'summarize_contract': {
-        type: 'summary',
-        content: {
-          summary: 'This analysis requires connection to document storage and AI services to provide detailed contract summaries.',
-          keyPoints: [
-            'Document analysis functionality needs proper implementation',
-            'Requires access to document content and AI processing',
-            'Current implementation is a placeholder'
-          ],
-          parties: 'Cannot identify parties without document content access',
-          contractType: 'Analysis pending proper implementation'
-        }
+        summary: 'This is a sample document summary. The document appears to be a contract containing standard legal provisions and terms.',
       },
       'key_clauses': {
-        type: 'clauses',
-        content: {
-          clauses: [
-            {
-              title: 'Implementation Notice',
-              content: 'Key clause extraction requires proper document processing implementation',
-              importance: 'high'
-            }
-          ]
-        }
+        keyTerms: ['Contract Clauses', 'Legal Terms', 'Agreement Provisions']
       },
       'risk_identification': {
-        type: 'risks',
-        content: {
-          risks: [
-            {
-              category: 'Technical',
-              description: 'Risk analysis requires fully implemented document AI services',
-              severity: 'medium',
-              mitigation: 'Implement proper document analysis pipeline'
-            }
-          ]
-        }
+        risks: ['Standard contract risks may apply', 'Review terms carefully']
       }
     };
 
     const result = analysisResults[analysisType] || {
-      type: 'general',
-      content: {
-        analysis: `Analysis type "${analysisType}" requires implementation of document AI services.`
-      }
+      analysis: `Analysis type "${analysisType}" requires implementation of document AI services.`
     };
 
     return {
-      analysis: result,
-      disclaimer: 'This analysis is provided by a placeholder implementation. Full functionality requires proper AI service integration and document processing capabilities.'
+      ...result,
+      disclaimer: 'This analysis is provided by a sample implementation. Full functionality requires proper AI service integration and document processing capabilities.'
     };
   } catch (error) {
     console.error('Error in handleAnalyzeDocument:', error);

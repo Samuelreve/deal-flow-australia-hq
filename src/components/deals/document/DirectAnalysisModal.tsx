@@ -85,17 +85,12 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
         throw new Error('Failed to analyze document');
       }
 
-      if (result?.analysis) {
+      if (result) {
         console.log('Analysis successful, setting result:', result);
-        // Extract the analysis data and flatten it with disclaimer
-        const analysisData = {
-          ...result.analysis,
-          disclaimer: result.disclaimer
-        };
-        setResult(analysisData);
+        setResult(result);
       } else {
         console.error('Analysis failed:', result);
-        throw new Error(result?.error || 'Analysis failed');
+        throw new Error('Analysis failed - no result received');
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
