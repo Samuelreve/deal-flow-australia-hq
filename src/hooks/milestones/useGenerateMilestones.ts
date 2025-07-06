@@ -40,10 +40,6 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         setGeneratedMilestones(milestoneItems);
         setDisclaimer(result.disclaimer || '');
         
-        // Automatically save all generated milestones
-        console.log('💾 Auto-saving milestones...');
-        await autoSaveMilestones(milestoneItems);
-        
       } else {
         console.error('❌ Invalid response format:', result);
         toast({
