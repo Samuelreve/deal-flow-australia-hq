@@ -16,7 +16,7 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
       return await handleExplainClause(payload.content, openai);
     
     case 'explain_milestone':
-      return await handleExplainMilestone(payload.milestoneId!, payload.dealId!, openai);
+      return await handleExplainMilestone(payload.dealId!, payload.milestoneId!, openai);
     
     case 'suggest_next_action':
       return await handleSuggestNextAction(payload.dealId!, openai);
