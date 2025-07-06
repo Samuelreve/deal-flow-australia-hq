@@ -41,17 +41,12 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     
     // 1. Authentication - verify user with Supabase
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
       return new Response(
@@ -63,11 +58,6 @@ serve(async (req) => {
     const userId = user.id;
 
     // 2. Get milestone details and verify it exists
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
-    );
-
     const { data: milestone, error: milestoneError } = await supabaseAdmin
       .from("milestones")
       .select("id, deal_id, status")
