@@ -162,7 +162,18 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (storageError || !storageData?.storage_path) {
         console.error('Error getting storage path:', storageError);
-        setDocumentPreview('Unable to load document preview');
+        setDocumentPreview('Document metadata not found. The file may need to be re-uploaded.');
+        return;
+      }
+
+      // First check if file exists in storage
+      const { data: fileList, error: listError } = await supabase.storage
+        .from('deal_documents')
+        .list('', { search: storageData.storage_path });
+
+      if (listError || !fileList || fileList.length === 0) {
+        console.error('File not found in storage:', { listError, path: storageData.storage_path });
+        setDocumentPreview('Document file not found in storage. The file may need to be re-uploaded.');
         return;
       }
 
@@ -179,7 +190,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
         if (fileError) {
           console.error('Error downloading file:', fileError);
-          setDocumentPreview('Unable to load document preview');
+          if (fileError.message?.includes('not_found') || fileError.message?.includes('404')) {
+            setDocumentPreview('Document file missing from storage. Please re-upload the document.');
+          } else {
+            setDocumentPreview('Unable to access document file. Please try again or re-upload.');
+          }
           return;
         }
 
@@ -201,7 +216,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
         if (extractionError || !extractionData?.success) {
           console.error('Error extracting text:', extractionError);
-          setDocumentPreview('Unable to extract document content for preview');
+          setDocumentPreview('Unable to extract document content for preview. Document exists but text extraction failed.');
           return;
         }
 
@@ -214,7 +229,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       }
     } catch (error) {
       console.error('Error fetching document preview:', error);
-      setDocumentPreview('Error loading document preview');
+      setDocumentPreview('Error loading document preview. The document file may be missing or corrupted.');
     } finally {
       setPreviewLoading(false);
     }
@@ -232,7 +247,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       if (storageError || !storageData?.storage_path) {
         toast({
           title: "Error",
-          description: "Unable to open document",
+          description: "Document metadata not found. The file may need to be re-uploaded.",
           variant: "destructive"
         });
         return;
@@ -244,11 +259,21 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         .createSignedUrl(storageData.storage_path, 3600); // 1 hour expiry
 
       if (urlError || !urlData?.signedUrl) {
-        toast({
-          title: "Error",
-          description: "Unable to generate document link",
-          variant: "destructive"
-        });
+        console.error('Error creating signed URL:', urlError);
+        
+        if (urlError.message?.includes('not_found') || urlError.message?.includes('404')) {
+          toast({
+            title: "Document Not Found",
+            description: "The document file is missing from storage. Please re-upload the document.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Unable to generate document link. Please try again.",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
@@ -258,7 +283,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       console.error('Error opening document:', error);
       toast({
         title: "Error",
-        description: "Failed to open document",
+        description: "Failed to open document. The file may be missing or corrupted.",
         variant: "destructive"
       });
     }
