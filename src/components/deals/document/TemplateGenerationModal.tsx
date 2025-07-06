@@ -169,7 +169,8 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         description: "The generated template has been added to your documents",
       });
       
-      onDocumentSaved();
+      // Refresh the documents list first, then close the modal
+      await onDocumentSaved();
       handleClose();
     } catch (error: any) {
       console.error("Error saving template:", error);
