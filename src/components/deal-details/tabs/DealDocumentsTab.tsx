@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Share, FileText, Download, Eye, MessageSquare, Sparkles, AlertTriangle, Key } from "lucide-react";
+import { Upload, Share, FileText, Download, Eye, MessageSquare, Sparkles, AlertTriangle, Key, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFileIconByType } from "@/lib/fileIcons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -166,67 +166,37 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
-      // First check if file exists in storage
-      const { data: fileList, error: listError } = await supabase.storage
-        .from('deal_documents')
-        .list('', { search: storageData.storage_path });
+      // Handle storage path - check if it needs deal ID prefix
+      const storagePath = storageData.storage_path;
+      let fullStoragePath: string;
+      
+      if (storagePath.startsWith(dealId + '/') || storagePath.includes('/')) {
+        // Path already contains deal ID or folder structure
+        fullStoragePath = storagePath;
+      } else {
+        // Path is just filename, need to add deal ID prefix
+        fullStoragePath = `${dealId}/${storagePath}`;
+      }
 
-      if (listError || !fileList || fileList.length === 0) {
-        console.error('File not found in storage:', { listError, path: storageData.storage_path });
-        setDocumentPreview('Document file not found in storage. The file may need to be re-uploaded.');
+      // Create a signed URL for the document preview
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('deal_documents')
+        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
+
+      if (urlError || !urlData?.signedUrl) {
+        console.error('Error creating signed URL for preview:', urlError);
+        if (urlError.message?.includes('not_found') || urlError.message?.includes('404')) {
+          setDocumentPreview('Document file missing from storage. Please re-upload the document.');
+        } else {
+          setDocumentPreview('Unable to generate document preview. Please try again or re-upload.');
+        }
         return;
       }
 
-      // For text-based files, extract content for preview
-      if (document.type === 'text/plain' || 
-          document.type === 'application/pdf' ||
-          document.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-          document.type === 'application/rtf') {
-        
-        // Download the file and extract text
-        const { data: fileData, error: fileError } = await supabase.storage
-          .from('deal_documents')
-          .download(storageData.storage_path);
+      // Set the signed URL as the preview (for iframe display)
+      setDocumentPreview(urlData.signedUrl);
+      console.log('✅ Document preview URL created successfully:', urlData.signedUrl);
 
-        if (fileError) {
-          console.error('Error downloading file:', fileError);
-          if (fileError.message?.includes('not_found') || fileError.message?.includes('404')) {
-            setDocumentPreview('Document file missing from storage. Please re-upload the document.');
-          } else {
-            setDocumentPreview('Unable to access document file. Please try again or re-upload.');
-          }
-          return;
-        }
-
-        // Convert file to base64 for text extraction
-        const fileBuffer = await fileData.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
-
-        // Call text extraction service
-        const { data: extractionData, error: extractionError } = await supabase.functions.invoke(
-          'text-extractor',
-          {
-            body: {
-              fileBase64: base64,
-              mimeType: document.type,
-              fileName: document.name
-            }
-          }
-        );
-
-        if (extractionError || !extractionData?.success) {
-          console.error('Error extracting text:', extractionError);
-          setDocumentPreview('Unable to extract document content for preview. Document exists but text extraction failed.');
-          return;
-        }
-
-        // Show first 500 characters as preview
-        const fullText = extractionData.text || '';
-        const preview = fullText.length > 500 ? fullText.substring(0, 500) + '...' : fullText;
-        setDocumentPreview(preview);
-      } else {
-        setDocumentPreview(`Preview not available for ${document.type.split('/')[1].toUpperCase()} files. Click to view full document.`);
-      }
     } catch (error) {
       console.error('Error fetching document preview:', error);
       setDocumentPreview('Error loading document preview. The document file may be missing or corrupted.');
@@ -253,10 +223,22 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
+      // Handle storage path - check if it needs deal ID prefix
+      const storagePath = storageData.storage_path;
+      let fullStoragePath: string;
+      
+      if (storagePath.startsWith(dealId + '/') || storagePath.includes('/')) {
+        // Path already contains deal ID or folder structure
+        fullStoragePath = storagePath;
+      } else {
+        // Path is just filename, need to add deal ID prefix
+        fullStoragePath = `${dealId}/${storagePath}`;
+      }
+
       // Create a signed URL for the document
       const { data: urlData, error: urlError } = await supabase.storage
         .from('deal_documents')
-        .createSignedUrl(storageData.storage_path, 3600); // 1 hour expiry
+        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
@@ -448,14 +430,21 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
               <CardContent className="flex-1 flex">
                 {/* Document Viewer Area */}
                 <div 
-                  className="flex-1 bg-muted/20 rounded border mr-4 flex flex-col cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => selectedDocument && handleOpenDocumentInNewTab(selectedDocument)}
+                  className="flex-1 bg-muted/20 rounded border mr-4 flex flex-col"
                 >
                   <div className="flex items-center justify-between p-3 border-b">
                     <h4 className="font-medium">Document Preview</h4>
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                      <Download className="h-3 w-3" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => selectedDocument && handleOpenDocumentInNewTab(selectedDocument)}
+                        title="Open in new tab"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex-1 p-4 overflow-y-auto">
@@ -464,15 +453,38 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                       </div>
                     ) : documentPreview ? (
-                      <div className="text-sm">
-                        <pre className="whitespace-pre-wrap font-sans text-muted-foreground leading-relaxed">
-                          {documentPreview}
-                        </pre>
-                        <div className="mt-4 pt-4 border-t">
-                          <p className="text-xs text-muted-foreground text-center">
-                            Click anywhere to view full document in new tab
-                          </p>
-                        </div>
+                      <div className="h-full">
+                        {/* Check if documentPreview is a URL (starts with http) */}
+                        {documentPreview.startsWith('http') ? (
+                          <div className="h-full flex flex-col">
+                            <iframe
+                              src={documentPreview}
+                              className="w-full flex-1 border rounded"
+                              style={{ minHeight: '400px' }}
+                              title="Document Preview"
+                              onError={() => {
+                                console.error('Iframe failed to load document');
+                              }}
+                            />
+                            <div className="mt-2 pt-2 border-t">
+                              <p className="text-xs text-muted-foreground text-center">
+                                Document preview • Use the button above to open in new tab
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Fallback for error messages or text content */
+                          <div className="text-sm">
+                            <pre className="whitespace-pre-wrap font-sans text-muted-foreground leading-relaxed">
+                              {documentPreview}
+                            </pre>
+                            <div className="mt-4 pt-4 border-t">
+                              <p className="text-xs text-muted-foreground text-center">
+                                Click anywhere to view full document in new tab
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center h-full">
