@@ -30,6 +30,7 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
     isSaving,
     disclaimer,
     handleGenerateMilestones,
+    handleUpdateMilestone,
     handleToggleMilestone,
     handleSelectAll,
     handleSaveMilestones,
@@ -78,6 +79,7 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
               milestones={generatedMilestones}
               onToggleMilestone={handleToggleMilestone}
               onSelectAll={handleSelectAll}
+              onUpdateMilestone={handleUpdateMilestone}
               onSave={handleSaveMilestones}
               onBack={handleBackToSelection}
               isSaving={isSaving}

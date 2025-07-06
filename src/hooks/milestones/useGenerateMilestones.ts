@@ -110,6 +110,16 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
     }
   };
   
+  const handleUpdateMilestone = (index: number, name: string, description: string) => {
+    setGeneratedMilestones(prev => 
+      prev.map((milestone, i) => 
+        i === index 
+          ? { ...milestone, name, description }
+          : milestone
+      )
+    );
+  };
+
   const handleToggleMilestone = (index: number) => {
     setGeneratedMilestones(prev => 
       prev.map((m, i) => i === index ? { ...m, selected: !m.selected } : m)
@@ -208,6 +218,7 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
     isSaving,
     disclaimer,
     handleGenerateMilestones,
+    handleUpdateMilestone,
     handleToggleMilestone,
     handleSelectAll,
     handleSaveMilestones,
