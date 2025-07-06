@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Share, FileText, Download, Eye, MessageSquare, Sparkles, AlertTriangle, Key, ExternalLink } from "lucide-react";
+import { Upload, Share, FileText, Download, Eye, MessageSquare, Sparkles, AlertTriangle, Key, ExternalLink, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFileIconByType } from "@/lib/fileIcons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +40,9 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [analysisType, setAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
   const [documentPreview, setDocumentPreview] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [showCommentForm, setShowCommentForm] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -67,6 +71,10 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   useEffect(() => {
     if (selectedDocument) {
       fetchDocumentPreview(selectedDocument);
+      // Fetch comments for the selected document
+      if (selectedDocument.latestVersionId) {
+        fetchComments(selectedDocument.latestVersionId);
+      }
     }
   }, [selectedDocument]);
 
@@ -275,6 +283,99 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     if (!selectedDocument) return;
     setAnalysisType(type);
     setShowAnalysisModal(true);
+  };
+
+  const handleAddComment = async (content: string) => {
+    if (!selectedDocument || !user) return;
+
+    setIsSubmittingComment(true);
+    try {
+      // Get the latest document version
+      const { data: versionData, error: versionError } = await supabase
+        .from('documents')
+        .select('latest_version_id')
+        .eq('id', selectedDocument.id)
+        .single();
+
+      if (versionError || !versionData?.latest_version_id) {
+        toast({
+          title: "Error",
+          description: "Unable to find document version for commenting",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Add the comment
+      const { data: commentData, error: commentError } = await supabase
+        .from('document_comments')
+        .insert({
+          document_version_id: versionData.latest_version_id,
+          content: content,
+          user_id: user.id
+        })
+        .select(`
+          *,
+          profiles:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .single();
+
+      if (commentError) {
+        console.error('Error adding comment:', commentError);
+        toast({
+          title: "Error",
+          description: "Failed to add comment",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Add to local state
+      setComments(prev => [commentData, ...prev]);
+      setShowCommentForm(false);
+      
+      toast({
+        title: "Success",
+        description: "Comment added successfully"
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const fetchComments = async (documentId: string) => {
+    try {
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('document_comments')
+        .select(`
+          *,
+          profiles:user_id (
+            name,
+            avatar_url
+          )
+        `)
+        .eq('document_version_id', documentId)
+        .order('created_at', { ascending: false });
+
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+        return;
+      }
+
+      setComments(commentsData || []);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
   };
 
   if (loading) {
@@ -499,21 +600,103 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
                 </div>
 
                 {/* Comments Sidebar */}
-                <div className="w-80 border-l pl-4">
+                <div className="w-80 border-l pl-4 flex flex-col h-full">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-medium">Comments</h4>
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      onClick={() => setShowCommentForm(!showCommentForm)}
+                      disabled={!selectedDocument}
+                    >
                       <MessageSquare className="h-4 w-4" />
                       Add Comment
                     </Button>
                   </div>
                   
-                  <div className="space-y-3">
-                    <div className="text-center py-8">
-                      <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No comments yet</p>
-                      <p className="text-xs text-muted-foreground">Select text to add a comment</p>
+                  {/* Comment Form */}
+                  {showCommentForm && (
+                    <div className="mb-4 p-3 border rounded-lg bg-muted/20">
+                      <div className="space-y-3">
+                        <Textarea 
+                          placeholder="Add your comment..."
+                          className="min-h-[80px] resize-none"
+                          id="comment-input"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              const content = (e.target as HTMLTextAreaElement).value.trim();
+                              if (content && !isSubmittingComment) {
+                                handleAddComment(content);
+                                (e.target as HTMLTextAreaElement).value = '';
+                              }
+                            }
+                          }}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setShowCommentForm(false)}
+                            disabled={isSubmittingComment}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => {
+                              const textarea = document.getElementById('comment-input') as HTMLTextAreaElement;
+                              const content = textarea?.value.trim();
+                              if (content && !isSubmittingComment) {
+                                handleAddComment(content);
+                                textarea.value = '';
+                              }
+                            }}
+                            disabled={isSubmittingComment}
+                          >
+                            <Send className="h-4 w-4 mr-1" />
+                            {isSubmittingComment ? 'Adding...' : 'Add Comment'}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
+                  )}
+                  
+                  {/* Comments List */}
+                  <div className="flex-1 overflow-y-auto space-y-3">
+                    {comments.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No comments yet</p>
+                        <p className="text-xs text-muted-foreground">
+                          {showCommentForm ? "Add a comment above" : "Click Add Comment to get started"}
+                        </p>
+                      </div>
+                    ) : (
+                      comments.map((comment) => (
+                        <div key={comment.id} className="p-3 border rounded-lg bg-background">
+                          <div className="flex items-start gap-2 mb-2">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-medium">
+                                {comment.profiles?.name?.charAt(0) || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {comment.profiles?.name || 'Unknown User'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(comment.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-sm text-foreground">{comment.content}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </CardContent>
