@@ -20,8 +20,6 @@ const DocumentUploadForm = ({
   const { uploading, uploadProgress, uploadDocument } = useUnifiedDocumentUpload();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [uploadType, setUploadType] = useState<'new' | 'version'>('new');
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   
   const documentCategories = [
@@ -49,13 +47,8 @@ const DocumentUploadForm = ({
       return;
     }
     
-    if (uploadType === 'new' && !selectedCategory) {
+    if (!selectedCategory) {
       setUploadError('Please select a document category.');
-      return;
-    }
-    
-    if (uploadType === 'version' && !selectedDocumentId) {
-      setUploadError('Please select a document to add a version to.');
       return;
     }
     
@@ -63,15 +56,13 @@ const DocumentUploadForm = ({
       const result = await uploadDocument({
         file: selectedFile,
         dealId,
-        category: selectedCategory,
-        documentId: uploadType === 'version' ? selectedDocumentId : undefined
+        category: selectedCategory
       });
       
       if (result) {
         // Clear form after successful upload
         setSelectedFile(null);
         setSelectedCategory("");
-        setSelectedDocumentId("");
         setUploadError(null);
         
         // Clear file input
@@ -88,8 +79,7 @@ const DocumentUploadForm = ({
 
   const isUploadDisabled = 
     !selectedFile || 
-    (uploadType === 'new' && !selectedCategory) || 
-    (uploadType === 'version' && !selectedDocumentId) || 
+    !selectedCategory || 
     uploading;
 
   return (
@@ -98,50 +88,17 @@ const DocumentUploadForm = ({
         <div>
           <select 
             className="w-full border rounded p-2 text-sm"
-            onChange={(e) => setUploadType(e.target.value as 'new' | 'version')}
-            value={uploadType}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={selectedCategory}
           >
-            <option value="new">Upload New Document</option>
-            <option value="version" disabled={documents.length === 0}>
-              Add Version to Existing Document
-            </option>
+            <option value="">Select Category</option>
+            {documentCategories.map((category) => (
+              <option key={category} value={category.toLowerCase()}>
+                {category}
+              </option>
+            ))}
           </select>
         </div>
-        
-        {uploadType === 'version' && (
-          <div>
-            <select 
-              className="w-full border rounded p-2 text-sm"
-              onChange={(e) => setSelectedDocumentId(e.target.value)}
-              value={selectedDocumentId}
-              disabled={documents.length === 0}
-            >
-              <option value="">Select Document</option>
-              {documents.map((doc) => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        {uploadType === 'new' && (
-          <div>
-            <select 
-              className="w-full border rounded p-2 text-sm"
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              value={selectedCategory}
-            >
-              <option value="">Select Category</option>
-              {documentCategories.map((category) => (
-                <option key={category} value={category.toLowerCase()}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         
         <div className="flex items-center space-x-2">
           <input 
@@ -164,7 +121,7 @@ const DocumentUploadForm = ({
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 h-4 w-4" /> 
                 Upload
               </>
             )}
