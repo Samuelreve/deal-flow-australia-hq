@@ -1697,6 +1697,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_deal_owner_or_participant: {
+        Args: { p_deal_id: string; p_user_id?: string }
+        Returns: boolean
+      }
       is_deal_participant_or_role: {
         Args: { p_deal_id: string; p_required_role?: string }
         Returns: boolean
