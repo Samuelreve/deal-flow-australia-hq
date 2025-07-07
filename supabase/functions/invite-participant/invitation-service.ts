@@ -120,9 +120,9 @@ export async function createInvitation(supabaseClient: any, dealId: string, emai
     .from('deal_invitations')
     .insert({
       deal_id: dealId,
-      email: email,
-      role: role,
-      invited_by: (await supabaseClient.auth.getUser()).data.user.id,
+      invitee_email: email,
+      invitee_role: role,
+      invited_by_user_id: (await supabaseClient.auth.getUser()).data.user.id,
       invitation_token: token,
       expires_at: expiresAt.toISOString()
     })
