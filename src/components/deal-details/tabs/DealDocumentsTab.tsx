@@ -142,7 +142,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       // If we already have extracted text, use it
       if (versionData.text_content) {
-        setDocumentPreview(versionData.text_content);
+        // Ensure we only set string content
+        const textContent = typeof versionData.text_content === 'string' 
+          ? versionData.text_content 
+          : 'Unable to display cached document content';
+        setDocumentPreview(textContent);
         return;
       }
 
@@ -207,15 +211,19 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
-      const extractedText = extractResult.text || 'No text content could be extracted from this document.';
+      const extractedText = (typeof extractResult.text === 'string' && extractResult.text) 
+        ? extractResult.text 
+        : 'No text content could be extracted from this document.';
       
-      // Save extracted text for future use
-      await supabase
-        .from('document_versions')
-        .update({ text_content: extractedText })
-        .eq('document_id', document.id)
-        .order('version_number', { ascending: false })
-        .limit(1);
+      // Save extracted text for future use - ensure we're saving a string
+      if (typeof extractedText === 'string') {
+        await supabase
+          .from('document_versions')
+          .update({ text_content: extractedText })
+          .eq('document_id', document.id)
+          .order('version_number', { ascending: false })
+          .limit(1);
+      }
 
       setDocumentPreview(extractedText);
 

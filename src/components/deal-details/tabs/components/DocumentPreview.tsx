@@ -30,15 +30,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         </div>
       </div>
       
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-hidden">
         {previewLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : documentPreview ? (
-          <div className="h-full">
+          <div className="h-full flex flex-col">
             {/* Check if documentPreview is a URL (starts with http) */}
-            {documentPreview.startsWith('http') ? (
+            {typeof documentPreview === 'string' && documentPreview.startsWith('http') ? (
               <div className="h-full flex flex-col">
                 <iframe
                   src={documentPreview}
@@ -49,7 +49,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                     console.error('Iframe failed to load document');
                   }}
                 />
-                <div className="mt-2 pt-2 border-t">
+                <div className="mt-2 pt-2 border-t flex-shrink-0">
                   <p className="text-xs text-muted-foreground text-center">
                     Document preview • Use the button above to open in new tab
                   </p>
@@ -57,10 +57,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
               </div>
             ) : (
                /* Text content display */
-               <div className="h-full flex flex-col">
-                 <div className="flex-1 overflow-y-auto min-h-0">
-                   <pre className="whitespace-pre-wrap font-sans text-foreground leading-relaxed p-4 bg-background/50 rounded text-sm h-full min-h-0 overflow-y-auto">
-                     {documentPreview}
+               <div className="h-full flex flex-col min-h-0">
+                 <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 rounded">
+                   <pre className="whitespace-pre-wrap font-sans text-foreground leading-relaxed p-4 text-sm">
+                     {typeof documentPreview === 'string' ? documentPreview : 'Unable to display document content'}
                    </pre>
                  </div>
                  <div className="pt-2 border-t bg-muted/30 flex-shrink-0">
