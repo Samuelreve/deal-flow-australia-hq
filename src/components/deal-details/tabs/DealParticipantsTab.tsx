@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Mail, Phone, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 
 interface Participant {
   id: string;
@@ -26,6 +27,7 @@ interface DealParticipantsTabProps {
 const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -87,6 +89,17 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
     });
   };
 
+  const handleOpenInviteDialog = () => setIsInviteDialogOpen(true);
+  const handleCloseInviteDialog = () => setIsInviteDialogOpen(false);
+  
+  const handleInvitationSent = () => {
+    fetchParticipants(); // Refresh participants list
+    toast({
+      title: "Invitation Sent",
+      description: "The participant will receive an email with instructions."
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -105,7 +118,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
             {participants.length} participant{participants.length !== 1 ? 's' : ''} in this deal
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" onClick={handleOpenInviteDialog}>
           <UserPlus className="h-4 w-4" />
           Invite Participant
         </Button>
@@ -202,6 +215,16 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Participant Invitation Dialog */}
+      {isInviteDialogOpen && (
+        <ParticipantInvitationForm
+          dealId={dealId}
+          isOpen={isInviteDialogOpen}
+          onClose={handleCloseInviteDialog}
+          onInvitationSent={handleInvitationSent}
+        />
       )}
     </div>
   );
