@@ -87,25 +87,34 @@ const AcceptInvitePage = () => {
     setAccepting(true);
 
     try {
+      console.log('Accepting invitation with:', { token, userId: user.id });
+      
       const { data, error } = await supabase.rpc('accept_invitation', {
         p_token: token,
         p_user_id: user.id
       });
 
+      console.log('Accept invitation response:', { data, error });
+
       if (error) {
+        console.error('Supabase RPC error:', error);
         throw error;
       }
 
-      if (data) {
+      // The function returns an array, check if we have valid data
+      if (data && Array.isArray(data) && data.length > 0 && data[0].success) {
+        const result = data[0];
         toast({
           title: "Invitation Accepted",
           description: `You've successfully joined the deal: ${invitation.dealTitle}`,
         });
 
+        console.log('Redirecting to deal:', result.deal_id);
         // Redirect to the deal details
-        navigate(`/deals/${invitation.dealId}`);
+        navigate(`/deals/${result.deal_id}`);
       } else {
-        throw new Error('Failed to accept invitation');
+        console.error('Invalid response data:', data);
+        throw new Error('Failed to accept invitation - invalid response');
       }
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
