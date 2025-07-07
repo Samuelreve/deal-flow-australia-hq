@@ -27,15 +27,31 @@ export const dealsService = {
       return [];
     }
 
-    const { data, error } = await supabase
+    // First get deal IDs where user is a participant
+    const { data: participantData } = await supabase
+      .from('deal_participants')
+      .select('deal_id')
+      .eq('user_id', user.id);
+
+    const participantDealIds = participantData?.map(p => p.deal_id) || [];
+
+    // Build the query to get deals where user is seller, buyer, or participant
+    let query = supabase
       .from('deals')
       .select(`
         *,
         seller:profiles!seller_id(name),
         buyer:profiles!buyer_id(name)
-      `)
-      .or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`)
-      .order('created_at', { ascending: false });
+      `);
+
+    // Add conditions for seller, buyer, or participant
+    if (participantDealIds.length > 0) {
+      query = query.or(`seller_id.eq.${user.id},buyer_id.eq.${user.id},id.in.(${participantDealIds.join(',')})`);
+    } else {
+      query = query.or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching deals:', error);
