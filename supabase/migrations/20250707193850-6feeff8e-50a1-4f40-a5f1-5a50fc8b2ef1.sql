@@ -1,0 +1,1 @@
+-- No database changes needed, just updating the secret
