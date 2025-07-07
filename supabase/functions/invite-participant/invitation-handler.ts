@@ -27,17 +27,6 @@ export async function handleInvitation(req: Request): Promise<Response> {
       );
     }
 
-    // Get auth token
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    const token = authHeader.split(" ")[1];
-    
     // Initialize Supabase clients
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -46,7 +35,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: req.headers.get('Authorization') ?? '' },
       },
     });
     

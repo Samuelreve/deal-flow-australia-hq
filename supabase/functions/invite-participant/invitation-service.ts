@@ -42,10 +42,6 @@ export async function verifyDealStatus(supabaseClient: any, dealId: string) {
     throw new Error('Deal not found');
   }
 
-  if (data.status !== 'draft') {
-    throw new Error('Invitations can only be sent for deals in draft status');
-  }
-
   return data;
 }
 
@@ -134,6 +130,7 @@ export async function createInvitation(supabaseClient: any, dealId: string, emai
     .single();
 
   if (error) {
+    console.error('Database error:', error);
     throw new Error('Failed to create invitation');
   }
 
