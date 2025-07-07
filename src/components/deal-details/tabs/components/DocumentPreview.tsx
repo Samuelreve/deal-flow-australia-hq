@@ -56,14 +56,18 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                 </div>
               </div>
             ) : (
-              /* Fallback for error messages or text content */
-              <div className="text-sm">
-                <pre className="whitespace-pre-wrap font-sans text-muted-foreground leading-relaxed">
-                  {documentPreview}
-                </pre>
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Click anywhere to view full document in new tab
+              /* Text content display */
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <div className="text-sm">
+                    <pre className="whitespace-pre-wrap font-sans text-foreground leading-relaxed p-4 bg-background/50 rounded">
+                      {documentPreview}
+                    </pre>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t bg-muted/30">
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Extracted text preview • Use the button above to open full document in new tab
                   </p>
                 </div>
               </div>

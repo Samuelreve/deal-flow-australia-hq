@@ -128,19 +128,18 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
           mimeType = 'text/plain';
           break;
         case 'rtf':
-          // Create basic RTF format
-          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}\\f0\\fs24 ${generatedTemplate.replace(/\n/g, '\\par ')}}`;
+          // Create proper RTF format with better formatting
+          const rtfContent = generatedTemplate
+            .replace(/\n\n/g, '\\par\\par ')
+            .replace(/\n/g, '\\par ')
+            .replace(/\t/g, '\\tab ')
+            .replace(/"/g, '\\"')
+            .replace(/{/g, '\\{')
+            .replace(/}/g, '\\}')
+            .replace(/\\/g, '\\\\');
+          
+          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}{\\f1\\fswiss Arial;}}\\f0\\fs24 ${rtfContent}}`;
           mimeType = 'application/rtf';
-          break;
-        case 'pdf':
-          // For PDF, we'll save as text for now (would need a PDF library for proper PDF generation)
-          fileContent = generatedTemplate;
-          mimeType = 'application/pdf';
-          break;
-        case 'docx':
-          // For DOCX, we'll save as text for now (would need a library for proper DOCX generation)
-          fileContent = generatedTemplate;
-          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
           break;
         default:
           fileContent = generatedTemplate;
@@ -196,7 +195,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
       toast({
         title: "Template saved successfully",
-        description: `The generated template has been saved as ${selectedFileType.toUpperCase()} and added to your documents`,
+        description: `The generated template has been saved as ${selectedFileType.toUpperCase()} file and added to your documents`,
       });
       
       // Refresh the documents list first, then close the modal
@@ -276,8 +275,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="txt">Text File (.txt)</SelectItem>
-                      <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
-                      <SelectItem value="docx">Word Document (.docx)</SelectItem>
                       <SelectItem value="rtf">Rich Text Format (.rtf)</SelectItem>
                     </SelectContent>
                   </Select>

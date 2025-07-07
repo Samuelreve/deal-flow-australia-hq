@@ -66,9 +66,22 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   useEffect(() => {
     if (selectedDocument) {
       fetchDocumentPreview(selectedDocument);
-      if (selectedDocument.latestVersionId) {
-        fetchComments(selectedDocument.latestVersionId);
-      }
+      // Get the latest version ID and fetch comments
+      const fetchLatestVersionAndComments = async () => {
+        const { data: versionData, error } = await supabase
+          .from('document_versions')
+          .select('id')
+          .eq('document_id', selectedDocument.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!error && versionData?.id) {
+          fetchComments(versionData.id);
+        }
+      };
+      
+      fetchLatestVersionAndComments();
     }
   }, [selectedDocument]);
 
@@ -112,6 +125,28 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     setDocumentPreview('');
     
     try {
+      // First check if we have existing extracted text
+      const { data: versionData, error: versionError } = await supabase
+        .from('document_versions')
+        .select('text_content, storage_path, type')
+        .eq('document_id', document.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (versionError) {
+        console.error('Error getting document version:', versionError);
+        setDocumentPreview('Unable to load document. Please try again.');
+        return;
+      }
+
+      // If we already have extracted text, use it
+      if (versionData.text_content) {
+        setDocumentPreview(versionData.text_content);
+        return;
+      }
+
+      // Otherwise, extract text from the file
       const { data: storageData, error: storageError } = await supabase
         .from('documents')
         .select('storage_path')
@@ -133,22 +168,55 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         fullStoragePath = `${dealId}/${storagePath}`;
       }
 
-      const { data: urlData, error: urlError } = await supabase.storage
+      // Download the file for text extraction
+      const { data: fileData, error: downloadError } = await supabase.storage
         .from('deal_documents')
-        .createSignedUrl(fullStoragePath, 3600);
+        .download(fullStoragePath);
 
-      if (urlError || !urlData?.signedUrl) {
-        console.error('Error creating signed URL for preview:', urlError);
-        if (urlError.message?.includes('not_found') || urlError.message?.includes('404')) {
-          setDocumentPreview('Document file missing from storage. Please re-upload the document.');
+      if (downloadError || !fileData) {
+        console.error('Error downloading file:', downloadError);
+        setDocumentPreview('Unable to download document for preview. The file may be missing.');
+        return;
+      }
+
+      // Convert file to base64 for text extraction
+      const arrayBuffer = await fileData.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      // Call text-extractor edge function
+      const { data: extractResult, error: extractError } = await supabase.functions.invoke('text-extractor', {
+        body: {
+          fileBase64: base64,
+          mimeType: versionData.type || document.type,
+          fileName: document.name
+        }
+      });
+
+      if (extractError || !extractResult?.success) {
+        console.error('Text extraction failed:', extractError || extractResult?.error);
+        // Fallback to original URL-based preview for unsupported formats
+        const { data: urlData, error: urlError } = await supabase.storage
+          .from('deal_documents')
+          .createSignedUrl(fullStoragePath, 3600);
+
+        if (urlError || !urlData?.signedUrl) {
+          setDocumentPreview('Unable to preview this document type. Click "Open in new tab" to view the file.');
         } else {
-          setDocumentPreview('Unable to generate document preview. Please try again or re-upload.');
+          setDocumentPreview(urlData.signedUrl);
         }
         return;
       }
 
-      setDocumentPreview(urlData.signedUrl);
-      console.log('✅ Document preview URL created successfully:', urlData.signedUrl);
+      const extractedText = extractResult.text || 'No text content could be extracted from this document.';
+      
+      // Save extracted text for future use
+      await supabase
+        .from('document_versions')
+        .update({ text_content: extractedText })
+        .eq('document_id', document.id)
+        .eq('version_number', versionData.version_number || 1);
+
+      setDocumentPreview(extractedText);
 
     } catch (error) {
       console.error('Error fetching document preview:', error);
@@ -229,25 +297,31 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
     setIsSubmittingComment(true);
     try {
+      // First, get the latest document version directly from document_versions table
       const { data: versionData, error: versionError } = await supabase
-        .from('documents')
-        .select('latest_version_id')
-        .eq('id', selectedDocument.id)
+        .from('document_versions')
+        .select('id')
+        .eq('document_id', selectedDocument.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
         .single();
 
-      if (versionError || !versionData?.latest_version_id) {
+      if (versionError || !versionData?.id) {
+        console.error('Error finding document version:', versionError);
         toast({
           title: "Error",
-          description: "Unable to find document version for commenting",
+          description: "Unable to find document version for commenting. Please try again.",
           variant: "destructive"
         });
         return;
       }
 
+      console.log('Adding comment to version:', versionData.id);
+
       const { data: commentData, error: commentError } = await supabase
         .from('document_comments')
         .insert({
-          document_version_id: versionData.latest_version_id,
+          document_version_id: versionData.id,
           content: content,
           user_id: user.id
         })
@@ -264,12 +338,13 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         console.error('Error adding comment:', commentError);
         toast({
           title: "Error",
-          description: "Failed to add comment",
+          description: "Failed to add comment. Please check your permissions.",
           variant: "destructive"
         });
         return;
       }
 
+      console.log('Comment added successfully:', commentData);
       setComments(prev => [commentData, ...prev]);
       setShowCommentForm(false);
       
@@ -289,8 +364,10 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     }
   };
 
-  const fetchComments = async (documentId: string) => {
+  const fetchComments = async (documentVersionId: string) => {
     try {
+      console.log('Fetching comments for version:', documentVersionId);
+      
       const { data: commentsData, error: commentsError } = await supabase
         .from('document_comments')
         .select(`
@@ -300,7 +377,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
             avatar_url
           )
         `)
-        .eq('document_version_id', documentId)
+        .eq('document_version_id', documentVersionId)
         .order('created_at', { ascending: false });
 
       if (commentsError) {
@@ -308,6 +385,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
+      console.log('Comments fetched:', commentsData?.length || 0);
       setComments(commentsData || []);
     } catch (error) {
       console.error('Error fetching comments:', error);
