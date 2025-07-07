@@ -9,17 +9,22 @@ const SignUp = () => {
   const { isAuthenticated, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
+  const redirect = searchParams.get("redirect");
   const navigate = useNavigate();
   
-  // If authenticated with invite token, redirect to accept invitation
+  // If authenticated, redirect appropriately
   useEffect(() => {
-    if (isAuthenticated && inviteToken) {
-      navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
+    if (isAuthenticated) {
+      if (redirect) {
+        navigate(redirect, { replace: true });
+      } else if (inviteToken) {
+        navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, inviteToken]);
+  }, [isAuthenticated, navigate, inviteToken, redirect]);
   
-  // If authenticated without token, redirect to dashboard - no onboarding
-  if (isAuthenticated && !inviteToken) {
+  // If authenticated without redirect or token, redirect to dashboard
+  if (isAuthenticated && !redirect && !inviteToken) {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -31,7 +36,7 @@ const SignUp = () => {
     );
   }
   
-  return <SignUpForm inviteToken={inviteToken} />;
+  return <SignUpForm inviteToken={inviteToken} redirect={redirect} />;
 };
 
 export default SignUp;

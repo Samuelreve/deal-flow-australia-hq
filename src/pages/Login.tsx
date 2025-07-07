@@ -11,6 +11,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
+  const redirect = searchParams.get("redirect");
   
   console.log('Login page - Auth state:', {
     isAuthenticated,
@@ -25,6 +26,12 @@ const Login = () => {
     // Only redirect if we're fully loaded and authenticated
     if (!authLoading && isAuthenticated && user) {
       console.log('User is authenticated, determining redirect');
+      
+      if (redirect) {
+        console.log("Redirecting to:", redirect);
+        navigate(redirect, { replace: true });
+        return;
+      }
       
       if (inviteToken) {
         console.log("Redirecting to accept invitation");

@@ -29,6 +29,7 @@ const AcceptInvitePage = () => {
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
 
   const token = searchParams.get('token');
 
@@ -55,6 +56,20 @@ const AcceptInvitePage = () => {
 
       if (data.status === 'valid') {
         setInvitation(data);
+        
+        // Check if user exists for this email
+        try {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', data.inviteeEmail)
+            .maybeSingle();
+          
+          setUserExists(!!profiles);
+        } catch (error) {
+          console.error('Error checking if user exists:', error);
+          setUserExists(false);
+        }
       } else {
         setError(data.error || 'Invalid invitation');
       }
@@ -174,19 +189,23 @@ const AcceptInvitePage = () => {
                 </p>
                 
                 <div className="space-y-2">
-                  <Button 
-                    onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
-                    className="w-full"
-                  >
-                    Log In
-                  </Button>
-                  <Button 
-                    onClick={() => navigate(`/signup?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
-                    variant="outline" 
-                    className="w-full"
-                  >
-                    Create Account
-                  </Button>
+                  {userExists !== false && (
+                    <Button 
+                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                      className="w-full"
+                    >
+                      Log In
+                    </Button>
+                  )}
+                  {userExists !== true && (
+                    <Button 
+                      onClick={() => navigate(`/signup?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                      variant={userExists === false ? "default" : "outline"} 
+                      className="w-full"
+                    >
+                      Create Account
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

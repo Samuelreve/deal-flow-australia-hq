@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-export const useSignUpForm = (inviteToken?: string | null) => {
+export const useSignUpForm = (inviteToken?: string | null, redirect?: string | null) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -65,7 +65,9 @@ export const useSignUpForm = (inviteToken?: string | null) => {
         
         // Small delay to show success state, then redirect
         setTimeout(() => {
-          if (inviteToken) {
+          if (redirect) {
+            navigate(redirect, { replace: true });
+          } else if (inviteToken) {
             navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
           } else {
             navigate("/dashboard", { replace: true });

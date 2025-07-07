@@ -10,16 +10,17 @@ import { useSignUpForm } from "@/hooks/auth/useSignUpForm";
 
 interface SignUpFormUIProps {
   inviteToken?: string | null;
+  redirect?: string | null;
 }
 
-const SignUpFormUI = ({ inviteToken }: SignUpFormUIProps) => {
+const SignUpFormUI = ({ inviteToken, redirect }: SignUpFormUIProps) => {
   const { 
     email, setEmail,
     password, setPassword,
     name, setName,
     isLoading, error, showSuccess,
     handleSubmit
-  } = useSignUpForm(inviteToken);
+  } = useSignUpForm(inviteToken, redirect);
   
   const navigate = useNavigate();
 
