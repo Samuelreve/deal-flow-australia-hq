@@ -44,7 +44,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         .from('deal_participants')
         .select(`
           *,
-          profiles!deal_participants_user_id_fkey(name, avatar_url)
+          profiles!deal_participants_user_id_fkey(name, avatar_url, email)
         `)
         .eq('deal_id', dealId)
         .order('joined_at', { ascending: false });

@@ -69,7 +69,8 @@ export function useDealParticipants(
           joined_at,
           profiles:user_id (
             name,
-            avatar_url
+            avatar_url,
+            email
           )
         `)
         .eq('deal_id', deal.id);
@@ -89,7 +90,8 @@ export function useDealParticipants(
         role: item.role,
         joined_at: item.joined_at,
         profile_name: item.profiles?.name || 'Unknown User',
-        profile_avatar_url: item.profiles?.avatar_url || null
+        profile_avatar_url: item.profiles?.avatar_url || null,
+        profiles: item.profiles
       }));
 
       setParticipants(fetchedParticipants);

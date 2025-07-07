@@ -31,8 +31,6 @@ interface ParticipantProfileModalProps {
       name?: string;
       avatar_url?: string;
       email?: string;
-      phone?: string;
-      company_name?: string;
     };
   };
   onMessageClick: () => void;
@@ -84,17 +82,7 @@ const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Participant Profile</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Participant Profile</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -127,28 +115,12 @@ const ParticipantProfileModal: React.FC<ParticipantProfileModalProps> = ({
             </h4>
             
             <div className="space-y-3">
-              {(participant.profiles?.email || participant.profile_name) && (
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {participant.profiles?.email || 'No email provided'}
-                  </span>
-                </div>
-              )}
-
-              {participant.profiles?.phone && (
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{participant.profiles.phone}</span>
-                </div>
-              )}
-
-              {participant.profiles?.company_name && (
-                <div className="flex items-center space-x-3">
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{participant.profiles.company_name}</span>
-                </div>
-              )}
+              <div className="flex items-center space-x-3">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {participant.profiles?.email || 'No email provided'}
+                </span>
+              </div>
 
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />

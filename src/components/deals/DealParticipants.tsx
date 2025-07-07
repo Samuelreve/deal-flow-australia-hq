@@ -27,6 +27,11 @@ export interface DealParticipant {
   joined_at: string;
   profile_name: string | null;
   profile_avatar_url: string | null;
+  profiles?: {
+    name?: string;
+    avatar_url?: string;
+    email?: string;
+  };
 }
 
 const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus, onTabChange }: DealParticipantsProps) => {
