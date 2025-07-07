@@ -23,9 +23,9 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
     setError(null);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session.session) {
+      if (!session?.access_token) {
         throw new Error("You must be logged in to invite participants");
       }
 
@@ -34,6 +34,9 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
           dealId,
           inviteeEmail: formData.inviteeEmail,
           inviteeRole: formData.inviteeRole
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
