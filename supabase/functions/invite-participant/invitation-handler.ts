@@ -98,8 +98,8 @@ export async function handleInvitation(req: Request): Promise<Response> {
       
       try {
         await resend.emails.send({
-          from: "dealpilot@resend.dev",
-          to: [inviteeEmail],
+          from: "onboarding@resend.dev",
+          to: inviteeEmail,
           subject: `You've been added to deal "${dealData.title}"`,
           html: `
             <h1>You've been added to a deal!</h1>
