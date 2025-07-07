@@ -1,9 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { sendEmail, generateInvitationEmail, generateParticipantAddedEmail } from "../_shared/email.ts";
-import { getAuthenticatedUser } from "../_shared/auth.ts";
-import { validateInviteRequest } from "../_shared/validation.ts";
+import { Resend } from "npm:resend@2.0.0";
 import { 
   InviteRequest, 
   InvitationResult,
@@ -18,82 +16,73 @@ import {
 } from "./invitation-service.ts";
 
 export async function handleInvitation(req: Request): Promise<Response> {
-  // --- 1. Parse and Validate Request ---
-  const requestBody = await req.json() as InviteRequest;
-  
-  const validation = validateInviteRequest(requestBody);
-  if (!validation.isValid) {
-    return new Response(
-      JSON.stringify({ error: validation.error }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  
-  const { dealId, inviteeEmail, inviteeRole } = validation;
-
-  // --- 2. Authentication ---
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Missing or invalid authorization header" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  
-  const token = authHeader.split(" ")[1];
-
   try {
-    // Get env variables
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://wntmgfuclbdrezxcvzmw.supabase.co";
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndudG1nZnVjbGJkcmV6eGN2em13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyMDQ1MzMsImV4cCI6MjA2MDc4MDUzM30.B6_rR0UtjgKvwdsRqEcyLl9jh_aT51XrZm17XtqMm0g";
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
-    const SENDER_EMAIL = Deno.env.get("SENDER_EMAIL") || "noreply@dealpilot.com";
+    const { dealId, inviteeEmail, inviteeRole } = await req.json() as InviteRequest;
     
-    // Create authenticated Supabase client using the user's JWT
+    // Basic validation
+    if (!dealId || !inviteeEmail || !inviteeRole) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get auth token
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const token = authHeader.split(" ")[1];
+    
+    // Initialize Supabase clients
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com";
+    
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
         headers: { Authorization: `Bearer ${token}` },
       },
     });
     
-    // Create service role client for privileged operations
-    const supabaseAdmin = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Get the authenticated user from their JWT
-    const authenticatedUser = await getAuthenticatedUser(token);
-    
-    // Prevent inviting yourself
-    if (inviteeEmail.toLowerCase() === authenticatedUser.email?.toLowerCase()) {
+    // Get current user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Prevent self-invitation
+    if (inviteeEmail.toLowerCase() === user.email?.toLowerCase()) {
       return new Response(
         JSON.stringify({ error: "You cannot invite yourself to a deal" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // --- 3. Authorization (RBAC) ---
-    const participantData = await verifyDealParticipation(supabaseClient, dealId, authenticatedUser.id);
-    
-    // --- 4. Deal Status Check ---
+    // Verify permissions and get deal data
+    const participantData = await verifyDealParticipation(supabaseClient, dealId, user.id);
     const dealData = await verifyDealStatus(supabaseClient, dealId);
     
-    // --- 5. Check Existing User ---
+    // Check if user already exists
     const existingUser = await findExistingUser(supabaseAdmin, inviteeEmail);
     
-    // --- 6. Get inviter profile info for email ---
-    const inviterProfile = await getInviterProfile(supabaseClient, authenticatedUser.id);
-    const inviterName = inviterProfile?.name || authenticatedUser.email || "A participant";
+    // Get inviter profile
+    const inviterProfile = await getInviterProfile(supabaseClient, user.id);
+    const inviterName = inviterProfile?.name || user.email || "A participant";
 
     if (existingUser) {
-      // --- 7a. Check if existing user is already a participant ---
-      const isExistingParticipant = await checkExistingParticipant(
-        supabaseClient, 
-        dealId, 
-        existingUser.id
-      );
+      // Check if already a participant
+      const isExistingParticipant = await checkExistingParticipant(supabaseClient, dealId, existingUser.id);
       
       if (isExistingParticipant) {
         return new Response(
@@ -102,51 +91,41 @@ export async function handleInvitation(req: Request): Promise<Response> {
         );
       }
 
-      // --- 7b. Process existing user ---
-      const newParticipant = await addExistingUserAsParticipant(
-        supabaseAdmin,
-        dealId,
-        existingUser.id,
-        inviteeRole
-      );
+      // Add existing user as participant
+      await addExistingUserAsParticipant(supabaseAdmin, dealId, existingUser.id, inviteeRole);
+      
+      // Send notification email using Resend
+      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+      const dealUrl = `${APP_BASE_URL}/deals/${dealId}`;
       
       try {
-        // Send notification email to existing user
-        const dealUrl = `${APP_BASE_URL}/deals/${dealId}`;
-        const emailHtml = generateParticipantAddedEmail({
-          inviterName,
-          dealTitle: dealData.title,
-          inviteeRole,
-          dealUrl
-        });
-
-        await sendEmail({
-          to: inviteeEmail,
+        await resend.emails.send({
+          from: "DealPilot <noreply@dealpilot.com>",
+          to: [inviteeEmail],
           subject: `You've been added to deal "${dealData.title}"`,
-          html: emailHtml,
-          from: `DealPilot <${SENDER_EMAIL}>`
+          html: `
+            <h1>You've been added to a deal!</h1>
+            <p>Hi there,</p>
+            <p><strong>${inviterName}</strong> has added you as a <strong>${inviteeRole}</strong> to the deal "<strong>${dealData.title}</strong>".</p>
+            <p>You can access the deal here: <a href="${dealUrl}">${dealUrl}</a></p>
+            <p>Best regards,<br>The DealPilot Team</p>
+          `,
         });
       } catch (emailError) {
-        console.error("Email sending error for existing user:", emailError);
-        // Continue since the user has already been added
+        console.error("Email sending error:", emailError);
       }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "Existing user has been added to the deal",
-          participant: newParticipant
+          message: "Existing user has been added to the deal"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // Check if there's an existing invitation for this email and deal
-    const existingInvitation = await checkExistingInvitation(
-      supabaseClient,
-      dealId,
-      inviteeEmail
-    );
+    // Check for existing invitation
+    const existingInvitation = await checkExistingInvitation(supabaseClient, dealId, inviteeEmail);
     
     if (existingInvitation) {
       return new Response(
@@ -155,49 +134,35 @@ export async function handleInvitation(req: Request): Promise<Response> {
       );
     }
     
-    // --- 8. Create invitation ---
-    const inviteResult = await createInvitation(
-      supabaseClient,
-      dealId,
-      inviteeEmail,
-      inviteeRole
-    );
+    // Create invitation
+    const inviteResult = await createInvitation(supabaseClient, dealId, inviteeEmail, inviteeRole);
+    const invitationUrl = `${APP_BASE_URL}/accept-invite?token=${inviteResult.token}`;
 
-    // --- 9. Send invitation email ---
-    const invitationToken = inviteResult.token;
-    if (!invitationToken) {
-      return new Response(
-        JSON.stringify({ error: "Failed to generate invitation token" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Construct invitation URL
-    const invitationUrl = `${APP_BASE_URL}/accept-invite?token=${invitationToken}`;
-
+    // Send invitation email using Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    
     try {
-      // Create email HTML content
-      const emailHtml = generateInvitationEmail({
-        inviterName,
-        dealTitle: dealData.title,
-        inviteeRole,
-        invitationUrl
-      });
-
-      // Send the invitation email
-      await sendEmail({
-        to: inviteeEmail,
+      await resend.emails.send({
+        from: "DealPilot <noreply@dealpilot.com>",
+        to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
-        html: emailHtml,
-        from: `DealPilot <${SENDER_EMAIL}>`
+        html: `
+          <h1>You're invited to join a deal!</h1>
+          <p>Hi there,</p>
+          <p><strong>${inviterName}</strong> has invited you to join the deal "<strong>${dealData.title}</strong>" as a <strong>${inviteeRole}</strong>.</p>
+          <p>Click the link below to accept the invitation:</p>
+          <p><a href="${invitationUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+          <p>Or copy and paste this URL into your browser: ${invitationUrl}</p>
+          <p>This invitation will expire in 7 days.</p>
+          <p>Best regards,<br>The DealPilot Team</p>
+        `,
       });
     } catch (emailError) {
       console.error("Email sending error:", emailError);
-      // We'll still return success since the invitation was created
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "Invitation created but email could not be sent. Please check your email configuration.", 
+          message: "Invitation created but email could not be sent. Please check your email configuration.",
           invitationCreated: true,
           emailSent: false
         }),
@@ -205,11 +170,10 @@ export async function handleInvitation(req: Request): Promise<Response> {
       );
     }
 
-    // Return the success response
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Invitation sent successfully", 
+        message: "Invitation sent successfully",
         invitationCreated: true,
         emailSent: true
       }),
@@ -217,19 +181,11 @@ export async function handleInvitation(req: Request): Promise<Response> {
     );
       
   } catch (error) {
+    console.error("Handler error:", error);
+    
     if (error instanceof Error) {
-      const errorMessage = error.message || "Unknown error";
-      console.error("Handler error:", errorMessage);
-      
-      if (errorMessage.includes("Unauthorized") || errorMessage.includes("invalid token")) {
-        return new Response(
-          JSON.stringify({ error: "Unauthorized - invalid token" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
       return new Response(
-        JSON.stringify({ error: errorMessage }),
+        JSON.stringify({ error: error.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

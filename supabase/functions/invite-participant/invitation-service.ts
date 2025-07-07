@@ -1,158 +1,141 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-// Types
 export interface InviteRequest {
   dealId: string;
   inviteeEmail: string;
-  inviteeRole: string;
+  inviteeRole: 'buyer' | 'lawyer' | 'admin';
 }
 
 export interface InvitationResult {
   success: boolean;
+  token?: string;
   message: string;
-  [key: string]: any;
 }
 
-// Function to check if the user is a participant in the deal
 export async function verifyDealParticipation(supabaseClient: any, dealId: string, userId: string) {
-  const { data: participantData, error: participantError } = await supabaseClient
-    .from("deal_participants")
-    .select("role")
-    .eq("deal_id", dealId)
-    .eq("user_id", userId)
+  const { data, error } = await supabaseClient
+    .from('deal_participants')
+    .select('role')
+    .eq('deal_id', dealId)
+    .eq('user_id', userId)
     .single();
-  
-  if (participantError || !participantData) {
-    throw new Error("You are not a participant in this deal");
+
+  if (error || !data) {
+    throw new Error('You are not authorized to invite participants to this deal');
   }
-  
-  if (participantData.role !== "seller" && participantData.role !== "admin") {
-    throw new Error("Only sellers and admins can invite participants");
+
+  if (!['seller', 'admin'].includes(data.role)) {
+    throw new Error('Only sellers and admins can send invitations');
   }
-  
-  return participantData;
+
+  return data;
 }
 
-// Function to check deal status
 export async function verifyDealStatus(supabaseClient: any, dealId: string) {
-  const { data: dealData, error: dealError } = await supabaseClient
-    .from("deals")
-    .select("status, title")
-    .eq("id", dealId)
+  const { data, error } = await supabaseClient
+    .from('deals')
+    .select('title, status')
+    .eq('id', dealId)
     .single();
-  
-  if (dealError || !dealData) {
-    throw new Error("Deal not found");
+
+  if (error || !data) {
+    throw new Error('Deal not found');
   }
-  
-  if (dealData.status !== "draft" && dealData.status !== "active") {
-    throw new Error("Invitations are only allowed for draft or active deals");
+
+  if (data.status !== 'draft') {
+    throw new Error('Invitations can only be sent for deals in draft status');
   }
-  
-  return dealData;
+
+  return data;
 }
 
-// Function to check for existing user with the email
-export async function findExistingUser(supabaseAdmin: any, inviteeEmail: string) {
-  const { data: existingUsers, error: existingUserError } = await supabaseAdmin.auth
-    .admin
-    .listUsers();
-  
-  if (existingUserError) {
-    throw new Error("Error checking existing users");
+export async function findExistingUser(supabaseAdmin: any, email: string) {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('email', email)
+    .single();
+
+  if (error) {
+    // User doesn't exist, which is fine for invitations
+    return null;
   }
-  
-  return existingUsers.users.find(
-    (u: any) => u.email?.toLowerCase() === inviteeEmail.toLowerCase()
-  );
+
+  return data;
 }
 
-// Function to get inviter profile info
 export async function getInviterProfile(supabaseClient: any, userId: string) {
-  const { data: inviterProfile, error: inviterProfileError } = await supabaseClient
-    .from("profiles")
-    .select("name, avatar_url")
-    .eq("id", userId)
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('name, email')
+    .eq('id', userId)
     .single();
 
-  if (inviterProfileError) {
-    throw new Error("Failed to fetch inviter profile information");
-  }
-
-  return inviterProfile;
+  return data;
 }
 
-// Function to check if user is already a participant
 export async function checkExistingParticipant(supabaseClient: any, dealId: string, userId: string) {
-  const { data: existingParticipant, error: existingParticipantError } = await supabaseClient
-    .from("deal_participants")
-    .select("id")
-    .eq("deal_id", dealId)
-    .eq("user_id", userId)
+  const { data, error } = await supabaseClient
+    .from('deal_participants')
+    .select('id')
+    .eq('deal_id', dealId)
+    .eq('user_id', userId)
     .single();
-  
-  return !existingParticipantError && existingParticipant;
+
+  return !error && data;
 }
 
-// Function to check for existing invitation
-export async function checkExistingInvitation(supabaseClient: any, dealId: string, inviteeEmail: string) {
-  const { data: existingInvitation, error: invitationError } = await supabaseClient
-    .from("deal_invitations")
-    .select("id, status")
-    .eq("deal_id", dealId)
-    .eq("invitee_email", inviteeEmail.toLowerCase())
-    .eq("status", "pending")
+export async function checkExistingInvitation(supabaseClient: any, dealId: string, email: string) {
+  const { data, error } = await supabaseClient
+    .from('deal_invitations')
+    .select('id')
+    .eq('deal_id', dealId)
+    .eq('email', email)
+    .eq('status', 'pending')
     .single();
-  
-  return !invitationError && existingInvitation;
+
+  return !error && data;
 }
 
-// Function to add existing user as a participant
-export async function addExistingUserAsParticipant(
-  supabaseAdmin: any, 
-  dealId: string, 
-  userId: string, 
-  inviteeRole: string
-): Promise<any> {
-  const { data: newParticipant, error: addParticipantError } = await supabaseAdmin
-    .from("deal_participants")
-    .insert([
-      {
-        deal_id: dealId,
-        user_id: userId,
-        role: inviteeRole
-      }
-    ])
-    .select("*")
+export async function addExistingUserAsParticipant(supabaseAdmin: any, dealId: string, userId: string, role: string) {
+  const { data, error } = await supabaseAdmin
+    .from('deal_participants')
+    .insert({
+      deal_id: dealId,
+      user_id: userId,
+      role: role
+    })
+    .select()
     .single();
-  
-  if (addParticipantError) {
-    throw new Error("Failed to add user as participant");
+
+  if (error) {
+    throw new Error('Failed to add participant to deal');
   }
-  
-  return newParticipant;
+
+  return data;
 }
 
-// Function to create an invitation for new user
-export async function createInvitation(
-  supabaseClient: any, 
-  dealId: string, 
-  inviteeEmail: string, 
-  inviteeRole: string
-): Promise<any> {
-  const { data: inviteResult, error: inviteError } = await supabaseClient.rpc(
-    'create_deal_invitation',
-    {
-      p_deal_id: dealId,
-      p_invitee_email: inviteeEmail.toLowerCase(),
-      p_invitee_role: inviteeRole
-    }
-  );
+export async function createInvitation(supabaseClient: any, dealId: string, email: string, role: string) {
+  // Generate secure token
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-  if (inviteError) {
-    throw new Error(inviteError.message || "Failed to create invitation");
+  const { data, error } = await supabaseClient
+    .from('deal_invitations')
+    .insert({
+      deal_id: dealId,
+      email: email,
+      role: role,
+      invited_by: (await supabaseClient.auth.getUser()).data.user.id,
+      invitation_token: token,
+      expires_at: expiresAt.toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error('Failed to create invitation');
   }
-  
-  return inviteResult;
+
+  return { ...data, token };
 }
