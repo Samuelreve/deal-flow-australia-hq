@@ -98,7 +98,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
       
       try {
         await resend.emails.send({
-          from: "DealPilot <noreply@dealpilot.com>",
+          from: "DealPilot <onboarding@resend.dev>",
           to: [inviteeEmail],
           subject: `You've been added to deal "${dealData.title}"`,
           html: `
@@ -141,7 +141,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     
     try {
       await resend.emails.send({
-        from: "DealPilot <noreply@dealpilot.com>",
+        from: "DealPilot <onboarding@resend.dev>",
         to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
         html: `
