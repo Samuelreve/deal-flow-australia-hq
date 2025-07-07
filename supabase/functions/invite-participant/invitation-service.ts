@@ -111,7 +111,7 @@ export async function addExistingUserAsParticipant(supabaseAdmin: any, dealId: s
   return data;
 }
 
-export async function createInvitation(supabaseClient: any, dealId: string, email: string, role: string) {
+export async function createInvitation(supabaseClient: any, dealId: string, email: string, role: string, userId: string) {
   // Generate secure token
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -122,7 +122,7 @@ export async function createInvitation(supabaseClient: any, dealId: string, emai
       deal_id: dealId,
       invitee_email: email,
       invitee_role: role,
-      invited_by_user_id: (await supabaseClient.auth.getUser()).data.user.id,
+      invited_by_user_id: userId,
       invitation_token: token,
       expires_at: expiresAt.toISOString()
     })

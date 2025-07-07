@@ -41,8 +41,17 @@ export async function handleInvitation(req: Request): Promise<Response> {
     
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Get current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Get current user from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
@@ -124,7 +133,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     }
     
     // Create invitation
-    const inviteResult = await createInvitation(supabaseClient, dealId, inviteeEmail, inviteeRole);
+    const inviteResult = await createInvitation(supabaseClient, dealId, inviteeEmail, inviteeRole, user.id);
     const invitationUrl = `${APP_BASE_URL}/accept-invite?token=${inviteResult.token}`;
 
     // Send invitation email using Resend
