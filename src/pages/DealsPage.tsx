@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DealSummary, DealStatus } from "@/types/deal";
-import { getMockDealSummariesForUser } from "@/data/mockData";
+import { useDeals } from "@/hooks/useDeals";
+import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 import DealFilters from "@/components/deals/DealFilters";
 import DealsTable from "@/components/deals/DealsTable";
 import EmptyDealsState from "@/components/deals/EmptyDealsState";
@@ -14,19 +15,13 @@ import EmptyDealsState from "@/components/deals/EmptyDealsState";
 const DealsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [deals, setDeals] = useState<DealSummary[]>([]);
+  const { deals: rawDeals, loading, error } = useDeals();
   const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
   
-  useEffect(() => {
-    if (user) {
-      // In a real app, this would be an API call
-      const userDeals = getMockDealSummariesForUser(user.id, user.profile?.role);
-      setDeals(userDeals);
-      setFilteredDeals(userDeals);
-    }
-  }, [user]);
+  // Convert deals from service format to DealSummary format
+  const deals = convertDealsToDealSummaries(rawDeals);
   
   useEffect(() => {
     let filtered = deals;
@@ -51,6 +46,26 @@ const DealsPage = () => {
   
   const canCreateDeals = user?.profile?.role === "seller" || user?.profile?.role === "admin";
   const isFiltered = searchTerm !== "" || statusFilter !== "all";
+  
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="text-center py-8">
+          <p className="text-destructive">Error: {error}</p>
+        </div>
+      </AppLayout>
+    );
+  }
   
   return (
     <AppLayout>
