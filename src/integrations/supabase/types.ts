@@ -835,6 +835,7 @@ export type Database = {
           id: string
           size: number
           storage_path: string
+          text_content: string | null
           type: string
           uploaded_at: string
           uploaded_by: string
@@ -847,6 +848,7 @@ export type Database = {
           id?: string
           size: number
           storage_path: string
+          text_content?: string | null
           type: string
           uploaded_at?: string
           uploaded_by: string
@@ -859,6 +861,7 @@ export type Database = {
           id?: string
           size?: number
           storage_path?: string
+          text_content?: string | null
           type?: string
           uploaded_at?: string
           uploaded_by?: string

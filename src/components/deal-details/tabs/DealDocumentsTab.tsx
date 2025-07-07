@@ -214,7 +214,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         .from('document_versions')
         .update({ text_content: extractedText })
         .eq('document_id', document.id)
-        .eq('version_number', versionData.version_number || 1);
+        .order('version_number', { ascending: false })
+        .limit(1);
 
       setDocumentPreview(extractedText);
 
