@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { UserPlus, Mail, Phone, Calendar } from "lucide-react";
+import { UserPlus, Mail, Phone, Calendar, MessageCircle, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
+import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
 
 interface Participant {
   id: string;
@@ -22,12 +23,15 @@ interface Participant {
 
 interface DealParticipantsTabProps {
   dealId: string;
+  onTabChange?: (tab: string) => void;
 }
 
-const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => {
+const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTabChange }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +102,22 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
       title: "Invitation Sent",
       description: "The participant will receive an email with instructions."
     });
+  };
+
+  const handleMessageClick = (participant: Participant) => {
+    if (onTabChange) {
+      onTabChange('messages');
+    }
+  };
+
+  const handleViewProfile = (participant: Participant) => {
+    setSelectedParticipant(participant);
+    setIsProfileModalOpen(true);
+  };
+
+  const handleCloseProfileModal = () => {
+    setIsProfileModalOpen(false);
+    setSelectedParticipant(null);
   };
 
   if (loading) {
@@ -178,12 +198,24 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
                   </div>
                 </div>
                 
-                {/* Action buttons could go here */}
+                {/* Action buttons */}
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleMessageClick(participant)}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
                     Message
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleViewProfile(participant)}
+                  >
+                    <User className="h-4 w-4 mr-2" />
                     View Profile
                   </Button>
                 </div>
@@ -224,6 +256,23 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId }) => 
           isOpen={isInviteDialogOpen}
           onClose={handleCloseInviteDialog}
           onInvitationSent={handleInvitationSent}
+        />
+      )}
+
+      {/* Profile Modal */}
+      {selectedParticipant && (
+        <ParticipantProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={handleCloseProfileModal}
+          participant={{
+            user_id: selectedParticipant.user_id,
+            role: selectedParticipant.role,
+            joined_at: selectedParticipant.joined_at,
+            profile_name: selectedParticipant.profiles?.name || null,
+            profile_avatar_url: selectedParticipant.profiles?.avatar_url || null,
+            profiles: selectedParticipant.profiles
+          }}
+          onMessageClick={() => handleMessageClick(selectedParticipant)}
         />
       )}
     </div>

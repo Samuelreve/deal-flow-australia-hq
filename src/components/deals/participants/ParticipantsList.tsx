@@ -15,6 +15,7 @@ interface ParticipantsListProps {
   currentUserRole?: string;
   dealSellerId?: string;
   onParticipantRemoved?: () => void;
+  onMessageClick?: (participantId: string) => void;
 }
 
 const ParticipantsList: React.FC<ParticipantsListProps> = ({
@@ -25,7 +26,8 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
   dealId,
   currentUserRole,
   dealSellerId,
-  onParticipantRemoved
+  onParticipantRemoved,
+  onMessageClick
 }) => {
   if (isLoading) {
     return (
@@ -83,6 +85,7 @@ const ParticipantsList: React.FC<ParticipantsListProps> = ({
               currentUserRole={currentUserRole}
               dealSellerId={dealSellerId}
               onParticipantRemoved={onParticipantRemoved}
+              onMessageClick={onMessageClick}
             />
           ))}
         </div>

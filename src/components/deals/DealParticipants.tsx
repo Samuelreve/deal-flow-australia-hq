@@ -16,6 +16,7 @@ interface DealParticipantsProps {
   onParticipantsLoaded?: (participants: DealParticipant[]) => void;
   currentUserDealRole?: 'seller' | 'buyer' | 'lawyer' | 'admin' | null;
   dealStatus?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 // Define interface for deal participant
@@ -28,7 +29,7 @@ export interface DealParticipant {
   profile_avatar_url: string | null;
 }
 
-const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus }: DealParticipantsProps) => {
+const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dealStatus, onTabChange }: DealParticipantsProps) => {
   const { user } = useAuth();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
@@ -81,6 +82,13 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
     fetchParticipants();
   };
 
+  // Handle message click - navigate to messages tab
+  const handleMessageClick = (participantId: string) => {
+    if (onTabChange) {
+      onTabChange('messages');
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Participants List */}
@@ -93,6 +101,7 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
         currentUserRole={currentUserDealRole}
         dealSellerId={deal.sellerId}
         onParticipantRemoved={handleParticipantRemoved}
+        onMessageClick={handleMessageClick}
       />
 
       {/* Pending Invitations Section */}

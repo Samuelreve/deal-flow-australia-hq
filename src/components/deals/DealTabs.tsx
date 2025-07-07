@@ -97,7 +97,10 @@ const DealTabs = ({
         )}
         
         {activeTab === "participants" && isParticipant && (
-          <DealParticipants deal={deal} />
+          <DealParticipants 
+            deal={deal} 
+            onTabChange={setActiveTab}
+          />
         )}
       </div>
     </div>
