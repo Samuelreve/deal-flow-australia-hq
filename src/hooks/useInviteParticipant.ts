@@ -34,9 +34,6 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
           dealId,
           inviteeEmail: formData.inviteeEmail,
           inviteeRole: formData.inviteeRole
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
         }
       });
 
