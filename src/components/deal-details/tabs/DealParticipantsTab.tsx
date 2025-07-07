@@ -181,20 +181,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                     <Badge className={`mb-3 ${getRoleColor(participant.role)}`}>
                       {participant.role.charAt(0).toUpperCase() + participant.role.slice(1)}
                     </Badge>
-                    
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>Joined {formatDate(participant.joined_at)}</span>
-                      </div>
-                      
-                      {participant.profiles?.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{participant.profiles.email}</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
                 
