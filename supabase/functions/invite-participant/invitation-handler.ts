@@ -17,15 +17,20 @@ import {
 
 export async function handleInvitation(req: Request): Promise<Response> {
   try {
-    const { dealId, inviteeEmail, inviteeRole } = await req.json() as InviteRequest;
+    const body = await req.json();
+    console.log("Request body:", body);
+    const { dealId, inviteeEmail, inviteeRole } = body as InviteRequest;
     
     // Basic validation
     if (!dealId || !inviteeEmail || !inviteeRole) {
+      console.log("Missing fields - dealId:", !!dealId, "inviteeEmail:", !!inviteeEmail, "inviteeRole:", !!inviteeRole);
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Validated request - dealId:", dealId, "inviteeEmail:", inviteeEmail, "inviteeRole:", inviteeRole);
 
     // Initialize Supabase clients
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
