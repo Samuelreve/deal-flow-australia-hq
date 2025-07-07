@@ -16,6 +16,7 @@ interface DocumentCommentsProps {
   comments: Comment[];
   showCommentForm: boolean;
   isSubmittingComment: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedDocument: any;
   onToggleCommentForm: () => void;
   onAddComment: (content: string) => void;

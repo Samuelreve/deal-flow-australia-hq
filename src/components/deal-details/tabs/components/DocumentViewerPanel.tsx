@@ -10,6 +10,7 @@ interface DocumentViewerPanelProps {
   selectedDocument: Document | null;
   documentPreview: string;
   previewLoading: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   comments: any[];
   showCommentForm: boolean;
   isSubmittingComment: boolean;
@@ -32,10 +33,10 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   onAddComment,
 }) => {
   return (
-    <Card className="h-full">
+    <Card className="h-full flex flex-col">
       {selectedDocument ? (
         <>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">{selectedDocument.name}</CardTitle>
@@ -45,7 +46,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
             </div>
           </CardHeader>
           
-          <CardContent className="flex-1 flex">
+          <CardContent className="flex-1 flex min-h-0 p-4 gap-4">
             <DocumentPreview
               documentPreview={documentPreview}
               previewLoading={previewLoading}

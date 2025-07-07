@@ -36,6 +36,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [documentPreview, setDocumentPreview] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [comments, setComments] = useState<any[]>([]);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const { toast } = useToast();
@@ -142,10 +143,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       // If we already have extracted text, use it
       if (versionData.text_content) {
-        // Ensure we only set string content
-        const textContent = typeof versionData.text_content === 'string' 
-          ? versionData.text_content 
-          : 'Unable to display cached document content';
+        const textContent = convertToDisplayText(versionData.text_content);
         setDocumentPreview(textContent);
         return;
       }
@@ -198,22 +196,19 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (extractError || !extractResult?.success) {
         console.error('Text extraction failed:', extractError || extractResult?.error);
-        // Fallback to original URL-based preview for unsupported formats
-        const { data: urlData, error: urlError } = await supabase.storage
-          .from('deal_documents')
-          .createSignedUrl(fullStoragePath, 3600);
-
-        if (urlError || !urlData?.signedUrl) {
-          setDocumentPreview('Unable to preview this document type. Click "Open in new tab" to view the file.');
-        } else {
-          setDocumentPreview(urlData.signedUrl);
-        }
+        setDocumentPreview(
+          `Unable to extract text from this document type (${document.type || 'unknown'}).\n\n` +
+          `This could be due to:\n` +
+          `• Unsupported file format\n` +
+          `• Password-protected document\n` +
+          `• Corrupted file\n` +
+          `• Large file size\n\n` +
+          `Click "Open in new tab" to view the original file.`
+        );
         return;
       }
 
-      const extractedText = (typeof extractResult.text === 'string' && extractResult.text) 
-        ? extractResult.text 
-        : 'No text content could be extracted from this document.';
+      const extractedText = convertToDisplayText(extractResult.text);
       
       // Save extracted text for future use - ensure we're saving a string
       if (typeof extractedText === 'string') {
@@ -233,6 +228,25 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     } finally {
       setPreviewLoading(false);
     }
+  };
+
+  // Helper function to convert any content to displayable text
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const convertToDisplayText = (content: any): string => {
+    if (!content) return 'No content available';
+    
+    if (typeof content === 'string') {
+      // If it's already a string, return it
+      return content;
+    }
+    
+    if (typeof content === 'object' && content !== null) {
+      // If it's an object, stringify it nicely
+      return JSON.stringify(content, null, 2);
+    }
+    
+    // For any other type, convert to string
+    return String(content);
   };
 
   const handleOpenDocumentInNewTab = async (document: Document) => {
@@ -412,7 +426,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
       {/* Left Panel - Document List */}
-      <div className="lg:col-span-1 space-y-4">
+      <div className="lg:col-span-1 h-full">
         <DocumentListPanel
           documents={documents}
           selectedDocument={selectedDocument}
@@ -426,7 +440,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       </div>
 
       {/* Right Panel - Document Viewer */}
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 h-full">
         <DocumentViewerPanel
           selectedDocument={selectedDocument}
           documentPreview={documentPreview}

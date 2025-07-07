@@ -13,75 +13,118 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   previewLoading,
   onOpenDocumentInNewTab,
 }) => {
+  // Function to safely convert any value to readable text
+  const getDisplayText = (content: string): string => {
+    if (!content) return '';
+    
+    // If it's already a string, return it
+    if (typeof content === 'string') {
+      // Check if it's a stringified object that starts with { or [
+      if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(content);
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          // If JSON parsing fails, return as is
+          return content;
+        }
+      }
+      return content;
+    }
+    
+    // If it's an object, stringify it
+    if (typeof content === 'object' && content !== null) {
+      return JSON.stringify(content, null, 2);
+    }
+    
+    // For any other type, convert to string
+    return String(content);
+  };
+
+  const displayText = getDisplayText(documentPreview);
+
   return (
-    <div className="flex-1 bg-muted/20 rounded border mr-4 flex flex-col">
-      <div className="flex items-center justify-between p-3 border-b">
-        <h4 className="font-medium">Document Preview</h4>
-        <div className="flex gap-2">
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 12px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgb(229 231 235);
+            border-radius: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgb(156 163 175);
+            border-radius: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgb(107 114 128);
+          }
+        `
+      }} />
+      <div className="flex-1 bg-muted/20 rounded border flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b bg-background/50 flex-shrink-0">
+          <h4 className="font-medium text-sm">Document Preview</h4>
           <Button 
             size="sm" 
             variant="ghost" 
-            className="h-6 w-6 p-0"
+            className="h-7 w-7 p-0"
             onClick={onOpenDocumentInNewTab}
             title="Open in new tab"
           >
-            <ExternalLink className="h-3 w-3" />
+            <ExternalLink className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
       
-      <div className="flex-1 p-4 overflow-hidden">
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
         {previewLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-sm text-muted-foreground">Loading preview...</p>
+            </div>
           </div>
-        ) : documentPreview ? (
-          <div className="h-full flex flex-col">
-            {/* Check if documentPreview is a URL (starts with http) */}
-            {typeof documentPreview === 'string' && documentPreview.startsWith('http') ? (
-              <div className="h-full flex flex-col">
-                <iframe
-                  src={documentPreview}
-                  className="w-full flex-1 border rounded"
-                  style={{ minHeight: '400px' }}
-                  title="Document Preview"
-                  onError={() => {
-                    console.error('Iframe failed to load document');
-                  }}
-                />
-                <div className="mt-2 pt-2 border-t flex-shrink-0">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Document preview • Use the button above to open in new tab
-                  </p>
-                </div>
-              </div>
-            ) : (
-               /* Text content display */
-               <div className="h-full flex flex-col min-h-0">
-                 <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 rounded">
-                   <pre className="whitespace-pre-wrap font-sans text-foreground leading-relaxed p-4 text-sm">
-                     {typeof documentPreview === 'string' ? documentPreview : 'Unable to display document content'}
-                   </pre>
-                 </div>
-                 <div className="pt-2 border-t bg-muted/30 flex-shrink-0">
-                   <p className="text-xs text-muted-foreground text-center py-2">
-                     Extracted text preview • Use the button above to open full document in new tab
-                   </p>
-                 </div>
-               </div>
-            )}
+        ) : displayText ? (
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Scrollable Text Content */}
+            <div 
+              className="overflow-y-scroll overflow-x-hidden p-4 bg-background/30 rounded border custom-scrollbar"
+              style={{
+                height: 'calc(600px - 140px)', // Further reduced footer space
+                maxHeight: 'calc(600px - 140px)',
+                scrollbarWidth: 'auto',
+                scrollbarColor: 'rgb(156 163 175) rgb(229 231 235)'
+              }}
+            >
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground break-words">
+                {displayText}
+              </pre>
+            </div>
+            
+            {/* Footer - Ultra Compact */}
+            <div className="flex-shrink-0 px-2 border-t bg-muted/20" style={{ height: '18px', display: 'flex', alignItems: 'center' }}>
+              <p className="text-xs text-muted-foreground text-center leading-none w-full" style={{ fontSize: '11px' }}>
+                Extracted text preview • Click the button above to open the full document
+              </p>
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground mb-2">Select a document to preview</p>
-              <p className="text-xs text-muted-foreground">Click to view full document</p>
+              <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground text-lg mb-2">No Preview Available</p>
+              <p className="text-sm text-muted-foreground">
+                Select a document to view its content
+              </p>
             </div>
           </div>
         )}
       </div>
     </div>
+    </>
   );
 };
 
