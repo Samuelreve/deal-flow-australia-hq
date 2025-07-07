@@ -38,7 +38,20 @@ export function useInviteParticipant(dealId: string, onSuccess?: () => void) {
       });
 
       if (error) {
-        throw new Error(error.message || "Failed to send invitation");
+        // Try to extract the actual error message from the edge function response
+        let errorMessage = "Failed to send invitation";
+        if (error.context?.body) {
+          try {
+            const errorBody = JSON.parse(error.context.body);
+            errorMessage = errorBody.error || errorMessage;
+          } catch (e) {
+            // If parsing fails, use the original error message
+            errorMessage = error.message || errorMessage;
+          }
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
       
       toast({
