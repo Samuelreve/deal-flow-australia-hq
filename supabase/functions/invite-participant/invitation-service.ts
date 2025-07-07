@@ -86,7 +86,7 @@ export async function checkExistingInvitation(supabaseClient: any, dealId: strin
     .from('deal_invitations')
     .select('id')
     .eq('deal_id', dealId)
-    .eq('invitee_email', email)
+    .eq('email', email)
     .eq('status', 'pending')
     .single();
 
@@ -120,11 +120,11 @@ export async function createInvitation(supabaseClient: any, dealId: string, emai
     .from('deal_invitations')
     .insert({
       deal_id: dealId,
-      invitee_email: email,
-      invitee_role: role,
-      invited_by_user_id: userId,
+      email: email,
+      role: role,
+      invited_by: userId,
       invitation_token: token,
-      token_expires_at: expiresAt.toISOString()
+      expires_at: expiresAt.toISOString()
     })
     .select()
     .single();
