@@ -11,7 +11,7 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
   }
   
   try {
-    // Query the deals table directly with joins to get required data
+    // Query deals where user is seller, buyer, or participant
     const { data, error } = await supabase
       .from('deals')
       .select(`
@@ -29,8 +29,7 @@ export const fetchDealsFromSupabase = async (userId?: string): Promise<DealSumma
         target_completion_date,
         seller:profiles!seller_id(name),
         buyer:profiles!buyer_id(name)
-      `)
-      .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`);
+      `);
     
     if (error) {
       console.error('Error fetching deals:', error);
