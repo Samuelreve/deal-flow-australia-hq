@@ -21,6 +21,12 @@ export interface Deal {
 
 export const dealsService = {
   async getDeals(): Promise<Deal[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('deals')
       .select(`
@@ -28,6 +34,7 @@ export const dealsService = {
         seller:profiles!seller_id(name),
         buyer:profiles!buyer_id(name)
       `)
+      .or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
 
     if (error) {
