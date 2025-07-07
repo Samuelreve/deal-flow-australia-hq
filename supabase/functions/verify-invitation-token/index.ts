@@ -30,12 +30,12 @@ serve(async (req: Request) => {
       .select(`
         id,
         deal_id,
-        email,
-        role,
+        invitee_email,
+        invitee_role,
         status,
-        expires_at,
-        deals!inner(title),
-        profiles!deal_invitations_invited_by_fkey(name)
+        token_expires_at,
+        invited_by_user_id,
+        deals!inner(title)
       `)
       .eq('invitation_token', token)
       .eq('status', 'pending')
@@ -48,8 +48,15 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get inviter name separately
+    const { data: inviterProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('name')
+      .eq('id', invitation.invited_by_user_id)
+      .single();
+
     // Check if invitation has expired
-    if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
+    if (invitation.token_expires_at && new Date(invitation.token_expires_at) < new Date()) {
       // Update invitation status to expired
       await supabaseAdmin
         .from('deal_invitations')
@@ -67,10 +74,10 @@ serve(async (req: Request) => {
       JSON.stringify({
         status: 'valid',
         dealId: invitation.deal_id,
-        inviteeEmail: invitation.email,
-        inviteeRole: invitation.role,
+        inviteeEmail: invitation.invitee_email,
+        inviteeRole: invitation.invitee_role,
         dealTitle: invitation.deals.title,
-        inviterName: invitation.profiles?.name || 'Unknown',
+        inviterName: inviterProfile?.name || 'Unknown',
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
