@@ -139,8 +139,11 @@ export async function handleInvitation(req: Request): Promise<Response> {
     // Send invitation email using Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
+    console.log("Attempting to send email to:", inviteeEmail);
+    console.log("Resend API Key exists:", !!Deno.env.get("RESEND_API_KEY"));
+    
     try {
-      await resend.emails.send({
+      const emailResult = await resend.emails.send({
         from: "DealPilot <onboarding@resend.dev>",
         to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
@@ -155,14 +158,18 @@ export async function handleInvitation(req: Request): Promise<Response> {
           <p>Best regards,<br>The DealPilot Team</p>
         `,
       });
+      
+      console.log("Email sent successfully:", emailResult);
     } catch (emailError) {
       console.error("Email sending error:", emailError);
+      console.error("Email error details:", JSON.stringify(emailError, null, 2));
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: "Invitation created but email could not be sent. Please check your email configuration.",
           invitationCreated: true,
-          emailSent: false
+          emailSent: false,
+          error: emailError.message
         }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
