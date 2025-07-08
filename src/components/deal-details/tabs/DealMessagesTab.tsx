@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrivateMessages } from "@/hooks/usePrivateMessages";
 import { useDealParticipants } from "@/hooks/useDealParticipants";
+import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
 import ContactsList from "./components/ContactsList";
 
 
@@ -27,6 +28,9 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
   
   // Use private messages hook with selected contact
   const { messages, loading, sending, sendMessage: sendMessageHook } = usePrivateMessages(dealId, selectedContactId);
+  
+  // Use unread counts hook
+  const { unreadCounts, markAsRead } = useUnreadMessageCounts(dealId);
 
   // Fetch participants when component mounts
   useEffect(() => {
@@ -37,6 +41,13 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Mark messages as read when viewing a conversation
+  useEffect(() => {
+    if (messages.length > 0) {
+      markAsRead(selectedContactId);
+    }
+  }, [messages, selectedContactId, markAsRead]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -124,6 +135,7 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
           selectedContactId={selectedContactId}
           onContactSelect={handleContactSelect}
           onDealChatSelect={handleDealChatSelect}
+          unreadCounts={unreadCounts}
         />
       </div>
 

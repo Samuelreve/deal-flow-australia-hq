@@ -1,6 +1,8 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
 import DealOverviewTab from "./tabs/DealOverviewTab";
 import DealMilestonesTab from "./tabs/DealMilestonesTab";
 import DealDocumentsTab from "./tabs/DealDocumentsTab";
@@ -47,6 +49,8 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   setActiveTab,
   dealId
 }) => {
+  const { unreadCounts } = useUnreadMessageCounts(dealId);
+  
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-7">
@@ -54,7 +58,17 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
         <TabsTrigger value="milestones">Milestones</TabsTrigger>
         <TabsTrigger value="documents">Documents</TabsTrigger>
         <TabsTrigger value="participants">Participants</TabsTrigger>
-        <TabsTrigger value="messages">Messages</TabsTrigger>
+        <TabsTrigger value="messages" className="relative">
+          Messages
+          {unreadCounts.total > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-2 -right-2 min-w-[20px] h-5 flex items-center justify-center p-1 text-xs"
+            >
+              {unreadCounts.total > 99 ? '99+' : unreadCounts.total}
+            </Badge>
+          )}
+        </TabsTrigger>
         <TabsTrigger value="timeline">Timeline</TabsTrigger>
         <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
       </TabsList>

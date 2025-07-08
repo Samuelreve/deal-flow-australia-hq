@@ -1216,6 +1216,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          read_at: string | null
           recipient_user_id: string | null
           sender_user_id: string
         }
@@ -1224,6 +1225,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          read_at?: string | null
           recipient_user_id?: string | null
           sender_user_id: string
         }
@@ -1232,6 +1234,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          read_at?: string | null
           recipient_user_id?: string | null
           sender_user_id?: string
         }
@@ -1711,6 +1714,10 @@ export type Database = {
       is_profile_owner: {
         Args: { profile_id: string }
         Returns: boolean
+      }
+      mark_messages_as_read: {
+        Args: { p_deal_id: string; p_recipient_user_id?: string }
+        Returns: undefined
       }
       migrate_temp_documents_to_deal: {
         Args: {
