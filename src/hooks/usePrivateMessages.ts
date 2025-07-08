@@ -40,9 +40,11 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
         query = query.or(
           `and(sender_user_id.eq.${user?.id},recipient_user_id.eq.${recipientUserId}),and(sender_user_id.eq.${recipientUserId},recipient_user_id.eq.${user?.id})`
         );
+        console.log('🔍 Fetching private messages with:', recipientUserId);
       } else {
         // Fetch deal-wide messages (no recipient)
         query = query.is('recipient_user_id', null);
+        console.log('🔍 Fetching deal chat messages (recipient_user_id IS NULL)');
       }
       
       const { data: rawMessages, error } = await query;

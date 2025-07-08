@@ -40,6 +40,7 @@ export function useMessages(dealId: string) {
           )
         `)
         .eq('deal_id', dealId)
+        .is('recipient_user_id', null) // Only fetch deal chat messages (not private messages)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
@@ -99,15 +100,22 @@ export function useMessages(dealId: string) {
           filter: `deal_id=eq.${dealId}`
         },
         async (payload) => {
+          const newMsg = payload.new as any;
+          
+          // Only process deal chat messages (no recipient)
+          if (newMsg.recipient_user_id !== null) {
+            return; // Skip private messages
+          }
+          
           // When a new message is inserted, we need to fetch the sender's profile data
           const { data: profileData } = await supabase
             .from('profiles')
             .select('name, avatar_url')
-            .eq('id', payload.new.sender_user_id)
+            .eq('id', newMsg.sender_user_id)
             .single();
           
           const newMessage = {
-            ...payload.new,
+            ...newMsg,
             profiles: profileData
           } as MessageWithProfile;
           
