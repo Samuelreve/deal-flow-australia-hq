@@ -78,6 +78,8 @@ export function useUnreadMessageCounts(dealId: string) {
   useEffect(() => {
     if (!dealId || !user?.id) return;
 
+    console.log('🔔 Setting up realtime subscription for dealId:', dealId);
+
     const channel = supabase
       .channel(`unread-messages-${dealId}`)
       .on(
@@ -89,33 +91,36 @@ export function useUnreadMessageCounts(dealId: string) {
           filter: `deal_id=eq.${dealId}`
         },
         (payload) => {
+          console.log('🔔 Realtime message received:', payload);
           const newMessage = payload.new as any;
           
           // Only count messages not sent by current user
           if (newMessage.sender_user_id !== user.id) {
+            console.log('🔔 Updating unread counts for message from:', newMessage.sender_user_id);
             setUnreadCounts(prev => {
+              const updated = { ...prev };
+              
               if (newMessage.recipient_user_id === null) {
                 // Deal chat message
-                return {
-                  ...prev,
-                  dealChat: prev.dealChat + 1,
-                  total: prev.total + 1
-                };
+                updated.dealChat = prev.dealChat + 1;
+                updated.total = prev.total + 1;
+                console.log('🔔 Updated deal chat count:', updated.dealChat, 'total:', updated.total);
               } else if (newMessage.recipient_user_id === user.id) {
                 // Private message to current user
                 const senderId = newMessage.sender_user_id;
                 const currentPrivateCount = prev.privateMessages[senderId] || 0;
-                return {
-                  ...prev,
-                  privateMessages: {
-                    ...prev.privateMessages,
-                    [senderId]: currentPrivateCount + 1
-                  },
-                  total: prev.total + 1
+                updated.privateMessages = {
+                  ...prev.privateMessages,
+                  [senderId]: currentPrivateCount + 1
                 };
+                updated.total = prev.total + 1;
+                console.log('🔔 Updated private message count for', senderId, ':', updated.privateMessages[senderId], 'total:', updated.total);
               }
-              return prev;
+              
+              return updated;
             });
+          } else {
+            console.log('🔔 Ignoring message from current user');
           }
         }
       )
