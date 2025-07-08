@@ -14,9 +14,10 @@ import ContactsList from "./components/ContactsList";
 
 interface DealMessagesTabProps {
   dealId: string;
+  selectedParticipantId?: string;
 }
 
-const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
+const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParticipantId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [selectedContactId, setSelectedContactId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,6 +42,13 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-select participant when coming from participant tab
+  useEffect(() => {
+    if (selectedParticipantId && selectedParticipantId !== selectedContactId) {
+      setSelectedContactId(selectedParticipantId);
+    }
+  }, [selectedParticipantId, selectedContactId]);
 
   // Mark messages as read when viewing a conversation
   useEffect(() => {

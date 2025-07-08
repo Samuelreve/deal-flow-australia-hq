@@ -42,6 +42,7 @@ const DealDetailsPage = () => {
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (dealId && user) {
@@ -108,6 +109,13 @@ const DealDetailsPage = () => {
     );
   }
 
+  const handleTabChange = (tab: string, participantId?: string) => {
+    setActiveTab(tab);
+    if (participantId) {
+      setSelectedParticipantId(participantId);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-6">
@@ -115,8 +123,9 @@ const DealDetailsPage = () => {
         <DealDetailsContent 
           deal={deal} 
           activeTab={activeTab} 
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
           dealId={dealId!}
+          selectedParticipantId={selectedParticipantId}
         />
       </div>
     </AppLayout>

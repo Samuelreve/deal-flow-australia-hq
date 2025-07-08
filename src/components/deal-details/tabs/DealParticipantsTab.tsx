@@ -23,7 +23,7 @@ interface Participant {
 
 interface DealParticipantsTabProps {
   dealId: string;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (tab: string, participantId?: string) => void;
 }
 
 const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTabChange }) => {
@@ -106,7 +106,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
   const handleMessageClick = (participant: Participant) => {
     if (onTabChange) {
-      onTabChange('messages');
+      onTabChange('messages', participant.user_id);
     }
   };
 

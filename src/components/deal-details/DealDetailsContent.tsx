@@ -39,15 +39,17 @@ interface Deal {
 interface DealDetailsContentProps {
   deal: Deal;
   activeTab: string;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string, participantId?: string) => void;
   dealId: string;
+  selectedParticipantId?: string;
 }
 
 const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   deal,
   activeTab,
   setActiveTab,
-  dealId
+  dealId,
+  selectedParticipantId
 }) => {
   const { unreadCounts, markAsRead } = useUnreadMessageCounts(dealId);
   
@@ -93,11 +95,11 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
       </TabsContent>
 
       <TabsContent value="participants" className="mt-6">
-        <DealParticipantsTab dealId={dealId} />
+        <DealParticipantsTab dealId={dealId} onTabChange={setActiveTab} />
       </TabsContent>
 
       <TabsContent value="messages" className="mt-6">
-        <DealMessagesTab dealId={dealId} />
+        <DealMessagesTab dealId={dealId} selectedParticipantId={selectedParticipantId} />
       </TabsContent>
 
       <TabsContent value="timeline" className="mt-6">
