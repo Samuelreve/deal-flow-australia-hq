@@ -29,15 +29,9 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
     try {
       setLoading(true);
       
-      let query = (supabase as any)
+      let query = supabase
         .from('messages')
-        .select(`
-          *,
-          profiles!sender_user_id (
-            name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('deal_id', dealId)
         .order('created_at', { ascending: true });
 
@@ -51,11 +45,41 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
         query = query.is('recipient_user_id', null);
       }
       
-      const { data, error } = await query;
+      const { data: rawMessages, error } = await query;
       
       if (error) throw error;
       
-      setMessages(data || []);
+      // Fetch profile data for each unique sender
+      const messagesWithProfiles: PrivateMessageWithProfile[] = [];
+      
+      if (rawMessages && rawMessages.length > 0) {
+        const uniqueSenderIds = [...new Set(rawMessages.map(msg => msg.sender_user_id))];
+        
+        // Fetch all profiles at once
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', uniqueSenderIds);
+        
+        // Create a map for quick lookup
+        const profileMap = new Map();
+        profiles?.forEach(profile => {
+          profileMap.set(profile.id, {
+            name: profile.name,
+            avatar_url: profile.avatar_url
+          });
+        });
+        
+        // Attach profile data to messages
+        rawMessages.forEach(msg => {
+          messagesWithProfiles.push({
+            ...msg,
+            profiles: profileMap.get(msg.sender_user_id) || { name: 'Unknown User', avatar_url: null }
+          });
+        });
+      }
+      
+      setMessages(messagesWithProfiles);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
