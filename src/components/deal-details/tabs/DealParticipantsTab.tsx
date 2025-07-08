@@ -21,6 +21,15 @@ interface Participant {
   };
 }
 
+interface PendingInvitation {
+  id: string;
+  invitee_email: string;
+  invitee_role: string;
+  created_at: string;
+  status: string;
+  invited_by_user_id: string;
+}
+
 interface DealParticipantsTabProps {
   dealId: string;
   onTabChange?: (tab: string, participantId?: string) => void;
@@ -28,6 +37,7 @@ interface DealParticipantsTabProps {
 
 const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTabChange }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
@@ -40,7 +50,8 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
   const fetchParticipants = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch accepted participants
+      const { data: participantsData, error: participantsError } = await supabase
         .from('deal_participants')
         .select(`
           *,
@@ -49,8 +60,8 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         .eq('deal_id', dealId)
         .order('joined_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching participants:', error);
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError);
         toast({
           title: "Error",
           description: "Failed to load participants",
@@ -59,7 +70,26 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         return;
       }
 
-      setParticipants(data || []);
+      // Fetch pending invitations
+      const { data: invitationsData, error: invitationsError } = await supabase
+        .from('deal_invitations')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (invitationsError) {
+        console.error('Error fetching pending invitations:', invitationsError);
+        toast({
+          title: "Error",
+          description: "Failed to load pending invitations",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setParticipants(participantsData || []);
+      setPendingInvitations(invitationsData || []);
     } catch (error) {
       console.error('Error fetching participants:', error);
     } finally {
@@ -135,7 +165,8 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         <div>
           <h3 className="text-lg font-semibold">Deal Participants</h3>
           <p className="text-sm text-muted-foreground">
-            {participants.length} participant{participants.length !== 1 ? 's' : ''} in this deal
+            {participants.length} participant{participants.length !== 1 ? 's' : ''} 
+            {pendingInvitations.length > 0 && ` • ${pendingInvitations.length} pending invitation${pendingInvitations.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <Button className="flex items-center gap-2" onClick={handleOpenInviteDialog}>
@@ -146,7 +177,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
       {/* Participants List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {participants.length === 0 ? (
+        {participants.length === 0 && pendingInvitations.length === 0 ? (
           <div className="col-span-full">
             <Card>
               <CardContent className="text-center py-8">
@@ -157,57 +188,96 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
             </Card>
           </div>
         ) : (
-          participants.map((participant) => (
-            <Card key={participant.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage 
-                      src={participant.profiles?.avatar_url} 
-                      alt={participant.profiles?.name || 'User'} 
-                    />
-                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                      {(participant.profiles?.name || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-base truncate">
-                        {participant.profiles?.name || 'Unknown User'}
-                      </h4>
-                    </div>
+          <>
+            {/* Active Participants */}
+            {participants.map((participant) => (
+              <Card key={participant.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage 
+                        src={participant.profiles?.avatar_url} 
+                        alt={participant.profiles?.name || 'User'} 
+                      />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {(participant.profiles?.name || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     
-                    <Badge className={`mb-3 ${getRoleColor(participant.role)}`}>
-                      {participant.role.charAt(0).toUpperCase() + participant.role.slice(1)}
-                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-base truncate">
+                          {participant.profiles?.name || 'Unknown User'}
+                        </h4>
+                      </div>
+                      
+                      <Badge className={`mb-3 ${getRoleColor(participant.role)}`}>
+                        {participant.role.charAt(0).toUpperCase() + participant.role.slice(1)}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Action buttons */}
-                <div className="mt-4 flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleMessageClick(participant)}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Message
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleViewProfile(participant)}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    View Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  
+                  {/* Action buttons */}
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleMessageClick(participant)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleViewProfile(participant)}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {/* Pending Invitations */}
+            {pendingInvitations.map((invitation) => (
+              <Card key={invitation.id} className="hover:shadow-md transition-shadow border-dashed border-2">
+                <CardContent className="p-6">
+                  <div className="flex items-start space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-orange-50 text-orange-600 font-medium">
+                        <Mail className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-base truncate">
+                          {invitation.invitee_email}
+                        </h4>
+                      </div>
+                      
+                      <div className="flex gap-2 mb-3">
+                        <Badge className={getRoleColor(invitation.invitee_role)}>
+                          {invitation.invitee_role.charAt(0).toUpperCase() + invitation.invitee_role.slice(1)}
+                        </Badge>
+                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
+                          Pending
+                        </Badge>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Invited {formatDate(invitation.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
         )}
       </div>
 
