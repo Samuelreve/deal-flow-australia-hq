@@ -209,9 +209,12 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                         <h4 className="font-semibold text-base truncate">
                           {participant.profiles?.name || 'Unknown User'}
                         </h4>
-                        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs">
-                          Accepted
-                        </Badge>
+                        {/* Only show "Accepted" badge for users who were actually invited (not original deal creators) */}
+                        {participant.role !== 'admin' && participant.role !== 'seller' && (
+                          <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs">
+                            Accepted
+                          </Badge>
+                        )}
                       </div>
                       
                       <Badge className={`mb-3 ${getRoleColor(participant.role)}`}>
