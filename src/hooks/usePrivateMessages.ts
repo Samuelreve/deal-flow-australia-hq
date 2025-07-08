@@ -33,7 +33,7 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
         .from('messages')
         .select(`
           *,
-          profiles!messages_sender_user_id_fkey (
+          profiles!sender_user_id (
             name,
             avatar_url
           )
