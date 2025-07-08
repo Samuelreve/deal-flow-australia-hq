@@ -165,7 +165,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         <div>
           <h3 className="text-lg font-semibold">Deal Participants</h3>
           <p className="text-sm text-muted-foreground">
-            {participants.length} participant{participants.length !== 1 ? 's' : ''} 
+            {participants.length} participant{participants.length !== 1 ? 's' : ''} including you
             {pendingInvitations.length > 0 && ` • ${pendingInvitations.length} pending invitation${pendingInvitations.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -285,29 +285,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         )}
       </div>
 
-      {/* Summary Stats */}
-      {participants.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Participant Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(
-                participants.reduce((acc, p) => {
-                  acc[p.role] = (acc[p.role] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>)
-              ).map(([role, count]) => (
-                <div key={role} className="text-center">
-                  <div className="text-2xl font-bold">{count}</div>
-                  <div className="text-sm text-muted-foreground capitalize">{role}{count > 1 ? 's' : ''}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Participant Invitation Dialog */}
       {isInviteDialogOpen && (
