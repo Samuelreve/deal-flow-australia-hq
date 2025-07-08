@@ -89,37 +89,8 @@ export async function handleInvitation(req: Request): Promise<Response> {
         );
       }
 
-      // Add existing user as participant
-      await addExistingUserAsParticipant(supabaseAdmin, dealId, existingUser.id, inviteeRole);
-      
-      // Send notification email using Resend
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-      const dealUrl = `${APP_BASE_URL}/deals/${dealId}`;
-      
-      try {
-        await resend.emails.send({
-          from: "onboarding@resend.dev",
-          to: inviteeEmail,
-          subject: `You've been added to deal "${dealData.title}"`,
-          html: `
-            <h1>You've been added to a deal!</h1>
-            <p>Hi there,</p>
-            <p><strong>${inviterName}</strong> has added you as a <strong>${inviteeRole}</strong> to the deal "<strong>${dealData.title}</strong>".</p>
-            <p>You can access the deal here: <a href="${dealUrl}">${dealUrl}</a></p>
-            <p>Best regards,<br>The DealPilot Team</p>
-          `,
-        });
-      } catch (emailError) {
-        console.error("Email sending error:", emailError);
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Existing user has been added to the deal"
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Instead of directly adding the user, create an invitation for existing users too
+      // This ensures they get the proper invitation email with "Accept" button
     }
     
     // Check for existing invitation
