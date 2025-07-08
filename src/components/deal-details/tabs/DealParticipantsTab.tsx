@@ -205,10 +205,13 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                     </Avatar>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-base truncate">
                           {participant.profiles?.name || 'Unknown User'}
                         </h4>
+                        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs">
+                          Accepted
+                        </Badge>
                       </div>
                       
                       <Badge className={`mb-3 ${getRoleColor(participant.role)}`}>
@@ -254,20 +257,18 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                     </Avatar>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-base truncate">
                           {invitation.invitee_email}
                         </h4>
-                      </div>
-                      
-                      <div className="flex gap-2 mb-3">
-                        <Badge className={getRoleColor(invitation.invitee_role)}>
-                          {invitation.invitee_role.charAt(0).toUpperCase() + invitation.invitee_role.slice(1)}
-                        </Badge>
-                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
+                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs">
                           Pending
                         </Badge>
                       </div>
+                      
+                      <Badge className={`mb-3 ${getRoleColor(invitation.invitee_role)}`}>
+                        {invitation.invitee_role.charAt(0).toUpperCase() + invitation.invitee_role.slice(1)}
+                      </Badge>
                       
                       <p className="text-xs text-muted-foreground">
                         Invited {formatDate(invitation.created_at)}
