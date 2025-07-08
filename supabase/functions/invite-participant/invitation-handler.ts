@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { generateInvitationEmail } from "../_shared/email-templates.ts";
 import { 
   InviteRequest, 
   InvitationResult,
@@ -118,16 +119,12 @@ export async function handleInvitation(req: Request): Promise<Response> {
         from: "DealPilot <onboarding@resend.dev>",
         to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
-        html: `
-          <h1>You're invited to join a deal!</h1>
-          <p>Hi there,</p>
-          <p><strong>${inviterName}</strong> has invited you to join the deal "<strong>${dealData.title}</strong>" as a <strong>${inviteeRole}</strong>.</p>
-          <p>Click the link below to accept the invitation:</p>
-          <p><a href="${invitationUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
-          <p>Or copy and paste this URL into your browser: ${invitationUrl}</p>
-          <p>This invitation will expire in 7 days.</p>
-          <p>Best regards,<br>The DealPilot Team</p>
-        `,
+        html: generateInvitationEmail({
+          inviterName,
+          dealTitle: dealData.title,
+          inviteeRole,
+          invitationUrl
+        })
       });
       
       console.log("Email sent successfully:", emailResult);
