@@ -150,12 +150,20 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParti
       {/* Messages Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b bg-muted/10">
+        <div className={`p-4 border-b ${
+          selectedContactId 
+            ? 'bg-blue-50 border-blue-200' // Private chat styling
+            : 'bg-green-50 border-green-200' // Deal chat styling
+        }`}>
           <div className="flex items-center gap-2">
             {getHeaderIcon()}
-            <h3 className="font-semibold text-lg">{getHeaderTitle()}</h3>
+            <h3 className={`font-semibold text-lg ${
+              selectedContactId ? 'text-blue-800' : 'text-green-800'
+            }`}>
+              {getHeaderTitle()}
+            </h3>
             {!selectedContactId && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-green-600">
                 • {participants.length} participants
               </span>
             )}
@@ -229,7 +237,11 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParti
         </div>
 
         {/* Message Input */}
-        <div className="p-4 border-t bg-muted/10">
+        <div className={`p-4 border-t ${
+          selectedContactId 
+            ? 'bg-blue-50 border-blue-200' // Private chat styling
+            : 'bg-green-50 border-green-200' // Deal chat styling
+        }`}>
           <div className="flex gap-2">
             <Input
               value={newMessage}
