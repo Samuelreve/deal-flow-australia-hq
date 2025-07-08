@@ -60,7 +60,7 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
         <TabsTrigger value="participants">Participants</TabsTrigger>
         <TabsTrigger value="messages" className="relative">
           Messages
-          {unreadCounts.total > 0 && (
+          {unreadCounts.total > 0 && activeTab !== "messages" && (
             <Badge 
               variant="destructive" 
               className="absolute -top-2 -right-2 min-w-[20px] h-5 flex items-center justify-center p-1 text-xs"
