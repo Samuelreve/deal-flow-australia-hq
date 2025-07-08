@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
@@ -49,7 +49,19 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   setActiveTab,
   dealId
 }) => {
-  const { unreadCounts } = useUnreadMessageCounts(dealId);
+  const { unreadCounts, markAsRead } = useUnreadMessageCounts(dealId);
+  
+  // Mark all messages as read when user visits messages tab
+  useEffect(() => {
+    if (activeTab === "messages" && unreadCounts.total > 0) {
+      // Mark both deal chat and all private messages as read
+      markAsRead(); // Deal chat messages
+      // Mark all private messages as read
+      Object.keys(unreadCounts.privateMessages).forEach(userId => {
+        markAsRead(userId);
+      });
+    }
+  }, [activeTab, unreadCounts.total, markAsRead, unreadCounts.privateMessages]);
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -61,12 +73,7 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
         <TabsTrigger value="messages" className="relative">
           Messages
           {unreadCounts.total > 0 && activeTab !== "messages" && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 min-w-[20px] h-5 flex items-center justify-center p-1 text-xs"
-            >
-              {unreadCounts.total > 99 ? '99+' : unreadCounts.total}
-            </Badge>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></div>
           )}
         </TabsTrigger>
         <TabsTrigger value="timeline">Timeline</TabsTrigger>
