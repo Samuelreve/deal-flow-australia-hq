@@ -88,9 +88,35 @@ export function useUnreadMessageCounts(dealId: string) {
           table: 'messages',
           filter: `deal_id=eq.${dealId}`
         },
-        () => {
-          // Refresh counts when new messages arrive
-          fetchUnreadCounts();
+        (payload) => {
+          const newMessage = payload.new as any;
+          
+          // Only count messages not sent by current user
+          if (newMessage.sender_user_id !== user.id) {
+            setUnreadCounts(prev => {
+              if (newMessage.recipient_user_id === null) {
+                // Deal chat message
+                return {
+                  ...prev,
+                  dealChat: prev.dealChat + 1,
+                  total: prev.total + 1
+                };
+              } else if (newMessage.recipient_user_id === user.id) {
+                // Private message to current user
+                const senderId = newMessage.sender_user_id;
+                const currentPrivateCount = prev.privateMessages[senderId] || 0;
+                return {
+                  ...prev,
+                  privateMessages: {
+                    ...prev.privateMessages,
+                    [senderId]: currentPrivateCount + 1
+                  },
+                  total: prev.total + 1
+                };
+              }
+              return prev;
+            });
+          }
         }
       )
       .on(
