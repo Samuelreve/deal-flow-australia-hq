@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Mail, Phone, Calendar, MessageCircle, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
 
@@ -43,6 +44,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchParticipants();
@@ -158,6 +160,10 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     );
   }
 
+  // Filter out current user from participants
+  const otherParticipants = participants.filter(participant => participant.user_id !== user?.id);
+  const totalParticipants = participants.length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -165,7 +171,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         <div>
           <h3 className="text-lg font-semibold">Deal Participants</h3>
           <p className="text-sm text-muted-foreground">
-            {participants.length} participant{participants.length !== 1 ? 's' : ''} including you
+            {totalParticipants} participant{totalParticipants !== 1 ? 's' : ''} including you
             {pendingInvitations.length > 0 && ` • ${pendingInvitations.length} pending invitation${pendingInvitations.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -177,20 +183,20 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
       {/* Participants List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {participants.length === 0 && pendingInvitations.length === 0 ? (
+        {otherParticipants.length === 0 && pendingInvitations.length === 0 ? (
           <div className="col-span-full">
             <Card>
               <CardContent className="text-center py-8">
                 <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-2">No participants found</p>
+                <p className="text-muted-foreground mb-2">No other participants found</p>
                 <p className="text-sm text-muted-foreground">Invite participants to collaborate on this deal</p>
               </CardContent>
             </Card>
           </div>
         ) : (
           <>
-            {/* Active Participants */}
-            {participants.map((participant) => (
+            {/* Active Participants (excluding current user) */}
+            {otherParticipants.map((participant) => (
               <Card key={participant.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-4">
