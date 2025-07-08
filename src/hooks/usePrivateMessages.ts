@@ -43,8 +43,8 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
 
       if (recipientUserId) {
         // Fetch private messages between current user and specific recipient only
-        query = query.and(
-          `or(and(sender_user_id.eq.${user?.id},recipient_user_id.eq.${recipientUserId}),and(sender_user_id.eq.${recipientUserId},recipient_user_id.eq.${user?.id}))`
+        query = query.or(
+          `and(sender_user_id.eq.${user?.id},recipient_user_id.eq.${recipientUserId}),and(sender_user_id.eq.${recipientUserId},recipient_user_id.eq.${user?.id})`
         );
       } else {
         // Fetch deal-wide messages (no recipient)
