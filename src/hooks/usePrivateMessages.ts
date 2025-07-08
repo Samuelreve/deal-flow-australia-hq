@@ -80,6 +80,12 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
         messageData.recipient_user_id = recipientUserId;
       }
       
+      console.log('Sending message:', {
+        messageData,
+        currentRecipient: recipientUserId,
+        isDealChat: !recipientUserId
+      });
+      
       const { error } = await (supabase as any)
         .from('messages')
         .insert(messageData);
