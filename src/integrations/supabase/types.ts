@@ -1216,6 +1216,7 @@ export type Database = {
           created_at: string
           deal_id: string
           id: string
+          recipient_user_id: string | null
           sender_user_id: string
         }
         Insert: {
@@ -1223,6 +1224,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           id?: string
+          recipient_user_id?: string | null
           sender_user_id: string
         }
         Update: {
@@ -1230,6 +1232,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           id?: string
+          recipient_user_id?: string | null
           sender_user_id?: string
         }
         Relationships: [

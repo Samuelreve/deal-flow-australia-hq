@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useMessages } from "@/hooks/useMessages";
+import { usePrivateMessages } from "@/hooks/usePrivateMessages";
+import { useDealParticipants } from "@/hooks/useDealParticipants";
+import ContactsList from "./components/ContactsList";
 
 
 interface DealMessagesTabProps {
@@ -15,12 +17,21 @@ interface DealMessagesTabProps {
 
 const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
   const [newMessage, setNewMessage] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Use the real-time enabled useMessages hook
-  const { messages, loading, sending, sendMessage: sendMessageHook } = useMessages(dealId);
+  // Get deal participants for contact list
+  const { participants, loadingParticipants, fetchParticipants } = useDealParticipants({ id: dealId } as any);
+  
+  // Use private messages hook with selected contact
+  const { messages, loading, sending, sendMessage: sendMessageHook } = usePrivateMessages(dealId, selectedContactId);
+
+  // Fetch participants when component mounts
+  useEffect(() => {
+    fetchParticipants();
+  }, [fetchParticipants]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -71,7 +82,31 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
     }
   };
 
-  if (loading) {
+  const handleContactSelect = (contactId: string | undefined) => {
+    setSelectedContactId(contactId);
+  };
+
+  const handleDealChatSelect = () => {
+    setSelectedContactId(undefined);
+  };
+
+  const getHeaderTitle = () => {
+    if (!selectedContactId) {
+      return "Deal Chat";
+    }
+    const selectedParticipant = participants.find(p => p.user_id === selectedContactId);
+    const displayName = selectedParticipant?.profiles?.name || selectedParticipant?.profile_name || 'Unknown User';
+    return `Chat with ${displayName}`;
+  };
+
+  const getHeaderIcon = () => {
+    if (!selectedContactId) {
+      return <Users className="h-5 w-5" />;
+    }
+    return <MessageSquare className="h-5 w-5" />;
+  };
+
+  if (loadingParticipants) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -80,92 +115,127 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Deal Messages
-        </CardTitle>
-      </CardHeader>
+    <div className="h-[600px] flex border rounded-lg overflow-hidden">
+      {/* Contacts List */}
+      <div className="w-80 flex-shrink-0">
+        <ContactsList
+          participants={participants}
+          currentUserId={user?.id}
+          selectedContactId={selectedContactId}
+          onContactSelect={handleContactSelect}
+          onDealChatSelect={handleDealChatSelect}
+        />
+      </div>
 
       {/* Messages Area */}
-      <CardContent className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-          {messages.length === 0 ? (
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b bg-muted/10">
+          <div className="flex items-center gap-2">
+            {getHeaderIcon()}
+            <h3 className="font-semibold text-lg">{getHeaderTitle()}</h3>
+            {!selectedContactId && (
+              <span className="text-sm text-muted-foreground">
+                • {participants.length} participants
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="text-center py-8">
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground mb-2">No messages yet</p>
-              <p className="text-sm text-muted-foreground">Start the conversation with your deal team</p>
+              <p className="text-sm text-muted-foreground">
+                {selectedContactId 
+                  ? "Start a private conversation" 
+                  : "Start the conversation with your deal team"
+                }
+              </p>
             </div>
           ) : (
-            messages.map((message) => {
-              const isCurrentUser = message.sender_user_id === user?.id;
-              
-              return (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
-                >
-                   <Avatar className="h-8 w-8 flex-shrink-0">
-                     <AvatarImage 
-                       src={message.profiles?.avatar_url || undefined} 
-                       alt={message.profiles?.name || 'User'} 
-                     />
-                     <AvatarFallback className="text-xs">
-                       {(message.profiles?.name || 'U').charAt(0).toUpperCase()}
-                     </AvatarFallback>
-                   </Avatar>
-                  
-                  <div className={`flex flex-col max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                     <div className="flex items-center gap-2 mb-1">
-                       <span className="text-xs text-muted-foreground">
-                         {isCurrentUser ? 'You' : (message.profiles?.name || 'User')}
-                       </span>
-                       <span className="text-xs text-muted-foreground">
-                         {formatMessageTime(message.created_at)}
-                       </span>
-                     </div>
+            <>
+              {messages.map((message) => {
+                const isCurrentUser = message.sender_user_id === user?.id;
+                
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarImage 
+                        src={message.profiles?.avatar_url || undefined} 
+                        alt={message.profiles?.name || 'User'} 
+                      />
+                      <AvatarFallback className="text-xs">
+                        {(message.profiles?.name || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     
-                    <div
-                      className={`rounded-lg px-3 py-2 max-w-full break-words ${
-                        isCurrentUser
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <div className={`flex flex-col max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-muted-foreground">
+                          {isCurrentUser ? 'You' : (message.profiles?.name || 'User')}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatMessageTime(message.created_at)}
+                        </span>
+                      </div>
+                      
+                      <div
+                        className={`rounded-lg px-3 py-2 max-w-full break-words ${
+                          isCurrentUser
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-             })
-           )}
-           {/* Auto-scroll target */}
-           <div ref={messagesEndRef} />
-         </div>
+                );
+              })}
+              {/* Auto-scroll target */}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
 
         {/* Message Input */}
-        <div className="flex gap-2 pt-3 border-t">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            className="flex-1"
-            disabled={sending}
-          />
-           <Button 
-             onClick={handleSendMessage}
-             disabled={!newMessage.trim() || sending}
-             size="sm"
-             className="flex items-center gap-1"
-           >
-            <Send className="h-4 w-4" />
-            Send
-          </Button>
+        <div className="p-4 border-t bg-muted/10">
+          <div className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={
+                selectedContactId 
+                  ? "Type a private message..." 
+                  : "Type a message to the team..."
+              }
+              className="flex-1"
+              disabled={sending}
+            />
+            <Button 
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sending}
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
