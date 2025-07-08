@@ -1,109 +1,47 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
 import { Send, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useMessages } from "@/hooks/useMessages";
 
-interface Message {
-  id: string;
-  content: string;
-  sender_user_id: string;
-  created_at: string;
-  profiles?: {
-    name: string;
-    avatar_url?: string;
-  };
-}
 
 interface DealMessagesTabProps {
   dealId: string;
 }
 
 const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Use the real-time enabled useMessages hook
+  const { messages, loading, sending, sendMessage: sendMessageHook } = useMessages(dealId);
 
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    fetchMessages();
-  }, [dealId]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const fetchMessages = async () => {
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('deal_id', dealId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load messages",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !user || sending) return;
-
-    setSending(true);
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          deal_id: dealId,
-          content: newMessage.trim(),
-          sender_user_id: user.id
-        })
-        .select('*')
-        .single();
-
-      if (error) {
-        console.error('Error sending message:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send message",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setMessages(prev => [...prev, data]);
+      await sendMessageHook(newMessage);
       setNewMessage('');
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive"
-      });
-    } finally {
-      setSending(false);
+      // Error handling is already done in the hook
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSendMessage();
     }
   };
 
@@ -168,25 +106,25 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
                   key={message.id}
                   className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage 
-                      src={message.profiles?.avatar_url} 
-                      alt={message.profiles?.name || 'User'} 
-                    />
-                    <AvatarFallback className="text-xs">
-                      {(message.profiles?.name || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                   <Avatar className="h-8 w-8 flex-shrink-0">
+                     <AvatarImage 
+                       src={message.profiles?.avatar_url || undefined} 
+                       alt={message.profiles?.name || 'User'} 
+                     />
+                     <AvatarFallback className="text-xs">
+                       {(message.profiles?.name || 'U').charAt(0).toUpperCase()}
+                     </AvatarFallback>
+                   </Avatar>
                   
                   <div className={`flex flex-col max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        {isCurrentUser ? 'You' : 'User'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatMessageTime(message.created_at)}
-                      </span>
-                    </div>
+                     <div className="flex items-center gap-2 mb-1">
+                       <span className="text-xs text-muted-foreground">
+                         {isCurrentUser ? 'You' : (message.profiles?.name || 'User')}
+                       </span>
+                       <span className="text-xs text-muted-foreground">
+                         {formatMessageTime(message.created_at)}
+                       </span>
+                     </div>
                     
                     <div
                       className={`rounded-lg px-3 py-2 max-w-full break-words ${
@@ -200,9 +138,11 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+             })
+           )}
+           {/* Auto-scroll target */}
+           <div ref={messagesEndRef} />
+         </div>
 
         {/* Message Input */}
         <div className="flex gap-2 pt-3 border-t">
@@ -214,12 +154,12 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId }) => {
             className="flex-1"
             disabled={sending}
           />
-          <Button 
-            onClick={sendMessage}
-            disabled={!newMessage.trim() || sending}
-            size="sm"
-            className="flex items-center gap-1"
-          >
+           <Button 
+             onClick={handleSendMessage}
+             disabled={!newMessage.trim() || sending}
+             size="sm"
+             className="flex items-center gap-1"
+           >
             <Send className="h-4 w-4" />
             Send
           </Button>
