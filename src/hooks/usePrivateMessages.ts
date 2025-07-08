@@ -117,15 +117,25 @@ export function usePrivateMessages(dealId: string, recipientUserId?: string) {
           // Only process messages that match our filter criteria
           const newMsg = payload.new as any;
           
+          console.log('Realtime message received:', {
+            sender_user_id: newMsg.sender_user_id,
+            recipient_user_id: newMsg.recipient_user_id,
+            content: newMsg.content,
+            currentUserId: user.id,
+            selectedRecipient: recipientUserId
+          });
+          
           if (recipientUserId) {
             // For private messages, only show messages between current user and recipient
             const isRelevantPrivateMessage = 
               (newMsg.sender_user_id === user.id && newMsg.recipient_user_id === recipientUserId) ||
               (newMsg.sender_user_id === recipientUserId && newMsg.recipient_user_id === user.id);
             
+            console.log('Private message filter result:', isRelevantPrivateMessage);
             if (!isRelevantPrivateMessage) return;
           } else {
             // For deal-wide messages, only show messages with no recipient
+            console.log('Deal chat filter - has recipient?', newMsg.recipient_user_id !== null);
             if (newMsg.recipient_user_id !== null) return;
           }
 
