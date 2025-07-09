@@ -84,7 +84,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-0 flex-1 overflow-hidden">
+      <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
         {showUploadForm && (
           <div className="p-4 border-b bg-muted/30">
             <DocumentUploadForm 
