@@ -64,7 +64,7 @@ CONTENT STRUCTURE:
 The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',

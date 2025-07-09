@@ -56,6 +56,8 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
     
     case 'summarize_version_changes':
       return await handleSummarizeVersionChanges(
+        payload.dealId!,
+        payload.documentId!,
         payload.currentVersionId!,
         payload.previousVersionId!,
         openai
