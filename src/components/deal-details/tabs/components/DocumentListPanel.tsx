@@ -95,7 +95,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
           </div>
         )}
         
-        <div className="h-full overflow-y-auto">
+        <div className="h-full overflow-y-auto custom-scrollbar">
           {documents.length === 0 ? (
             <div className="text-center py-8 px-4">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
