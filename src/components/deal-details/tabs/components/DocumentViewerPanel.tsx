@@ -35,7 +35,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   onAddComment,
 }) => {
   return (
-    <Card className="min-h-[400px] flex flex-col">
+    <Card className="h-full flex flex-col">
       {selectedDocument ? (
         <>
           <CardHeader className="pb-3 flex-shrink-0">
