@@ -27,7 +27,7 @@ import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import IntentCapturePage from "@/pages/onboarding/IntentCapturePage";
 import ProfessionalProfileSetupPage from "@/pages/onboarding/ProfessionalProfileSetupPage";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import OnboardingCheck from "@/components/auth/OnboardingCheck";
 
