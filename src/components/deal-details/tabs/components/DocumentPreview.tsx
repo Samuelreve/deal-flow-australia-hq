@@ -172,7 +172,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
           }
         `
       }} />
-      <div className="flex-1 bg-muted/20 rounded border flex flex-col h-full">
+      <div className="flex-1 bg-muted/20 rounded border flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b bg-background/50 flex-shrink-0">
           <h4 className="font-medium text-sm">Document Preview</h4>
@@ -254,16 +254,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             )}
           </div>
         ) : displayText ? (
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Scrollable Text Content */}
-            <div 
-              className="flex-1 overflow-y-scroll overflow-x-hidden p-4 bg-background/30 rounded border custom-scrollbar"
-              style={{
-                scrollbarWidth: 'auto',
-                scrollbarColor: 'rgb(156 163 175) rgb(229 231 235)'
-              }}
-            >
-              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground break-words overflow-hidden">
+          <div className="flex flex-col">
+            {/* Text Content - No scroll, natural expansion */}
+            <div className="p-4 bg-background/30 rounded border">
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground break-words">
                 {displayText}
               </pre>
             </div>
