@@ -8,6 +8,7 @@ interface DocumentPreviewProps {
   documentPreview: string;
   previewLoading: boolean;
   onOpenDocumentInNewTab: () => void;
+  dealId: string;
   selectedDocument?: {
     id: string;
     name: string;
@@ -21,6 +22,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   documentPreview,
   previewLoading,
   onOpenDocumentInNewTab,
+  dealId,
   selectedDocument,
 }) => {
   const [documentUrl, setDocumentUrl] = useState<string>('');
@@ -56,9 +58,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       }
 
       // Create signed URL for the document
+      // Construct full storage path with deal ID
+      const fullStoragePath = versionData.storage_path.includes('/') 
+        ? versionData.storage_path 
+        : `${dealId}/${versionData.storage_path}`;
+      
       const { data: urlData, error: urlError } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(versionData.storage_path, 3600); // 1 hour expiry
+        .from('deal_documents')
+        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);

@@ -461,6 +461,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
           comments={comments}
           showCommentForm={showCommentForm}
           isSubmittingComment={isSubmittingComment}
+          dealId={dealId}
           onAnalyzeDocument={handleAnalyzeDocument}
           onOpenDocumentInNewTab={() => selectedDocument && handleOpenDocumentInNewTab(selectedDocument)}
           onToggleCommentForm={() => setShowCommentForm(!showCommentForm)}

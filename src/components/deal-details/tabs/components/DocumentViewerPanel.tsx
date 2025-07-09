@@ -14,6 +14,7 @@ interface DocumentViewerPanelProps {
   comments: any[];
   showCommentForm: boolean;
   isSubmittingComment: boolean;
+  dealId: string;
   onAnalyzeDocument: (type: 'summary' | 'key_terms' | 'risks') => void;
   onOpenDocumentInNewTab: () => void;
   onToggleCommentForm: () => void;
@@ -27,6 +28,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   comments,
   showCommentForm,
   isSubmittingComment,
+  dealId,
   onAnalyzeDocument,
   onOpenDocumentInNewTab,
   onToggleCommentForm,
@@ -52,6 +54,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
               previewLoading={previewLoading}
               onOpenDocumentInNewTab={onOpenDocumentInNewTab}
               selectedDocument={selectedDocument}
+              dealId={dealId}
             />
             <DocumentComments
               comments={comments}
