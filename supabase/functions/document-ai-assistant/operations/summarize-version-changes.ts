@@ -1,5 +1,5 @@
 
-import OpenAI from "https://esm.sh/openai@4.0.0";
+import OpenAI from "https://esm.sh/openai@4.20.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { fetchDocumentContent } from "./document-content.ts";
 
@@ -133,7 +133,7 @@ Be factual and focused on the actual changes. If the changes are minimal or prim
     while (attempts < maxAttempts) {
       try {
         response = await openai.chat.completions.create({
-          model: "gpt-4o-mini", // Using smaller model for faster response
+          model: "gpt-4o", // Using stable model
           messages: [
             { role: "system", content: "You are an AI document version comparison specialist." },
             { role: "user", content: prompt }
