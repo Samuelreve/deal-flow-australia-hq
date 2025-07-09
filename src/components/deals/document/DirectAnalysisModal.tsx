@@ -72,9 +72,28 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
 
       const latestVersion = versions[0];
 
-      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'analyze_document',
+      // For summary analysis, use the improved summarize_document operation
+      let operation, requestBody;
+      
+      if (analysisType === 'summary') {
+        operation = 'summarize_document';
+        requestBody = {
+          operation,
+          documentId: document.id,
+          documentVersionId: latestVersion.id,
+          userId: user.id,
+          dealId: dealId,
+          content: '', // Empty content means it will fetch from database
+          context: { 
+            operationType: 'document_summary',
+            documentName: document.name,
+            documentType: document.type
+          }
+        };
+      } else {
+        operation = 'analyze_document';
+        requestBody = {
+          operation,
           documentId: document.id,
           documentVersionId: latestVersion.id,
           userId: user.id,
@@ -84,7 +103,11 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             documentName: document.name,
             documentType: document.type
           }
-        }
+        };
+      }
+
+      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: requestBody
       });
 
       if (error) {
@@ -139,18 +162,17 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
         return (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm leading-relaxed">
-                {result.summary || 'No summary available'}
-              </p>
-              {result.keyPoints && result.keyPoints.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2">Key Points:</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {result.keyPoints.map((point: string, index: number) => (
-                      <li key={index} className="text-sm">{point}</li>
-                    ))}
-                  </ul>
-                </div>
+              {result.keyPoints && result.keyPoints.length > 0 ? (
+                <ul className="space-y-2">
+                  {result.keyPoints.map((point: string, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <div className="h-1.5 w-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                      <span className="text-sm text-foreground">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">No key points available</p>
               )}
             </CardContent>
           </Card>
