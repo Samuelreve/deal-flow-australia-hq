@@ -128,17 +128,24 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
           mimeType = 'text/plain';
           break;
         case 'rtf':
-          // Create proper RTF format with better formatting
+          // Create proper RTF format preserving clean formatting
           const rtfContent = generatedTemplate
-            .replace(/\n\n/g, '\\par\\par ')
-            .replace(/\n/g, '\\par ')
-            .replace(/\t/g, '\\tab ')
-            .replace(/"/g, '\\"')
+            // Escape RTF special characters first
+            .replace(/\\/g, '\\\\')
             .replace(/{/g, '\\{')
             .replace(/}/g, '\\}')
-            .replace(/\\/g, '\\\\');
+            // Preserve paragraph breaks and indentation structure
+            .replace(/\n\n/g, '\\par\\par\n')
+            .replace(/\n/g, '\\par\n')
+            // Preserve underlines for titles
+            .replace(/^__(.+?)__$/gm, '\\ul $1\\ul0')
+            .replace(/^_(.+?)_$/gm, '\\ul $1\\ul0')
+            // Handle tabbed/indented content (preserve structure)
+            .replace(/^    /gm, '\\tab ')
+            .replace(/^  ([A-Z]\.)/gm, '\\tab $1')
+            .replace(/^  (\d+\))/gm, '\\tab $1');
           
-          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}{\\f1\\fswiss Arial;}}\\f0\\fs24 ${rtfContent}}`;
+          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}} \\f0\\fs24\n${rtfContent}\n}`;
           mimeType = 'application/rtf';
           break;
         default:
