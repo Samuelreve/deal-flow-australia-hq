@@ -44,6 +44,7 @@ FORMATTING REQUIREMENTS:
 - Proper paragraph indentation for subsections
 - Clear section titles like "DUTIES", "COMPENSATION", "TERMS AND CONDITIONS"
 - NO asterisks (*), hash symbols (#), or markdown formatting
+- NO RTF commands like \\par or \\par\\par - use standard text formatting only
 - Use underlines for document titles and section headers where appropriate
 - Professional spacing with blank lines between major sections
 
@@ -53,6 +54,7 @@ TEXT FORMATTING:
 - Proper capitalization for defined terms throughout the document
 - Include reference to exhibits where applicable (e.g., "as specified in Exhibit A")
 - Use "shall" for obligations and "may" for permissions
+- DO NOT include any RTF, LaTeX, or special formatting commands
 
 CONTENT STRUCTURE:
 1. Document header with title and contract number placeholder
@@ -61,7 +63,7 @@ CONTENT STRUCTURE:
 4. Proper legal clauses and provisions
 5. Signature blocks at the end
 
-The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
+CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -91,9 +93,12 @@ The template should look professional and match the formatting style of formal l
       .replace(/\*{2,}/g, '')
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
-      // Clean up paragraph breaks
+      // Clean up RTF/LaTeX commands that might slip through
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
+      .replace(/\\\\/g, '') // Remove other backslash commands
+      // Remove any remaining \par commands (without backslash)
+      .replace(/\bpar\b/g, '')
       // Ensure proper spacing between major sections (numbered)
       .replace(/(\d+\.\s+[A-Z][^.]*)\.\s*\n/g, '$1.\n\n')
       // Add spacing before major legal terms
@@ -108,7 +113,9 @@ The template should look professional and match the formatting style of formal l
       // Remove trailing spaces at end of lines
       .replace(/[ \t]+$/gm, '')
       // Ensure single space after periods in the middle of sentences
-      .replace(/\.([A-Z])/g, '. $1');
+      .replace(/\.([A-Z])/g, '. $1')
+      // Remove any remaining unwanted characters or formatting
+      .replace(/[^\w\s\.\,\;\:\!\?\(\)\[\]\-\'\"\n]/g, '');
     
     // Ensure the template starts with proper formatting
     template = template.trim();
