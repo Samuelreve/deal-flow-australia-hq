@@ -85,21 +85,34 @@ The template should look professional and match the formatting style of formal l
       throw new Error('No template generated from AI response');
     }
 
-    // Post-process the template to ensure proper formatting
+    // Post-process the template to ensure proper professional formatting
     template = template
       // Remove multiple asterisks and hash symbols
       .replace(/\*{2,}/g, '')
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
-      // Ensure proper line breaks after periods and sections
-      .replace(/\.\s*([A-Z])/g, '.\n\n$1')
-      // Fix paragraph spacing
+      // Ensure proper paragraph breaks and spacing
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
-      // Clean up extra whitespace
-      .replace(/\s{3,}/g, '  ')
-      // Ensure proper section numbering format
-      .replace(/(\d+\.)\s*([A-Z])/g, '$1 $2');
+      // Add proper spacing after sentences ending with periods
+      .replace(/\.\s+([A-Z][^.]*:)/g, '.\n\n$1') // Section headers
+      .replace(/\.\s+(\d+\.)/g, '.\n\n$1') // Numbered sections
+      .replace(/\.\s+([A-Z]\.))/g, '.\n\n$1') // Lettered subsections
+      // Ensure proper spacing around main sections
+      .replace(/(\d+\.\s+[A-Z][^.]*\.)\s*/g, '$1\n\n')
+      // Ensure proper spacing around subsections
+      .replace(/([A-Z]\.\s+[^.]*\.)\s*/g, '$1\n')
+      // Add proper spacing before WHEREAS, NOW THEREFORE, etc.
+      .replace(/\s+(WHEREAS|NOW THEREFORE|IN WITNESS WHEREOF)/g, '\n\n$1')
+      // Clean up excessive whitespace but preserve intentional spacing
+      .replace(/[ \t]{3,}/g, '  ')
+      .replace(/\n{4,}/g, '\n\n\n')
+      // Ensure consistent spacing after colons in section headers
+      .replace(/([A-Z][^:]*:)\s*/g, '$1\n')
+      // Ensure proper indentation for subsections
+      .replace(/^([A-Z]\.\s+)/gm, '    $1')
+      // Ensure proper indentation for sub-subsections
+      .replace(/^(\d+\)\s+)/gm, '        $1');
     
     // Ensure the template starts with proper formatting
     template = template.trim();
