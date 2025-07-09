@@ -160,9 +160,14 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     );
   }
 
-  // Filter out current user from participants
+  // Find current user's role and filter out current user from participants
+  const currentUserParticipant = participants.find(participant => participant.user_id === user?.id);
+  const currentUserRole = currentUserParticipant?.role;
   const otherParticipants = participants.filter(participant => participant.user_id !== user?.id);
   const totalParticipants = participants.length;
+
+  // Check if current user can invite participants (admin/seller or buyer)
+  const canInviteParticipants = currentUserRole && ['seller', 'admin', 'buyer'].includes(currentUserRole);
 
   return (
     <div className="space-y-6">
@@ -175,10 +180,12 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
             {pendingInvitations.length > 0 && ` • ${pendingInvitations.length} pending invitation${pendingInvitations.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button className="flex items-center gap-2" onClick={handleOpenInviteDialog}>
-          <UserPlus className="h-4 w-4" />
-          Invite Participant
-        </Button>
+        {canInviteParticipants && (
+          <Button className="flex items-center gap-2" onClick={handleOpenInviteDialog}>
+            <UserPlus className="h-4 w-4" />
+            Invite Participant
+          </Button>
+        )}
       </div>
 
       {/* Participants List */}
