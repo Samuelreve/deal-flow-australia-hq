@@ -97,7 +97,7 @@ The template should look professional and match the formatting style of formal l
       // Add proper spacing after sentences ending with periods
       .replace(/\.\s+([A-Z][^.]*:)/g, '.\n\n$1') // Section headers
       .replace(/\.\s+(\d+\.)/g, '.\n\n$1') // Numbered sections
-      .replace(/\.\s+([A-Z]\.))/g, '.\n\n$1') // Lettered subsections
+      .replace(/\.\s+([A-Z]\.)/g, '.\n\n$1') // Lettered subsections
       // Ensure proper spacing around main sections
       .replace(/(\d+\.\s+[A-Z][^.]*\.)\s*/g, '$1\n\n')
       // Ensure proper spacing around subsections
