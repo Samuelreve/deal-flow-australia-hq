@@ -91,28 +91,24 @@ The template should look professional and match the formatting style of formal l
       .replace(/\*{2,}/g, '')
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
-      // Ensure proper paragraph breaks and spacing
+      // Clean up paragraph breaks
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
-      // Add proper spacing after sentences ending with periods
-      .replace(/\.\s+([A-Z][^.]*:)/g, '.\n\n$1') // Section headers
-      .replace(/\.\s+(\d+\.)/g, '.\n\n$1') // Numbered sections
-      .replace(/\.\s+([A-Z]\.)/g, '.\n\n$1') // Lettered subsections
-      // Ensure proper spacing around main sections
-      .replace(/(\d+\.\s+[A-Z][^.]*\.)\s*/g, '$1\n\n')
-      // Ensure proper spacing around subsections
-      .replace(/([A-Z]\.\s+[^.]*\.)\s*/g, '$1\n')
-      // Add proper spacing before WHEREAS, NOW THEREFORE, etc.
+      // Ensure proper spacing between major sections (numbered)
+      .replace(/(\d+\.\s+[A-Z][^.]*)\.\s*\n/g, '$1.\n\n')
+      // Add spacing before major legal terms
       .replace(/\s+(WHEREAS|NOW THEREFORE|IN WITNESS WHEREOF)/g, '\n\n$1')
-      // Clean up excessive whitespace but preserve intentional spacing
+      // Fix lettered subsections - remove unwanted line breaks after A., B., C., etc.
+      .replace(/([A-Z]\.)\s*\n\s*/g, '$1 ')
+      // Ensure numbered subsections have proper spacing
+      .replace(/(\d+\)\s+)/g, '$1')
+      // Clean up excessive whitespace but preserve intentional double line breaks
       .replace(/[ \t]{3,}/g, '  ')
       .replace(/\n{4,}/g, '\n\n\n')
-      // Ensure consistent spacing after colons in section headers
-      .replace(/([A-Z][^:]*:)\s*/g, '$1\n')
-      // Ensure proper indentation for subsections
-      .replace(/^([A-Z]\.\s+)/gm, '    $1')
-      // Ensure proper indentation for sub-subsections
-      .replace(/^(\d+\)\s+)/gm, '        $1');
+      // Remove trailing spaces at end of lines
+      .replace(/[ \t]+$/gm, '')
+      // Ensure single space after periods in the middle of sentences
+      .replace(/\.([A-Z])/g, '. $1');
     
     // Ensure the template starts with proper formatting
     template = template.trim();
