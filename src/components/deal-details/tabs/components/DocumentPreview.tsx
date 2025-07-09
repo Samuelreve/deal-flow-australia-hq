@@ -257,10 +257,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             {/* Scrollable Text Content */}
             <div 
-              className="overflow-y-scroll overflow-x-hidden p-4 bg-background/30 rounded border custom-scrollbar"
+              className="flex-1 overflow-y-scroll overflow-x-hidden p-4 bg-background/30 rounded border custom-scrollbar"
               style={{
-                height: 'calc(600px - 140px)',
-                maxHeight: 'calc(600px - 140px)',
                 scrollbarWidth: 'auto',
                 scrollbarColor: 'rgb(156 163 175) rgb(229 231 235)'
               }}
