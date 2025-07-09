@@ -51,6 +51,7 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
               documentPreview={documentPreview}
               previewLoading={previewLoading}
               onOpenDocumentInNewTab={onOpenDocumentInNewTab}
+              selectedDocument={selectedDocument}
             />
             <DocumentComments
               comments={comments}
