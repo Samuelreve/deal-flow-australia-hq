@@ -10,33 +10,36 @@ const DocumentActions: React.FC<DocumentActionsProps> = ({
   onAnalyzeDocument,
 }) => {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-2">
       <Button 
         size="sm" 
         variant="outline" 
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 justify-center sm:justify-start"
         onClick={() => onAnalyzeDocument('summary')}
       >
         <Eye className="h-4 w-4" />
-        Summarize
+        <span className="hidden xs:inline">Summarize</span>
+        <span className="xs:hidden">Sum</span>
       </Button>
       <Button 
         size="sm" 
         variant="outline" 
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 justify-center sm:justify-start"
         onClick={() => onAnalyzeDocument('key_terms')}
       >
         <Key className="h-4 w-4" />
-        Key Terms
+        <span className="hidden xs:inline">Key Terms</span>
+        <span className="xs:hidden">Keys</span>
       </Button>
       <Button 
         size="sm" 
         variant="outline" 
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 justify-center sm:justify-start"
         onClick={() => onAnalyzeDocument('risks')}
       >
         <AlertTriangle className="h-4 w-4" />
-        Risks
+        <span className="hidden xs:inline">Risks</span>
+        <span className="xs:hidden">Risk</span>
       </Button>
     </div>
   );
