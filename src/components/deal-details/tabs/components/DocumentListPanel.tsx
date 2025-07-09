@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, Share, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
@@ -84,7 +85,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-0 overflow-y-auto">
+      <CardContent className="p-0">
         {showUploadForm && (
           <div className="p-4 border-b bg-muted/30">
             <DocumentUploadForm 
@@ -95,60 +96,62 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
           </div>
         )}
         
-        {documents.length === 0 ? (
-          <div className="text-center py-8 px-4">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground mb-2">No documents uploaded yet</p>
-            <p className="text-xs text-muted-foreground">Upload documents to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {documents.map((doc) => {
-              const FileIcon = getFileIconByType(doc.type);
-              const isSelected = selectedDocument?.id === doc.id;
-              
-              return (
-                <div
-                  key={doc.id}
-                  onClick={() => onSelectDocument(doc)}
-                  className={`p-3 cursor-pointer border-l-2 transition-colors ${
-                    isSelected 
-                      ? 'bg-primary/5 border-l-primary' 
-                      : 'hover:bg-muted/50 border-l-transparent'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <FileIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm truncate">{doc.name}</h4>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <Share className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-2">
-                        {doc.category && (
-                          <Badge variant="outline" className={`text-xs ${getCategoryColor(doc.category)}`}>
-                            {doc.category}
+        <ScrollArea className="max-h-[calc(100vh-300px)]">
+          {documents.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-2">No documents uploaded yet</p>
+              <p className="text-xs text-muted-foreground">Upload documents to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {documents.map((doc) => {
+                const FileIcon = getFileIconByType(doc.type);
+                const isSelected = selectedDocument?.id === doc.id;
+                
+                return (
+                  <div
+                    key={doc.id}
+                    onClick={() => onSelectDocument(doc)}
+                    className={`p-3 cursor-pointer border-l-2 transition-colors ${
+                      isSelected 
+                        ? 'bg-primary/5 border-l-primary' 
+                        : 'hover:bg-muted/50 border-l-transparent'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm truncate">{doc.name}</h4>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Share className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-2">
+                          {doc.category && (
+                            <Badge variant="outline" className={`text-xs ${getCategoryColor(doc.category)}`}>
+                              {doc.category}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className={`text-xs ${getStatusColor(doc.status)}`}>
+                            {doc.status}
                           </Badge>
-                        )}
-                        <Badge variant="outline" className={`text-xs ${getStatusColor(doc.status)}`}>
-                          {doc.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-xs text-muted-foreground">
-                        <p>v{doc.version} • {formatFileSize(doc.size)}</p>
-                        <p>{doc.uploadedAt.toLocaleDateString()}</p>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground">
+                          <p>v{doc.version} • {formatFileSize(doc.size)}</p>
+                          <p>{doc.uploadedAt.toLocaleDateString()}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );

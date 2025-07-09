@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Share, FileText, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -133,69 +134,71 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-0 overflow-y-auto">
-        {documents.length === 0 ? (
-          <div className="text-center py-8 px-4">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground mb-2">No documents uploaded yet</p>
-            <p className="text-xs text-muted-foreground">Upload documents to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {documents.map((doc) => {
-              const FileIcon = getFileIconByType(doc.type);
-              const isSelected = selectedDocument?.id === doc.id;
-              
-              return (
-                <div
-                  key={doc.id}
-                  onClick={() => onDocumentSelect(doc)}
-                  className={`p-3 cursor-pointer border-l-2 transition-colors ${
-                    isSelected 
-                      ? 'bg-primary/5 border-l-primary' 
-                      : 'hover:bg-muted/50 border-l-transparent'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <FileIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm truncate">{doc.name}</h4>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onShareDocument(doc);
-                          }}
-                        >
-                          <Share className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-2">
-                        {doc.category && (
-                          <Badge variant="outline" className={`text-xs ${getCategoryColor(doc.category)}`}>
-                            {doc.category}
+      <CardContent className="p-0">
+        <ScrollArea className="max-h-[calc(100vh-300px)]">
+          {documents.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-2">No documents uploaded yet</p>
+              <p className="text-xs text-muted-foreground">Upload documents to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {documents.map((doc) => {
+                const FileIcon = getFileIconByType(doc.type);
+                const isSelected = selectedDocument?.id === doc.id;
+                
+                return (
+                  <div
+                    key={doc.id}
+                    onClick={() => onDocumentSelect(doc)}
+                    className={`p-3 cursor-pointer border-l-2 transition-colors ${
+                      isSelected 
+                        ? 'bg-primary/5 border-l-primary' 
+                        : 'hover:bg-muted/50 border-l-transparent'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FileIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm truncate">{doc.name}</h4>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onShareDocument(doc);
+                            }}
+                          >
+                            <Share className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-2">
+                          {doc.category && (
+                            <Badge variant="outline" className={`text-xs ${getCategoryColor(doc.category)}`}>
+                              {doc.category}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className={`text-xs ${getStatusColor(doc.status)}`}>
+                            {doc.status}
                           </Badge>
-                        )}
-                        <Badge variant="outline" className={`text-xs ${getStatusColor(doc.status)}`}>
-                          {doc.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-xs text-muted-foreground">
-                        <p>v{doc.version} • {formatFileSize(doc.size)}</p>
-                        <p>{new Date(doc.created_at).toLocaleDateString()}</p>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground">
+                          <p>v{doc.version} • {formatFileSize(doc.size)}</p>
+                          <p>{new Date(doc.created_at).toLocaleDateString()}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );
