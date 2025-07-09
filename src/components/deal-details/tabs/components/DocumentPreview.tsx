@@ -212,8 +212,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
               />
             </div>
             
-            {/* Footer */}
-            <div className="flex-shrink-0 px-2 border-t bg-muted/20" style={{ height: '18px', display: 'flex', alignItems: 'center' }}>
+            {/* Footer - hidden on small devices */}
+            <div className="hidden md:flex flex-shrink-0 px-2 border-t bg-muted/20 items-center" style={{ height: '18px' }}>
               <p className="text-xs text-muted-foreground text-center leading-none w-full" style={{ fontSize: '11px' }}>
                 {isPdfDocument() ? 'PDF Preview' : 'Document Preview via External Viewer'} • Click the button above to open in new tab
               </p>
@@ -270,8 +270,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
               </pre>
             </div>
             
-            {/* Footer */}
-            <div className="flex-shrink-0 px-2 border-t bg-muted/20" style={{ height: '18px', display: 'flex', alignItems: 'center' }}>
+            {/* Footer - hidden on small devices */}
+            <div className="hidden md:flex flex-shrink-0 px-2 border-t bg-muted/20 items-center" style={{ height: '18px' }}>
               <p className="text-xs text-muted-foreground text-center leading-none w-full" style={{ fontSize: '11px' }}>
                 Extracted text preview • Click the button above to open the full document
               </p>
