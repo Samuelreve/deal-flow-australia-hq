@@ -106,7 +106,7 @@ const DocumentUploadForm = ({
             id="document-file" 
             className="w-full text-sm" 
             onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+            accept=".pdf,.doc,.docx,.rtf,.txt,.jpg,.jpeg,.png"
           />
           
           <Button
