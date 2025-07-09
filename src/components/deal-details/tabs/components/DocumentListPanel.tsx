@@ -2,7 +2,6 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, Share, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
@@ -59,7 +58,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   };
 
   return (
-    <Card className="h-full">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Deal Documents</CardTitle>
@@ -85,7 +84,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-0">
+      <CardContent className="p-0 flex-1 overflow-hidden">
         {showUploadForm && (
           <div className="p-4 border-b bg-muted/30">
             <DocumentUploadForm 
@@ -96,7 +95,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
           </div>
         )}
         
-        <ScrollArea className="max-h-[calc(100vh-300px)]">
+        <div className="h-full overflow-y-auto">
           {documents.length === 0 ? (
             <div className="text-center py-8 px-4">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -151,7 +150,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

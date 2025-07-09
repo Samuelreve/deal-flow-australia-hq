@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Share, FileText, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -117,7 +116,7 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
   }
 
   return (
-    <Card className="h-full">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Deal Documents</CardTitle>
@@ -134,8 +133,8 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-0">
-        <ScrollArea className="max-h-[calc(100vh-300px)]">
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
           {documents.length === 0 ? (
             <div className="text-center py-8 px-4">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -198,7 +197,7 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
