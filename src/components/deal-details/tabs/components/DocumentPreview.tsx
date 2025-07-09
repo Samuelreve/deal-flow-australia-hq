@@ -263,7 +263,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                 scrollbarColor: 'rgb(156 163 175) rgb(229 231 235)'
               }}
             >
-              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground break-words">
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground break-words overflow-hidden">
                 {displayText}
               </pre>
             </div>
