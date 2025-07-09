@@ -58,14 +58,14 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Deal Documents</CardTitle>
           <div className="flex gap-2">
             <Button 
               size="sm" 
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-200 hover:shadow-md hover-scale"
+              className="flex items-center gap-1"
               onClick={onToggleUploadForm}
             >
               <Upload className="h-4 w-4" />
@@ -74,7 +74,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all duration-200 hover:shadow-md hover-scale"
+              className="flex items-center gap-1"
               onClick={onShowTemplateModal}
             >
               <Sparkles className="h-4 w-4" />
