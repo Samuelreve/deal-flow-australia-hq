@@ -104,7 +104,22 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         return;
       }
 
-      const mappedDocuments = data ? data.map(mapToDocument) : [];
+      const mappedDocuments = data ? await Promise.all(data.map(async (dbDoc) => {
+        // Get the latest version ID for each document
+        const { data: versionData } = await supabase
+          .from('document_versions')
+          .select('id')
+          .eq('document_id', dbDoc.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        return {
+          ...mapToDocument(dbDoc),
+          latestVersionId: versionData?.id
+        };
+      })) : [];
+      
       setDocuments(mappedDocuments);
       if (mappedDocuments.length > 0 && !selectedDocument) {
         setSelectedDocument(mappedDocuments[0]);
@@ -129,7 +144,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       // First check if we have existing extracted text
       const { data: versionData, error: versionError } = await supabase
         .from('document_versions')
-        .select('text_content, storage_path, type')
+        .select('id, text_content, storage_path, type')
         .eq('document_id', document.id)
         .order('version_number', { ascending: false })
         .limit(1)
@@ -211,13 +226,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       const extractedText = convertToDisplayText(extractResult.text);
       
       // Save extracted text for future use - ensure we're saving a string
-      if (typeof extractedText === 'string') {
+      if (typeof extractedText === 'string' && versionData?.id) {
         await supabase
           .from('document_versions')
           .update({ text_content: extractedText })
-          .eq('document_id', document.id)
-          .order('version_number', { ascending: false })
-          .limit(1);
+          .eq('id', versionData.id);
       }
 
       setDocumentPreview(extractedText);

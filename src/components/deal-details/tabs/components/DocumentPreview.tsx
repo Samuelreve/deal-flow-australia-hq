@@ -13,7 +13,7 @@ interface DocumentPreviewProps {
     name: string;
     type: string;
     storage_path?: string;
-    latest_version_id?: string;
+    latestVersionId?: string;
   } | null;
 }
 
@@ -28,23 +28,16 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
 
   useEffect(() => {
-    console.log('DocumentPreview - selectedDocument:', selectedDocument);
-    if (selectedDocument?.latest_version_id) {
-      console.log('Generating document URL for:', selectedDocument.latest_version_id);
+    if (selectedDocument?.latestVersionId) {
       generateDocumentUrl();
     } else {
-      console.log('No latest_version_id found, clearing URL');
       setDocumentUrl('');
     }
-  }, [selectedDocument?.latest_version_id]);
+  }, [selectedDocument?.latestVersionId]);
 
   const generateDocumentUrl = async () => {
-    if (!selectedDocument?.latest_version_id) {
-      console.log('No latest_version_id available');
-      return;
-    }
+    if (!selectedDocument?.latestVersionId) return;
     
-    console.log('Starting generateDocumentUrl for:', selectedDocument.latest_version_id);
     setIsLoadingUrl(true);
     setIframeError(false);
     
@@ -53,7 +46,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       const { data: versionData, error: versionError } = await supabase
         .from('document_versions')
         .select('storage_path')
-        .eq('id', selectedDocument.latest_version_id)
+        .eq('id', selectedDocument.latestVersionId)
         .single();
 
       if (versionError || !versionData?.storage_path) {
@@ -61,8 +54,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         setIframeError(true);
         return;
       }
-
-      console.log('Got storage path:', versionData.storage_path);
 
       // Create signed URL for the document
       const { data: urlData, error: urlError } = await supabase.storage
@@ -75,7 +66,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      console.log('Generated signed URL successfully');
       setDocumentUrl(urlData.signedUrl);
     } catch (error) {
       console.error('Error generating document URL:', error);
@@ -118,9 +108,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   const shouldUseIframe = () => {
-    const result = documentUrl && (isPdfDocument() || getDocumentType() !== 'unknown');
-    console.log('shouldUseIframe check:', { documentUrl: !!documentUrl, isPdf: isPdfDocument(), docType: getDocumentType(), result });
-    return result;
+    return documentUrl && (isPdfDocument() || getDocumentType() !== 'unknown');
   };
 
   const getIframeUrl = () => {
