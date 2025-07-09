@@ -87,7 +87,13 @@ Examples of bad terms: ["The purchase price is $333,333", "Complex indemnificati
     });
 
     let keyTerms = [];
-    const responseText = response.choices[0]?.message?.content || '';
+    let responseText = response.choices[0]?.message?.content || '';
+    
+    // Clean up markdown formatting from the response
+    responseText = responseText
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
     
     try {
       // Try to parse as JSON array
@@ -105,7 +111,7 @@ Examples of bad terms: ["The purchase price is $333,333", "Complex indemnificati
       keyTerms = responseText
         .split(/[\n,]/)
         .map(term => term.trim())
-        .filter(term => term.length > 0 && term.length < 50)
+        .filter(term => term.length > 0 && term.length < 50 && !term.includes('```'))
         .slice(0, 7);
     }
     
