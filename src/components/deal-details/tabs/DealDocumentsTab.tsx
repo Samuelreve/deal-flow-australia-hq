@@ -437,9 +437,9 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[400px]">
+    <div className="flex flex-col lg:flex-row gap-6 min-h-[400px]">
       {/* Left Panel - Document List */}
-      <div className="lg:col-span-1 h-full">
+      <div className="flex-1 lg:max-w-sm h-full">
         <DocumentListPanel
           documents={documents}
           selectedDocument={selectedDocument}
@@ -453,7 +453,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       </div>
 
       {/* Right Panel - Document Viewer */}
-      <div className="lg:col-span-2 h-full">
+      <div className="flex-1 lg:flex-[2] h-full">
         <DocumentViewerPanel
           selectedDocument={selectedDocument}
           documentPreview={documentPreview}
