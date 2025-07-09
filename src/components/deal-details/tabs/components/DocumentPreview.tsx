@@ -176,15 +176,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b bg-background/50 flex-shrink-0">
           <h4 className="font-medium text-sm">Document Preview</h4>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-7 w-7 p-0"
-            onClick={onOpenDocumentInNewTab}
-            title="Open in new tab"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
         </div>
       
       {/* Content Area */}
@@ -215,7 +206,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             {/* Footer - hidden on small devices */}
             <div className="hidden md:flex flex-shrink-0 px-2 border-t bg-muted/20 items-center" style={{ height: '18px' }}>
               <p className="text-xs text-muted-foreground text-center leading-none w-full" style={{ fontSize: '11px' }}>
-                {isPdfDocument() ? 'PDF Preview' : 'Document Preview via External Viewer'} • Click the button above to open in new tab
+                {isPdfDocument() ? 'PDF Preview' : 'Document Preview via External Viewer'}
               </p>
             </div>
           </div>
@@ -225,13 +216,6 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 Unable to load document preview. The document may not be compatible with inline viewing.
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-primary underline ml-1"
-                  onClick={onOpenDocumentInNewTab}
-                >
-                  Click here to open in a new tab.
-                </Button>
               </AlertDescription>
             </Alert>
             
@@ -265,7 +249,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             {/* Footer - hidden on small devices */}
             <div className="hidden md:flex flex-shrink-0 px-2 border-t bg-muted/20 items-center" style={{ height: '18px' }}>
               <p className="text-xs text-muted-foreground text-center leading-none w-full" style={{ fontSize: '11px' }}>
-                Extracted text preview • Click the button above to open the full document
+                Extracted text preview
               </p>
             </div>
           </div>
