@@ -60,27 +60,27 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   return (
     <Card className="h-[900px] flex flex-col">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <CardTitle className="text-lg">Deal Documents</CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              className="flex items-center gap-1"
-              onClick={onToggleUploadForm}
-            >
-              <Upload className="h-4 w-4" />
-              Upload
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1"
-              onClick={onShowTemplateModal}
-            >
-              <Sparkles className="h-4 w-4" />
-              Generate Template
-            </Button>
-          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Button 
+            size="sm" 
+            className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200"
+            onClick={onToggleUploadForm}
+          >
+            <Upload className="h-4 w-4" />
+            Upload
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center gap-1 border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/30 shadow-sm hover:shadow-md transition-all duration-200"
+            onClick={onShowTemplateModal}
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate Template
+          </Button>
         </div>
       </CardHeader>
       
