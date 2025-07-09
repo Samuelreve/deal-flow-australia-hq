@@ -89,29 +89,48 @@ Examples of bad terms: ["The purchase price is $333,333", "Complex indemnificati
     let keyTerms = [];
     let responseText = response.choices[0]?.message?.content || '';
     
-    // Clean up markdown formatting from the response
+    // Clean up markdown formatting and unwanted text from the response
     responseText = responseText
-      .replace(/```json/g, '')
+      .replace(/```json/gi, '')
       .replace(/```/g, '')
+      .replace(/^\s*\[/g, '[')  // Remove leading whitespace before array
+      .replace(/\]\s*$/g, ']')  // Remove trailing whitespace after array
       .trim();
     
     try {
       // Try to parse as JSON array
       keyTerms = JSON.parse(responseText);
       
-      // Ensure it's an array and limit to 7 items
+      // Ensure it's an array and clean up the terms
       if (!Array.isArray(keyTerms)) {
-        keyTerms = [responseText];
+        // If it's not an array, try to extract terms from the response
+        keyTerms = responseText
+          .split(/[\n,]/)
+          .map(term => term.trim().replace(/['"]/g, ''))
+          .filter(term => term.length > 0 && term.length < 50 && !term.includes('```') && !term.toLowerCase().includes('json'))
+          .slice(0, 7);
+      } else {
+        // Clean up each term in the array
+        keyTerms = keyTerms
+          .map(term => typeof term === 'string' ? term.trim().replace(/['"]/g, '') : String(term).trim())
+          .filter(term => term.length > 0 && term.length < 50 && !term.includes('```') && !term.toLowerCase().includes('json'))
+          .slice(0, 7);
       }
-      keyTerms = keyTerms.slice(0, 7);
       
     } catch (parseError) {
       console.log('Could not parse as JSON, treating as text');
-      // Fallback: split by lines/commas and clean up
+      // Fallback: split by lines/commas and clean up thoroughly
       keyTerms = responseText
         .split(/[\n,]/)
-        .map(term => term.trim())
-        .filter(term => term.length > 0 && term.length < 50 && !term.includes('```'))
+        .map(term => term.trim().replace(/['"]/g, '').replace(/^\d+\.\s*/, '')) // Remove quotes and numbering
+        .filter(term => 
+          term.length > 0 && 
+          term.length < 50 && 
+          !term.includes('```') && 
+          !term.toLowerCase().includes('json') &&
+          !term.toLowerCase().includes('markdown') &&
+          term !== '[' && term !== ']'
+        )
         .slice(0, 7);
     }
     
