@@ -120,7 +120,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
   const getIframeUrl = () => {
     if (isPdfDocument()) {
-      return documentUrl; // Direct PDF viewing
+      // Use Google Drive viewer for PDFs to avoid Chrome blocking issues
+      const encodedUrl = encodeURIComponent(documentUrl);
+      return `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
     }
     return getExternalViewerUrl(); // External viewer for other formats
   };
