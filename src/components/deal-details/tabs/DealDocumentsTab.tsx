@@ -437,7 +437,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 min-h-[400px]">
+    <div className="flex flex-col lg:flex-row gap-6 h-[600px]">
       {/* Left Panel - Document List */}
       <div className="flex-1 lg:max-w-sm h-full">
         <DocumentListPanel
