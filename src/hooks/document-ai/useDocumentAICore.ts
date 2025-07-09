@@ -71,6 +71,13 @@ export const useDocumentAICore = ({ dealId, documentId }: UseDocumentAICoreProps
         throw new Error('You must be logged in to use AI features');
       }
       
+      console.log('🚀 CALLING document-ai-assistant with:', {
+        operation,
+        dealId,
+        documentId: options.documentId || documentId,
+        documentVersionId: options.documentVersionId
+      });
+      
       const { data, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: {
           operation,
@@ -86,7 +93,16 @@ export const useDocumentAICore = ({ dealId, documentId }: UseDocumentAICoreProps
         }
       });
 
+      console.log('📡 document-ai-assistant response:', {
+        success: !error,
+        hasData: !!data,
+        error: error?.message,
+        dataKeys: data ? Object.keys(data) : [],
+        summaryLength: data?.summary?.length || 0
+      });
+
       if (error) {
+        console.error('❌ Supabase function error:', error);
         throw new Error(error.message || 'Error processing AI request');
       }
       

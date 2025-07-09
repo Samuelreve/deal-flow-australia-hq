@@ -7,7 +7,7 @@ export async function handleSummarizeDocument(
   openai: any
 ) {
   try {
-    console.log('📋 Starting AI-powered document summarization...');
+    console.log('🚀 UPDATED AI-powered document summarization starting...');
     console.log('📝 Content length:', content?.length || 0);
     console.log('🔧 Context:', context);
 
@@ -119,6 +119,7 @@ Summary:`;
     });
 
     const aiSummary = completion.choices[0].message.content;
+    console.log('🤖 AI Summary generated:', aiSummary);
 
     // Extract key points using AI
     const keyPointsPrompt = `Extract 3-4 key facts from this document as very short bullet points (max 10 words each):
@@ -166,6 +167,7 @@ Key facts:`;
     console.log('✅ AI document summarization completed');
     console.log('📄 Summary length:', aiSummary?.length || 0);
     console.log('🔑 Key points extracted:', keyPoints.length);
+    console.log('📋 Final summary being returned:', aiSummary);
 
     return {
       success: true,
