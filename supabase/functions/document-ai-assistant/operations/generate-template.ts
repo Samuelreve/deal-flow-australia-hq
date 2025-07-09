@@ -30,13 +30,24 @@ export async function handleGenerateTemplate(
     }
     
     prompt += `\nPlease generate a professional, legally-structured ${templateType.toLowerCase()} template that includes:
-1. Standard legal clauses and provisions
-2. Clear terms and conditions
-3. Proper legal formatting
-4. Placeholders for specific details that need to be filled in
-5. Industry-appropriate language and requirements
 
-The template should be comprehensive but editable, allowing for customization based on specific deal requirements.`;
+FORMATTING REQUIREMENTS:
+- Use proper paragraph breaks and line spacing
+- Use numbered sections (1., 2., 3.) and lettered subsections (a., b., c.)
+- Use professional indentation and spacing
+- NO asterisks (*) or hash symbols (#) for formatting
+- Use proper legal document structure with clear headings
+- Include blank lines between sections for readability
+- Use standard legal document formatting conventions
+
+CONTENT REQUIREMENTS:
+1. Standard legal clauses and provisions
+2. Clear terms and conditions with proper numbering
+3. Placeholders in brackets [Insert Information Here]
+4. Industry-appropriate language and requirements
+5. Professional document structure with clear sections
+
+The template should be comprehensive, properly formatted, and editable for specific deal requirements.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -54,11 +65,30 @@ The template should be comprehensive but editable, allowing for customization ba
       temperature: 0.3
     });
 
-    const template = response.choices[0]?.message?.content;
+    let template = response.choices[0]?.message?.content;
     
     if (!template) {
       throw new Error('No template generated from AI response');
     }
+
+    // Post-process the template to ensure proper formatting
+    template = template
+      // Remove multiple asterisks and hash symbols
+      .replace(/\*{2,}/g, '')
+      .replace(/#{1,}/g, '')
+      .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
+      // Ensure proper line breaks after periods and sections
+      .replace(/\.\s*([A-Z])/g, '.\n\n$1')
+      // Fix paragraph spacing
+      .replace(/\\par\\par/g, '\n\n')
+      .replace(/\\par/g, '\n')
+      // Clean up extra whitespace
+      .replace(/\s{3,}/g, '  ')
+      // Ensure proper section numbering format
+      .replace(/(\d+\.)\s*([A-Z])/g, '$1 $2');
+    
+    // Ensure the template starts with proper formatting
+    template = template.trim();
 
     return {
       success: true,
