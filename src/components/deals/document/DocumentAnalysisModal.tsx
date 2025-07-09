@@ -57,15 +57,41 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
   const performAnalysis = async (analysisType: string) => {
     if (!document || !user) return;
 
+    console.log('🔍 DocumentAnalysisModal performAnalysis called:', {
+      analysisType,
+      documentId: document.id,
+      documentName: document.name
+    });
+
     setLoadingAnalysis(prev => ({ ...prev, [analysisType]: true }));
     
     try {
-      // Call the document AI assistant edge function for analysis
-      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'analyze_document',
+      // For summary analysis, use the summarize_document operation with my improved AI
+      let operation, body;
+      
+      if (analysisType === 'summary') {
+        console.log('📋 Using summarize_document operation for concise summary');
+        operation = 'summarize_document';
+        body = {
+          operation,
           documentId: document.id,
           documentVersionId: document.id, // Use document ID as version ID for now
+          userId: user.id,
+          dealId: dealId,
+          content: '', // Empty content means it will fetch from database
+          context: { 
+            operationType: 'document_summary',
+            documentName: document.name,
+            documentType: document.type
+          }
+        };
+      } else {
+        console.log('📊 Using analyze_document operation for other analysis types');
+        operation = 'analyze_document';
+        body = {
+          operation,
+          documentId: document.id,
+          documentVersionId: document.id,
           userId: user.id,
           dealId: dealId,
           context: {
@@ -73,7 +99,20 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
             documentName: document.name,
             documentType: document.type
           }
-        }
+        };
+      }
+
+      // Call the document AI assistant edge function for analysis
+      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body
+      });
+
+      console.log('📡 DocumentAnalysisModal AI response:', {
+        success: !error,
+        hasData: !!result,
+        error: error?.message,
+        resultKeys: result ? Object.keys(result) : [],
+        summaryLength: result?.summary?.length || 0
       });
 
       if (error) {
