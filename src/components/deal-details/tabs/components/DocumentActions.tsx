@@ -18,8 +18,7 @@ const DocumentActions: React.FC<DocumentActionsProps> = ({
         onClick={() => onAnalyzeDocument('summary')}
       >
         <Eye className="h-4 w-4" />
-        <span className="hidden xs:inline">Summarize</span>
-        <span className="xs:hidden">Sum</span>
+        <span className="hidden sm:inline">Summarize</span>
       </Button>
       <Button 
         size="sm" 
@@ -28,8 +27,7 @@ const DocumentActions: React.FC<DocumentActionsProps> = ({
         onClick={() => onAnalyzeDocument('key_terms')}
       >
         <Key className="h-4 w-4" />
-        <span className="hidden xs:inline">Key Terms</span>
-        <span className="xs:hidden">Keys</span>
+        <span className="hidden sm:inline">Key Terms</span>
       </Button>
       <Button 
         size="sm" 
@@ -38,8 +36,7 @@ const DocumentActions: React.FC<DocumentActionsProps> = ({
         onClick={() => onAnalyzeDocument('risks')}
       >
         <AlertTriangle className="h-4 w-4" />
-        <span className="hidden xs:inline">Risks</span>
-        <span className="xs:hidden">Risk</span>
+        <span className="hidden sm:inline">Risks</span>
       </Button>
     </div>
   );
