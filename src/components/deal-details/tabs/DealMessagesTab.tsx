@@ -43,12 +43,12 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParti
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-select participant when coming from participant tab
+  // Auto-select participant when coming from participant tab (only on initial load)
   useEffect(() => {
-    if (selectedParticipantId && selectedParticipantId !== selectedContactId) {
+    if (selectedParticipantId && selectedContactId === undefined) {
       setSelectedContactId(selectedParticipantId);
     }
-  }, [selectedParticipantId, selectedContactId]);
+  }, [selectedParticipantId]); // Remove selectedContactId from dependencies to prevent re-triggering
 
   // Mark messages as read when viewing a conversation
   useEffect(() => {
