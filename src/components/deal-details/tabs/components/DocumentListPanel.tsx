@@ -60,10 +60,8 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   return (
     <Card className="h-[900px] flex flex-col">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between mb-3">
-          <CardTitle className="text-lg">Deal Documents</CardTitle>
-        </div>
-        <div className="flex flex-col gap-2">
+        <CardTitle className="text-lg mb-3">Deal Documents</CardTitle>
+        <div className="flex gap-2">
           <Button 
             size="sm" 
             className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200"
