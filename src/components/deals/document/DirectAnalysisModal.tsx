@@ -72,7 +72,7 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
 
       const latestVersion = versions[0];
 
-      // For summary analysis, use the improved summarize_document operation
+      // Use specialized operations for better, more concise results
       let operation, requestBody;
       
       if (analysisType === 'summary') {
@@ -90,7 +90,38 @@ const DirectAnalysisModal: React.FC<DirectAnalysisModalProps> = ({
             documentType: document.type
           }
         };
+      } else if (analysisType === 'key_terms') {
+        operation = 'analyze_key_terms';
+        requestBody = {
+          operation,
+          documentId: document.id,
+          documentVersionId: latestVersion.id,
+          userId: user.id,
+          dealId: dealId,
+          content: '', // Empty content means it will fetch from database
+          context: { 
+            operationType: 'key_terms_analysis',
+            documentName: document.name,
+            documentType: document.type
+          }
+        };
+      } else if (analysisType === 'risks') {
+        operation = 'analyze_risks';
+        requestBody = {
+          operation,
+          documentId: document.id,
+          documentVersionId: latestVersion.id,
+          userId: user.id,
+          dealId: dealId,
+          content: '', // Empty content means it will fetch from database
+          context: { 
+            operationType: 'risk_analysis',
+            documentName: document.name,
+            documentType: document.type
+          }
+        };
       } else {
+        // Fallback to generic analyze_document for other types
         operation = 'analyze_document';
         requestBody = {
           operation,

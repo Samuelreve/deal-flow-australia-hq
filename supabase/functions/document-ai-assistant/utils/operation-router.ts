@@ -7,6 +7,8 @@ import { handleGenerateMilestones } from "../operations/generate-milestones.ts";
 import { handleGenerateTemplate } from "../operations/generate-template.ts";
 import { handleAnalyzeDocument } from "../operations/analyze-document.ts";
 import { handleSummarizeDocument } from "../operations/summarize-document.ts";
+import { handleAnalyzeKeyTerms } from "../operations/analyze-key-terms.ts";
+import { handleAnalyzeRisks } from "../operations/analyze-risks.ts";
 import { handleSummarizeVersionChanges } from "../operations/summarize-version-changes.ts";
 import { handlePredictDealHealth } from "../operations/predict-deal-health.ts";
 import { handleDealChatQuery } from "../operations/deal-chat-query.ts";
@@ -51,6 +53,28 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
           documentId: payload.documentId,
           documentVersionId: payload.documentVersionId
         }, 
+        openai
+      );
+    
+    case 'analyze_key_terms':
+      return await handleAnalyzeKeyTerms(
+        payload.content || '',
+        {
+          ...payload.context,
+          documentId: payload.documentId,
+          documentVersionId: payload.documentVersionId
+        },
+        openai
+      );
+    
+    case 'analyze_risks':
+      return await handleAnalyzeRisks(
+        payload.content || '',
+        {
+          ...payload.context,
+          documentId: payload.documentId,
+          documentVersionId: payload.documentVersionId
+        },
         openai
       );
     
