@@ -13,7 +13,7 @@ const SummaryRenderer: React.FC<SummaryRendererProps> = ({ content }) => {
 
   return (
     <div className="space-y-6">
-      {/* Key Points as Summary */}
+      {/* Only Key Points - Clean Summary */}
       {keyPoints && keyPoints.length > 0 && (
         <Card className="border-l-4 border-l-primary">
           <CardContent className="p-6">
