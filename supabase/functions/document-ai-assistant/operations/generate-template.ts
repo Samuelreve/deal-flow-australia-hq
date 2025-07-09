@@ -29,25 +29,39 @@ export async function handleGenerateTemplate(
       prompt += `Industry: ${context.businessIndustry}\n`;
     }
     
-    prompt += `\nPlease generate a professional, legally-structured ${templateType.toLowerCase()} template that includes:
+    prompt += `\nPlease generate a professional, legally-structured ${templateType.toLowerCase()} template following this exact format:
+
+DOCUMENT STRUCTURE REQUIREMENTS:
+- Start with a clear document title in ALL CAPS and underlined
+- Use numbered main sections (1., 2., 3., etc.)
+- Use lettered subsections (A., B., C., D., etc.) with proper indentation
+- Use numbered sub-subsections (1), 2), 3)) when needed
+- Include "Contract No." header if it's a contract
+- Add proper spacing: double line breaks between sections, single line breaks within sections
 
 FORMATTING REQUIREMENTS:
-- Use proper paragraph breaks and line spacing
-- Use numbered sections (1., 2., 3.) and lettered subsections (a., b., c.)
-- Use professional indentation and spacing
-- NO asterisks (*) or hash symbols (#) for formatting
-- Use proper legal document structure with clear headings
-- Include blank lines between sections for readability
-- Use standard legal document formatting conventions
+- Use ALL CAPS for key defined terms (e.g., BUYER, SELLER, AGREEMENT)
+- Proper paragraph indentation for subsections
+- Clear section titles like "DUTIES", "COMPENSATION", "TERMS AND CONDITIONS"
+- NO asterisks (*), hash symbols (#), or markdown formatting
+- Use underlines for document titles and section headers where appropriate
+- Professional spacing with blank lines between major sections
 
-CONTENT REQUIREMENTS:
-1. Standard legal clauses and provisions
-2. Clear terms and conditions with proper numbering
-3. Placeholders in brackets [Insert Information Here]
-4. Industry-appropriate language and requirements
-5. Professional document structure with clear sections
+TEXT FORMATTING:
+- Use proper legal language and terminology
+- Include placeholders in brackets like [INSERT BUYER NAME] or [INSERT AMOUNT]
+- Proper capitalization for defined terms throughout the document
+- Include reference to exhibits where applicable (e.g., "as specified in Exhibit A")
+- Use "shall" for obligations and "may" for permissions
 
-The template should be comprehensive, properly formatted, and editable for specific deal requirements.`;
+CONTENT STRUCTURE:
+1. Document header with title and contract number placeholder
+2. Opening paragraph identifying the parties
+3. Main sections covering duties, terms, compensation, etc.
+4. Proper legal clauses and provisions
+5. Signature blocks at the end
+
+The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
