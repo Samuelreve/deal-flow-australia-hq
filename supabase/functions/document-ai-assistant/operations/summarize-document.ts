@@ -86,57 +86,62 @@ export async function handleSummarizeDocument(
       : documentContent;
 
     // Create the prompt for concise summarization
-    const prompt = `You are an expert document analyzer. Please provide a concise summary of the following document in exactly 3-5 sentences. Focus on the most important information including:
+    const prompt = `Provide a VERY BRIEF summary of this document in EXACTLY 3-4 short sentences. Each sentence should be no more than 25 words.
 
-- Main purpose/type of document
-- Key parties involved (if any)
-- Critical terms, amounts, or dates
-- Primary obligations or conditions
-- Any important deadlines or actions required
-
-Keep the summary professional, clear, and informative. Do not include disclaimers or metadata - just the essential content summary.
+RULES:
+- Start with document type (contract, agreement, invoice, etc.)
+- Include key parties if mentioned
+- State the main purpose or transaction
+- Mention any critical amounts, dates, or deadlines
+- Use simple, clear language
+- NO legal jargon or lengthy explanations
+- Maximum 100 words total
 
 Document content:
-${truncatedContent}`;
+${truncatedContent}
+
+Summary:`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert legal and business document analyst. Provide clear, concise summaries that capture the essential information.'
+          content: 'You are a concise document summarizer. Always provide extremely brief, direct summaries. Never exceed 4 sentences or 100 words.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 300,
-      temperature: 0.3
+      max_tokens: 150,
+      temperature: 0.1
     });
 
     const aiSummary = completion.choices[0].message.content;
 
     // Extract key points using AI
-    const keyPointsPrompt = `Based on the following document, extract 3-5 key points or highlights as a bulleted list. Focus on the most important aspects like parties, amounts, dates, obligations, or critical terms. Format as simple bullet points without extra formatting.
+    const keyPointsPrompt = `Extract 3-4 key facts from this document as very short bullet points (max 10 words each):
 
 Document content:
-${truncatedContent}`;
+${truncatedContent}
+
+Key facts:`;
 
     const keyPointsCompletion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'Extract key points from documents in a clear, bulleted format.'
+          content: 'Extract key facts as very short bullet points. Each point must be under 10 words.'
         },
         {
           role: 'user',
           content: keyPointsPrompt
         }
       ],
-      max_tokens: 200,
-      temperature: 0.3
+      max_tokens: 100,
+      temperature: 0.1
     });
 
     const keyPointsText = keyPointsCompletion.choices[0].message.content;
