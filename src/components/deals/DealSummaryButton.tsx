@@ -74,8 +74,10 @@ const DealSummaryButton: React.FC<DealSummaryButtonProps> = ({
           </DialogHeader>
           
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="whitespace-pre-wrap text-sm">
-              {summary}
+            <div className="prose prose-sm max-w-none">
+              <p className="text-muted-foreground leading-relaxed">
+                {summary}
+              </p>
             </div>
             
             <div className="text-xs text-muted-foreground border-t pt-2 mt-4">

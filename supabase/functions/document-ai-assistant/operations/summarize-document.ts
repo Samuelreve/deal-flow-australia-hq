@@ -7,7 +7,7 @@ export async function handleSummarizeDocument(
   openai: any
 ) {
   try {
-    console.log('📋 Starting document summarization...');
+    console.log('📋 Starting AI-powered document summarization...');
     console.log('📝 Content length:', content?.length || 0);
     console.log('🔧 Context:', context);
 
@@ -30,11 +30,20 @@ export async function handleSummarizeDocument(
       // Try to get content from document version first
       if (context?.documentVersionId) {
         console.log('🔍 Looking for document version:', context.documentVersionId);
-        // For now, we'll assume the content comes from contracts table
+        const { data: docVersion, error: versionError } = await supabase
+          .from('document_versions')
+          .select('text_content')
+          .eq('id', context.documentVersionId)
+          .single();
+        
+        if (!versionError && docVersion?.text_content) {
+          documentContent = docVersion.text_content;
+          console.log('✅ Found document version content:', documentContent.length);
+        }
       }
       
-      // Try to get content from contracts table
-      if (context?.documentId) {
+      // Try to get content from contracts table if no version content found
+      if ((!documentContent || documentContent.trim().length === 0) && context?.documentId) {
         console.log('🔍 Looking for contract:', context.documentId);
         const { data: contract, error } = await supabase
           .from('contracts')
@@ -62,85 +71,103 @@ export async function handleSummarizeDocument(
       return {
         success: true,
         summary: 'No document content available for summarization. Please ensure the document has been properly uploaded and processed.',
+        keyPoints: [],
         documentType: 'unknown',
         disclaimer: 'Document summarization requires valid content input.'
       };
     }
 
-    console.log('📊 Analyzing document content...');
+    console.log('🤖 Generating AI summary with OpenAI...');
     
-    // Clean and prepare content for analysis
-    const cleanContent = documentContent.trim();
-    const wordCount = cleanContent.split(/\s+/).length;
-    const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
-    // Basic content analysis
-    const hasContractTerms = /\b(agreement|contract|party|parties|terms|conditions|liability|termination|clause|section|obligation|breach|damages|indemnify|warranty|guarantee|consideration|execution|binding|force|effect)\b/gi.test(cleanContent);
-    const hasLegalLanguage = /\b(whereas|therefore|hereby|herein|hereafter|notwithstanding|pursuant|thereof|thereto|aforesaid|covenant|undertake|shall|constitute|deem|provision|stipulate)\b/gi.test(cleanContent);
-    const hasFinancialTerms = /\b(payment|price|cost|fee|amount|dollar|currency|invoice|billing|refund|penalty|interest|deposit|escrow)\b/gi.test(cleanContent);
-    
-    let documentType = 'document';
-    if (hasContractTerms && hasLegalLanguage) {
-      documentType = 'legal contract';
-    } else if (hasContractTerms) {
-      documentType = 'contract or agreement';
-    } else if (hasFinancialTerms) {
-      documentType = 'financial document';
+    // Truncate content if too long (OpenAI token limits)
+    const maxContentLength = 12000; // Roughly 3000 tokens for GPT-4
+    const truncatedContent = documentContent.length > maxContentLength 
+      ? documentContent.substring(0, maxContentLength) + '...' 
+      : documentContent;
+
+    // Create the prompt for concise summarization
+    const prompt = `You are an expert document analyzer. Please provide a concise summary of the following document in exactly 3-5 sentences. Focus on the most important information including:
+
+- Main purpose/type of document
+- Key parties involved (if any)
+- Critical terms, amounts, or dates
+- Primary obligations or conditions
+- Any important deadlines or actions required
+
+Keep the summary professional, clear, and informative. Do not include disclaimers or metadata - just the essential content summary.
+
+Document content:
+${truncatedContent}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert legal and business document analyst. Provide clear, concise summaries that capture the essential information.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 300,
+      temperature: 0.3
+    });
+
+    const aiSummary = completion.choices[0].message.content;
+
+    // Extract key points using AI
+    const keyPointsPrompt = `Based on the following document, extract 3-5 key points or highlights as a bulleted list. Focus on the most important aspects like parties, amounts, dates, obligations, or critical terms. Format as simple bullet points without extra formatting.
+
+Document content:
+${truncatedContent}`;
+
+    const keyPointsCompletion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Extract key points from documents in a clear, bulleted format.'
+        },
+        {
+          role: 'user',
+          content: keyPointsPrompt
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.3
+    });
+
+    const keyPointsText = keyPointsCompletion.choices[0].message.content;
+    // Parse the key points from the AI response
+    const keyPoints = keyPointsText
+      .split('\n')
+      .filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*'))
+      .map(point => point.replace(/^[•\-*]\s*/, '').trim())
+      .filter(point => point.length > 0);
+
+    // Basic document type detection
+    const cleanContent = documentContent.toLowerCase();
+    let documentType = 'Document';
+    if (cleanContent.includes('agreement') || cleanContent.includes('contract')) {
+      documentType = 'Contract';
+    } else if (cleanContent.includes('invoice') || cleanContent.includes('payment')) {
+      documentType = 'Financial Document';
+    } else if (cleanContent.includes('policy') || cleanContent.includes('procedure')) {
+      documentType = 'Policy Document';
     }
 
-    // Generate key points from the content
-    const keyPoints = [];
-    
-    if (hasContractTerms) {
-      keyPoints.push('Contains contractual terms and obligations');
-    }
-    if (hasLegalLanguage) {
-      keyPoints.push('Written in formal legal language');
-    }
-    if (hasFinancialTerms) {
-      keyPoints.push('Includes financial terms and conditions');
-    }
-    
-    // Extract potential party names (basic heuristic)
-    const potentialParties = cleanContent.match(/\b[A-Z][a-z]+ [A-Z][a-z]+(?:\s+(?:Inc|LLC|Corp|Ltd|Company|Co)\b)?\b/g) || [];
-    const uniqueParties = [...new Set(potentialParties)].slice(0, 3);
-    
-    if (uniqueParties.length > 0) {
-      keyPoints.push(`Potential parties mentioned: ${uniqueParties.join(', ')}`);
-    }
-
-    // Generate a basic summary
-    let summary = `This ${documentType} contains approximately ${wordCount} words across ${sentences.length} sentences.`;
-    
-    if (keyPoints.length > 0) {
-      summary += `\n\nKey characteristics:\n• ${keyPoints.join('\n• ')}`;
-    }
-
-    // Add basic content overview
-    if (wordCount > 100) {
-      const firstSentences = sentences.slice(0, 2).join('. ');
-      if (firstSentences.length > 0) {
-        summary += `\n\nDocument begins with: "${firstSentences}..."`;
-      }
-    }
-
-    if (hasContractTerms) {
-      summary += '\n\nThis appears to be a contractual document that may contain important legal obligations, terms, and conditions that should be carefully reviewed.';
-    }
-
-    console.log('✅ Document summarization completed');
-    console.log('📄 Summary length:', summary.length);
+    console.log('✅ AI document summarization completed');
+    console.log('📄 Summary length:', aiSummary?.length || 0);
+    console.log('🔑 Key points extracted:', keyPoints.length);
 
     return {
       success: true,
-      summary,
-      documentType,
-      wordCount,
-      sentenceCount: sentences.length,
-      containsLegalTerms: hasContractTerms,
-      containsLegalLanguage: hasLegalLanguage,
-      containsFinancialTerms: hasFinancialTerms,
+      summary: aiSummary,
       keyPoints,
+      documentType,
+      wordCount: documentContent.split(/\s+/).length,
       disclaimer: 'This AI-generated summary is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.'
     };
   } catch (error) {
