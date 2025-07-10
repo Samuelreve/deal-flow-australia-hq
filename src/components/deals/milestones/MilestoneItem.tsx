@@ -4,6 +4,7 @@ import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
+import { FileText } from 'lucide-react';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -27,6 +28,21 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+  
+  // Check if this milestone has documents that need signing
+  const hasSignableDocuments = milestone.documents && milestone.documents.length > 0 && 
+    milestone.documents.some(doc => doc.status === 'draft' || doc.status === 'final');
+  
+  // Show sign button for in_progress milestones with signable documents
+  const showSignButton = hasSignableDocuments && 
+    ['in_progress'].includes(milestone.status) && 
+    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+
+  const handleSignDocument = () => {
+    // For now, we'll just log this action - can be expanded later
+    console.log('Sign document clicked for milestone:', milestone.id);
+    // TODO: Implement document signing flow
+  };
   
   return (
     <li className="mb-10 ms-6">
@@ -109,6 +125,19 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               {updatingMilestoneId === milestone.id ? 'Updating...' : 'Resume Milestone'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Sign Document Button - Show separately for better visibility */}
+      {showSignButton && (
+        <div className="mt-3">
+          <button
+            onClick={handleSignDocument}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Sign Document
+          </button>
         </div>
       )}
     </li>
