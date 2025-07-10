@@ -21,7 +21,7 @@ interface DocumentCommentsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedDocument: any;
   onToggleCommentForm: () => void;
-  onAddComment: (content: string) => void;
+  onAddComment: (content: string, parentCommentId?: string) => void;
 }
 
 const DocumentComments: React.FC<DocumentCommentsProps> = ({
@@ -33,12 +33,23 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
   onAddComment,
 }) => {
   const { user } = useAuth();
+  const [replyingToId, setReplyingToId] = React.useState<string | null>(null);
   const handleSubmitComment = () => {
     const textarea = document.getElementById('comment-input') as HTMLTextAreaElement;
     const content = textarea?.value.trim();
     if (content && !isSubmittingComment) {
       onAddComment(content);
       textarea.value = '';
+    }
+  };
+
+  const handleSubmitReply = (commentId: string) => {
+    const textarea = document.getElementById(`reply-input-${commentId}`) as HTMLTextAreaElement;
+    const content = textarea?.value.trim();
+    if (content && !isSubmittingComment) {
+      onAddComment(content, commentId);
+      textarea.value = '';
+      setReplyingToId(null);
     }
   };
 
@@ -49,6 +60,18 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
       if (content && !isSubmittingComment) {
         onAddComment(content);
         (e.target as HTMLTextAreaElement).value = '';
+      }
+    }
+  };
+
+  const handleReplyKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, commentId: string) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const content = (e.target as HTMLTextAreaElement).value.trim();
+      if (content && !isSubmittingComment) {
+        onAddComment(content, commentId);
+        (e.target as HTMLTextAreaElement).value = '';
+        setReplyingToId(null);
       }
     }
   };
@@ -113,40 +136,75 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="p-3 border rounded-lg bg-background">
-              <div className="flex items-start gap-2 mb-2">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium">
-                    {comment.profiles?.name?.charAt(0) || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {comment.profiles?.name || 'Unknown User'}
-                      {user?.id === comment.user_id && (
-                        <span className="ml-1 text-xs text-muted-foreground">(me)</span>
-                      )}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(comment.created_at).toLocaleDateString()}
+            <div key={comment.id} className="space-y-2">
+              <div className="p-3 border rounded-lg bg-background">
+                <div className="flex items-start gap-2 mb-2">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium">
+                      {comment.profiles?.name?.charAt(0) || 'U'}
                     </span>
                   </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {comment.profiles?.name || 'Unknown User'}
+                        {user?.id === comment.user_id && (
+                          <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(comment.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <p className="text-sm text-foreground">{comment.content}</p>
+                
+                {/* Reply button - show only for other users' comments */}
+                {user?.id !== comment.user_id && (
+                  <div className="mt-2 flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setReplyingToId(comment.id)}
+                    >
+                      <Reply className="h-3 w-3 mr-1" />
+                      Reply
+                    </Button>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-foreground">{comment.content}</p>
-              
-              {/* Reply button - show only for other users' comments */}
-              {user?.id !== comment.user_id && (
-                <div className="mt-2 flex justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <Reply className="h-3 w-3 mr-1" />
-                    Reply
-                  </Button>
+
+              {/* Reply Form */}
+              {replyingToId === comment.id && (
+                <div className="ml-4 p-3 border rounded-lg bg-muted/10">
+                  <div className="space-y-3">
+                    <Textarea 
+                      placeholder={`Reply to ${comment.profiles?.name || 'Unknown User'}...`}
+                      className="min-h-[60px] resize-none text-sm"
+                      id={`reply-input-${comment.id}`}
+                      onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setReplyingToId(null)}
+                        disabled={isSubmittingComment}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleSubmitReply(comment.id)}
+                        disabled={isSubmittingComment}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        {isSubmittingComment ? 'Replying...' : 'Reply'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

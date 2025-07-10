@@ -328,7 +328,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     setShowAnalysisModal(true);
   };
 
-  const handleAddComment = async (content: string) => {
+  const handleAddComment = async (content: string, parentCommentId?: string) => {
     if (!selectedDocument || !user) return;
 
     setIsSubmittingComment(true);
@@ -359,7 +359,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         .insert({
           document_version_id: versionData.id,
           content: content,
-          user_id: user.id
+          user_id: user.id,
+          parent_comment_id: parentCommentId || null
         })
         .select(`
           *,
