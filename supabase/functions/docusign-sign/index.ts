@@ -50,6 +50,19 @@ serve(async (req: Request) => {
 
     console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole });
 
+    // Check if all required environment variables are present
+    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+    const userId = Deno.env.get('DOCUSIGN_USER_ID');
+    const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
+    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
+    
+    console.log('Environment variables check:', {
+      integrationKey: integrationKey ? 'present' : 'missing',
+      userId: userId ? 'present' : 'missing', 
+      privateKey: privateKey ? 'present' : 'missing',
+      accountId: accountId ? 'present' : 'missing'
+    });
+
     // Get document details from database
     const { data: document, error: docError } = await supabase
       .from('documents')
