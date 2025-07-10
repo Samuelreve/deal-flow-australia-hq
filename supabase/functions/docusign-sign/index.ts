@@ -74,12 +74,31 @@ serve(async (req: Request) => {
     }
 
     // Download document from Supabase storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('deal_documents')
-      .download(document.storage_path);
+    // Try different bucket names since there are multiple buckets
+    let fileData = null;
+    let downloadError = null;
+    
+    const buckets = ['deal_documents', 'Deal Documents', 'Documents', 'contracts'];
+    
+    for (const bucket of buckets) {
+      console.log(`Trying to download from bucket: ${bucket}, path: ${document.storage_path}`);
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .download(document.storage_path);
+      
+      if (!error && data) {
+        fileData = data;
+        console.log(`Successfully downloaded from bucket: ${bucket}`);
+        break;
+      } else {
+        console.log(`Failed to download from bucket ${bucket}:`, error?.message);
+        downloadError = error;
+      }
+    }
 
-    if (downloadError || !fileData) {
-      throw new Error('Failed to download document');
+    if (!fileData) {
+      console.error('Failed to download document from any bucket. Last error:', downloadError?.message);
+      throw new Error(`Failed to download document from any bucket. Last error: ${downloadError?.message}`);
     }
 
     // Convert file to base64
