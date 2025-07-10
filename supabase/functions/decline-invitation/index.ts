@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
-serve(async (req: Request) => {
+const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("CORS preflight request received");
@@ -106,4 +106,6 @@ serve(async (req: Request) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+};
+
+serve(handler);
