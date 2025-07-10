@@ -207,6 +207,12 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
   try {
     console.log('Attempting DocuSign JWT authentication with integration key:', integrationKey.substring(0, 8) + '...');
     
+    // Clean and format the private key
+    let cleanPrivateKey = privateKey.trim();
+    if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
+    }
+    
     // Create JWT header
     const header = {
       "alg": "RS256",
@@ -224,15 +230,34 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       "scope": "signature"
     };
     
+    console.log('JWT payload created:', { iss: integrationKey, sub: userId, iat: now, exp: now + 3600 });
+    
     // Encode header and payload
     const encodedHeader = btoa(JSON.stringify(header)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
     const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
     
     // Create signature data
     const signatureData = `${encodedHeader}.${encodedPayload}`;
+    console.log('Signature data created, length:', signatureData.length);
     
-    // Import private key and sign
-    const keyData = new TextEncoder().encode(privateKey);
+    // Convert PEM to DER format for Web Crypto API
+    const pemContent = cleanPrivateKey
+      .replace('-----BEGIN PRIVATE KEY-----', '')
+      .replace('-----END PRIVATE KEY-----', '')
+      .replace(/\s/g, '');
+    
+    console.log('PEM content extracted, length:', pemContent.length);
+    
+    // Decode base64 to get DER format
+    const binaryString = atob(pemContent);
+    const keyData = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      keyData[i] = binaryString.charCodeAt(i);
+    }
+    
+    console.log('Key data converted to binary, length:', keyData.length);
+    
+    // Import private key
     const key = await crypto.subtle.importKey(
       "pkcs8",
       keyData,
@@ -244,18 +269,22 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       ["sign"]
     );
     
+    console.log('Private key imported successfully');
+    
+    // Sign the data
     const signature = await crypto.subtle.sign(
       "RSASSA-PKCS1-v1_5",
       key,
       new TextEncoder().encode(signatureData)
     );
     
+    console.log('Data signed successfully, signature length:', signature.byteLength);
+    
     const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
       .replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
     
     const jwt = `${signatureData}.${encodedSignature}`;
-    
-    console.log('JWT created, requesting access token...');
+    console.log('JWT created successfully, length:', jwt.length);
     
     // Exchange JWT for access token
     const authUrl = 'https://account-d.docusign.com/oauth/token';
@@ -291,7 +320,10 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
     return data.access_token;
     
   } catch (error) {
-    console.error('JWT authentication failed:', error);
+    console.error('JWT authentication failed with error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
   }
 }
