@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, X, ArrowLeft, ArrowRight } from 'lucide-react';
+import { FileText, X, ArrowLeft, ArrowRight, User } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -15,12 +15,19 @@ interface Document {
   category?: string;
 }
 
+interface Buyer {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+}
+
 interface DocumentSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   dealId: string;
   userRole: string;
-  onDocumentSelected: (documentId: string) => void;
+  onDocumentSelected: (documentId: string, buyerId?: string) => void;
 }
 
 const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
@@ -32,18 +39,25 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
 }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'select' | 'confirm'>('select');
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
+  const [step, setStep] = useState<'select' | 'buyer' | 'confirm'>('select');
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
       fetchDocuments();
+      if (userRole === 'seller') {
+        fetchBuyers();
+      }
       setStep('select');
       setSelectedDocumentId(null);
+      setSelectedBuyerId(null);
     }
-  }, [isOpen, dealId]);
+  }, [isOpen, dealId, userRole]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -71,36 +85,99 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
     }
   };
 
+  const fetchBuyers = async () => {
+    setLoadingBuyers(true);
+    try {
+      const { data, error } = await supabase
+        .from('deal_participants')
+        .select(`
+          user_id,
+          profiles:user_id (
+            name,
+            email,
+            avatar_url
+          )
+        `)
+        .eq('deal_id', dealId)
+        .eq('role', 'buyer');
+
+      if (error) {
+        throw error;
+      }
+
+      const buyersList: Buyer[] = (data || []).map((item: any) => ({
+        id: item.user_id,
+        name: item.profiles?.name || 'Unknown Buyer',
+        email: item.profiles?.email || '',
+        avatar_url: item.profiles?.avatar_url
+      }));
+
+      setBuyers(buyersList);
+    } catch (error: any) {
+      console.error('Error fetching buyers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load buyers',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingBuyers(false);
+    }
+  };
+
   const handleDocumentSelect = (documentId: string) => {
     setSelectedDocumentId(documentId);
   };
 
   const handleGoForward = () => {
-    if (!selectedDocumentId) {
-      toast({
-        title: 'No document selected',
-        description: 'Please select a document to continue',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     if (step === 'select') {
+      if (!selectedDocumentId) {
+        toast({
+          title: 'No document selected',
+          description: 'Please select a document to continue',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // For sellers, go to buyer selection step
+      if (userRole === 'seller') {
+        setStep('buyer');
+      } else {
+        // For buyers, skip to confirmation
+        setStep('confirm');
+      }
+    } else if (step === 'buyer') {
+      if (!selectedBuyerId) {
+        toast({
+          title: 'No buyer selected',
+          description: 'Please select a buyer to continue',
+          variant: 'destructive'
+        });
+        return;
+      }
       setStep('confirm');
     } else {
       // Initiate DocuSign signing
-      onDocumentSelected(selectedDocumentId);
+      onDocumentSelected(selectedDocumentId!, selectedBuyerId || undefined);
       onClose();
     }
   };
 
   const handleGoBack = () => {
     if (step === 'confirm') {
+      if (userRole === 'seller') {
+        setStep('buyer');
+      } else {
+        setStep('select');
+      }
+    } else if (step === 'buyer') {
       setStep('select');
     }
   };
 
   const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
+  const selectedBuyer = buyers.find(buyer => buyer.id === selectedBuyerId);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -115,7 +192,9 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-xl font-semibold">
-            {step === 'select' ? 'Select Document to Sign' : 'Confirm Document Signing'}
+            {step === 'select' && 'Select Document to Sign'}
+            {step === 'buyer' && 'Select Buyer to Co-Sign'}
+            {step === 'confirm' && 'Confirm Document Signing'}
           </DialogTitle>
           <Button
             variant="ghost"
@@ -184,6 +263,50 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                 </div>
               )}
             </div>
+          ) : step === 'buyer' ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select the buyer who will co-sign this document with you.
+              </p>
+
+              {loadingBuyers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : buyers.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No buyers found for this deal</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {buyers.map((buyer) => (
+                    <div
+                      key={buyer.id}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all hover:bg-muted/50 ${
+                        selectedBuyerId === buyer.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border'
+                      }`}
+                      onClick={() => setSelectedBuyerId(buyer.id)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{buyer.name}</p>
+                          <p className="text-xs text-muted-foreground">{buyer.email}</p>
+                        </div>
+                        {selectedBuyerId === buyer.id && (
+                          <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                            <div className="h-2 w-2 rounded-full bg-white"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-6">
               <div className="bg-muted/30 rounded-lg p-4">
@@ -201,6 +324,19 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                 )}
               </div>
 
+              {userRole === 'seller' && selectedBuyer && (
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <h3 className="font-medium mb-2">Selected Buyer</h3>
+                  <div className="flex items-center space-x-3">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{selectedBuyer.name}</p>
+                      <p className="text-xs text-muted-foreground">{selectedBuyer.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <h3 className="font-medium">What happens next?</h3>
                 <div className="space-y-3 text-sm text-muted-foreground">
@@ -210,7 +346,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                   </div>
                   <div className="flex items-start space-x-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2"></div>
-                    <p>After you sign, the {userRole === 'buyer' ? 'seller' : 'buyer'} will receive an email to sign</p>
+                    <p>After you sign, the {userRole === 'buyer' ? 'seller' : selectedBuyer ? selectedBuyer.name : 'buyer'} will receive an email to sign</p>
                   </div>
                   <div className="flex items-start space-x-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2"></div>
@@ -243,10 +379,18 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
 
           <Button
             onClick={handleGoForward}
-            disabled={!selectedDocumentId}
+            disabled={
+              (step === 'select' && !selectedDocumentId) ||
+              (step === 'buyer' && !selectedBuyerId) ||
+              (step === 'confirm' && (!selectedDocumentId || (userRole === 'seller' && !selectedBuyerId)))
+            }
             className="flex items-center space-x-2"
           >
-            <span>{step === 'select' ? 'Continue' : 'Start Signing'}</span>
+            <span>
+              {step === 'select' && 'Continue'}
+              {step === 'buyer' && 'Continue'}
+              {step === 'confirm' && 'Start Signing'}
+            </span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

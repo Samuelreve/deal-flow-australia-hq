@@ -99,11 +99,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     setIsDocumentModalOpen(true);
   };
 
-  const handleDocumentSelected = async (documentId: string) => {
+  const handleDocumentSelected = async (documentId: string, buyerId?: string) => {
     if (!user) return;
 
     try {
-      console.log('Starting DocuSign process for document:', documentId);
+      console.log('Starting DocuSign process for document:', documentId, 'with buyer:', buyerId);
       
       // Get user profile for name
       const { data: profile } = await supabase
@@ -111,6 +111,18 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         .select('name')
         .eq('id', user.id)
         .single();
+
+      let buyerInfo = null;
+      if (buyerId) {
+        // Get buyer profile information
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', buyerId)
+          .single();
+        
+        buyerInfo = buyerProfile;
+      }
       
       // Call DocuSign edge function to initiate signing
       const { data, error } = await supabase.functions.invoke('docusign-sign', {
@@ -119,7 +131,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           dealId,
           signerEmail: user.email,
           signerName: profile?.name || user.email,
-          signerRole: userRole.toLowerCase()
+          signerRole: userRole.toLowerCase(),
+          buyerEmail: buyerInfo?.email,
+          buyerName: buyerInfo?.name
         }
       });
 
