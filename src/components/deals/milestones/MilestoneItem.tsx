@@ -44,7 +44,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   
   // Only show sign button for "Closing Preparations" milestone
   const showSignButton = isClosingPreparations && 
-    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase()) &&
+    ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
     milestone.status === 'in_progress';
   
   // Check if documents are signed (for now, we'll simulate this)
