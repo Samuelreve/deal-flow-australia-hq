@@ -170,9 +170,12 @@ serve(async (req: Request) => {
     );
 
   } catch (error: any) {
-    console.error('DocuSign signing error:', error);
+    console.error('DocuSign signing error occurred:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, details: error.name }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
