@@ -144,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
       ]);
 
-    console.log("Invitation declined successfully");
+    console.log("Invitation declined successfully - status set to rejected");
     return new Response(
       JSON.stringify({ 
         success: true, 
