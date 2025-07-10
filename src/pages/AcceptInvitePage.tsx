@@ -128,12 +128,39 @@ const AcceptInvitePage = () => {
     }
   };
 
-  const handleDeclineInvitation = () => {
-    toast({
-      title: "Invitation Declined",
-      description: "You have declined the invitation.",
-    });
-    navigate('/');
+  const handleDeclineInvitation = async () => {
+    if (!token) return;
+
+    setAccepting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('decline-invitation', {
+        body: { token }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        toast({
+          title: "Invitation Declined",
+          description: "You have declined the invitation.",
+        });
+        navigate('/');
+      } else {
+        throw new Error(data.error || 'Failed to decline invitation');
+      }
+    } catch (error: any) {
+      console.error('Error declining invitation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to decline invitation",
+        variant: "destructive"
+      });
+    } finally {
+      setAccepting(false);
+    }
   };
 
   if (loading) {
