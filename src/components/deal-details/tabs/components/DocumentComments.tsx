@@ -1,12 +1,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare, Send, Reply } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Comment {
   id: string;
   content: string;
   created_at: string;
+  user_id: string;
   profiles?: {
     name?: string;
   };
@@ -30,6 +32,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
   onToggleCommentForm,
   onAddComment,
 }) => {
+  const { user } = useAuth();
   const handleSubmitComment = () => {
     const textarea = document.getElementById('comment-input') as HTMLTextAreaElement;
     const content = textarea?.value.trim();
@@ -121,6 +124,9 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">
                       {comment.profiles?.name || 'Unknown User'}
+                      {user?.id === comment.user_id && (
+                        <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                      )}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(comment.created_at).toLocaleDateString()}
@@ -129,6 +135,20 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 </div>
               </div>
               <p className="text-sm text-foreground">{comment.content}</p>
+              
+              {/* Reply button - show only for other users' comments */}
+              {user?.id !== comment.user_id && (
+                <div className="mt-2 flex justify-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Reply className="h-3 w-3 mr-1" />
+                    Reply
+                  </Button>
+                </div>
+              )}
             </div>
           ))
         )}
