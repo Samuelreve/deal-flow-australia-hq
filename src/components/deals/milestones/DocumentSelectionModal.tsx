@@ -51,11 +51,11 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
     if (isOpen) {
       console.log('DocumentSelectionModal opened with userRole:', userRole);
       fetchDocuments();
-      if (userRole.toLowerCase() === 'seller') {
-        console.log('User is seller, fetching buyers...');
+      if (userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') {
+        console.log('User is seller/admin, fetching buyers...');
         fetchBuyers();
       } else {
-        console.log('User is not seller, skipping buyer fetch. UserRole:', userRole);
+        console.log('User is not seller/admin, skipping buyer fetch. UserRole:', userRole);
       }
       setStep('select');
       setSelectedDocumentId(null);
@@ -146,12 +146,12 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
         return;
       }
       
-      // For sellers, go to buyer selection step
-      if (userRole.toLowerCase() === 'seller') {
+      // For sellers and admins, go to buyer selection step
+      if (userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') {
         console.log('Moving to buyer selection step');
         setStep('buyer');
       } else {
-        console.log('Skipping to confirmation step for non-seller');
+        console.log('Skipping to confirmation step for non-seller/admin');
         // For buyers, skip to confirmation
         setStep('confirm');
       }
@@ -176,7 +176,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
 
   const handleGoBack = () => {
     if (step === 'confirm') {
-      if (userRole.toLowerCase() === 'seller') {
+      if (userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') {
         setStep('buyer');
       } else {
         setStep('select');
@@ -334,7 +334,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                 )}
               </div>
 
-              {userRole.toLowerCase() === 'seller' && selectedBuyer && (
+              {(userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') && selectedBuyer && (
                 <div className="bg-muted/30 rounded-lg p-4">
                   <h3 className="font-medium mb-2">Selected Buyer</h3>
                   <div className="flex items-center space-x-3">
@@ -392,7 +392,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
             disabled={
               (step === 'select' && !selectedDocumentId) ||
               (step === 'buyer' && !selectedBuyerId) ||
-              (step === 'confirm' && (!selectedDocumentId || (userRole.toLowerCase() === 'seller' && !selectedBuyerId)))
+              (step === 'confirm' && (!selectedDocumentId || ((userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') && !selectedBuyerId)))
             }
             className="flex items-center space-x-2"
           >
