@@ -44,8 +44,8 @@ const DealHealthHistoryChart: React.FC<DealHealthHistoryChartProps> = ({ dealId 
   }
   
   return (
-    <Card className="min-h-[500px]">
-      <CardHeader>
+    <Card className="flex flex-col min-h-[600px]">
+      <CardHeader className="flex-shrink-0">
         <CardTitle>
           {deal ? `Health History: ${deal.title}` : 'Health History'}
         </CardTitle>
@@ -53,7 +53,7 @@ const DealHealthHistoryChart: React.FC<DealHealthHistoryChartProps> = ({ dealId 
           Historical health score changes over time
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-[400px] pb-6">
+      <CardContent className="flex-1 min-h-0 pb-6">
         {chartData.length > 1 ? (
           <ChartContainer
             config={{
