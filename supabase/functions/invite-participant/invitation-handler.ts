@@ -116,7 +116,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     
     try {
       const emailResult = await resend.emails.send({
-        from: "DealPilot <onboarding@resend.dev>", // Use verified Resend domain
+        from: "DealPilot <noreply@trustroom.ai>", // Use verified domain
         to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
         html: generateInvitationEmail({
