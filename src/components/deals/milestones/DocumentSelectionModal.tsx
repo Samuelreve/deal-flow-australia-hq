@@ -360,20 +360,12 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
         <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
-            onClick={step === 'select' ? onClose : handleGoBack}
+            onClick={handleGoBack}
             className="flex items-center space-x-2"
+            style={{ visibility: step === 'select' ? 'hidden' : 'visible' }}
           >
-            {step === 'select' ? (
-              <>
-                <X className="h-4 w-4" />
-                <span>Cancel</span>
-              </>
-            ) : (
-              <>
-                <ArrowLeft className="h-4 w-4" />
-                <span>Go Back</span>
-              </>
-            )}
+            <ArrowLeft className="h-4 w-4" />
+            <span>Go Back</span>
           </Button>
 
           <Button
