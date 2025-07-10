@@ -100,19 +100,32 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       )}
 
       {/* Reply button - show to all users except for replies to own comments */}
-      {onReplyClick && user?.id !== comment.user_id && (
-        <div className="mt-2 flex justify-end">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleReplyClick}
-            className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Reply className="h-3 w-3 mr-1" />
-            Reply
-          </Button>
-        </div>
-      )}
+      {onReplyClick && (() => {
+        console.log('Reply button debug:', {
+          onReplyClick: !!onReplyClick,
+          currentUserId: user?.id,
+          commentUserId: comment.user_id,
+          showButton: user?.id !== comment.user_id,
+          commentAuthor: comment.user?.name
+        });
+        return (
+          <div className="mt-2 flex justify-end">
+            {user?.id !== comment.user_id ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleReplyClick}
+                className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Reply className="h-3 w-3 mr-1" />
+                Reply
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">(Your comment)</span>
+            )}
+          </div>
+        );
+      })()}
       
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-3 pl-3 border-l-2">
