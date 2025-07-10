@@ -29,11 +29,11 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({ invitations, is
             </p>
           </div>
           <span className={`px-2 py-1 text-xs rounded-full ${
-            invitation.status === 'declined' 
+            invitation.status === 'rejected' 
               ? 'bg-red-100 text-red-800' 
               : 'bg-amber-100 text-amber-800'
           }`}>
-            {invitation.status === 'declined' ? 'Declined' : 'Pending'}
+            {invitation.status === 'rejected' ? 'Declined' : 'Pending'}
           </span>
         </div>
       ))}

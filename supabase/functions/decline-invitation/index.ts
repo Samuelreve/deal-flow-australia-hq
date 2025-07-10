@@ -111,12 +111,12 @@ const handler = async (req: Request): Promise<Response> => {
       // Allow decline regardless of email mismatch - user might be declining on behalf of someone
     }
 
-    // Update invitation status to declined
+    // Update invitation status to rejected (not declined)
     const { error: updateError } = await supabaseAdmin
       .from('deal_invitations')
       .update({ 
-        status: 'declined',
-        accepted_at: new Date().toISOString() // Using this field to track when it was declined
+        status: 'rejected',
+        accepted_at: new Date().toISOString() // Using this field to track when it was rejected
       })
       .eq('id', invitation.id);
 
@@ -161,7 +161,5 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
-
-serve(handler);
 
 serve(handler);
