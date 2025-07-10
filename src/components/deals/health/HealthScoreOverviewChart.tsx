@@ -43,9 +43,9 @@ const HealthScoreOverviewChart: React.FC<HealthScoreOverviewChartProps> = ({ dea
   };
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Card className="md:col-span-2">
-        <CardContent className="pt-6 h-[300px]">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[400px]">
+      <Card className="md:col-span-2 flex flex-col">
+        <CardContent className="flex-1 min-h-0 pt-6">
           {chartData.length > 0 ? (
             <ChartContainer
               config={{
