@@ -157,7 +157,7 @@ backend = "postgres"
 verify_jwt = true
 
 [functions.decline-invitation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.add-deal-participant]
 verify_jwt = true
