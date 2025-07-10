@@ -53,7 +53,7 @@ const DealHealthHistoryChart: React.FC<DealHealthHistoryChartProps> = ({ dealId 
           Historical health score changes over time
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px]">
+      <CardContent className="h-[400px] pb-6">
         {chartData.length > 1 ? (
           <ChartContainer
             config={{
