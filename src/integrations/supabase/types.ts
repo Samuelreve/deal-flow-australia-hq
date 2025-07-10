@@ -832,6 +832,60 @@ export type Database = {
           },
         ]
       }
+      document_signatures: {
+        Row: {
+          created_at: string | null
+          deal_id: string
+          document_id: string
+          envelope_id: string
+          id: string
+          signed_at: string | null
+          signer_email: string
+          signer_role: Database["public"]["Enums"]["user_role"]
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deal_id: string
+          document_id: string
+          envelope_id: string
+          id?: string
+          signed_at?: string | null
+          signer_email: string
+          signer_role: Database["public"]["Enums"]["user_role"]
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deal_id?: string
+          document_id?: string
+          envelope_id?: string
+          id?: string
+          signed_at?: string | null
+          signer_email?: string
+          signer_role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signatures_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signatures_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_versions: {
         Row: {
           created_at: string

@@ -1,10 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
+import DocumentSelectionModal from './DocumentSelectionModal';
 import { FileText } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -25,6 +28,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 }) => {
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
+  const [checkingSignatures, setCheckingSignatures] = useState(false);
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
@@ -47,9 +54,41 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
     milestone.status === 'in_progress';
   
-  // Check if documents are signed (for now, we'll simulate this)
-  // TODO: Implement actual document signing status check
-  const documentsAreSigned = false; // This would check actual document signatures
+  // Check if documents are signed for this deal
+  useEffect(() => {
+    if (isClosingPreparations) {
+      checkDocumentSignatures();
+    }
+  }, [dealId, isClosingPreparations]);
+
+  const checkDocumentSignatures = async () => {
+    if (!dealId) return;
+    
+    setCheckingSignatures(true);
+    try {
+      // Check if there are any completed signatures for this deal
+      const { data: signatures, error } = await supabase
+        .from('document_signatures')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('status', 'completed');
+
+      if (error) {
+        console.error('Error checking signatures:', error);
+        return;
+      }
+
+      // Check if we have signatures from both buyer and seller
+      const buyerSigned = signatures?.some(sig => sig.signer_role === 'buyer');
+      const sellerSigned = signatures?.some(sig => sig.signer_role === 'seller');
+      
+      setDocumentsAreSigned(buyerSigned && sellerSigned);
+    } catch (error) {
+      console.error('Error checking document signatures:', error);
+    } finally {
+      setCheckingSignatures(false);
+    }
+  };
   
   // Prevent completing Closing Preparations if documents aren't signed
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
@@ -57,8 +96,60 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
   const handleSignDocument = () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
-    // TODO: Implement actual document signing flow
-    alert(`Document signing for "${milestone.title}" - Feature coming soon!\n\nOnce implemented, this will:\n- Show available documents to sign\n- Track signature status\n- Enable milestone completion once signed`);
+    setIsDocumentModalOpen(true);
+  };
+
+  const handleDocumentSelected = async (documentId: string) => {
+    if (!user) return;
+
+    try {
+      console.log('Starting DocuSign process for document:', documentId);
+      
+      // Get user profile for name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      
+      // Call DocuSign edge function to initiate signing
+      const { data, error } = await supabase.functions.invoke('docusign-sign', {
+        body: {
+          documentId,
+          dealId,
+          signerEmail: user.email,
+          signerName: profile?.name || user.email,
+          signerRole: userRole.toLowerCase()
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.signingUrl) {
+        // Open DocuSign signing URL in new window
+        window.open(data.signingUrl, '_blank');
+        
+        toast({
+          title: 'Document signing initiated',
+          description: 'Please complete the signing process in the new window.'
+        });
+
+        // Refresh signature status after a delay
+        setTimeout(() => {
+          checkDocumentSignatures();
+        }, 2000);
+      }
+
+    } catch (error: any) {
+      console.error('Error starting DocuSign process:', error);
+      toast({
+        title: 'Signing failed',
+        description: error.message || 'Failed to start document signing process',
+        variant: 'destructive'
+      });
+    }
   };
   
   return (
@@ -168,6 +259,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           </button>
         </div>
       )}
+
+      {/* Document Selection Modal */}
+      <DocumentSelectionModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        dealId={dealId}
+        userRole={userRole}
+        onDocumentSelected={handleDocumentSelected}
+      />
     </li>
   );
 };
