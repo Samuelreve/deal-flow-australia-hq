@@ -369,23 +369,18 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
         </div>
 
         <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={step === 'select' ? onClose : handleGoBack}
-            className="flex items-center space-x-2"
-          >
-            {step === 'select' ? (
-              <>
-                <X className="h-4 w-4" />
-                <span>Cancel</span>
-              </>
-            ) : (
-              <>
-                <ArrowLeft className="h-4 w-4" />
-                <span>Go Back</span>
-              </>
-            )}
-          </Button>
+          {step !== 'select' && (
+            <Button
+              variant="outline"
+              onClick={handleGoBack}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Go Back</span>
+            </Button>
+          )}
+          
+          {step === 'select' && <div></div>}
 
           <Button
             onClick={handleGoForward}
