@@ -200,20 +200,12 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <DialogHeader className="pb-4">
           <DialogTitle className="text-xl font-semibold">
             {step === 'select' && 'Select Document to Sign'}
             {step === 'buyer' && 'Select Buyer to Co-Sign'}
             {step === 'confirm' && 'Confirm Document Signing'}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-6 w-6 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto">
