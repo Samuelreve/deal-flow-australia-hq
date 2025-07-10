@@ -196,9 +196,13 @@ async function getDocuSignAccessToken(): Promise<string> {
 
 async function getClientCredentialsAccessToken(integrationKey: string, clientSecret: string): Promise<string> {
   try {
+    console.log('Attempting DocuSign authentication with integration key:', integrationKey.substring(0, 8) + '...');
     const credentials = btoa(`${integrationKey}:${clientSecret}`);
     
-    const response = await fetch('https://account-d.docusign.com/oauth/token', {
+    const authUrl = 'https://account-d.docusign.com/oauth/token';
+    console.log('Using DocuSign auth URL:', authUrl);
+    
+    const response = await fetch(authUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -210,19 +214,24 @@ async function getClientCredentialsAccessToken(integrationKey: string, clientSec
       })
     });
 
+    console.log('DocuSign auth response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('DocuSign authentication failed:', errorData);
-      throw new Error(`DocuSign authentication failed: ${response.status} ${response.statusText}`);
+      console.error('DocuSign authentication failed. Status:', response.status);
+      console.error('DocuSign error details:', errorData);
+      throw new Error(`DocuSign authentication failed: ${response.status} ${response.statusText} - ${errorData}`);
     }
 
     const data = await response.json();
+    console.log('DocuSign auth response keys:', Object.keys(data));
     
     if (!data.access_token) {
+      console.error('No access token in response:', data);
       throw new Error('No access token received from DocuSign');
     }
 
-    console.log('Successfully obtained DocuSign access token');
+    console.log('Successfully obtained DocuSign access token, expires in:', data.expires_in, 'seconds');
     return data.access_token;
     
   } catch (error) {
