@@ -1,15 +1,26 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { corsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-requested-with, accept, origin, referer, user-agent',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+  'Access-Control-Max-Age': '86400',
+};
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("CORS preflight request received");
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Decline invitation request received:", req.method);
+
   try {
     const { token } = await req.json();
+    console.log("Token received:", token ? "present" : "missing");
     
     if (!token) {
       return new Response(
@@ -22,6 +33,9 @@ serve(async (req: Request) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
+    console.log("Supabase URL:", SUPABASE_URL ? "present" : "missing");
+    console.log("Service role key:", SUPABASE_SERVICE_ROLE_KEY ? "present" : "missing");
+    
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get invitation details first
@@ -30,6 +44,8 @@ serve(async (req: Request) => {
       .select('id, status, token_expires_at')
       .eq('invitation_token', token)
       .single();
+
+    console.log("Invitation fetch result:", { invitation, fetchError });
 
     if (fetchError || !invitation) {
       return new Response(
@@ -40,6 +56,7 @@ serve(async (req: Request) => {
 
     // Check if invitation is still pending
     if (invitation.status !== 'pending') {
+      console.log("Invitation status is not pending:", invitation.status);
       return new Response(
         JSON.stringify({ success: false, error: 'Invitation is no longer pending' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -48,6 +65,7 @@ serve(async (req: Request) => {
 
     // Check if invitation has expired
     if (invitation.token_expires_at && new Date(invitation.token_expires_at) < new Date()) {
+      console.log("Invitation has expired");
       // Update invitation status to expired
       await supabaseAdmin
         .from('deal_invitations')
@@ -69,6 +87,8 @@ serve(async (req: Request) => {
       })
       .eq('id', invitation.id);
 
+    console.log("Update result:", { updateError });
+
     if (updateError) {
       console.error('Error declining invitation:', updateError);
       return new Response(
@@ -77,6 +97,7 @@ serve(async (req: Request) => {
       );
     }
 
+    console.log("Invitation declined successfully");
     return new Response(
       JSON.stringify({ 
         success: true, 
