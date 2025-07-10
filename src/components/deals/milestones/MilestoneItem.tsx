@@ -29,19 +29,37 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
   
+  // Debug logging to understand what we're working with
+  console.log('Milestone data:', {
+    id: milestone.id,
+    title: milestone.title,
+    status: milestone.status,
+    documents: milestone.documents,
+    userRole: userRole,
+    isParticipant: isParticipant
+  });
+  
   // Check if this milestone has documents that need signing
+  // For now, let's show the button for completed milestones (since documents are typically signed at completion)
   const hasSignableDocuments = milestone.documents && milestone.documents.length > 0 && 
     milestone.documents.some(doc => doc.status === 'draft' || doc.status === 'final');
   
-  // Show sign button for in_progress milestones with signable documents
-  const showSignButton = hasSignableDocuments && 
-    ['in_progress'].includes(milestone.status) && 
-    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+  // Show sign button for completed or in_progress milestones (documents often need signing when milestone is done)
+  const showSignButton = (
+    ['completed', 'in_progress'].includes(milestone.status) && 
+    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase())
+  ) || (
+    // Fallback: Always show for testing if milestone has specific keywords
+    milestone.title.toLowerCase().includes('legal') || 
+    milestone.title.toLowerCase().includes('contract') ||
+    milestone.title.toLowerCase().includes('closing') ||
+    milestone.title.toLowerCase().includes('transaction')
+  );
 
   const handleSignDocument = () => {
-    // For now, we'll just log this action - can be expanded later
-    console.log('Sign document clicked for milestone:', milestone.id);
+    console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
     // TODO: Implement document signing flow
+    alert(`Document signing for "${milestone.title}" - Feature coming soon!`);
   };
   
   return (
