@@ -39,27 +39,26 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     isParticipant: isParticipant
   });
   
-  // Check if this milestone has documents that need signing
-  // For now, let's show the button for completed milestones (since documents are typically signed at completion)
-  const hasSignableDocuments = milestone.documents && milestone.documents.length > 0 && 
-    milestone.documents.some(doc => doc.status === 'draft' || doc.status === 'final');
+  // Check if this is the "Closing Preparations" milestone
+  const isClosingPreparations = milestone.title.toLowerCase().includes('closing preparation');
   
-  // Show sign button for completed or in_progress milestones (documents often need signing when milestone is done)
-  const showSignButton = (
-    ['completed', 'in_progress'].includes(milestone.status) && 
-    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase())
-  ) || (
-    // Fallback: Always show for testing if milestone has specific keywords
-    milestone.title.toLowerCase().includes('legal') || 
-    milestone.title.toLowerCase().includes('contract') ||
-    milestone.title.toLowerCase().includes('closing') ||
-    milestone.title.toLowerCase().includes('transaction')
-  );
+  // Only show sign button for "Closing Preparations" milestone
+  const showSignButton = isClosingPreparations && 
+    ['buyer', 'seller', 'lawyer'].includes(userRole.toLowerCase()) &&
+    milestone.status === 'in_progress';
+  
+  // Check if documents are signed (for now, we'll simulate this)
+  // TODO: Implement actual document signing status check
+  const documentsAreSigned = false; // This would check actual document signatures
+  
+  // Prevent completing Closing Preparations if documents aren't signed
+  const canMarkAsCompleted = milestone.status === 'in_progress' && 
+    (!isClosingPreparations || documentsAreSigned);
 
   const handleSignDocument = () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
-    // TODO: Implement document signing flow
-    alert(`Document signing for "${milestone.title}" - Feature coming soon!`);
+    // TODO: Implement actual document signing flow
+    alert(`Document signing for "${milestone.title}" - Feature coming soon!\n\nOnce implemented, this will:\n- Show available documents to sign\n- Track signature status\n- Enable milestone completion once signed`);
   };
   
   return (
@@ -100,12 +99,23 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {/* Action Buttons - Only show if user has permission */}
       {canUpdateMilestone && (
         <div className="flex flex-wrap gap-2">
-          {/* "Mark as Completed" button - only for in_progress milestones */}
+          {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Closing Preparations */}
           {milestone.status === 'in_progress' && (
             <button
-              onClick={() => onUpdateStatus(milestone.id, 'completed')}
-              disabled={updatingMilestoneId === milestone.id}
-              className={`inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (isClosingPreparations && !documentsAreSigned) {
+                  alert('Documents must be signed before completing the Closing Preparations milestone.');
+                  return;
+                }
+                onUpdateStatus(milestone.id, 'completed');
+              }}
+              disabled={updatingMilestoneId === milestone.id || (isClosingPreparations && !documentsAreSigned)}
+              className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                isClosingPreparations && !documentsAreSigned 
+                  ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                  : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
+              } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title={isClosingPreparations && !documentsAreSigned ? 'Documents must be signed first' : ''}
             >
               {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
             </button>
