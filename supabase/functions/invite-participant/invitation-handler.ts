@@ -116,7 +116,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     
     try {
       const emailResult = await resend.emails.send({
-        from: "DealPilot <noreply@trustroom.ai>",
+        from: "DealPilot <onboarding@resend.dev>", // Use verified Resend domain
         to: [inviteeEmail],
         subject: `Invitation to join deal "${dealData.title}"`,
         html: generateInvitationEmail({
@@ -124,7 +124,18 @@ export async function handleInvitation(req: Request): Promise<Response> {
           dealTitle: dealData.title,
           inviteeRole,
           invitationUrl
-        })
+        }),
+        // Add text version for better deliverability
+        text: `Hello,
+
+${inviterName} has invited you to join the deal "${dealData.title}" as a ${inviteeRole}.
+
+To accept this invitation, please visit: ${invitationUrl}
+
+If you weren't expecting this invitation, you can safely ignore this email.
+
+Regards,
+The Deal Pilot Team`
       });
       
       console.log("Email sent successfully:", emailResult);

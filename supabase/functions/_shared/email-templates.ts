@@ -11,21 +11,60 @@ export function generateInvitationEmail(params: {
   const { inviterName, dealTitle, inviteeRole, invitationUrl } = params;
   
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #333;">Deal Invitation</h2>
-      <p>Hello,</p>
-      <p>${inviterName} has invited you to join the deal "${dealTitle}" as a ${inviteeRole}.</p>
-      <p>To accept this invitation, please click the button below:</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${invitationUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-          Accept Invitation
-        </a>
-      </div>
-      <p>Or copy and paste this link into your browser:</p>
-      <p><a href="${invitationUrl}">${invitationUrl}</a></p>
-      <p>If you weren't expecting this invitation, you can safely ignore this email.</p>
-      <p>Regards,<br/>The Deal Pilot Team</p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Deal Invitation</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <tr>
+                <td style="padding: 40px 30px; text-align: center; background-color: #4F46E5;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Deal Invitation</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px;">
+                  <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5; color: #333333;">Hello,</p>
+                  <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                    <strong>${inviterName}</strong> has invited you to join the deal "<strong>${dealTitle}</strong>" as a <strong>${inviteeRole}</strong>.
+                  </p>
+                  <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                    To accept this invitation, please click the button below:
+                  </p>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding: 20px 0;">
+                        <a href="${invitationUrl}" style="display: inline-block; padding: 15px 30px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Accept Invitation</a>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin: 30px 0 20px 0; font-size: 14px; line-height: 1.5; color: #666666;">
+                    Or copy and paste this link into your browser:
+                  </p>
+                  <p style="margin: 0 0 30px 0; font-size: 14px; line-height: 1.5; color: #4F46E5; word-break: break-all;">
+                    ${invitationUrl}
+                  </p>
+                  <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.5; color: #666666;">
+                    If you weren't expecting this invitation, you can safely ignore this email.
+                  </p>
+                  <p style="margin: 30px 0 0 0; font-size: 14px; line-height: 1.5; color: #333333;">
+                    Regards,<br/>
+                    The Deal Pilot Team
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
   `;
 }
 
