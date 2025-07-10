@@ -175,39 +175,56 @@ async function getDocuSignAccessToken(): Promise<string> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
   const userId = Deno.env.get('DOCUSIGN_USER_ID');
+  const rsaPrivateKey = Deno.env.get('DOCUSIGN_RSA_PRIVATE_KEY');
 
   if (!integrationKey || !clientSecret || !userId) {
     throw new Error('DocuSign credentials not configured');
   }
 
-  const authString = btoa(`${integrationKey}:${clientSecret}`);
-  
-  const response = await fetch('https://account-d.docusign.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${authString}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: await createJWT(integrationKey, userId)
-    })
-  });
-
-  const tokenData = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${tokenData.error_description}`);
+  // If RSA key is available, use JWT Grant
+  if (rsaPrivateKey) {
+    return await getJWTAccessToken(integrationKey, userId, rsaPrivateKey);
   }
-
-  return tokenData.access_token;
+  
+  // Fallback to Authorization Code Grant (requires manual setup)
+  throw new Error('DocuSign RSA private key not configured. Please set up JWT authentication or use Authorization Code Grant.');
 }
 
-async function createJWT(integrationKey: string, userId: string): Promise<string> {
-  // For production, you'd implement proper JWT creation with RSA keys
-  // For now, we'll use a simplified approach
-  // Note: This is a placeholder - real implementation requires RSA key pair
-  throw new Error('JWT creation not implemented - requires RSA key pair setup');
+async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string): Promise<string> {
+  try {
+    // Import the RSA key for signing
+    const keyData = privateKey.replace(/\\n/g, '\n');
+    
+    // Create JWT payload
+    const now = Math.floor(Date.now() / 1000);
+    const header = {
+      typ: 'JWT',
+      alg: 'RS256'
+    };
+    
+    const payload = {
+      iss: integrationKey,
+      sub: userId,
+      aud: 'account-d.docusign.com',
+      iat: now,
+      exp: now + 3600, // 1 hour
+      scope: 'signature impersonation'
+    };
+
+    // For production, you would use a proper JWT library with RSA signing
+    // For now, we'll use a simpler approach with Authorization Code Grant
+    throw new Error('JWT signing requires proper RSA implementation. Please use Authorization Code Grant for now.');
+    
+  } catch (error) {
+    console.error('JWT creation failed:', error);
+    throw new Error(`JWT authentication failed: ${error.message}`);
+  }
+}
+
+async function getAuthCodeAccessToken(): Promise<string> {
+  // This would require a redirect flow for user consent
+  // Not suitable for server-to-server edge functions
+  throw new Error('Authorization Code Grant requires user interaction - not suitable for edge functions');
 }
 
 async function createDocuSignEnvelope(params: {
