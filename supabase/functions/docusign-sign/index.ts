@@ -107,8 +107,8 @@ serve(async (req: Request) => {
     }
 
     if (!fileData) {
-      console.error('Failed to download document from any bucket. Last error:', downloadError?.message);
-      throw new Error(`Failed to download document from any bucket. Last error: ${downloadError?.message}`);
+      console.error('Failed to download document from any bucket. Last error:', downloadError);
+      throw new Error(`Failed to download document from any bucket. Last error: ${JSON.stringify(downloadError)}`);
     }
 
     // Convert file to base64
