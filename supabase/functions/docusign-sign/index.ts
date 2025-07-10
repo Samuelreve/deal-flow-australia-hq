@@ -29,17 +29,23 @@ interface EnvelopeDocument {
 }
 
 serve(async (req: Request) => {
+  console.log('=== DocuSign Function Started ===');
+  console.log('Request method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Creating Supabase client...');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Parsing request body...');
     const { documentId, dealId, signerEmail, signerName, signerRole }: DocuSignRequest = await req.json();
 
     console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole });
