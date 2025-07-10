@@ -9,9 +9,11 @@ interface Comment {
   content: string;
   created_at: string;
   user_id: string;
+  parent_comment_id?: string | null;
   profiles?: {
     name?: string;
   };
+  replies?: Comment[];
 }
 
 interface DocumentCommentsProps {
@@ -76,6 +78,15 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     }
   };
 
+  // Group comments by parent-child relationship
+  const groupedComments = React.useMemo(() => {
+    const topLevelComments = comments.filter(comment => !comment.parent_comment_id);
+    return topLevelComments.map(comment => ({
+      ...comment,
+      replies: comments.filter(reply => reply.parent_comment_id === comment.id)
+    }));
+  }, [comments]);
+
   return (
     <div className="w-80 border-l pl-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
@@ -135,8 +146,9 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
             </p>
           </div>
         ) : (
-          comments.map((comment) => (
+          groupedComments.map((comment) => (
             <div key={comment.id} className="space-y-2">
+              {/* Main Comment */}
               <div className="p-3 border rounded-lg bg-background">
                 <div className="flex items-start gap-2 mb-2">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -176,33 +188,75 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 )}
               </div>
 
+              {/* Replies Section */}
+              {comment.replies && comment.replies.length > 0 && (
+                <div className="ml-6 pl-4 border-l-2 border-muted space-y-2">
+                  {comment.replies.map((reply) => (
+                    <div key={reply.id} className="p-3 border rounded-lg bg-muted/30 animate-fade-in">
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium">
+                            {reply.profiles?.name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              {reply.profiles?.name || 'Unknown User'}
+                              {user?.id === reply.user_id && (
+                                <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground">replied</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(reply.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pl-8">
+                        <div className="text-xs text-muted-foreground mb-1">
+                          Replying to <span className="font-medium">{comment.profiles?.name || 'Unknown User'}</span>
+                        </div>
+                        <p className="text-sm text-foreground">{reply.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Reply Form */}
               {replyingToId === comment.id && (
-                <div className="ml-4 p-3 border rounded-lg bg-muted/10">
-                  <div className="space-y-3">
-                    <Textarea 
-                      placeholder={`Reply to ${comment.profiles?.name || 'Unknown User'}...`}
-                      className="min-h-[60px] resize-none text-sm"
-                      id={`reply-input-${comment.id}`}
-                      onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setReplyingToId(null)}
-                        disabled={isSubmittingComment}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={() => handleSubmitReply(comment.id)}
-                        disabled={isSubmittingComment}
-                      >
-                        <Send className="h-4 w-4 mr-1" />
-                        {isSubmittingComment ? 'Replying...' : 'Reply'}
-                      </Button>
+                <div className="ml-6 pl-4 border-l-2 border-primary animate-fade-in">
+                  <div className="p-3 border rounded-lg bg-primary/5">
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Replying to <span className="font-medium">{comment.profiles?.name || 'Unknown User'}</span>
+                    </div>
+                    <div className="space-y-3">
+                      <Textarea 
+                        placeholder={`Reply to ${comment.profiles?.name || 'Unknown User'}...`}
+                        className="min-h-[60px] resize-none text-sm border-primary/20 focus:border-primary"
+                        id={`reply-input-${comment.id}`}
+                        onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setReplyingToId(null)}
+                          disabled={isSubmittingComment}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleSubmitReply(comment.id)}
+                          disabled={isSubmittingComment}
+                        >
+                          <Send className="h-4 w-4 mr-1" />
+                          {isSubmittingComment ? 'Replying...' : 'Reply'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
