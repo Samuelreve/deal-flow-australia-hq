@@ -218,93 +218,145 @@ async function getDocuSignAccessToken(): Promise<string> {
 
 async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string): Promise<string> {
   try {
-    console.log('Attempting DocuSign JWT authentication with integration key:', integrationKey.substring(0, 8) + '...');
+    console.log('=== Starting DocuSign JWT Authentication ===');
+    console.log('Integration Key (partial):', integrationKey.substring(0, 8) + '...');
+    console.log('User ID:', userId);
+    console.log('Private Key length:', privateKey.length);
     
-    // Clean and format the private key
+    // Validate inputs
+    if (!integrationKey || !userId || !privateKey) {
+      throw new Error('Missing required parameters for JWT authentication');
+    }
+
+    // Clean and format the private key according to DocuSign requirements
     let cleanPrivateKey = privateKey.trim();
+    
+    // Remove any Windows line endings and normalize
+    cleanPrivateKey = cleanPrivateKey.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Ensure proper PEM format
     if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // If it's just the key content, wrap it properly
       cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
     }
     
-    // Create JWT header
+    console.log('Private key format check passed');
+
+    // Create JWT header (must be RS256 for DocuSign)
     const header = {
       "alg": "RS256",
       "typ": "JWT"
     };
     
-    // Create JWT payload
+    // Create JWT payload according to DocuSign specifications
     const now = Math.floor(Date.now() / 1000);
     const payload = {
-      "iss": integrationKey,
-      "sub": userId,
-      "aud": "account-d.docusign.com",
-      "iat": now,
-      "exp": now + 3600, // 1 hour expiration
-      "scope": "signature"
+      "iss": integrationKey,          // Integration Key (Client ID)
+      "sub": userId,                  // DocuSign User ID (GUID)
+      "aud": "account-d.docusign.com", // DocuSign demo environment
+      "iat": now,                     // Issued at
+      "exp": now + 3600,              // Expires in 1 hour (max for DocuSign)
+      "scope": "signature"            // Required scope for eSignature API
     };
     
-    console.log('JWT payload created:', { iss: integrationKey, sub: userId, iat: now, exp: now + 3600 });
+    console.log('JWT payload:', { 
+      iss: integrationKey.substring(0, 8) + '...', 
+      sub: userId, 
+      aud: payload.aud,
+      iat: payload.iat, 
+      exp: payload.exp,
+      scope: payload.scope
+    });
     
-    // Encode header and payload
-    const encodedHeader = btoa(JSON.stringify(header)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
-    const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
+    // Base64URL encode header and payload
+    const encodedHeader = btoa(JSON.stringify(header))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
     
-    // Create signature data
+    const encodedPayload = btoa(JSON.stringify(payload))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    
     const signatureData = `${encodedHeader}.${encodedPayload}`;
-    console.log('Signature data created, length:', signatureData.length);
+    console.log('JWT signature data prepared, length:', signatureData.length);
     
-    // Convert PEM to DER format for Web Crypto API
+    // Extract key content and convert to DER format
     const pemContent = cleanPrivateKey
-      .replace('-----BEGIN PRIVATE KEY-----', '')
-      .replace('-----END PRIVATE KEY-----', '')
-      .replace(/\s/g, '');
+      .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+      .replace(/-----END PRIVATE KEY-----/g, '')
+      .replace(/\s+/g, '')  // Remove all whitespace
+      .trim();
     
     console.log('PEM content extracted, length:', pemContent.length);
     
-    // Decode base64 to get DER format
-    const binaryString = atob(pemContent);
-    const keyData = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      keyData[i] = binaryString.charCodeAt(i);
+    if (pemContent.length === 0) {
+      throw new Error('Private key content is empty after processing');
     }
     
-    console.log('Key data converted to binary, length:', keyData.length);
+    // Decode base64 to get DER format (PKCS#8)
+    let keyData: Uint8Array;
+    try {
+      const binaryString = atob(pemContent);
+      keyData = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        keyData[i] = binaryString.charCodeAt(i);
+      }
+      console.log('Key converted to DER format, byte length:', keyData.length);
+    } catch (error) {
+      throw new Error(`Failed to decode private key: ${error.message}`);
+    }
     
-    // Import private key
-    const key = await crypto.subtle.importKey(
-      "pkcs8",
-      keyData,
-      {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256"
-      },
-      false,
-      ["sign"]
-    );
+    // Import private key using Web Crypto API
+    let cryptoKey: CryptoKey;
+    try {
+      cryptoKey = await crypto.subtle.importKey(
+        "pkcs8",  // PKCS#8 format required by DocuSign
+        keyData,
+        {
+          name: "RSASSA-PKCS1-v1_5",  // Algorithm required by DocuSign
+          hash: "SHA-256"             // Hash function for RS256
+        },
+        false,    // Not extractable
+        ["sign"]  // Key usage
+      );
+      console.log('Private key imported successfully');
+    } catch (error) {
+      throw new Error(`Failed to import private key: ${error.message}. Make sure the key is in PKCS#8 format.`);
+    }
     
-    console.log('Private key imported successfully');
+    // Sign the JWT data
+    let signature: ArrayBuffer;
+    try {
+      signature = await crypto.subtle.sign(
+        "RSASSA-PKCS1-v1_5",
+        cryptoKey,
+        new TextEncoder().encode(signatureData)
+      );
+      console.log('JWT signed successfully, signature length:', signature.byteLength);
+    } catch (error) {
+      throw new Error(`Failed to sign JWT: ${error.message}`);
+    }
     
-    // Sign the data
-    const signature = await crypto.subtle.sign(
-      "RSASSA-PKCS1-v1_5",
-      key,
-      new TextEncoder().encode(signatureData)
-    );
-    
-    console.log('Data signed successfully, signature length:', signature.byteLength);
-    
+    // Base64URL encode the signature
     const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
     
     const jwt = `${signatureData}.${encodedSignature}`;
-    console.log('JWT created successfully, length:', jwt.length);
+    console.log('JWT created successfully, total length:', jwt.length);
     
-    // Exchange JWT for access token
+    // Exchange JWT for access token with DocuSign
+    console.log('Requesting access token from DocuSign...');
     const authUrl = 'https://account-d.docusign.com/oauth/token';
-    const response = await fetch(authUrl, {
+    
+    const tokenResponse = await fetch(authUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -312,31 +364,63 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       })
     });
 
-    console.log('DocuSign JWT auth response status:', response.status);
+    console.log('DocuSign token response status:', tokenResponse.status);
+    console.log('DocuSign token response headers:', Object.fromEntries(tokenResponse.headers.entries()));
     
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('DocuSign JWT authentication failed. Status:', response.status);
-      console.error('DocuSign JWT error details:', errorData);
-      throw new Error(`DocuSign JWT authentication failed: ${response.status} ${response.statusText} - ${errorData}`);
+    const responseText = await tokenResponse.text();
+    console.log('DocuSign raw response:', responseText);
+    
+    if (!tokenResponse.ok) {
+      console.error('DocuSign JWT authentication failed');
+      console.error('Status:', tokenResponse.status, tokenResponse.statusText);
+      console.error('Response body:', responseText);
+      
+      let errorMessage = `DocuSign JWT authentication failed: ${tokenResponse.status} ${tokenResponse.statusText}`;
+      
+      try {
+        const errorData = JSON.parse(responseText);
+        if (errorData.error) {
+          errorMessage += ` - ${errorData.error}`;
+          if (errorData.error_description) {
+            errorMessage += `: ${errorData.error_description}`;
+          }
+        }
+      } catch (e) {
+        errorMessage += ` - ${responseText}`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log('DocuSign JWT auth response keys:', Object.keys(data));
+    let tokenData;
+    try {
+      tokenData = JSON.parse(responseText);
+    } catch (error) {
+      throw new Error(`Failed to parse token response: ${error.message}`);
+    }
     
-    if (!data.access_token) {
-      console.error('No access token in JWT response:', data);
-      throw new Error('No access token received from DocuSign JWT');
+    console.log('Token response parsed, keys:', Object.keys(tokenData));
+    
+    if (!tokenData.access_token) {
+      console.error('No access token in response:', tokenData);
+      throw new Error('No access token received from DocuSign');
     }
 
-    console.log('Successfully obtained DocuSign JWT access token, expires in:', data.expires_in, 'seconds');
-    return data.access_token;
+    console.log('=== DocuSign JWT Authentication Successful ===');
+    console.log('Access token received, expires in:', tokenData.expires_in, 'seconds');
+    console.log('Token type:', tokenData.token_type);
+    
+    return tokenData.access_token;
     
   } catch (error) {
-    console.error('JWT authentication failed with error:', error);
-    console.error('Error name:', error.name);
+    console.error('=== DocuSign JWT Authentication Failed ===');
+    console.error('Error type:', error.constructor.name);
     console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    if (error.stack) {
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Re-throw with more context
     throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
   }
 }
