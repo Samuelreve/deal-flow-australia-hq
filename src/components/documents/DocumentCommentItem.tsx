@@ -55,7 +55,12 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
     >
       <div className="flex justify-between items-start">
         <div className="flex items-center">
-          <span className="font-medium">{comment.user?.name || 'User'}</span>
+          <span className="font-medium">
+            {comment.user?.name || 'User'}
+            {user?.id === comment.user_id && (
+              <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+            )}
+          </span>
           {comment.resolved && (
             <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
               Resolved
@@ -94,8 +99,8 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
         </div>
       )}
 
-      {/* Reply button */}
-      {onReplyClick && (
+      {/* Reply button - show to all users except for replies to own comments */}
+      {onReplyClick && user?.id !== comment.user_id && (
         <div className="mt-2 flex justify-end">
           <Button 
             variant="ghost" 
