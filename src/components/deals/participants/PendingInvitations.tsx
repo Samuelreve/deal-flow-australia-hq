@@ -14,7 +14,7 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({ invitations, is
 
   return (
     <div className="mt-4 pt-4 border-t">
-      <h4 className="text-sm font-medium mb-2">Pending Invitations</h4>
+      <h4 className="text-sm font-medium mb-2">Invitations</h4>
       {invitations.map((invitation) => (
         <div key={invitation.id} className="flex items-center justify-between py-2 text-sm">
           <div>
