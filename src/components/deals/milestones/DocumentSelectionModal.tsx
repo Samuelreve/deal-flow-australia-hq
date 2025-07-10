@@ -49,9 +49,13 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log('DocumentSelectionModal opened with userRole:', userRole);
       fetchDocuments();
-      if (userRole === 'seller') {
+      if (userRole.toLowerCase() === 'seller') {
+        console.log('User is seller, fetching buyers...');
         fetchBuyers();
+      } else {
+        console.log('User is not seller, skipping buyer fetch. UserRole:', userRole);
       }
       setStep('select');
       setSelectedDocumentId(null);
@@ -130,6 +134,8 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
   };
 
   const handleGoForward = () => {
+    console.log('handleGoForward called with step:', step, 'userRole:', userRole);
+    
     if (step === 'select') {
       if (!selectedDocumentId) {
         toast({
@@ -141,9 +147,11 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
       }
       
       // For sellers, go to buyer selection step
-      if (userRole === 'seller') {
+      if (userRole.toLowerCase() === 'seller') {
+        console.log('Moving to buyer selection step');
         setStep('buyer');
       } else {
+        console.log('Skipping to confirmation step for non-seller');
         // For buyers, skip to confirmation
         setStep('confirm');
       }
@@ -156,8 +164,10 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
         });
         return;
       }
+      console.log('Moving to confirmation step from buyer selection');
       setStep('confirm');
     } else {
+      console.log('Starting DocuSign process');
       // Initiate DocuSign signing
       onDocumentSelected(selectedDocumentId!, selectedBuyerId || undefined);
       onClose();
@@ -166,7 +176,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
 
   const handleGoBack = () => {
     if (step === 'confirm') {
-      if (userRole === 'seller') {
+      if (userRole.toLowerCase() === 'seller') {
         setStep('buyer');
       } else {
         setStep('select');
@@ -324,7 +334,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                 )}
               </div>
 
-              {userRole === 'seller' && selectedBuyer && (
+              {userRole.toLowerCase() === 'seller' && selectedBuyer && (
                 <div className="bg-muted/30 rounded-lg p-4">
                   <h3 className="font-medium mb-2">Selected Buyer</h3>
                   <div className="flex items-center space-x-3">
@@ -346,7 +356,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
                   </div>
                   <div className="flex items-start space-x-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2"></div>
-                    <p>After you sign, the {userRole === 'buyer' ? 'seller' : selectedBuyer ? selectedBuyer.name : 'buyer'} will receive an email to sign</p>
+                    <p>After you sign, the {userRole.toLowerCase() === 'buyer' ? 'seller' : selectedBuyer ? selectedBuyer.name : 'buyer'} will receive an email to sign</p>
                   </div>
                   <div className="flex items-start space-x-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2"></div>
@@ -382,7 +392,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
             disabled={
               (step === 'select' && !selectedDocumentId) ||
               (step === 'buyer' && !selectedBuyerId) ||
-              (step === 'confirm' && (!selectedDocumentId || (userRole === 'seller' && !selectedBuyerId)))
+              (step === 'confirm' && (!selectedDocumentId || (userRole.toLowerCase() === 'seller' && !selectedBuyerId)))
             }
             className="flex items-center space-x-2"
           >
