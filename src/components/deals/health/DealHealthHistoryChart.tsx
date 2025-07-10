@@ -44,7 +44,7 @@ const DealHealthHistoryChart: React.FC<DealHealthHistoryChartProps> = ({ dealId 
   }
   
   return (
-    <Card>
+    <Card className="min-h-[500px]">
       <CardHeader>
         <CardTitle>
           {deal ? `Health History: ${deal.title}` : 'Health History'}
