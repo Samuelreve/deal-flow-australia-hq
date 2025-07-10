@@ -81,19 +81,29 @@ serve(async (req: Request) => {
     const buckets = ['deal_documents', 'Deal Documents', 'Documents', 'contracts'];
     
     for (const bucket of buckets) {
-      console.log(`Trying to download from bucket: ${bucket}, path: ${document.storage_path}`);
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .download(document.storage_path);
+      // Try both with and without deal ID prefix in the path
+      const possiblePaths = [
+        document.storage_path, // Original path
+        `${dealId}/${document.storage_path}` // Path with deal ID prefix
+      ];
       
-      if (!error && data) {
-        fileData = data;
-        console.log(`Successfully downloaded from bucket: ${bucket}`);
-        break;
-      } else {
-        console.log(`Failed to download from bucket ${bucket}:`, error?.message);
-        downloadError = error;
+      for (const path of possiblePaths) {
+        console.log(`Trying to download from bucket: ${bucket}, path: ${path}`);
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .download(path);
+        
+        if (!error && data) {
+          fileData = data;
+          console.log(`Successfully downloaded from bucket: ${bucket}, path: ${path}`);
+          break;
+        } else {
+          console.log(`Failed to download from bucket ${bucket}, path ${path}:`, error?.message);
+          downloadError = error;
+        }
       }
+      
+      if (fileData) break;
     }
 
     if (!fileData) {
