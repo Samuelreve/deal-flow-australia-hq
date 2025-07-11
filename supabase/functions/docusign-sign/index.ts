@@ -804,12 +804,13 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
     const apiClient = new ApiClient();
     apiClient.setBasePath('https://demo.docusign.net/restapi');
     
-    // Configure OAuth settings for demo
-    apiClient.setOAuthBasePath('https://account-d.docusign.com');
+    // Configure OAuth settings for demo - the SDK seems to prepend https:// automatically
+    // Use just the domain name to avoid double https://
+    apiClient.setOAuthBasePath('account-d.docusign.com');
     
     console.log('API Client configured for demo environment');
     console.log('Base Path:', apiClient.getBasePath());
-    console.log('OAuth Base Path:', apiClient.getOAuthBasePath());
+    console.log('OAuth Base Path:', 'account-d.docusign.com');
     
     // Clean and format the private key
     let cleanPrivateKey = privateKey.trim();
@@ -1147,7 +1148,7 @@ async function refreshOAuthToken(refreshToken: string): Promise<boolean> {
   }
 
   try {
-    const response = await fetch('https://account-d.docusign.com/oauth/token', {
+    const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
