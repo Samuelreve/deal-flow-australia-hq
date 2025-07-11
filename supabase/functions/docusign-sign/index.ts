@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, RecipientViewRequest } from 'npm:docusign-esign@8.2.0';
+
+// Import DocuSign SDK using default export pattern for Deno
+const docusign = await import('npm:docusign-esign@8.2.0');
 
 declare const Deno: {
   env: {
@@ -795,6 +797,7 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
     console.log('Target: demo.docusign.net environment');
     
     // Initialize DocuSign API client for demo environment
+    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient;
     const apiClient = new ApiClient();
     apiClient.setBasePath('https://demo.docusign.net/restapi');
     
