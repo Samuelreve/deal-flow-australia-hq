@@ -725,7 +725,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   });
 
   // Get signing URL for the first signer
-  const signingUrl = await getSigningUrl(envelope.envelopeId, '1', accessToken);
+  const signingUrl = await getSigningUrl(envelope.envelopeId, '1', accessToken, signerEmail, signerName);
 
   // Store envelope information in database
   await supabase
@@ -1055,9 +1055,10 @@ async function createDocuSignEnvelope(params: {
   }
 }
 
-async function getSigningUrl(envelopeId: string, recipientId: string, accessToken: string): Promise<string> {
+async function getSigningUrl(envelopeId: string, recipientId: string, accessToken: string, recipientEmail: string, recipientName: string): Promise<string> {
   try {
     console.log('Getting signing URL using SDK...');
+    console.log('Parameters:', { envelopeId, recipientId, recipientEmail, recipientName });
     
     // Initialize API client with DocuSign SDK classes
     const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
@@ -1080,10 +1081,21 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     // Create EnvelopesApi instance
     const envelopesApi = new EnvelopesApi(apiClient);
     
-    // Create recipient view request
+    // Create recipient view request with required fields
     const recipientViewRequest = new RecipientViewRequest();
     recipientViewRequest.authenticationMethod = 'email';
+    recipientViewRequest.email = recipientEmail;
+    recipientViewRequest.userName = recipientName;
+    recipientViewRequest.clientUserId = recipientId;
     recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
+    
+    console.log('Recipient view request:', {
+      authenticationMethod: recipientViewRequest.authenticationMethod,
+      email: recipientViewRequest.email,
+      userName: recipientViewRequest.userName,
+      clientUserId: recipientViewRequest.clientUserId,
+      returnUrl: recipientViewRequest.returnUrl
+    });
     
     console.log('Requesting signing URL from DocuSign...');
     
