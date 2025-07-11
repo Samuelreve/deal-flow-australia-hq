@@ -158,6 +158,21 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     } catch (error: any) {
       console.error('Error starting DocuSign process:', error);
+      
+      // Check if this is a consent required error
+      if (error.message && error.message.startsWith('CONSENT_REQUIRED:')) {
+        const consentUrl = error.message.split('CONSENT_REQUIRED:')[1];
+        
+        toast({
+          title: 'DocuSign consent required',
+          description: 'Opening consent page in new tab. Please grant consent and try again.',
+        });
+        
+        // Open consent URL in new tab
+        window.open(consentUrl, '_blank');
+        return;
+      }
+      
       toast({
         title: 'Signing failed',
         description: error.message || 'Failed to start document signing process',

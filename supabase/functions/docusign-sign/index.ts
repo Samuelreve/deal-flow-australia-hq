@@ -327,6 +327,16 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       const errorData = await response.text();
       console.error('DocuSign JWT authentication failed. Status:', response.status);
       console.error('DocuSign JWT error details:', errorData);
+      
+      // Check if this is a consent required error
+      if (response.status === 400 && errorData.includes('consent_required')) {
+        console.log('Consent required - generating consent URL');
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent('https://developers.docusign.com/platform/auth/consent')}`;
+        
+        // Return a special response indicating consent is needed
+        throw new Error(`CONSENT_REQUIRED:${consentUrl}`);
+      }
+      
       throw new Error(`DocuSign JWT authentication failed: ${response.status} ${response.statusText} - ${errorData}`);
     }
 
