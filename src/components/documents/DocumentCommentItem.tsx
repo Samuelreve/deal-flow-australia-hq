@@ -30,9 +30,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
 
   const handleReplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onReplyClick) {
-      onReplyClick(comment.id);
-    }
+    onReplyClick?.(comment.id);
   };
 
   // Format the timestamp as a relative time (e.g., "2 hours ago")
