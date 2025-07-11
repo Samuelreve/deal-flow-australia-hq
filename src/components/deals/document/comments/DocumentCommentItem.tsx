@@ -97,7 +97,7 @@ const DocumentCommentItem = ({
         
         {!isEditing && (
           <div className="flex gap-3 pt-1">
-            {onReply && !isReply && (
+            {onReply && (
               <button 
                 onClick={() => onReply(comment.id)} 
                 className="text-xs flex items-center text-muted-foreground hover:text-primary transition-colors"
@@ -157,6 +157,7 @@ const DocumentCommentItem = ({
                 comment={reply}
                 currentUserId={currentUserId}
                 isReply={true}
+                onReply={onReply}
                 onDelete={onDelete}
                 onEdit={onEdit}
                 currentUserDealRole={currentUserDealRole}
