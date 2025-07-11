@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { CheckCircle, MessageSquare, Reply } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DocumentComment } from '@/types/documentComment';
@@ -22,16 +22,6 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   isActive = false
 }) => {
   const { user } = useAuth();
-
-  // Debug logging
-  useEffect(() => {
-    console.log('DocumentCommentItem debug:', {
-      commentId: comment.id,
-      hasOnReplyClick: !!onReplyClick,
-      commentContent: comment.content,
-      isReply: comment.parent_comment_id ? true : false
-    });
-  }, [comment.id, onReplyClick, comment.content, comment.parent_comment_id]);
   
   const handleResolveToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -110,19 +100,17 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       )}
 
       {/* Reply button - show to all users */}
-      {onReplyClick && (
-        <div className="mt-2 flex justify-end">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleReplyClick}
-            className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Reply className="h-3 w-3 mr-1" />
-            Reply
-          </Button>
-        </div>
-      )}
+      <div className="mt-2 flex justify-end">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleReplyClick}
+          className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Reply className="h-3 w-3 mr-1" />
+          Reply
+        </Button>
+      </div>
       
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-3 pl-3 border-l-2">
