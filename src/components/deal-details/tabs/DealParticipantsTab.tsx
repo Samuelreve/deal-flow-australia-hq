@@ -129,11 +129,9 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const handleCloseInviteDialog = () => setIsInviteDialogOpen(false);
   
   const handleInvitationSent = () => {
-    fetchParticipants(); // Refresh participants list
-    toast({
-      title: "Invitation Sent",
-      description: "The participant will receive an email with instructions."
-    });
+    // Refresh participants list after successful invitation
+    fetchParticipants();
+    // The toast is already shown by the useInviteParticipant hook
   };
 
   const handleMessageClick = (participant: Participant) => {
