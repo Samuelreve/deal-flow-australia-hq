@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ApiClient } from "https://esm.sh/docusign-esign@8.2.0";
 
 declare const Deno: {
   env: {
@@ -787,105 +786,168 @@ async function getDocuSignAccessToken(): Promise<string> {
 
 async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string): Promise<string> {
   try {
-    console.log('Requesting DocuSign JWT access token using SDK...');
+    console.log('Requesting DocuSign JWT access token (manual implementation)...');
     console.log('Integration Key:', integrationKey.substring(0, 8) + '...');
     console.log('User ID:', userId.substring(0, 8) + '...');
-    
-    // Create API client with demo environment
-    const apiClient = new ApiClient();
-    
-    // Set the base paths for demo environment
-    apiClient.setOAuthBasePath('https://account-d.docusign.com');
-    apiClient.setBasePath('https://demo.docusign.net/restapi');
-    
-    console.log('API Client configured for demo environment');
-    console.log('OAuth Base Path: https://account-d.docusign.com');
-    console.log('API Base Path: https://demo.docusign.net/restapi');
+    console.log('Target: demo.docusign.net environment');
     
     // Clean and format the private key
     let cleanPrivateKey = privateKey.trim();
     
-    // Ensure proper PKCS#8 format for the SDK
+    // Ensure proper PKCS#8 format
     if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
       // Convert PKCS#1 to PKCS#8 format
-      console.log('Converting PKCS#1 key to PKCS#8 format for SDK');
+      console.log('Converting PKCS#1 key to PKCS#8 format');
       cleanPrivateKey = await convertPKCS1toPKCS8(cleanPrivateKey);
     } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
       // Assume it's a raw PKCS#8 key without headers
       cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
     }
     
-    console.log('Private key format validated');
+    // Create JWT header
+    const header = {
+      "alg": "RS256",
+      "typ": "JWT"
+    };
     
-    // Use the SDK's requestJWTApplicationToken method
-    console.log('Calling apiClient.requestJWTApplicationToken...');
-    const scopes = ['signature'];
-    const privateKeyBuffer = Buffer.from(cleanPrivateKey);
-    const expiresIn = 3600; // 1 hour
+    // Create JWT payload - targeting demo environment
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      "iss": integrationKey,
+      "sub": userId,
+      "aud": "account-d.docusign.com", // OAuth endpoint
+      "iat": now,
+      "exp": now + 3600, // 1 hour expiration
+      "scope": "signature"
+    };
     
-    const oauthToken = await apiClient.requestJWTApplicationToken(
-      integrationKey,
-      scopes,
-      privateKeyBuffer,
-      expiresIn
+    console.log('JWT payload created for demo environment');
+    
+    // Encode header and payload
+    const encodedHeader = btoa(JSON.stringify(header)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
+    const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
+    
+    // Create signature data
+    const signatureData = `${encodedHeader}.${encodedPayload}`;
+    
+    // Convert PEM to DER format for Web Crypto API
+    const pemContent = cleanPrivateKey
+      .replace('-----BEGIN PRIVATE KEY-----', '')
+      .replace('-----END PRIVATE KEY-----', '')
+      .replace(/\s/g, '');
+    
+    // Decode base64 to get DER format
+    const binaryString = atob(pemContent);
+    const keyData = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      keyData[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Import private key
+    const key = await crypto.subtle.importKey(
+      "pkcs8",
+      keyData,
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: "SHA-256"
+      },
+      false,
+      ["sign"]
     );
     
-    console.log('✅ SDK requestJWTApplicationToken successful');
-    console.log('Token type:', oauthToken.body?.token_type);
-    console.log('Expires in:', oauthToken.body?.expires_in, 'seconds');
+    // Sign the data
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      new TextEncoder().encode(signatureData)
+    );
     
-    if (!oauthToken.body?.access_token) {
-      console.error('No access token in SDK response:', oauthToken.body);
-      throw new Error('No access token received from DocuSign SDK');
-    }
+    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
     
-    // Now request user info to validate the token and get account details
-    console.log('Getting user info to validate token...');
-    const userInfoResponse = await apiClient.getUserInfo(oauthToken.body.access_token);
+    const jwt = `${signatureData}.${encodedSignature}`;
     
-    if (userInfoResponse?.body?.accounts && userInfoResponse.body.accounts.length > 0) {
-      const defaultAccount = userInfoResponse.body.accounts.find(acc => acc.is_default) || userInfoResponse.body.accounts[0];
-      console.log('✅ User info retrieved successfully');
-      console.log('User:', userInfoResponse.body.name);
-      console.log('Account:', defaultAccount?.account_name);
-      console.log('Base URI:', defaultAccount?.base_uri);
+    console.log('JWT created successfully, exchanging for access token...');
+    
+    // Exchange JWT for access token using the demo environment OAuth endpoint
+    const response = await fetch('https://account-d.docusign.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('DocuSign JWT authentication failed. Status:', response.status);
+      console.error('DocuSign JWT error details:', errorData);
       
-      // Update the API client with the correct base path from user info
-      if (defaultAccount?.base_uri) {
-        apiClient.setBasePath(defaultAccount.base_uri + '/restapi');
-        console.log('Updated API base path to:', defaultAccount.base_uri + '/restapi');
+      // Check if this is a consent required error
+      if (response.status === 400 && errorData.includes('consent_required')) {
+        console.log('Consent required - user needs to grant consent first');
+        const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+        throw new Error(`CONSENT_REQUIRED: User consent is required. Visit: ${consentUrl}`);
       }
+      
+      // Check if this is a user_not_found error
+      if (response.status === 400 && errorData.includes('user_not_found')) {
+        console.log('User not found error - User ID is incorrect');
+        console.log('Current User ID being used:', userId);
+        const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+        throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
+      }
+      
+      throw new Error(`DocuSign JWT authentication failed: ${response.status} ${response.statusText} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.access_token) {
+      console.error('No access token in JWT response:', data);
+      throw new Error('No access token received from DocuSign JWT');
+    }
+
+    console.log('✅ Successfully obtained DocuSign access token for demo environment');
+    console.log('Token type:', data.token_type);
+    console.log('Expires in:', data.expires_in, 'seconds');
+    
+    // Get user info to validate the token and log account details
+    try {
+      console.log('Validating token by getting user info...');
+      const userInfoResponse = await fetch('https://account-d.docusign.com/oauth/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`
+        }
+      });
+      
+      if (userInfoResponse.ok) {
+        const userInfo = await userInfoResponse.json();
+        console.log('✅ Token validated successfully');
+        console.log('User:', userInfo.name);
+        console.log('Email:', userInfo.email);
+        
+        if (userInfo.accounts && userInfo.accounts.length > 0) {
+          const defaultAccount = userInfo.accounts.find(acc => acc.is_default) || userInfo.accounts[0];
+          console.log('Account:', defaultAccount?.account_name);
+          console.log('Base URI:', defaultAccount?.base_uri);
+          console.log('Account ID:', defaultAccount?.account_id);
+        }
+      }
+    } catch (userInfoError) {
+      console.log('Could not get user info (token still valid):', userInfoError.message);
     }
     
-    return oauthToken.body.access_token;
+    return data.access_token;
     
   } catch (error: any) {
-    console.error('DocuSign SDK JWT authentication failed:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      status: error.status,
-      statusText: error.statusText,
-      response: error.response?.body || error.response
-    });
-    
-    // Check for specific error conditions
-    if (error.message?.includes('consent_required') || error.response?.body?.error === 'consent_required') {
-      console.log('Consent required - user needs to grant consent');
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`CONSENT_REQUIRED: User consent is required. Visit: ${consentUrl}`);
-    }
-    
-    if (error.message?.includes('user_not_found') || error.response?.body?.error_description?.includes('user_not_found')) {
-      console.log('User not found error - User ID is incorrect');
-      console.log('Current User ID being used:', userId);
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
-    }
-    
-    throw new Error(`DocuSign SDK JWT authentication failed: ${error.message}`);
+    console.error('JWT authentication failed with error:', error);
+    throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
   }
 }
 
