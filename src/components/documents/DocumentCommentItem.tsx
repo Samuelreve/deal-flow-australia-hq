@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle, MessageSquare, Reply } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DocumentComment } from '@/types/documentComment';
@@ -22,6 +22,16 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   isActive = false
 }) => {
   const { user } = useAuth();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('DocumentCommentItem debug:', {
+      commentId: comment.id,
+      hasOnReplyClick: !!onReplyClick,
+      commentContent: comment.content,
+      isReply: comment.parent_comment_id ? true : false
+    });
+  }, [comment.id, onReplyClick, comment.content, comment.parent_comment_id]);
   
   const handleResolveToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
