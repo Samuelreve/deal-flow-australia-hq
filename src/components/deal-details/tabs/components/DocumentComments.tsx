@@ -50,54 +50,59 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
   handleReplyKeyDown,
   isSubmittingComment
 }) => {
-  const marginLeft = `ml-${Math.min(level * 6, 24)}`; // Cap at ml-24
-  
   return (
-    <div className={`${marginLeft} pl-4 border-l-2 border-muted space-y-2`}>
-      {replies.map((reply) => {
+    <div className="space-y-2 mt-2">
+      {replies.map((reply, index) => {
+        const isLast = index === replies.length - 1;
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
-          <div key={reply.id}>
-            <div className={`p-3 border rounded-lg ${replyTheme.bg} ${replyTheme.border} animate-fade-in`}>
-              <div className="flex items-start gap-2 mb-2">
-                <div className={`w-6 h-6 ${replyTheme.avatar} rounded-full flex items-center justify-center`}>
-                  <span className="text-xs font-medium">
-                    {reply.profiles?.name?.charAt(0) || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {reply.profiles?.name || 'Unknown User'}
-                      {user?.id === reply.user_id && (
-                        <span className="ml-1 text-xs text-muted-foreground">(me)</span>
-                      )}
-                    </span>
-                    <span className="text-xs text-muted-foreground">replied</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(reply.created_at).toLocaleDateString()}
+          <div key={reply.id} className="relative">
+            {/* Connecting line */}
+            <div className="absolute left-0 top-0 w-4 h-6 border-l-2 border-b-2 border-muted rounded-bl-lg"></div>
+            {!isLast && <div className="absolute left-0 top-6 w-0.5 h-full bg-muted"></div>}
+            
+            <div className="ml-6">
+              <div className={`p-3 border rounded-lg ${replyTheme.bg} ${replyTheme.border} animate-fade-in`}>
+                <div className="flex items-start gap-2 mb-2">
+                  <div className={`w-6 h-6 ${replyTheme.avatar} rounded-full flex items-center justify-center`}>
+                    <span className="text-xs font-medium">
+                      {reply.profiles?.name?.charAt(0) || 'U'}
                     </span>
                   </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {reply.profiles?.name || 'Unknown User'}
+                        {user?.id === reply.user_id && (
+                          <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">replied</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(reply.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="pl-8">
-                <p className="text-sm text-foreground">{reply.content}</p>
-              </div>
-              
-              {/* Reply button for nested replies */}
-              {user?.id !== reply.user_id && (
-                <div className="mt-2 flex justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setReplyingToId(reply.id)}
-                  >
-                    <Reply className="h-3 w-3 mr-1" />
-                    Reply
-                  </Button>
+                <div className="pl-8">
+                  <p className="text-sm text-foreground">{reply.content}</p>
                 </div>
-              )}
+                
+                {/* Reply button for nested replies */}
+                {user?.id !== reply.user_id && (
+                  <div className="mt-2 flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setReplyingToId(reply.id)}
+                    >
+                      <Reply className="h-3 w-3 mr-1" />
+                      Reply
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Reply Form for This Comment */}
