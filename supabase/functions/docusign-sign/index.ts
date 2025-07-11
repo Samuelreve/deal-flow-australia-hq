@@ -580,6 +580,10 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
     if (integrationKey && userId && privateKey && accountId) {
       console.log('Auto-configuring DocuSign from environment variables');
+      console.log('Integration Key:', integrationKey?.substring(0, 8) + '...');
+      console.log('User ID:', userId?.substring(0, 8) + '...');
+      console.log('Account ID:', accountId?.substring(0, 8) + '...');
+      console.log('Has Private Key:', !!privateKey);
       docusignConfig = {
         integrationKey,
         userId,
@@ -883,6 +887,16 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
         
         // Return a special response indicating consent is needed
         throw new Error(`CONSENT_REQUIRED:${consentUrl}`);
+      }
+      
+      // Check if this is a user_not_found error
+      if (response.status === 400 && errorData.includes('user_not_found')) {
+        console.log('User not found error - User ID is incorrect');
+        console.log('Current User ID being used:', userId);
+        const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+        
+        throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
       }
       
       throw new Error(`DocuSign JWT authentication failed: ${response.status} ${response.statusText} - ${errorData}`);
