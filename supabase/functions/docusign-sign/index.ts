@@ -1,10 +1,27 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
+
+// Store DocuSign credentials as variables
+let docusignConfig: {
+  integrationKey: string;
+  userId: string;
+  privateKey: string;
+  accountId: string;
+  accessToken?: string;
+  tokenExpiresAt?: number;
+} | null = null;
 
 interface DocuSignRequest {
   documentId: string;
@@ -39,154 +56,24 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log('Creating Supabase client...');
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Parse URL to determine the operation
+    const url = new URL(req.url);
+    const operation = url.pathname.split('/').pop();
 
-    console.log('Parsing request body...');
-    const { documentId, dealId, signerEmail, signerName, signerRole }: DocuSignRequest = await req.json();
+    console.log('Operation:', operation);
 
-    console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole });
-
-    // Check if all required environment variables are present
-    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-    const userId = Deno.env.get('DOCUSIGN_USER_ID');
-    const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
-    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
-    
-    console.log('Environment variables check:', {
-      integrationKey: integrationKey ? 'present' : 'missing',
-      userId: userId ? 'present' : 'missing', 
-      privateKey: privateKey ? 'present' : 'missing',
-      accountId: accountId ? 'present' : 'missing'
-    });
-
-    // Get document details from database
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .single();
-
-    if (docError || !document) {
-      throw new Error('Document not found');
+    // Handle configuration endpoint
+    if (operation === 'configure') {
+      return await handleConfigureRequest(req);
     }
 
-    // Get deal participants to determine who should receive the document
-    const { data: participants, error: participantsError } = await supabase
-      .from('deal_participants')
-      .select('user_id, role, profiles!inner(name, email)')
-      .eq('deal_id', dealId);
-
-    if (participantsError) {
-      throw new Error('Failed to get deal participants');
+    // Handle status endpoint
+    if (operation === 'status') {
+      return await handleStatusRequest(req);
     }
 
-    // Find the opposite party to send for signing
-    const oppositeRole = signerRole === 'buyer' ? 'seller' : 'buyer';
-    const oppositeParty = participants.find(p => p.role === oppositeRole);
-
-    if (!oppositeParty) {
-      throw new Error(`No ${oppositeRole} found for this deal`);
-    }
-
-    // Download document from Supabase storage
-    // Try different bucket names since there are multiple buckets
-    let fileData = null;
-    let downloadError = null;
-    
-    const buckets = ['deal_documents', 'Deal Documents', 'Documents', 'contracts'];
-    
-    for (const bucket of buckets) {
-      // Try both with and without deal ID prefix in the path
-      const possiblePaths = [
-        document.storage_path, // Original path
-        `${dealId}/${document.storage_path}` // Path with deal ID prefix
-      ];
-      
-      for (const path of possiblePaths) {
-        console.log(`Trying to download from bucket: ${bucket}, path: ${path}`);
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .download(path);
-        
-        if (!error && data) {
-          fileData = data;
-          console.log(`Successfully downloaded from bucket: ${bucket}, path: ${path}`);
-          break;
-        } else {
-          console.log(`Failed to download from bucket ${bucket}, path ${path}:`, error?.message);
-          downloadError = error;
-        }
-      }
-      
-      if (fileData) break;
-    }
-
-    if (!fileData) {
-      console.error('Failed to download document from any bucket. Last error:', downloadError);
-      throw new Error(`Failed to download document from any bucket. Last error: ${JSON.stringify(downloadError)}`);
-    }
-
-    // Convert file to base64
-    const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-    // Get DocuSign access token
-    const accessToken = await getDocuSignAccessToken();
-
-    // Create envelope for signing
-    const envelope = await createDocuSignEnvelope({
-      document: {
-        documentBase64: base64,
-        documentId: '1',
-        fileExtension: document.type.split('/')[1] || 'pdf',
-        name: document.name
-      },
-      signers: [
-        {
-          email: signerEmail,
-          name: signerName,
-          recipientId: '1',
-          routingOrder: '1'
-        },
-        {
-          email: oppositeParty.profiles.email,
-          name: oppositeParty.profiles.name,
-          recipientId: '2',
-          routingOrder: '2'
-        }
-      ],
-      accessToken
-    });
-
-    // Get signing URL for the first signer
-    const signingUrl = await getSigningUrl(envelope.envelopeId, '1', accessToken);
-
-    // Store envelope information in database
-    await supabase
-      .from('document_signatures')
-      .insert({
-        document_id: documentId,
-        deal_id: dealId,
-        envelope_id: envelope.envelopeId,
-        signer_email: signerEmail,
-        signer_role: signerRole,
-        status: 'sent'
-      });
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        signingUrl,
-        envelopeId: envelope.envelopeId
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // Default signing operation
+    return await handleSigningRequest(req);
 
   } catch (error: any) {
     console.error('DocuSign signing error occurred:', error);
@@ -203,17 +90,273 @@ serve(async (req: Request) => {
   }
 });
 
-async function getDocuSignAccessToken(): Promise<string> {
-  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-  const userId = Deno.env.get('DOCUSIGN_USER_ID');
-  const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
+/**
+ * Handle configuration request - set DocuSign credentials
+ */
+async function handleConfigureRequest(req: Request): Promise<Response> {
+  const { integrationKey, userId, privateKey, accountId } = await req.json();
 
-  if (!integrationKey || !userId || !privateKey) {
-    throw new Error('DocuSign credentials not configured');
+  if (!integrationKey || !userId || !privateKey || !accountId) {
+    return new Response(
+      JSON.stringify({ error: 'Missing required credentials: integrationKey, userId, privateKey, accountId' }),
+      { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      }
+    );
   }
 
-  // Use JWT Grant following the correct DocuSign pattern
-  return await getJWTAccessToken(integrationKey, userId, privateKey);
+  // Store configuration
+  docusignConfig = {
+    integrationKey,
+    userId,
+    privateKey,
+    accountId
+  };
+
+  console.log('✅ DocuSign configuration updated');
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: 'DocuSign configuration updated successfully',
+      config: {
+        integrationKey: integrationKey.substring(0, 8) + '...',
+        userId: userId.substring(0, 8) + '...',
+        accountId: accountId.substring(0, 8) + '...',
+        hasPrivateKey: !!privateKey
+      }
+    }),
+    { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    }
+  );
+}
+
+/**
+ * Handle status request - get current configuration status
+ */
+async function handleStatusRequest(req: Request): Promise<Response> {
+  if (!docusignConfig) {
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        message: 'DocuSign not configured. Please configure credentials first.',
+        isConfigured: false
+      }),
+      { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      }
+    );
+  }
+
+  const hasValidToken = docusignConfig.accessToken && 
+    docusignConfig.tokenExpiresAt && 
+    Date.now() < docusignConfig.tokenExpiresAt;
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      isConfigured: true,
+      hasValidToken,
+      tokenExpiresIn: hasValidToken ? 
+        Math.max(0, (docusignConfig.tokenExpiresAt! - Date.now()) / 1000) : 0,
+      config: {
+        integrationKey: docusignConfig.integrationKey.substring(0, 8) + '...',
+        userId: docusignConfig.userId.substring(0, 8) + '...',
+        accountId: docusignConfig.accountId.substring(0, 8) + '...'
+      }
+    }),
+    { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    }
+  );
+}
+
+/**
+ * Handle signing request - main document signing logic
+ */
+async function handleSigningRequest(req: Request): Promise<Response> {
+  // Check if DocuSign is configured
+  if (!docusignConfig) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'DocuSign not configured. Please configure credentials first using /configure endpoint.',
+        configureEndpoint: '/configure'
+      }),
+      { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      }
+    );
+  }
+
+  console.log('Creating Supabase client...');
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  console.log('Parsing request body...');
+  const { documentId, dealId, signerEmail, signerName, signerRole }: DocuSignRequest = await req.json();
+
+  console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole });
+
+  // Get document details from database
+  const { data: document, error: docError } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', documentId)
+    .single();
+
+  if (docError || !document) {
+    throw new Error('Document not found');
+  }
+
+  // Get deal participants to determine who should receive the document
+  const { data: participants, error: participantsError } = await supabase
+    .from('deal_participants')
+    .select('user_id, role, profiles!inner(name, email)')
+    .eq('deal_id', dealId);
+
+  if (participantsError) {
+    throw new Error('Failed to get deal participants');
+  }
+
+  // Find the opposite party to send for signing
+  const oppositeRole = signerRole === 'buyer' ? 'seller' : 'buyer';
+  const oppositeParty = participants.find(p => p.role === oppositeRole);
+
+  if (!oppositeParty) {
+    throw new Error(`No ${oppositeRole} found for this deal`);
+  }
+
+  // Download document from Supabase storage
+  // Try different bucket names since there are multiple buckets
+  let fileData: Blob | null = null;
+  let downloadError: any = null;
+  
+  const buckets = ['deal_documents', 'Deal Documents', 'Documents', 'contracts'];
+  
+  for (const bucket of buckets) {
+    // Try both with and without deal ID prefix in the path
+    const possiblePaths = [
+      document.storage_path, // Original path
+      `${dealId}/${document.storage_path}` // Path with deal ID prefix
+    ];
+    
+    for (const path of possiblePaths) {
+      console.log(`Trying to download from bucket: ${bucket}, path: ${path}`);
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .download(path);
+      
+      if (!error && data) {
+        fileData = data;
+        console.log(`Successfully downloaded from bucket: ${bucket}, path: ${path}`);
+        break;
+      } else {
+        console.log(`Failed to download from bucket ${bucket}, path ${path}:`, error?.message);
+        downloadError = error;
+      }
+    }
+    
+    if (fileData) break;
+  }
+
+  if (!fileData) {
+    console.error('Failed to download document from any bucket. Last error:', downloadError);
+    throw new Error(`Failed to download document from any bucket. Last error: ${JSON.stringify(downloadError)}`);
+  }
+
+  // Convert file to base64
+  const arrayBuffer = await fileData.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+  // Get DocuSign access token
+  const accessToken = await getDocuSignAccessToken();
+
+  // Create envelope for signing
+  const envelope = await createDocuSignEnvelope({
+    document: {
+      documentBase64: base64,
+      documentId: '1',
+      fileExtension: document.type.split('/')[1] || 'pdf',
+      name: document.name
+    },
+    signers: [
+      {
+        email: signerEmail,
+        name: signerName,
+        recipientId: '1',
+        routingOrder: '1'
+      },
+      {
+        email: oppositeParty.profiles.email,
+        name: oppositeParty.profiles.name,
+        recipientId: '2',
+        routingOrder: '2'
+      }
+    ],
+    accessToken
+  });
+
+  // Get signing URL for the first signer
+  const signingUrl = await getSigningUrl(envelope.envelopeId, '1', accessToken);
+
+  // Store envelope information in database
+  await supabase
+    .from('document_signatures')
+    .insert({
+      document_id: documentId,
+      deal_id: dealId,
+      envelope_id: envelope.envelopeId,
+      signer_email: signerEmail,
+      signer_role: signerRole,
+      status: 'sent'
+    });
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      signingUrl,
+      envelopeId: envelope.envelopeId
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    }
+  );
+}
+
+async function getDocuSignAccessToken(): Promise<string> {
+  if (!docusignConfig) {
+    throw new Error('DocuSign not configured');
+  }
+
+  // Check if we have a valid cached token
+  if (docusignConfig.accessToken && 
+      docusignConfig.tokenExpiresAt && 
+      Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
+    console.log('Using cached access token');
+    return docusignConfig.accessToken;
+  }
+
+  // Get new token using JWT
+  console.log('Getting new access token...');
+  const accessToken = await getJWTAccessToken(
+    docusignConfig.integrationKey,
+    docusignConfig.userId,
+    docusignConfig.privateKey
+  );
+
+  // Cache the token (expires in 1 hour)
+  docusignConfig.accessToken = accessToken;
+  docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
+
+  return accessToken;
 }
 
 async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string): Promise<string> {
@@ -364,7 +507,7 @@ async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
     ]);
     
     // Create the PKCS#8 structure
-    const pkcs8Structure = [];
+    const pkcs8Structure: number[] = [];
     
     // Version (INTEGER 0)
     pkcs8Structure.push(0x02, 0x01, 0x00);
