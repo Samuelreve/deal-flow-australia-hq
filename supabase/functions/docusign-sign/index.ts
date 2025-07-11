@@ -829,50 +829,37 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
     
     // Request JWT token using the SDK
     console.log('Requesting JWT access token using SDK...');
-    const results = await apiClient.requestJWTApplicationToken(
-      integrationKey,
-      userId,
-      scopes,
-      cleanPrivateKey,
-      3600 // 1 hour expiration
-    );
     
-    if (!results || !results.body || !results.body.access_token) {
-      console.error('No access token in SDK response:', results);
-      throw new Error('No access token received from DocuSign SDK');
-    }
-    
-    const accessToken = results.body.access_token;
-    console.log('✅ Successfully obtained DocuSign access token using SDK');
-    console.log('Token type:', results.body.token_type);
-    console.log('Expires in:', results.body.expires_in, 'seconds');
-    
-    // Validate the token by getting user info
+    // According to DocuSign SDK docs, the expires parameter should be omitted or set to a specific value
+    // The error "Invalid expires in param detected" suggests we should not pass the expiration parameter
+    // as it's handled internally by the SDK
     try {
-      console.log('Validating token by getting user info using SDK...');
-      const userInfo = await apiClient.getUserInfo(accessToken);
+      const results = await apiClient.requestJWTApplicationToken(
+        integrationKey,
+        userId,
+        scopes,
+        cleanPrivateKey
+        // Omitting expiration parameter - let DocuSign handle this internally
+      );
       
-      if (userInfo && userInfo.accounts && userInfo.accounts.length > 0) {
-        console.log('✅ Token validated successfully');
-        console.log('User:', userInfo.name);
-        console.log('Email:', userInfo.email);
-        
-        const defaultAccount = userInfo.accounts.find(acc => acc.isDefault) || userInfo.accounts[0];
-        if (defaultAccount) {
-          console.log('Account:', defaultAccount.accountName);
-          console.log('Base URI:', defaultAccount.baseUri);
-          console.log('Account ID:', defaultAccount.accountId);
-          
-          // Update API client with correct base path for the account
-          apiClient.setBasePath(defaultAccount.baseUri + '/restapi');
-          console.log('Updated API client base path:', apiClient.getBasePath());
-        }
+      console.log('JWT token request successful');
+      
+      if (!results || !results.body || !results.body.access_token) {
+        console.error('No access token in SDK response:', results);
+        throw new Error('No access token received from DocuSign SDK');
       }
-    } catch (userInfoError) {
-      console.log('Could not get user info (token still valid):', userInfoError.message);
+      
+      const accessToken = results.body.access_token;
+      console.log('✅ Successfully obtained DocuSign access token using SDK');
+      console.log('Token type:', results.body.token_type);
+      console.log('Expires in:', results.body.expires_in, 'seconds');
+      
+      return accessToken;
+    } catch (jwtError) {
+      console.error('JWT authentication failed:', jwtError);
+      console.error('Error details:', jwtError.message);
+      throw new Error(`DocuSign SDK JWT authentication failed: ${jwtError.message}`);
     }
-    
-    return accessToken;
     
   } catch (error: any) {
     console.error('DocuSign SDK JWT authentication failed:', error);
