@@ -32,6 +32,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
   const [checkingSignatures, setCheckingSignatures] = useState(false);
+  const [signingInProgress, setSigningInProgress] = useState(false);
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
@@ -102,6 +103,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const handleDocumentSelected = async (documentId: string, buyerId?: string) => {
     if (!user) return;
 
+    setSigningInProgress(true);
     try {
       console.log('Starting DocuSign process for document:', documentId, 'with buyer:', buyerId);
       
@@ -181,6 +183,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         description: error.message || 'Failed to start document signing process',
         variant: 'destructive'
       });
+    } finally {
+      setSigningInProgress(false);
     }
   };
   
@@ -299,6 +303,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         dealId={dealId}
         userRole={userRole}
         onDocumentSelected={handleDocumentSelected}
+        isLoading={signingInProgress}
       />
     </li>
   );

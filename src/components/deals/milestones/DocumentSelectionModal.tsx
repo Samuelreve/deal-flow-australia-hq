@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, X, ArrowLeft, ArrowRight, User } from 'lucide-react';
+import { FileText, X, ArrowLeft, ArrowRight, User, Loader2 } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -28,6 +28,7 @@ interface DocumentSelectionModalProps {
   dealId: string;
   userRole: string;
   onDocumentSelected: (documentId: string, buyerId?: string) => void;
+  isLoading?: boolean;
 }
 
 const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
@@ -35,7 +36,8 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
   onClose,
   dealId,
   userRole,
-  onDocumentSelected
+  onDocumentSelected,
+  isLoading = false
 }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -377,18 +379,28 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
           <Button
             onClick={handleGoForward}
             disabled={
+              isLoading ||
               (step === 'select' && !selectedDocumentId) ||
               (step === 'buyer' && !selectedBuyerId) ||
               (step === 'confirm' && (!selectedDocumentId || ((userRole.toLowerCase() === 'seller' || userRole.toLowerCase() === 'admin') && !selectedBuyerId)))
             }
             className="flex items-center space-x-2"
           >
-            <span>
-              {step === 'select' && 'Continue'}
-              {step === 'buyer' && 'Continue'}
-              {step === 'confirm' && 'Start Signing'}
-            </span>
-            <ArrowRight className="h-4 w-4" />
+            {isLoading && step === 'confirm' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>
+                  {step === 'select' && 'Continue'}
+                  {step === 'buyer' && 'Continue'}
+                  {step === 'confirm' && 'Start Signing'}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </div>
       </DialogContent>
