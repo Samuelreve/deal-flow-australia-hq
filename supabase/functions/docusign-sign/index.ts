@@ -1003,6 +1003,10 @@ async function createDocuSignEnvelope(params: {
       signer.name = signerInfo.name;
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
+      // Set clientUserId for the first signer (the one who will get the signing URL)
+      if (index === 0) {
+        signer.clientUserId = signerInfo.recipientId; // Match the clientUserId to recipientId
+      }
       
       // Add signature tabs
       const signHere = new SignHere();
@@ -1086,7 +1090,7 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     recipientViewRequest.authenticationMethod = 'email';
     recipientViewRequest.email = recipientEmail;
     recipientViewRequest.userName = recipientName;
-    recipientViewRequest.clientUserId = recipientId;
+    recipientViewRequest.clientUserId = recipientId; // Must match the clientUserId set during envelope creation
     recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
     
     console.log('Recipient view request:', {
@@ -1104,6 +1108,26 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     
     // Set authentication
     apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
+    
+    // First check the envelope status - it must be "sent" to create a recipient view
+    console.log('Checking envelope status before creating recipient view...');
+    try {
+      const envelopeInfo = await envelopesApi.getEnvelope(accountId, envelopeId);
+      console.log('Envelope status:', envelopeInfo.status);
+      console.log('Envelope details:', {
+        status: envelopeInfo.status,
+        statusChangedDateTime: envelopeInfo.statusChangedDateTime,
+        emailSubject: envelopeInfo.emailSubject
+      });
+      
+      if (envelopeInfo.status !== 'sent') {
+        console.error('Envelope is not in sent status. Current status:', envelopeInfo.status);
+        throw new Error(`Envelope must be sent before creating recipient view. Current status: ${envelopeInfo.status}`);
+      }
+    } catch (statusError: any) {
+      console.error('Failed to check envelope status:', statusError);
+      // Continue anyway - maybe the status check failed but we can still try to create the recipient view
+    }
     
     try {
       // Get recipient view
