@@ -830,15 +830,14 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
     // Request JWT token using the SDK
     console.log('Requesting JWT access token using SDK...');
     
-    // The DocuSign SDK requires the expiration parameter (in seconds)
-    // Setting it to 3600 seconds (1 hour) as suggested
+    // Using the correct DocuSign SDK method and parameter structure
     try {
-      const results = await apiClient.requestJWTApplicationToken(
+      const results = await apiClient.requestJWTUserToken(
         integrationKey,
         userId,
-        scopes,
+        "signature",
         cleanPrivateKey,
-        3600 // JWT token expiration in seconds (1 hour)
+        3600 // expiresIn: JWT token expiration in seconds (1 hour)
       );
       
       console.log('JWT token request successful');
