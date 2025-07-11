@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { DocumentComment } from "@/services/documentCommentService";
 import DocumentCommentItem from "./DocumentCommentItem";
 import DocumentCommentForm from "./DocumentCommentForm";
@@ -30,22 +29,6 @@ const DocumentCommentsList = ({
   onDeleteComment,
   onToggleResolved
 }: DocumentCommentsListProps) => {
-  const [replyingToId, setReplyingToId] = useState<string | null>(null);
-  
-  const handleReplyClick = (commentId: string) => {
-    setReplyingToId(commentId);
-  };
-  
-  const handleReplySubmit = async (content: string) => {
-    if (replyingToId) {
-      await onReplyToComment(replyingToId, content);
-      setReplyingToId(null);
-    }
-  };
-  
-  const handleCancelReply = () => {
-    setReplyingToId(null);
-  };
 
   return (
     <div className="space-y-4">
@@ -66,31 +49,17 @@ const DocumentCommentsList = ({
         ) : (
           <div className="space-y-6">
             {comments.map(comment => (
-              <div key={comment.id}>
-                <DocumentCommentItem
-                  comment={comment}
-                  currentUserId={currentUserId}
-                  onReply={handleReplyClick}
-                  onDelete={onDeleteComment}
-                  onEdit={onEditComment}
-                  onToggleResolved={onToggleResolved}
-                  currentUserDealRole={currentUserDealRole}
-                />
-                
-                {replyingToId === comment.id && (
-                  <div className="mt-3 pl-8">
-                    <DocumentCommentForm
-                      onSubmit={handleReplySubmit}
-                      isSubmitting={submitting}
-                      placeholder="Write a reply..."
-                      buttonText="Reply"
-                      autoFocus
-                      onCancel={handleCancelReply}
-                      showCancel
-                    />
-                  </div>
-                )}
-              </div>
+              <DocumentCommentItem
+                key={comment.id}
+                comment={comment}
+                currentUserId={currentUserId}
+                onReplyToComment={onReplyToComment}
+                onDelete={onDeleteComment}
+                onEdit={onEditComment}
+                onToggleResolved={onToggleResolved}
+                currentUserDealRole={currentUserDealRole}
+                submitting={submitting}
+              />
             ))}
           </div>
         )}

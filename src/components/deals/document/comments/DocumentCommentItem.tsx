@@ -7,30 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import DocumentCommentForm from "./DocumentCommentForm";
 
 interface DocumentCommentItemProps {
   comment: DocumentComment;
   currentUserId?: string;
   isReply?: boolean;
-  onReply?: (commentId: string) => void;
+  onReplyToComment?: (commentId: string, content: string) => Promise<any>;
   onDelete?: (commentId: string, parentId?: string) => void;
   onEdit?: (commentId: string, content: string) => void;
   onToggleResolved?: (commentId: string) => void;
   currentUserDealRole?: string;
+  submitting?: boolean;
 }
 
 const DocumentCommentItem = ({
   comment,
   currentUserId,
   isReply = false,
-  onReply,
+  onReplyToComment,
   onDelete,
   onEdit,
   onToggleResolved,
-  currentUserDealRole
+  currentUserDealRole,
+  submitting = false
 }: DocumentCommentItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
+  const [isReplying, setIsReplying] = useState(false);
   
   const canEdit = currentUserId === comment.userId;
   const canDelete = currentUserId === comment.userId || 
@@ -50,6 +54,17 @@ const DocumentCommentItem = ({
   const handleCancelEdit = () => {
     setEditedContent(comment.content);
     setIsEditing(false);
+  };
+
+  const handleReplySubmit = async (content: string) => {
+    if (onReplyToComment) {
+      await onReplyToComment(comment.id, content);
+      setIsReplying(false);
+    }
+  };
+
+  const handleCancelReply = () => {
+    setIsReplying(false);
   };
 
   return (
@@ -97,9 +112,9 @@ const DocumentCommentItem = ({
         
         {!isEditing && (
           <div className="flex gap-3 pt-1">
-            {onReply && (
+            {onReplyToComment && (
               <button 
-                onClick={() => onReply(comment.id)} 
+                onClick={() => setIsReplying(true)} 
                 className="text-xs flex items-center text-muted-foreground hover:text-primary transition-colors"
               >
                 <CornerDownRight className="h-3 w-3 mr-1" />
@@ -147,6 +162,21 @@ const DocumentCommentItem = ({
             )}
           </div>
         )}
+
+        {/* Reply form */}
+        {isReplying && (
+          <div className="mt-3">
+            <DocumentCommentForm
+              onSubmit={handleReplySubmit}
+              isSubmitting={submitting}
+              placeholder="Write a reply..."
+              buttonText="Reply"
+              autoFocus
+              onCancel={handleCancelReply}
+              showCancel
+            />
+          </div>
+        )}
         
         {/* Render replies if any */}
         {comment.replies && comment.replies.length > 0 && (
@@ -157,10 +187,11 @@ const DocumentCommentItem = ({
                 comment={reply}
                 currentUserId={currentUserId}
                 isReply={true}
-                onReply={onReply}
+                onReplyToComment={onReplyToComment}
                 onDelete={onDelete}
                 onEdit={onEdit}
                 currentUserDealRole={currentUserDealRole}
+                submitting={submitting}
               />
             ))}
           </div>
