@@ -1129,6 +1129,17 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
         response: apiError.response?.body || apiError.response?.text || apiError.response,
         headers: apiError.response?.headers
       });
+      
+      // Try to get the response body text for more details
+      if (apiError.response?.res) {
+        try {
+          const responseText = await apiError.response.res.text();
+          console.error('DocuSign Response Body:', responseText);
+        } catch (e) {
+          console.error('Could not read response body:', e);
+        }
+      }
+      
       throw apiError;
     }
     
