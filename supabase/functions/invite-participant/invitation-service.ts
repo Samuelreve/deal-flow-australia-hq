@@ -18,9 +18,14 @@ export async function verifyDealParticipation(supabaseClient: any, dealId: strin
     .select('role')
     .eq('deal_id', dealId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    console.error('Error checking deal participation:', error);
+    throw new Error('Database error while checking permissions');
+  }
+
+  if (!data) {
     throw new Error('You are not authorized to invite participants to this deal');
   }
 
@@ -36,9 +41,14 @@ export async function verifyDealStatus(supabaseClient: any, dealId: string) {
     .from('deals')
     .select('title, status')
     .eq('id', dealId)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    console.error('Error checking deal status:', error);
+    throw new Error('Database error while checking deal status');
+  }
+
+  if (!data) {
     throw new Error('Deal not found');
   }
 
@@ -50,10 +60,10 @@ export async function findExistingUser(supabaseAdmin: any, email: string) {
     .from('profiles')
     .select('id, email')
     .eq('email', email)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    // User doesn't exist, which is fine for invitations
+    console.error('Error checking existing user:', error);
     return null;
   }
 
@@ -65,7 +75,11 @@ export async function getInviterProfile(supabaseClient: any, userId: string) {
     .from('profiles')
     .select('name, email')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error getting inviter profile:', error);
+  }
 
   return data;
 }
@@ -76,9 +90,14 @@ export async function checkExistingParticipant(supabaseClient: any, dealId: stri
     .select('id')
     .eq('deal_id', dealId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  return !error && data;
+  if (error) {
+    console.error('Error checking existing participant:', error);
+    return false;
+  }
+
+  return !!data;
 }
 
 export async function checkExistingInvitation(supabaseClient: any, dealId: string, email: string) {
@@ -88,9 +107,14 @@ export async function checkExistingInvitation(supabaseClient: any, dealId: strin
     .eq('deal_id', dealId)
     .eq('invitee_email', email)
     .eq('status', 'pending')
-    .single();
+    .maybeSingle();
 
-  return !error && data;
+  if (error) {
+    console.error('Error checking existing invitation:', error);
+    return false;
+  }
+
+  return !!data;
 }
 
 export async function addExistingUserAsParticipant(supabaseAdmin: any, dealId: string, userId: string, role: string) {
