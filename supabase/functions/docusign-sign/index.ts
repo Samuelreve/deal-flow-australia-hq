@@ -1098,22 +1098,39 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     });
     
     console.log('Requesting signing URL from DocuSign...');
+    console.log('Account ID:', accountId);
+    console.log('Envelope ID:', envelopeId);
+    console.log('API Base Path:', apiClient.getBasePath());
     
     // Set authentication
     apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
     
-    // Get recipient view
-    const result = await envelopesApi.createRecipientView(accountId, envelopeId, {
-      recipientViewRequest: recipientViewRequest
-    });
-    
-    if (!result || !result.url) {
-      throw new Error('Failed to get signing URL - no URL returned');
+    try {
+      // Get recipient view
+      const result = await envelopesApi.createRecipientView(accountId, envelopeId, {
+        recipientViewRequest: recipientViewRequest
+      });
+      
+      console.log('DocuSign API Response:', result);
+      
+      if (!result || !result.url) {
+        console.error('No URL in DocuSign response:', result);
+        throw new Error('Failed to get signing URL - no URL returned');
+      }
+      
+      console.log('✅ Signing URL obtained successfully:', result.url);
+      
+      return result.url;
+    } catch (apiError: any) {
+      console.error('DocuSign API Error Details:', {
+        message: apiError.message,
+        status: apiError.status,
+        statusText: apiError.statusText,
+        response: apiError.response?.body || apiError.response?.text || apiError.response,
+        headers: apiError.response?.headers
+      });
+      throw apiError;
     }
-    
-    console.log('✅ Signing URL obtained successfully');
-    
-    return result.url;
     
   } catch (error: any) {
     console.error('Failed to get signing URL using SDK:', error);
