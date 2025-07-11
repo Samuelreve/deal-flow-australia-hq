@@ -212,18 +212,18 @@ async function getDocuSignAccessToken(): Promise<string> {
     throw new Error('DocuSign credentials not configured');
   }
 
-  // Use JWT Grant
+  // Use JWT Grant following the correct DocuSign pattern
   return await getJWTAccessToken(integrationKey, userId, privateKey);
 }
 
 async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string): Promise<string> {
   try {
-    console.log('Attempting DocuSign JWT authentication with integration key:', integrationKey.substring(0, 8) + '...');
+    console.log('Requesting DocuSign JWT access token...');
     
     // Clean and format the private key
     let cleanPrivateKey = privateKey.trim();
     
-    // Detect key format and convert if necessary
+    // Ensure proper PKCS#8 format
     if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
       // Convert PKCS#1 to PKCS#8 format
       console.log('Converting PKCS#1 key to PKCS#8 format');
@@ -233,26 +233,22 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
     }
     
-    console.log('Using private key format:', cleanPrivateKey.substring(0, 50) + '...');
-    
     // Create JWT header
     const header = {
       "alg": "RS256",
       "typ": "JWT"
     };
     
-    // Create JWT payload
+    // Create JWT payload - following DocuSign's exact requirements
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       "iss": integrationKey,
       "sub": userId,
       "aud": "account-d.docusign.com",
       "iat": now,
-      "exp": now + 3600, // 1 hour expiration
+      "exp": now + 3600, // 1 hour expiration like in the reference
       "scope": "signature"
     };
-    
-    console.log('JWT payload created:', { iss: integrationKey, sub: userId, iat: now, exp: now + 3600 });
     
     // Encode header and payload
     const encodedHeader = btoa(JSON.stringify(header)).replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
@@ -260,7 +256,6 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
     
     // Create signature data
     const signatureData = `${encodedHeader}.${encodedPayload}`;
-    console.log('Signature data created, length:', signatureData.length);
     
     // Convert PEM to DER format for Web Crypto API
     const pemContent = cleanPrivateKey
@@ -268,16 +263,12 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       .replace('-----END PRIVATE KEY-----', '')
       .replace(/\s/g, '');
     
-    console.log('PEM content extracted, length:', pemContent.length);
-    
     // Decode base64 to get DER format
     const binaryString = atob(pemContent);
     const keyData = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       keyData[i] = binaryString.charCodeAt(i);
     }
-    
-    console.log('Key data converted to binary, length:', keyData.length);
     
     // Import private key
     const key = await crypto.subtle.importKey(
@@ -291,8 +282,6 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       ["sign"]
     );
     
-    console.log('Private key imported successfully');
-    
     // Sign the data
     const signature = await crypto.subtle.sign(
       "RSASSA-PKCS1-v1_5",
@@ -300,17 +289,13 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       new TextEncoder().encode(signatureData)
     );
     
-    console.log('Data signed successfully, signature length:', signature.byteLength);
-    
     const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
       .replace(/[+\/=]/g, (m) => ({"+":"-", "/":"_", "=":""}[m] || m));
     
     const jwt = `${signatureData}.${encodedSignature}`;
-    console.log('JWT created successfully, length:', jwt.length);
     
-    // Exchange JWT for access token
-    const authUrl = 'https://account-d.docusign.com/oauth/token';
-    const response = await fetch(authUrl, {
+    // Exchange JWT for access token using the proper DocuSign endpoint
+    const response = await fetch('https://account-d.docusign.com/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -321,8 +306,6 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       })
     });
 
-    console.log('DocuSign JWT auth response status:', response.status);
-    
     if (!response.ok) {
       const errorData = await response.text();
       console.error('DocuSign JWT authentication failed. Status:', response.status);
@@ -342,21 +325,17 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
     }
 
     const data = await response.json();
-    console.log('DocuSign JWT auth response keys:', Object.keys(data));
     
     if (!data.access_token) {
       console.error('No access token in JWT response:', data);
       throw new Error('No access token received from DocuSign JWT');
     }
 
-    console.log('Successfully obtained DocuSign JWT access token, expires in:', data.expires_in, 'seconds');
+    console.log('Successfully obtained DocuSign access token, expires in:', data.expires_in, 'seconds');
     return data.access_token;
     
   } catch (error) {
     console.error('JWT authentication failed with error:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
     throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
   }
 }
