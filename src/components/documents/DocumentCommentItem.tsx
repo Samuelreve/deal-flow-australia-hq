@@ -22,6 +22,33 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   isActive = false
 }) => {
   const { user } = useAuth();
+
+  // Generate consistent color theme for each user
+  const getUserColorTheme = (userId: string) => {
+    const colors = [
+      { bg: 'bg-blue-50', border: 'border-blue-200', avatar: 'bg-blue-100' },
+      { bg: 'bg-green-50', border: 'border-green-200', avatar: 'bg-green-100' },
+      { bg: 'bg-purple-50', border: 'border-purple-200', avatar: 'bg-purple-100' },
+      { bg: 'bg-orange-50', border: 'border-orange-200', avatar: 'bg-orange-100' },
+      { bg: 'bg-pink-50', border: 'border-pink-200', avatar: 'bg-pink-100' },
+      { bg: 'bg-indigo-50', border: 'border-indigo-200', avatar: 'bg-indigo-100' },
+      { bg: 'bg-teal-50', border: 'border-teal-200', avatar: 'bg-teal-100' },
+      { bg: 'bg-amber-50', border: 'border-amber-200', avatar: 'bg-amber-100' },
+      { bg: 'bg-cyan-50', border: 'border-cyan-200', avatar: 'bg-cyan-100' },
+      { bg: 'bg-rose-50', border: 'border-rose-200', avatar: 'bg-rose-100' }
+    ];
+    
+    // Use simple hash to consistently assign colors
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const userTheme = getUserColorTheme(comment.user_id);
   
   const handleResolveToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,10 +71,10 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   
   return (
     <div 
-      className={`border rounded-md p-3 mb-2 ${
+      className={`border rounded-md p-3 mb-2 ${userTheme.bg} ${userTheme.border} ${
         isActive ? 'ring-2 ring-primary' : ''
       } ${
-        comment.resolved ? 'bg-muted/50' : 'bg-card'
+        comment.resolved ? 'opacity-75' : ''
       } hover:bg-accent/80 cursor-pointer transition-colors`}
       onClick={() => onCommentClick(comment.id, comment.location_data)}
     >

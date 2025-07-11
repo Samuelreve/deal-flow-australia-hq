@@ -36,6 +36,31 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 }) => {
   const { user } = useAuth();
   const [replyingToId, setReplyingToId] = React.useState<string | null>(null);
+
+  // Generate consistent color theme for each user
+  const getUserColorTheme = (userId: string) => {
+    const colors = [
+      { bg: 'bg-blue-50', border: 'border-blue-200', avatar: 'bg-blue-100' },
+      { bg: 'bg-green-50', border: 'border-green-200', avatar: 'bg-green-100' },
+      { bg: 'bg-purple-50', border: 'border-purple-200', avatar: 'bg-purple-100' },
+      { bg: 'bg-orange-50', border: 'border-orange-200', avatar: 'bg-orange-100' },
+      { bg: 'bg-pink-50', border: 'border-pink-200', avatar: 'bg-pink-100' },
+      { bg: 'bg-indigo-50', border: 'border-indigo-200', avatar: 'bg-indigo-100' },
+      { bg: 'bg-teal-50', border: 'border-teal-200', avatar: 'bg-teal-100' },
+      { bg: 'bg-amber-50', border: 'border-amber-200', avatar: 'bg-amber-100' },
+      { bg: 'bg-cyan-50', border: 'border-cyan-200', avatar: 'bg-cyan-100' },
+      { bg: 'bg-rose-50', border: 'border-rose-200', avatar: 'bg-rose-100' }
+    ];
+    
+    // Use simple hash to consistently assign colors
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
   const handleSubmitComment = () => {
     const textarea = document.getElementById('comment-input') as HTMLTextAreaElement;
     const content = textarea?.value.trim();
@@ -146,12 +171,14 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
             </p>
           </div>
         ) : (
-          groupedComments.map((comment) => (
+          groupedComments.map((comment) => {
+            const userTheme = getUserColorTheme(comment.user_id);
+            return (
             <div key={comment.id} className="space-y-2">
               {/* Main Comment */}
-              <div className="p-3 border rounded-lg bg-background">
+              <div className={`p-3 border rounded-lg ${userTheme.bg} ${userTheme.border}`}>
                 <div className="flex items-start gap-2 mb-2">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className={`w-8 h-8 ${userTheme.avatar} rounded-full flex items-center justify-center`}>
                     <span className="text-xs font-medium">
                       {comment.profiles?.name?.charAt(0) || 'U'}
                     </span>
@@ -191,10 +218,12 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
               {/* Replies Section */}
               {comment.replies && comment.replies.length > 0 && (
                 <div className="ml-6 pl-4 border-l-2 border-muted space-y-2">
-                  {comment.replies.map((reply) => (
-                    <div key={reply.id} className="p-3 border rounded-lg bg-muted/30 animate-fade-in">
+                  {comment.replies.map((reply) => {
+                    const replyTheme = getUserColorTheme(reply.user_id);
+                    return (
+                    <div key={reply.id} className={`p-3 border rounded-lg ${replyTheme.bg} ${replyTheme.border} animate-fade-in`}>
                       <div className="flex items-start gap-2 mb-2">
-                        <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                        <div className={`w-6 h-6 ${replyTheme.avatar} rounded-full flex items-center justify-center`}>
                           <span className="text-xs font-medium">
                             {reply.profiles?.name?.charAt(0) || 'U'}
                           </span>
@@ -220,8 +249,24 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                         </div>
                         <p className="text-sm text-foreground">{reply.content}</p>
                       </div>
+                      
+                      {/* Reply button for nested replies - show only for other users' comments */}
+                      {user?.id !== reply.user_id && (
+                        <div className="mt-2 flex justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => setReplyingToId(comment.id)} // Reply to the original parent comment
+                          >
+                            <Reply className="h-3 w-3 mr-1" />
+                            Reply
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -262,7 +307,8 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 </div>
               )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
