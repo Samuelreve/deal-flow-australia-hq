@@ -24,8 +24,8 @@ export async function verifyDealParticipation(supabaseClient: any, dealId: strin
     throw new Error('You are not authorized to invite participants to this deal');
   }
 
-  if (!['seller', 'admin'].includes(data.role)) {
-    throw new Error('Only sellers and admins can send invitations');
+  if (!['seller', 'admin', 'buyer'].includes(data.role)) {
+    throw new Error('Only sellers, buyers, and admins can send invitations');
   }
 
   return data;
