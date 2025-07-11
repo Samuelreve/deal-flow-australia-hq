@@ -797,7 +797,7 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
     console.log('Target: demo.docusign.net environment');
     
     // Initialize DocuSign API client for demo environment
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient;
+    const { ApiClient } = docusign;
     const apiClient = new ApiClient();
     apiClient.setBasePath('https://demo.docusign.net/restapi');
     
@@ -971,7 +971,8 @@ async function createDocuSignEnvelope(params: {
   try {
     console.log('Creating DocuSign envelope using SDK...');
     
-    // Initialize API client
+    // Initialize API client with DocuSign SDK classes
+    const { ApiClient, EnvelopesApi, Document, Signer, SignHere, Tabs, Recipients, EnvelopeDefinition } = docusign;
     const apiClient = new ApiClient();
     
     // Get account info to set proper base path
@@ -1062,7 +1063,8 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
   try {
     console.log('Getting signing URL using SDK...');
     
-    // Initialize API client
+    // Initialize API client with DocuSign SDK classes
+    const { ApiClient, EnvelopesApi, RecipientViewRequest } = docusign;
     const apiClient = new ApiClient();
     
     const accountId = docusignConfig?.accountId || docusignTokenData?.account_id;
