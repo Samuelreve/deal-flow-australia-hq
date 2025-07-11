@@ -257,7 +257,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                             variant="ghost" 
                             size="sm"
                             className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
-                            onClick={() => setReplyingToId(comment.id)} // Reply to the original parent comment
+                            onClick={() => setReplyingToId(reply.id)} // Reply to this specific nested comment
                           >
                             <Reply className="h-3 w-3 mr-1" />
                             Reply
@@ -270,7 +270,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 </div>
               )}
 
-              {/* Reply Form */}
+              {/* Reply Form for Root Comment */}
               {replyingToId === comment.id && (
                 <div className="ml-6 pl-4 border-l-2 border-primary animate-fade-in">
                   <div className="p-3 border rounded-lg bg-primary/5">
@@ -306,6 +306,45 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Reply Forms for Nested Comments */}
+              {comment.replies && comment.replies.map((reply) => (
+                replyingToId === reply.id && (
+                  <div key={`reply-form-${reply.id}`} className="ml-12 pl-4 border-l-2 border-primary animate-fade-in">
+                    <div className="p-3 border rounded-lg bg-primary/5">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Replying to <span className="font-medium">{reply.profiles?.name || 'Unknown User'}</span>
+                      </div>
+                      <div className="space-y-3">
+                        <Textarea 
+                          placeholder={`Reply to ${reply.profiles?.name || 'Unknown User'}...`}
+                          className="min-h-[60px] resize-none text-sm border-primary/20 focus:border-primary"
+                          id={`reply-input-${reply.id}`}
+                          onKeyDown={(e) => handleReplyKeyDown(e, reply.id)}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setReplyingToId(null)}
+                            disabled={isSubmittingComment}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => handleSubmitReply(reply.id)}
+                            disabled={isSubmittingComment}
+                          >
+                            <Send className="h-4 w-4 mr-1" />
+                            {isSubmittingComment ? 'Replying...' : 'Reply'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ))}
             </div>
             );
           })
