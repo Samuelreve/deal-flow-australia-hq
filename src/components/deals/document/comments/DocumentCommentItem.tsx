@@ -35,6 +35,14 @@ const DocumentCommentItem = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
   const [isReplying, setIsReplying] = useState(false);
+
+  // Debug logging
+  console.log('DocumentCommentItem props:', {
+    commentId: comment.id,
+    isReply,
+    hasOnReplyToComment: !!onReplyToComment,
+    content: comment.content
+  });
   
   const canEdit = currentUserId === comment.userId;
   const canDelete = currentUserId === comment.userId || 
@@ -112,7 +120,7 @@ const DocumentCommentItem = ({
         
         {!isEditing && (
           <div className="flex gap-3 pt-1">
-            {onReplyToComment && (
+            {onReplyToComment ? (
               <button 
                 onClick={() => setIsReplying(true)} 
                 className="text-xs flex items-center text-muted-foreground hover:text-primary transition-colors"
@@ -120,7 +128,7 @@ const DocumentCommentItem = ({
                 <CornerDownRight className="h-3 w-3 mr-1" />
                 Reply
               </button>
-            )}
+            ) : null}
             
             {canEdit && (
               <button 
