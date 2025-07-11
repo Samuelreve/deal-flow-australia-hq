@@ -60,6 +60,10 @@ const DocumentCommentItem = ({
     if (onReplyToComment) {
       await onReplyToComment(comment.id, content);
       setIsReplying(false);
+    } else {
+      // Fallback: if no onReplyToComment prop, just log for now
+      console.log('No onReplyToComment prop available for reply to:', comment.id);
+      setIsReplying(false);
     }
   };
 
