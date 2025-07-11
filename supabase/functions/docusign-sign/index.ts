@@ -571,19 +571,40 @@ async function handleStatusRequest(req: Request): Promise<Response> {
  * Handle signing request - main document signing logic
  */
 async function handleSigningRequest(req: Request): Promise<Response> {
-  // Check if either OAuth or JWT configuration is available
+  // Auto-configure from environment variables if not already configured
   if (!docusignTokenData && !docusignConfig) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'DocuSign not configured. Please use OAuth authentication or configure JWT credentials.',
-        oauthEndpoint: '/auth',
-        configureEndpoint: '/configure'
-      }),
-      { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
+    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+    const userId = Deno.env.get('DOCUSIGN_USER_ID');
+    const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
+    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
+
+    if (integrationKey && userId && privateKey && accountId) {
+      console.log('Auto-configuring DocuSign from environment variables');
+      docusignConfig = {
+        integrationKey,
+        userId,
+        privateKey,
+        accountId
+      };
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          error: 'DocuSign not configured. Please use OAuth authentication or configure JWT credentials.',
+          oauthEndpoint: '/auth',
+          configureEndpoint: '/configure',
+          missingEnvVars: {
+            DOCUSIGN_INTEGRATION_KEY: !integrationKey,
+            DOCUSIGN_USER_ID: !userId,
+            DOCUSIGN_PRIVATE_KEY: !privateKey,
+            DOCUSIGN_ACCOUNT_ID: !accountId
+          }
+        }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        }
+      );
+    }
   }
 
   console.log('Creating Supabase client...');
