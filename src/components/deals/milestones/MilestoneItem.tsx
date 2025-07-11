@@ -144,10 +144,22 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }
 
       if (data?.signingUrl) {
+        console.log('Got signing URL from DocuSign:', data.signingUrl);
+        
         // Open DocuSign signing URL in new window
-        window.open(data.signingUrl, '_blank');
+        console.log('Opening signing URL in new tab...');
+        const newWindow = window.open(data.signingUrl, '_blank');
+        
+        if (newWindow) {
+          console.log('New tab opened successfully');
+        } else {
+          console.warn('Failed to open new tab - may be blocked by popup blocker');
+          // Fallback: try to open in same window
+          window.location.href = data.signingUrl;
+        }
         
         // Close the modal after successfully opening the signing URL
+        console.log('Closing document selection modal...');
         setIsDocumentModalOpen(false);
         
         toast({
@@ -159,6 +171,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         setTimeout(() => {
           checkDocumentSignatures();
         }, 2000);
+      } else {
+        console.error('No signing URL received from DocuSign API');
       }
 
     } catch (error: any) {
