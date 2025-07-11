@@ -231,8 +231,17 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
     // Clean and format the private key according to DocuSign requirements
     let cleanPrivateKey = privateKey.trim();
     
+    console.log('Original private key length:', privateKey.length);
+    console.log('Private key starts with BEGIN:', privateKey.includes('-----BEGIN'));
+    console.log('Private key ends with END:', privateKey.includes('-----END'));
+    
     // Remove any Windows line endings and normalize
     cleanPrivateKey = cleanPrivateKey.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Handle different private key formats
+    if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+      throw new Error('RSA PRIVATE KEY format detected. Please convert to PKCS#8 format (-----BEGIN PRIVATE KEY-----) using: openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in rsa_key.pem -out private_key.pem');
+    }
     
     // Ensure proper PEM format
     if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
@@ -290,9 +299,16 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       .trim();
     
     console.log('PEM content extracted, length:', pemContent.length);
+    console.log('PEM content first 20 chars:', pemContent.substring(0, 20));
     
     if (pemContent.length === 0) {
       throw new Error('Private key content is empty after processing');
+    }
+    
+    // Validate base64 content before decoding
+    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+    if (!base64Regex.test(pemContent)) {
+      throw new Error('Private key does not contain valid base64 content');
     }
     
     // Decode base64 to get DER format (PKCS#8)
@@ -305,7 +321,8 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       }
       console.log('Key converted to DER format, byte length:', keyData.length);
     } catch (error) {
-      throw new Error(`Failed to decode private key: ${error.message}`);
+      console.error('Base64 decoding failed:', error);
+      throw new Error(`Failed to decode private key base64 content: ${error.message}. Please ensure the private key is properly formatted.`);
     }
     
     // Import private key using Web Crypto API
