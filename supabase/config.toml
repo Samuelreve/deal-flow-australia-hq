@@ -1,6 +1,3 @@
-
-# This is your Supabase project's configuration.
-
 project_id = "wntmgfuclbdrezxcvzmw"
 
 [api]
@@ -185,6 +182,15 @@ verify_jwt = true
 
 [functions.delete-milestone]
 verify_jwt = true
+
+[functions.docusign-sign]
+verify_jwt = true
+
+[functions.docusign-oauth-callback]
+verify_jwt = false
+
+[functions.docusign-callback]
+verify_jwt = false
 
 [functions.document-ai-assistant]
 verify_jwt = true
