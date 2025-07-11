@@ -24,7 +24,7 @@ serve(async (req: Request) => {
     
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get invitation details
+    // Get invitation details with deal title
     const { data: invitation, error } = await supabaseAdmin
       .from('deal_invitations')
       .select(`
@@ -35,7 +35,7 @@ serve(async (req: Request) => {
         status,
         token_expires_at,
         invited_by_user_id,
-        deals!inner(title)
+        deals(title)
       `)
       .eq('invitation_token', token)
       .eq('status', 'pending')
@@ -76,7 +76,7 @@ serve(async (req: Request) => {
         dealId: invitation.deal_id,
         inviteeEmail: invitation.invitee_email,
         inviteeRole: invitation.invitee_role,
-        dealTitle: invitation.deals.title,
+        dealTitle: invitation.deals?.title || 'Unknown Deal',
         inviterName: inviterProfile?.name || 'Unknown',
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
