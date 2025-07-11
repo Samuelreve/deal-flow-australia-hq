@@ -170,7 +170,7 @@ const DocumentSelectionModal: React.FC<DocumentSelectionModalProps> = ({
       console.log('Starting DocuSign process');
       // Initiate DocuSign signing
       onDocumentSelected(selectedDocumentId!, selectedBuyerId || undefined);
-      onClose();
+      // Don't close the modal immediately - let the parent component handle this
     }
   };
 

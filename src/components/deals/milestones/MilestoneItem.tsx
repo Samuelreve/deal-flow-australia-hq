@@ -145,6 +145,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         // Open DocuSign signing URL in new window
         window.open(data.signingUrl, '_blank');
         
+        // Close the modal after successfully opening the signing URL
+        setIsDocumentModalOpen(false);
+        
         toast({
           title: 'Document signing initiated',
           description: 'Please complete the signing process in the new window.'
