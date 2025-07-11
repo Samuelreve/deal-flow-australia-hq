@@ -331,7 +331,8 @@ async function getJWTAccessToken(integrationKey: string, userId: string, private
       // Check if this is a consent required error
       if (response.status === 400 && errorData.includes('consent_required')) {
         console.log('Consent required - generating consent URL');
-        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent('https://developers.docusign.com/platform/auth/consent')}`;
+        const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
+        const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
         
         // Return a special response indicating consent is needed
         throw new Error(`CONSENT_REQUIRED:${consentUrl}`);
