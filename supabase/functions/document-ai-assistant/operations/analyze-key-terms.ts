@@ -8,13 +8,32 @@ export async function handleAnalyzeKeyTerms(content: string, context: any, opena
   
   let documentContent = content;
   
-  // If no content provided, fetch from database
+  // If no content provided, fetch using content retrieval function
   if (!documentContent) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     try {
-      // Try to get from document_versions first (more specific)
-      if (context.documentVersionId) {
+      // First try using the document-content-retrieval function
+      if (context.documentVersionId && context.dealId) {
+        console.log('🔍 Calling document-content-retrieval for key terms analysis');
+        const { data: contentResult, error: contentError } = await supabase.functions
+          .invoke('document-content-retrieval', {
+            body: {
+              versionId: context.documentVersionId,
+              dealId: context.dealId
+            }
+          });
+
+        if (!contentError && contentResult?.content) {
+          documentContent = contentResult.content;
+          console.log('📄 Got content from content retrieval function');
+        } else {
+          console.error('❌ Error from content retrieval function:', contentError);
+        }
+      }
+      
+      // Fallback to direct database query if content retrieval fails
+      if (!documentContent && context.documentVersionId) {
         const { data: versionData, error: versionError } = await supabase
           .from('document_versions')
           .select('text_content')
@@ -27,7 +46,7 @@ export async function handleAnalyzeKeyTerms(content: string, context: any, opena
         }
       }
       
-      // Fallback to contracts table
+      // Second fallback to contracts table
       if (!documentContent && context.documentId) {
         const { data: contractData, error: contractError } = await supabase
           .from('contracts')
