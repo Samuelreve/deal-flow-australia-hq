@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import TemplateGenerationModal from "@/components/deals/document/TemplateGenerationModal";
-import DirectAnalysisModal from "@/components/deals/document/DirectAnalysisModal";
 import DocumentListPanel from "./components/DocumentListPanel";
 import DocumentViewerPanel from "./components/DocumentViewerPanel";
 import { Document } from "@/types/deal";
+import { useAnalysisOperations } from "@/hooks/document-ai/useAnalysisOperations";
+import { toast } from "sonner";
 
 interface DatabaseDocument {
   id: string;
@@ -31,15 +32,15 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysisType, setAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
+  // Initialize analysis operations
+  const analysisOps = useAnalysisOperations({ dealId, documentId: selectedDocument?.id });
   const [documentPreview, setDocumentPreview] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [comments, setComments] = useState<any[]>([]);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const { toast } = useToast();
+  const { toast: showToast } = useToast();
   const { user } = useAuth();
 
   // Map database documents to Document type
@@ -96,7 +97,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (error) {
         console.error('Error fetching documents:', error);
-        toast({
+        showToast({
           title: "Error",
           description: "Failed to load documents",
           variant: "destructive"
@@ -271,7 +272,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         .single();
 
       if (storageError || !storageData?.storage_path) {
-        toast({
+        showToast({
           title: "Error",
           description: "Document metadata not found. The file may need to be re-uploaded.",
           variant: "destructive"
@@ -296,13 +297,13 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         console.error('Error creating signed URL:', urlError);
         
         if (urlError.message?.includes('not_found') || urlError.message?.includes('404')) {
-          toast({
+          showToast({
             title: "Document Not Found",
             description: "The document file is missing from storage. Please re-upload the document.",
             variant: "destructive"
           });
         } else {
-          toast({
+          showToast({
             title: "Error",
             description: "Unable to generate document link. Please try again.",
             variant: "destructive"
@@ -314,7 +315,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       window.open(urlData.signedUrl, '_blank');
     } catch (error) {
       console.error('Error opening document:', error);
-      toast({
+      showToast({
         title: "Error",
         description: "Failed to open document. The file may be missing or corrupted.",
         variant: "destructive"
@@ -322,10 +323,50 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     }
   };
 
-  const handleAnalyzeDocument = (type: 'summary' | 'key_terms' | 'risks') => {
-    if (!selectedDocument) return;
-    setAnalysisType(type);
-    setShowAnalysisModal(true);
+  const handleAnalyzeDocument = async (type: 'summary' | 'key_terms' | 'risks') => {
+    if (!selectedDocument) {
+      toast.error("Please select a document first");
+      return;
+    }
+
+    // Get the latest document version
+    const { data: versionData, error: versionError } = await supabase
+      .from('document_versions')
+      .select('id')
+      .eq('document_id', selectedDocument.id)
+      .order('version_number', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (versionError || !versionData?.id) {
+      toast.error("Unable to find document version for analysis");
+      return;
+    }
+
+    try {
+      let result;
+      
+      switch (type) {
+        case 'summary':
+          result = await analysisOps.summarizeDocument(selectedDocument.id, versionData.id);
+          break;
+        case 'key_terms':
+          result = await analysisOps.analyzeDocument(selectedDocument.id, versionData.id, 'key_terms');
+          break;
+        case 'risks':
+          result = await analysisOps.analyzeDocument(selectedDocument.id, versionData.id, 'risks');
+          break;
+      }
+
+      if (result) {
+        toast.success(`${type === 'summary' ? 'Summary' : type === 'key_terms' ? 'Key Terms' : 'Risk Analysis'} completed successfully!`);
+        console.log('Analysis result:', result);
+        // You can add a state to display the result in a modal or panel if needed
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast.error(`Failed to ${type === 'summary' ? 'summarize' : 'analyze'} document`);
+    }
   };
 
   const handleAddComment = async (content: string, parentCommentId?: string) => {
@@ -344,7 +385,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (versionError || !versionData?.id) {
         console.error('Error finding document version:', versionError);
-        toast({
+        showToast({
           title: "Error",
           description: "Unable to find document version for commenting. Please try again.",
           variant: "destructive"
@@ -373,7 +414,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (commentError) {
         console.error('Error adding comment:', commentError);
-        toast({
+        showToast({
           title: "Error",
           description: "Failed to add comment. Please check your permissions.",
           variant: "destructive"
@@ -385,13 +426,13 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       setComments(prev => [commentData, ...prev]);
       setShowCommentForm(false);
       
-      toast({
+      showToast({
         title: "Success",
         description: "Comment added successfully"
       });
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast({
+      showToast({
         title: "Error",
         description: "Failed to add comment",
         variant: "destructive"
@@ -478,13 +519,6 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         onDocumentSaved={() => fetchDocuments()}
       />
       
-      <DirectAnalysisModal
-        isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
-        document={selectedDocument ? { id: selectedDocument.id, name: selectedDocument.name, type: selectedDocument.type } : null}
-        dealId={dealId}
-        analysisType={analysisType}
-      />
     </div>
   );
 };
