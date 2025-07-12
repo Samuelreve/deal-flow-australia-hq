@@ -7,6 +7,7 @@ import DocumentListPanel from "./components/DocumentListPanel";
 import DocumentViewerPanel from "./components/DocumentViewerPanel";
 import { Document } from "@/types/deal";
 import DocumentAnalysisModal from "./components/DocumentAnalysisModal";
+import ContractAnalyzerDialog from "@/components/deals/document/ContractAnalyzerDialog";
 import { useAnalysisOperations } from "@/hooks/document-ai/useAnalysisOperations";
 import { toast } from "sonner";
 
@@ -33,9 +34,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysisType, setAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [showContractAnalyzer, setShowContractAnalyzer] = useState(false);
   
   // Initialize analysis operations
   const analysisOps = useAnalysisOperations({ dealId, documentId: selectedDocument?.id });
@@ -348,34 +347,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       return;
     }
 
-    try {
-      let result;
-      
-      switch (type) {
-        case 'summary':
-          result = await analysisOps.summarizeDocument(selectedDocument.id, versionData.id);
-          break;
-        case 'key_terms':
-          result = await analysisOps.analyzeDocument(selectedDocument.id, versionData.id, 'key_terms');
-          break;
-        case 'risks':
-          result = await analysisOps.analyzeDocument(selectedDocument.id, versionData.id, 'risks');
-          break;
-      }
-
-      if (result) {
-        // Store the result and show the modal
-        setAnalysisResult(result);
-        setAnalysisType(type);
-        setShowAnalysisModal(true);
-        
-        toast.success(`${type === 'summary' ? 'Summary' : type === 'key_terms' ? 'Key Terms' : 'Risk Analysis'} completed successfully!`);
-        console.log('Analysis result:', result);
-      }
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast.error(`Failed to ${type === 'summary' ? 'summarize' : 'analyze'} document`);
-    }
+    // Open the contract analyzer dialog
+    setShowContractAnalyzer(true);
   };
 
   const handleAddComment = async (content: string, parentCommentId?: string) => {
@@ -528,13 +501,17 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         onDocumentSaved={() => fetchDocuments()}
       />
       
-      <DocumentAnalysisModal
-        isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
-        analysisType={analysisType}
-        result={analysisResult}
-        documentName={selectedDocument?.name}
-      />
+      {/* Contract Analyzer Dialog */}
+      {selectedDocument && (
+        <ContractAnalyzerDialog
+          dealId={dealId}
+          documentId={selectedDocument.id}
+          versionId={selectedDocument.latestVersionId || ''}
+          userRole={user?.role || 'user'}
+          open={showContractAnalyzer}
+          onOpenChange={setShowContractAnalyzer}
+        />
+      )}
       
     </div>
   );
