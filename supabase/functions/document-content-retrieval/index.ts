@@ -83,40 +83,98 @@ serve(async (req) => {
       throw new Error('Document not found or not part of the specified deal');
     }
 
-    // 3. Download the file
-    const dealBucket = 'deal-documents'; // Replace with your bucket name
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from(dealBucket)
-      .download(`${dealId}/${version.storage_path}`);
-      
-    if (fileError || !fileData) {
-      throw new Error('Failed to download file');
+    // 3. First try to get extracted text content from database
+    const { data: versionWithText, error: textError } = await supabase
+      .from('document_versions')
+      .select('text_content')
+      .eq('id', versionId)
+      .single();
+    
+    if (!textError && versionWithText?.text_content) {
+      console.log('Found extracted text content in database');
+      return {
+        content: versionWithText.text_content,
+        mimeType: version.type,
+        documentId: version.document_id,
+        versionId
+      };
     }
 
-    // 4. Convert file to text
-    let content: string;
+    console.log('No extracted text found in database, attempting file download...');
+
+    // 4. Download the file from storage
+    const dealBucket = 'deal_documents'; // Use the correct bucket name
     
-    // Handle different file types
-    if (version.type === 'application/pdf') {
-      // For PDFs, we would need PDF.js or similar to extract text
-      // This is a simplified example
-      content = await fileData.text();
-    } else if (
-      version.type === 'text/plain' || 
-      version.type === 'text/markdown' ||
-      version.type === 'text/html' ||
-      version.type.includes('text/')
-    ) {
-      content = await fileData.text();
-    } else if (
-      version.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      version.type === 'application/msword'
-    ) {
-      // For Word docs, we'd need a specialized parser
-      content = "Word document content extraction not supported in this example";
+    // Try different path combinations
+    const possiblePaths = [
+      `${dealId}/${version.storage_path}`,
+      version.storage_path,
+      `${version.storage_path}`
+    ];
+    
+    let fileData: Blob | null = null;
+    let successfulPath = '';
+    
+    for (const path of possiblePaths) {
+      console.log(`Trying to download from path: ${path}`);
+      const { data, error } = await supabase.storage
+        .from(dealBucket)
+        .download(path);
+      
+      if (!error && data) {
+        fileData = data;
+        successfulPath = path;
+        console.log(`Successfully downloaded from: ${path}`);
+        break;
+      } else {
+        console.log(`Failed to download from ${path}:`, error?.message);
+      }
+    }
+    
+    if (!fileData) {
+      throw new Error(`Failed to download file from any of the attempted paths: ${possiblePaths.join(', ')}`);
+    }
+
+    // 5. Extract text using the text-extractor function
+    console.log(`Converting file to base64 for text extraction...`);
+    const arrayBuffer = await fileData.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to avoid call stack overflow
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
+    
+    console.log('Calling text-extractor function...');
+    const { data: extractionResult, error: extractionError } = await supabase.functions
+      .invoke('text-extractor', {
+        body: {
+          fileBase64: base64,
+          mimeType: version.type,
+          fileName: version.storage_path.split('/').pop() || 'document'
+        }
+      });
+    
+    let content = '';
+    if (extractionError) {
+      console.error('Text extraction failed:', extractionError);
+      content = 'Text extraction failed for this document type.';
+    } else if (extractionResult?.success && extractionResult?.text) {
+      content = extractionResult.text;
+      console.log('Text extraction successful:', content.length, 'characters');
+      
+      // Save extracted text back to database for future use
+      await supabase
+        .from('document_versions')
+        .update({ text_content: content })
+        .eq('id', versionId);
     } else {
-      // Fallback for other file types
-      content = await fileData.text();
+      console.log('No text content extracted');
+      content = 'No readable text content found in this document.';
     }
 
     return new Response(
