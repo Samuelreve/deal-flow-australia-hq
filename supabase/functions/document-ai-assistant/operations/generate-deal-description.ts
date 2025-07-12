@@ -85,41 +85,64 @@ ${documentSummaries.map(doc => `
     }
     
     // Create comprehensive prompt incorporating all available data
-    const prompt = `You are an expert business broker helping to create a compelling deal description. Generate a professional, detailed description that will attract serious buyers.
+    const prompt = `You are a seasoned M&A advisor and business broker with 20+ years of experience crafting compelling acquisition narratives. Your expertise spans multiple industries, and you understand what sophisticated buyers look for in investment opportunities.
 
-Business Information:
-- Business Name: ${dealData.businessTradingName || dealData.businessLegalName || 'Not specified'}
-- Legal Name: ${dealData.businessLegalName || 'Not specified'}
-- Industry: ${dealData.businessIndustry || 'Not specified'}
-- Years in Operation: ${dealData.yearsInOperation || 'Not specified'}
-- Deal Type: ${dealData.dealType || 'Not specified'}
-- Asking Price: ${dealData.askingPrice ? `$${Number(dealData.askingPrice).toLocaleString()}` : 'Not specified'}
-- Business Location: ${dealData.businessState || 'Not specified'}
-- Reason for Selling: ${dealData.reasonForSelling || 'Not specified'}
+BUSINESS PROFILE:
+- Company: ${dealData.businessTradingName || dealData.businessLegalName || 'Established Business'}
+- Legal Entity: ${dealData.businessLegalName || 'To be disclosed'}
+- Industry Sector: ${dealData.businessIndustry || 'Diversified Operations'}
+- Operating History: ${dealData.yearsInOperation ? `${dealData.yearsInOperation} years of proven performance` : 'Established track record'}
+- Transaction Type: ${dealData.dealType || 'Strategic Acquisition'}
+- Investment Size: ${dealData.askingPrice ? `$${Number(dealData.askingPrice).toLocaleString()}` : 'Price upon inquiry'}
+- Geographic Market: ${dealData.businessState || 'Prime location'}
+- Divestiture Rationale: ${dealData.reasonForSelling || 'Strategic repositioning'}
 
 ${documentInsights ? `
-Available Documentation Analysis:
+PROPRIETARY DUE DILIGENCE INSIGHTS:
 ${documentInsights}
-` : 'No supporting documents have been uploaded yet.'}
 
-Based on this information, create a compelling 3-4 paragraph deal description that:
+KEY FINANCIAL & OPERATIONAL INTELLIGENCE:
+Based on our analysis of the provided documentation, we have identified several value drivers and operational metrics that enhance the investment thesis.
+` : `
+PRELIMINARY ASSESSMENT:
+While comprehensive financial documentation is pending upload, initial business parameters suggest a compelling opportunity for the right strategic or financial buyer.
+`}
 
-1. **Opening Hook**: Start with what makes this business opportunity unique and attractive
-2. **Business Overview**: Describe what the business does, its market position, and operational strengths
-3. **Financial & Growth Highlights**: Incorporate any financial insights from documents and growth potential
-4. **Investment Appeal**: Explain why this is a good investment opportunity and what buyers can expect
+ASSIGNMENT: Craft an institutional-quality investment memorandum summary that positions this opportunity for serious acquirers. Structure as follows:
 
-Guidelines:
-- Use specific details from the provided information and document analysis
-- Highlight competitive advantages and market opportunities
-- Include operational strengths and asset value
-- Mention growth potential and scalability
-- Keep tone professional but engaging
-- Avoid generic statements - be specific to this business
-- If financial data is available in documents, reference performance indicators
-- If operational details are available, highlight process efficiency or market position
+1. **EXECUTIVE SUMMARY & VALUE PROPOSITION** (Opening paragraph)
+   - Lead with the most compelling investment hook
+   - Quantify the opportunity size and market position where possible
+   - Highlight unique competitive moats or market advantages
+   - Position as either growth, cash flow, or strategic value play
 
-Generate only the description text, no additional formatting or explanations.`;
+2. **BUSINESS MODEL & MARKET DYNAMICS** (Core business paragraph)
+   - Articulate the business model and revenue streams
+   - Address market positioning and competitive landscape
+   - Identify key operational strengths and scalability factors
+   - Reference industry trends that support the investment thesis
+
+3. **FINANCIAL PERFORMANCE & GROWTH CATALYSTS** (Performance paragraph)
+   - Synthesize any financial data from documentation into performance narrative
+   - Highlight historical growth patterns, profitability metrics, or cash generation
+   - Identify untapped growth vectors and expansion opportunities
+   - Address working capital efficiency and operational leverage
+
+4. **STRATEGIC RATIONALE & BUYER APPEAL** (Investment conclusion)
+   - Define the ideal buyer profile (strategic vs. financial)
+   - Articulate synergy potential and value creation opportunities
+   - Address scalability and platform potential
+   - Create urgency around market timing and competitive dynamics
+
+WRITING STANDARDS:
+- Employ sophisticated financial and strategic terminology
+- Quantify claims wherever possible using document data
+- Avoid generic business language - make every sentence specific to this opportunity
+- Balance confidence with appropriate professional disclaimers
+- Create compelling narrative flow that builds investment conviction
+- Target audience: sophisticated buyers, private equity, strategic acquirers
+
+Generate a polished, professional description that reads like it came from a top-tier investment bank. Focus on value creation, strategic fit, and investment returns.
 
     // Call OpenAI to generate description
     const completion = await openai.chat.completions.create({
