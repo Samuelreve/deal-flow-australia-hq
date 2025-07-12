@@ -6,6 +6,7 @@ import TemplateGenerationModal from "@/components/deals/document/TemplateGenerat
 import DocumentListPanel from "./components/DocumentListPanel";
 import DocumentViewerPanel from "./components/DocumentViewerPanel";
 import { Document } from "@/types/deal";
+import DocumentAnalysisModal from "./components/DocumentAnalysisModal";
 import { useAnalysisOperations } from "@/hooks/document-ai/useAnalysisOperations";
 import { toast } from "sonner";
 
@@ -32,6 +33,10 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisType, setAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  
   // Initialize analysis operations
   const analysisOps = useAnalysisOperations({ dealId, documentId: selectedDocument?.id });
   const [documentPreview, setDocumentPreview] = useState<string>('');
@@ -359,9 +364,13 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       }
 
       if (result) {
+        // Store the result and show the modal
+        setAnalysisResult(result);
+        setAnalysisType(type);
+        setShowAnalysisModal(true);
+        
         toast.success(`${type === 'summary' ? 'Summary' : type === 'key_terms' ? 'Key Terms' : 'Risk Analysis'} completed successfully!`);
         console.log('Analysis result:', result);
-        // You can add a state to display the result in a modal or panel if needed
       }
     } catch (error) {
       console.error('Analysis error:', error);
@@ -517,6 +526,14 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         onClose={() => setShowTemplateModal(false)}
         dealId={dealId}
         onDocumentSaved={() => fetchDocuments()}
+      />
+      
+      <DocumentAnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        analysisType={analysisType}
+        result={analysisResult}
+        documentName={selectedDocument?.name}
       />
       
     </div>
