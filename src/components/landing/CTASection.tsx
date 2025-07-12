@@ -21,7 +21,7 @@ const CTASection = () => {
             Ready to transform your business sale experience?
           </h2>
           <p className="text-lg mb-8 text-white/90 max-w-2xl mx-auto">
-            Join thousands of business owners who have streamlined their transactions with DealPilot. Get started for free today.
+            Join thousands of business owners who have streamlined their transactions with Trustroom.ai. Get started for free today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 

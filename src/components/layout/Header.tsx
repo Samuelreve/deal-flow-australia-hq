@@ -73,7 +73,7 @@ const Header = ({ showSidebar = true, toggleSidebar }: HeaderProps) => {
       <div className="hidden md:block">
         <Link to={isLoggedIn && isOnboarded ? "/dashboard" : "/"} className="hover:opacity-80 transition-opacity">
           <h1 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-            DealPilot
+            Trustroom.ai
           </h1>
         </Link>
       </div>

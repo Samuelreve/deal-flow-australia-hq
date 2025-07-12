@@ -44,7 +44,7 @@ const PrivacyPolicyPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                At DealPilot, we take your privacy seriously. This Privacy Policy explains how we 
+                At Trustroom.ai, we take your privacy seriously. This Privacy Policy explains how we 
                 collect, use, and protect your personal information when you use our AI-powered 
                 business exchange platform.
               </p>
@@ -169,8 +169,8 @@ const PrivacyPolicyPage = () => {
             <CardContent>
               <p>
                 For privacy-related questions or to exercise your rights, contact us at{' '}
-                <a href="mailto:privacy@dealpilot.com" className="text-primary hover:underline">
-                  privacy@dealpilot.com
+                <a href="mailto:privacy@trustroom.ai" className="text-primary hover:underline">
+                  privacy@trustroom.ai
                 </a>
               </p>
             </CardContent>

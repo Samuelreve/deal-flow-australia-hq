@@ -60,7 +60,7 @@ export const useSignUpForm = (inviteToken?: string | null, redirect?: string | n
         setShowSuccess(true);
         toast({
           title: "Account created successfully!",
-          description: "Welcome to DealPilot. You can now start managing your deals.",
+          description: "Welcome to Trustroom.ai. You can now start managing your deals.",
         });
         
         // Small delay to show success state, then redirect

@@ -56,7 +56,7 @@ export const generateShareLinkEmail = ({
           <h2>Document Shared With You</h2>
         </div>
         <div class="content">
-          <p><strong>${sharerName}</strong> has shared a document with you from Deal Pilot.</p>
+          <p><strong>${sharerName}</strong> has shared a document with you from Trustroom.ai.</p>
           
           <h3>Document Details</h3>
           <p><strong>Deal:</strong> ${dealTitle}</p>
@@ -70,7 +70,7 @@ export const generateShareLinkEmail = ({
           <a href="${shareUrl}" class="button">View Document</a>
           
           <div class="footer">
-            <p>This is an automated message from Deal Pilot. If you received this by mistake, please ignore it.</p>
+            <p>This is an automated message from Trustroom.ai. If you received this by mistake, please ignore it.</p>
           </div>
         </div>
       </body>
@@ -87,7 +87,7 @@ export const sendShareLinkEmails = async (
   recipients: string[],
   customMessage?: string
 ): Promise<{ all_successful: boolean; details: Array<{ recipient: string; success: boolean; error?: string }> }> => {
-  const sharerName = sharerInfo.name || 'A Deal Pilot user';
+  const sharerName = sharerInfo.name || 'A Trustroom.ai user';
   const results = [];
   let allSuccessful = true;
   
@@ -107,7 +107,7 @@ export const sendShareLinkEmails = async (
         to: recipient,
         subject: `Secure Document Shared: ${documentInfo.name}`,
         html: emailHtml,
-        from: "Deal Pilot <notifications@dealpilot.app>"
+        from: "Trustroom.ai <notifications@trustroom.ai>"
       });
       
       results.push({

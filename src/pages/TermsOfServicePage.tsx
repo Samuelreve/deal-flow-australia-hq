@@ -44,11 +44,11 @@ const TermsOfServicePage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                Welcome to DealPilot! These Terms of Service ("Terms") govern your use of our 
+                Welcome to Trustroom.ai! These Terms of Service ("Terms") govern your use of our 
                 AI-powered business exchange platform and document management services.
               </p>
               <p>
-                By accessing or using DealPilot, you agree to be bound by these Terms. 
+                By accessing or using Trustroom.ai, you agree to be bound by these Terms. 
                 If you disagree with any part of these terms, you may not access the service.
               </p>
             </CardContent>
@@ -61,7 +61,7 @@ const TermsOfServicePage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                DealPilot provides AI-powered tools for business transactions, including:
+                Trustroom.ai provides AI-powered tools for business transactions, including:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Deal management and tracking</li>
@@ -82,7 +82,7 @@ const TermsOfServicePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>When using DealPilot, you agree to:</p>
+              <p>When using Trustroom.ai, you agree to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Provide accurate and complete information</li>
                 <li>Maintain the security of your account credentials</li>
@@ -109,7 +109,7 @@ const TermsOfServicePage = () => {
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>AI analysis should not replace professional legal or financial advice</li>
                 <li>All AI-generated content should be reviewed by qualified professionals</li>
-                <li>DealPilot is not responsible for decisions made based solely on AI recommendations</li>
+                <li>Trustroom.ai is not responsible for decisions made based solely on AI recommendations</li>
                 <li>AI services may have limitations and occasional inaccuracies</li>
               </ul>
             </CardContent>
@@ -122,7 +122,7 @@ const TermsOfServicePage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                DealPilot provides services "as is" without warranties of any kind. 
+                Trustroom.ai provides services "as is" without warranties of any kind. 
                 We shall not be liable for any indirect, incidental, special, or consequential damages 
                 resulting from your use of our services.
               </p>
@@ -137,8 +137,8 @@ const TermsOfServicePage = () => {
             <CardContent>
               <p>
                 If you have any questions about these Terms of Service, please contact us at{' '}
-                <a href="mailto:legal@dealpilot.com" className="text-primary hover:underline">
-                  legal@dealpilot.com
+                <a href="mailto:legal@trustroom.ai" className="text-primary hover:underline">
+                  legal@trustroom.ai
                 </a>
               </p>
             </CardContent>

@@ -31,7 +31,7 @@ const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   const [enableError, setEnableError] = useState<string | null>(null);
 
   // Construct the otpauth URL for the QR code
-  const appName = 'DealPilot';
+  const appName = 'Trustroom.ai';
   const userEmail = user?.profile?.email || '';
   const otpAuthUrl = `otpauth://totp/${appName}:${userEmail}?secret=${totpSecret}&issuer=${appName}`;
 

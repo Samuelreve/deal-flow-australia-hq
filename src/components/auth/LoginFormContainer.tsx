@@ -34,8 +34,8 @@ const LoginFormContainer = ({ onSignUp, inviteToken }: LoginFormContainerProps) 
         <CardTitle>Welcome Back</CardTitle>
         <CardDescription>
           {inviteToken 
-            ? "Sign in to your DealPilot account to accept the invitation" 
-            : "Sign in to your DealPilot account to continue managing your business deals"}
+            ? "Sign in to your Trustroom.ai account to accept the invitation" 
+            : "Sign in to your Trustroom.ai account to continue managing your business deals"}
         </CardDescription>
       </CardHeader>
       <CardContent>

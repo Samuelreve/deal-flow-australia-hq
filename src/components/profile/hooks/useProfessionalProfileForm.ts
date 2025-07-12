@@ -61,7 +61,7 @@ export const useProfessionalProfileForm = ({
         
         // If onboarding was just completed, redirect to dashboard
         if (profileUpdates.onboarding_complete && !profile.onboarding_complete) {
-          toast.success('Professional profile completed! Welcome to DealPilot.');
+          toast.success('Professional profile completed! Welcome to Trustroom.ai.');
           navigate('/dashboard');
         } else {
           toast.success('Professional profile updated successfully');

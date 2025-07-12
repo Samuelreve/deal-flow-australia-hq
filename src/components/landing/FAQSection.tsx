@@ -35,10 +35,10 @@ const FAQSection = () => {
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1" className="border-b border-border/50">
               <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                How does DealPilot speed up the business sale process?
+                How does Trustroom.ai speed up the business sale process?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                DealPilot eliminates common bottlenecks by providing a structured workflow, automated document management, clear milestone tracking, and AI-assisted document creation and review. This significantly reduces the back-and-forth between parties and minimizes delays.
+                Trustroom.ai eliminates common bottlenecks by providing a structured workflow, automated document management, clear milestone tracking, and AI-assisted document creation and review. This significantly reduces the back-and-forth between parties and minimizes delays.
               </AccordionContent>
             </AccordionItem>
             
@@ -47,7 +47,7 @@ const FAQSection = () => {
                 Is my sensitive business information secure on the platform?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                Absolutely. DealPilot uses bank-level encryption, role-based access controls, and secure cloud infrastructure. Each participant only sees the information they're authorized to access based on their role in the transaction.
+                Absolutely. Trustroom.ai uses bank-level encryption, role-based access controls, and secure cloud infrastructure. Each participant only sees the information they're authorized to access based on their role in the transaction.
               </AccordionContent>
             </AccordionItem>
             
@@ -56,7 +56,7 @@ const FAQSection = () => {
                 Can my lawyer and accountant collaborate on the platform?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                Yes, DealPilot is designed for multi-party collaboration. You can invite any professional advisors to the platform and assign them appropriate roles and permissions. They'll be able to review documents, provide input, and communicate efficiently with all parties.
+                Yes, Trustroom.ai is designed for multi-party collaboration. You can invite any professional advisors to the platform and assign them appropriate roles and permissions. They'll be able to review documents, provide input, and communicate efficiently with all parties.
               </AccordionContent>
             </AccordionItem>
             
@@ -71,10 +71,10 @@ const FAQSection = () => {
             
             <AccordionItem value="item-5" className="border-b border-border/50">
               <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                What types of businesses is DealPilot appropriate for?
+                What types of businesses is Trustroom.ai appropriate for?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                DealPilot is flexible and works for businesses of all sizes, from small local establishments to mid-market companies. The platform is particularly valuable for transactions between $500,000 and $50 million where efficiency and organization are critical, but legal resources might be limited.
+                Trustroom.ai is flexible and works for businesses of all sizes, from small local establishments to mid-market companies. The platform is particularly valuable for transactions between $500,000 and $50 million where efficiency and organization are critical, but legal resources might be limited.
               </AccordionContent>
             </AccordionItem>
           </Accordion>

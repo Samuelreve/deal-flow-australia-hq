@@ -25,7 +25,7 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            DealPilot
+            Trustroom.ai
           </motion.div>
         </div>
         <div className="flex items-center gap-4">
@@ -78,7 +78,7 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
               transition={{ duration: 0.8, delay: 0.2 }}
               className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10"
             >
-              DealPilot reduces the typical business sale timeline from months to weeks through AI-powered workflows, secure document management, and intelligent collaboration.
+              Trustroom.ai reduces the typical business sale timeline from months to weeks through AI-powered workflows, secure document management, and intelligent collaboration.
             </motion.p>
             
             <motion.div 

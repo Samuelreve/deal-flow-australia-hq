@@ -28,7 +28,7 @@ const SignUpFormUI = ({ inviteToken, redirect }: SignUpFormUIProps) => {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary">DealPilot</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-primary">Trustroom.ai</h1>
           <p className="text-muted-foreground mt-2">
             Create your account to get started
           </p>
@@ -38,7 +38,7 @@ const SignUpFormUI = ({ inviteToken, redirect }: SignUpFormUIProps) => {
           <CardHeader>
             <CardTitle>Sign Up</CardTitle>
             <CardDescription>
-              Join DealPilot to manage your business deals efficiently
+              Join Trustroom.ai to manage your business deals efficiently
             </CardDescription>
           </CardHeader>
           <CardContent>

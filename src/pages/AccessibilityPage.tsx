@@ -44,7 +44,7 @@ const AccessibilityPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                DealPilot is committed to ensuring digital accessibility for people with disabilities. 
+                Trustroom.ai is committed to ensuring digital accessibility for people with disabilities. 
                 We continually improve the user experience for everyone and apply the relevant 
                 accessibility standards.
               </p>
@@ -62,7 +62,7 @@ const AccessibilityPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                DealPilot aims to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 
+                Trustroom.ai aims to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 
                 at the AA level. These guidelines help make web content more accessible to people 
                 with disabilities.
               </p>
@@ -150,7 +150,7 @@ const AccessibilityPage = () => {
               <CardTitle>Browser and Assistive Technology Support</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>DealPilot is tested with:</p>
+              <p>Trustroom.ai is tested with:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Modern browsers (Chrome, Firefox, Safari, Edge)</li>
                 <li>Screen readers (NVDA, JAWS, VoiceOver)</li>
@@ -188,13 +188,13 @@ const AccessibilityPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                We welcome feedback on the accessibility of DealPilot. If you encounter 
+                We welcome feedback on the accessibility of Trustroom.ai. If you encounter 
                 accessibility barriers or have suggestions for improvement, please let us know:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>
-                  Email: <a href="mailto:accessibility@dealpilot.com" className="text-primary hover:underline">
-                    accessibility@dealpilot.com
+                  Email: <a href="mailto:accessibility@trustroom.ai" className="text-primary hover:underline">
+                    accessibility@trustroom.ai
                   </a>
                 </li>
                 <li>

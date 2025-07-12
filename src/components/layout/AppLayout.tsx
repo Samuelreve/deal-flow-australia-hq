@@ -22,7 +22,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Footer - Always at bottom */}
       <footer className="bg-white border-t py-6 mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; 2023 DealPilot. All rights reserved.</p>
+          <p>&copy; 2023 Trustroom.ai. All rights reserved.</p>
         </div>
       </footer>
     </div>

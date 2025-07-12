@@ -23,7 +23,7 @@ const Header = () => {
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            DealPilot
+            Trustroom.ai
           </span>
         </Link>
 
@@ -69,7 +69,7 @@ const Header = () => {
                   <Sparkles className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                  DealPilot
+                  Trustroom.ai
                 </span>
               </div>
               

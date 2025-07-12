@@ -13,7 +13,7 @@ const HowItWorksSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">How DealPilot Works</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">How Trustroom.ai Works</h2>
           <p className="text-center text-muted-foreground mb-16 max-w-3xl mx-auto">
             Our structured approach simplifies even the most complex business transactions.
           </p>
@@ -23,7 +23,7 @@ const HowItWorksSection = () => {
           <StepCard 
             number={1} 
             title="Deal Creation" 
-            description="Set up your deal with basic information, invite all relevant stakeholders, and establish the initial timeline. DealPilot configures the appropriate workflow based on transaction type."
+            description="Set up your deal with basic information, invite all relevant stakeholders, and establish the initial timeline. Trustroom.ai configures the appropriate workflow based on transaction type."
             icon={<Calendar className="h-20 w-20 text-primary/60" />}
           />
           

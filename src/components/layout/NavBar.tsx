@@ -105,7 +105,7 @@ const NavBar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-              DealPilot
+              Trustroom.ai
             </span>
           </Link>
 

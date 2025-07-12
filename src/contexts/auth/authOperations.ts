@@ -109,7 +109,7 @@ export const useAuthOperations = () => {
           
           toast({
             title: "Account created successfully",
-            description: "Welcome to DealPilot!",
+            description: "Welcome to Trustroom.ai!",
           });
           return true;
         } else {

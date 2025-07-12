@@ -10,7 +10,7 @@ export const LoginInfoPanel = () => {
       <div>
         <h2 className="text-3xl font-bold">Streamlined Business Exchange Platform</h2>
         <p className="text-muted-foreground mt-2">
-          DealPilot helps facilitate business sales from initial offer to final closing, with structured workflows and comprehensive tools.
+          Trustroom.ai helps facilitate business sales from initial offer to final closing, with structured workflows and comprehensive tools.
         </p>
       </div>
       
@@ -51,7 +51,7 @@ export const LoginInfoPanel = () => {
       <div className="pt-6">
         <Button variant="link" className="text-primary group" asChild>
           <Link to="/">
-            Learn more about DealPilot
+            Learn more about Trustroom.ai
             <ChevronRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </Button>

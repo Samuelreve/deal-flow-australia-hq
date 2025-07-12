@@ -18,13 +18,13 @@ const Footer = () => {
         >
           {/* Company Information */}
           <div className="space-y-4">
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">DealPilot</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">Trustroom.ai</div>
             <p className="text-sm text-muted-foreground mt-1">
               Revolutionizing business exchange with AI-powered tools and seamless document management.
             </p>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Copyright className="h-4 w-4" />
-              <span>{currentYear} DealPilot. All rights reserved.</span>
+              <span>{currentYear} Trustroom.ai. All rights reserved.</span>
             </div>
           </div>
           
@@ -63,9 +63,9 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-medium text-lg">Contact Us</h3>
             <div className="space-y-2">
-              <a href="mailto:contact@dealpilot.com" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center">
+              <a href="mailto:contact@trustroom.ai" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                contact@dealpilot.com
+                contact@trustroom.ai
               </a>
               <a href="tel:+6100000000" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center">
                 <Phone className="h-4 w-4 mr-2" />

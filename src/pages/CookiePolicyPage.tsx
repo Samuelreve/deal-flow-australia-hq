@@ -49,7 +49,7 @@ const CookiePolicyPage = () => {
                 improving our services.
               </p>
               <p>
-                This Cookie Policy explains how DealPilot uses cookies and similar technologies 
+                This Cookie Policy explains how Trustroom.ai uses cookies and similar technologies 
                 on our platform.
               </p>
             </CardContent>
@@ -188,8 +188,8 @@ const CookiePolicyPage = () => {
             <CardContent>
               <p>
                 If you have questions about our use of cookies, please contact us at{' '}
-                <a href="mailto:privacy@dealpilot.com" className="text-primary hover:underline">
-                  privacy@dealpilot.com
+                <a href="mailto:privacy@trustroom.ai" className="text-primary hover:underline">
+                  privacy@trustroom.ai
                 </a>
               </p>
             </CardContent>
