@@ -12,6 +12,7 @@ import { handleAnalyzeRisks } from "../operations/analyze-risks.ts";
 import { handleSummarizeVersionChanges } from "../operations/summarize-version-changes.ts";
 import { handlePredictDealHealth } from "../operations/predict-deal-health.ts";
 import { handleDealChatQuery } from "../operations/deal-chat-query.ts";
+import { handleGenerateDealDescription } from "../operations/generate-deal-description.ts";
 
 export async function routeOperation(payload: RequestPayload, openai: any) {
   switch (payload.operation) {
@@ -101,6 +102,11 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
         payload.chatHistory || [],
         openai
       );
+    
+    case 'generate_deal_description':
+      const tempDealId = payload.context?.tempDealId || payload.dealId;
+      const dealData = payload.context?.dealData || {};
+      return await handleGenerateDealDescription(payload.dealId!, tempDealId!, openai, dealData);
     
     default:
       throw new Error('Invalid operation type');

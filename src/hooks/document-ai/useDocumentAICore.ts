@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-export type AIOperation = 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes';
+export type AIOperation = 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'generate_deal_description';
 
 export interface AIRequestOptions {
   content: string;
@@ -20,6 +20,7 @@ export interface AIResponse {
   template?: string;
   summary?: string;
   suggestion?: string;
+  description?: string; // For deal description generation
   milestone?: {
     title: string;
     status: string;
@@ -38,6 +39,21 @@ export interface AIResponse {
   error?: string;
   isAmbiguous?: boolean;
   ambiguityExplanation?: string;
+  // Deal description specific fields
+  documentsAnalyzed?: number;
+  hasFinancialData?: boolean;
+  hasOperationalData?: boolean;
+  insights?: {
+    documentsUsed: { name: string; type: string }[];
+    dataQuality: string;
+  } | {
+    title: string;
+    description: string;
+    type: "positive" | "negative" | "neutral";
+    priority: "high" | "low" | "medium";
+  }[];
+  // Deal insights specific fields
+  recommendations?: string[];
 }
 
 export interface UseDocumentAICoreProps {

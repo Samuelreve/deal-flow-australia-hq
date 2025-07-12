@@ -1,5 +1,5 @@
 
-import { UseDocumentAICoreProps } from './useDocumentAICore';
+import { UseDocumentAICoreProps, useDocumentAICore } from './useDocumentAICore';
 import { useContractOperations } from './useContractOperations';
 import { useAnalysisOperations } from './useAnalysisOperations';
 import { useDealOperations } from './useDealOperations';
@@ -12,6 +12,9 @@ import { formatInsightsToText } from '../../components/dashboard/insights/utils/
  * Main hook for document AI operations, combining specialized operation hooks
  */
 export const useDocumentAI = (props: UseDocumentAICoreProps) => {
+  // Get core operations first
+  const coreOps = useDocumentAICore(props);
+  
   // Get specialized operations
   const contractOps = useContractOperations(props);
   const analysisOps = useAnalysisOperations(props);
@@ -34,6 +37,8 @@ export const useDocumentAI = (props: UseDocumentAICoreProps) => {
   const result = contractOps.result || analysisOps.result || dealOps.result || 
                 milestoneOps.result || templateOps.result;
 
+  // Use the core operations for processAIRequest
+  
   return {
     // Contract operations
     summarizeContract: contractOps.summarizeContract,
@@ -61,6 +66,9 @@ export const useDocumentAI = (props: UseDocumentAICoreProps) => {
     
     // Analysis result saving
     saveAnalysisResult,
+    
+    // Core AI request processing
+    processAIRequest: coreOps.processAIRequest,
     
     // State
     loading,
