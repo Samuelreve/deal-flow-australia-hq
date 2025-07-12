@@ -23,13 +23,35 @@ export async function handleSummarizeDocument(
 
     let documentContent = content;
 
-    // If content is empty, try to fetch from document version or contract
+    // If content is empty, try to fetch from document using content retrieval function
     if (!documentContent || documentContent.trim().length === 0) {
-      console.log('📄 Fetching document content from database...');
+      console.log('📄 Fetching document content using content retrieval function...');
       
-      // Try to get content from document version first
-      if (context?.documentVersionId) {
-        console.log('🔍 Looking for document version:', context.documentVersionId);
+      if (context?.documentVersionId && context?.dealId) {
+        console.log('🔍 Calling document-content-retrieval for version:', context.documentVersionId);
+        try {
+          const { data: contentResult, error: contentError } = await supabase.functions
+            .invoke('document-content-retrieval', {
+              body: {
+                versionId: context.documentVersionId,
+                dealId: context.dealId
+              }
+            });
+
+          if (!contentError && contentResult?.content) {
+            documentContent = contentResult.content;
+            console.log('✅ Found document content via retrieval function:', documentContent.length);
+          } else {
+            console.error('❌ Error from content retrieval function:', contentError);
+          }
+        } catch (retrievalError) {
+          console.error('❌ Failed to call content retrieval function:', retrievalError);
+        }
+      }
+      
+      // Fallback to direct database query if content retrieval fails
+      if ((!documentContent || documentContent.trim().length === 0) && context?.documentVersionId) {
+        console.log('🔍 Fallback: Looking for document version in database:', context.documentVersionId);
         const { data: docVersion, error: versionError } = await supabase
           .from('document_versions')
           .select('text_content')
@@ -38,7 +60,7 @@ export async function handleSummarizeDocument(
         
         if (!versionError && docVersion?.text_content) {
           documentContent = docVersion.text_content;
-          console.log('✅ Found document version content:', documentContent.length);
+          console.log('✅ Found document version content in database:', documentContent.length);
         }
       }
       

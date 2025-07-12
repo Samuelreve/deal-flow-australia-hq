@@ -51,7 +51,8 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
         {
           ...payload.context,
           documentId: payload.documentId,
-          documentVersionId: payload.documentVersionId
+          documentVersionId: payload.documentVersionId,
+          dealId: payload.dealId
         }, 
         openai
       );
