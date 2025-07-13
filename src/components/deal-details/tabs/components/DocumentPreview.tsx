@@ -62,6 +62,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       // List of paths to try in order
       const pathsToTry = [
         versionData.storage_path, // Try the path as stored in DB first
+        `b33ce696-d2d4-41ca-a856-f85c317255d4/${versionData.storage_path.split('/').pop()}`, // Try the temp deal path we found
         versionData.storage_path.split('/').pop(), // Try just the filename
       ];
       
