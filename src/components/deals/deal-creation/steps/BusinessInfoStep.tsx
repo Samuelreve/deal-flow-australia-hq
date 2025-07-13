@@ -6,10 +6,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StepProps } from '../types';
 import { BusinessInformationForm } from './business-info/BusinessInformationForm';
 import { AdvancedBusinessDetails } from './business-info/AdvancedBusinessDetails';
+import { BusinessDocumentUpload } from './business-info/BusinessDocumentUpload';
 import { validateBusinessInfoStep } from './business-info/BusinessValidation';
 
 const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDocuments, setShowDocuments] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleNext = () => {
@@ -27,7 +29,7 @@ const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
         <Building2 className="h-4 w-4" />
         <AlertDescription>
           This information will be used to create your deal listing and generate legal documents. 
-          All fields marked with * are required.
+          All fields marked with * are required. Upload business documents to help AI generate more accurate deal descriptions.
         </AlertDescription>
       </Alert>
 
@@ -42,6 +44,14 @@ const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
         showAdvanced={showAdvanced}
         onToggleAdvanced={setShowAdvanced}
         onUpdateData={updateData}
+      />
+
+      <BusinessDocumentUpload
+        data={data}
+        showDocuments={showDocuments}
+        onToggleDocuments={setShowDocuments}
+        onUpdateData={updateData}
+        tempDealId={data.tempDealId || `temp-${Date.now()}`}
       />
 
       <div className="flex justify-end pt-6">
