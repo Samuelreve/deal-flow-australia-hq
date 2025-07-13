@@ -478,27 +478,100 @@ Please structure your summary with clear sections and highlight the most critica
         );
       }
 
-      // Generate summary for real deals (same as demo logic)
-      const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Your task is to provide a comprehensive but accessible summary of contract terms and key provisions.
-
-When summarizing contracts, focus on:
-1. Parties involved and their roles
-2. Key obligations and responsibilities
-3. Financial terms and payment structures
-4. Important dates and timelines
-5. Termination conditions and clauses
-6. Risk factors and liability provisions
-7. Intellectual property considerations
-8. Dispute resolution mechanisms
-
-Provide your summary in clear, professional language that both legal professionals and business stakeholders can understand. Use bullet points and structured formatting where appropriate to enhance readability.`;
-
-      const userPrompt = `Please provide a comprehensive summary of the following contract document. Focus on the key terms, obligations, financial aspects, and any notable provisions that parties should be aware of:
+      // Generate analysis based on specific analysis type requested
+      let systemPrompt = '';
+      let userPrompt = '';
+      
+      // Check if this is a specific analysis type request (extract from query params or headers)
+      const url = new URL(req.url);
+      const analysisType = url.searchParams.get('analysisType') || requestData.analysisType || 'summary';
+      
+      console.log('🎯 Analysis type requested:', analysisType);
+      
+      if (analysisType === 'summary') {
+        systemPrompt = `You are a professional legal document analyst. Provide a comprehensive contract summary in clear, accessible language. Focus on the main purpose, parties, and key provisions.`;
+        
+        userPrompt = `Please provide a clear and comprehensive summary of this contract:
 
 CONTRACT DOCUMENT:
 ${fullDocumentText}
 
-Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
+Focus on:
+- Main purpose and scope of the agreement
+- Parties involved and their roles
+- Key obligations and responsibilities
+- Financial terms and payment structures
+- Important dates and timelines
+- Termination conditions
+
+Provide a well-structured summary that business stakeholders can easily understand.`;
+        
+      } else if (analysisType === 'keyTerms') {
+        systemPrompt = `You are a legal expert specializing in contract analysis. Extract and explain the most important terms, clauses, and definitions from contracts. Present them in a clear, structured format.`;
+        
+        userPrompt = `Extract and explain the key terms and important clauses from this contract:
+
+CONTRACT DOCUMENT:
+${fullDocumentText}
+
+Please identify and explain:
+- Critical definitions and key terms
+- Important clauses and provisions
+- Rights and obligations of each party
+- Payment terms and financial obligations
+- Performance requirements
+- Compliance and regulatory requirements
+
+Present each key term with a brief explanation of its significance.`;
+        
+      } else if (analysisType === 'risks') {
+        systemPrompt = `You are a legal risk analyst specializing in contract review. Identify potential risks, liabilities, and areas of concern in contracts. Focus on practical business implications.`;
+        
+        userPrompt = `Analyze this contract for potential risks and liabilities:
+
+CONTRACT DOCUMENT:
+${fullDocumentText}
+
+Please identify:
+- Financial risks and liability exposure
+- Performance and delivery risks
+- Legal and regulatory compliance risks
+- Termination and penalty risks
+- Intellectual property risks
+- Force majeure and unforeseen circumstances
+- Dispute resolution challenges
+
+For each risk, explain the potential impact and suggest mitigation strategies where appropriate.`;
+        
+      } else if (analysisType === 'suggestions') {
+        systemPrompt = `You are a contract optimization expert. Review contracts and provide practical suggestions for improvements, better protection, and enhanced clarity.`;
+        
+        userPrompt = `Review this contract and provide improvement suggestions:
+
+CONTRACT DOCUMENT:
+${fullDocumentText}
+
+Please suggest improvements for:
+- Clarity and precision of language
+- Better protection for parties
+- Risk mitigation strategies
+- Performance monitoring mechanisms
+- Dispute resolution enhancements
+- Compliance and regulatory alignment
+
+Provide practical, actionable recommendations that would benefit both parties.`;
+        
+      } else {
+        // Default fallback to general summary
+        systemPrompt = `You are a professional legal document analyst. Provide a comprehensive contract analysis covering key terms, risks, and recommendations.`;
+        
+        userPrompt = `Please provide a comprehensive analysis of this contract:
+
+CONTRACT DOCUMENT:
+${fullDocumentText}
+
+Include: summary, key terms, potential risks, and recommendations.`;
+      }
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -510,12 +583,14 @@ Please structure your summary with clear sections and highlight the most critica
         max_tokens: 2000
       });
 
-      const summary = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
+      const analysis = completion.choices[0]?.message?.content || "I couldn't generate the analysis. Please try again.";
 
       return new Response(
         JSON.stringify({
-          analysis: summary,
-          timestamp: new Date().toISOString()
+          analysis: analysis,
+          analysisType: analysisType,
+          timestamp: new Date().toISOString(),
+          sources: ["AI Analysis", "Contract Content Review"]
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

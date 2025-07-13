@@ -197,29 +197,38 @@ export const useEnhancedContractAssistant = ({
     }
   }, [contract, user]);
 
-  // Analyze contract with specific analysis type using legacy format
   const analyzeContract = useCallback(async (analysisType: string) => {
-    console.log('🔍 Analyzing contract using legacy format:', { 
+    console.log('🔍 Analyzing contract using enhanced format:', { 
       analysisType, 
       contractId: contract?.id,
       contentLength: contract?.content?.length || 0
     });
 
-    if (analysisType === 'comprehensive_summary' || analysisType === 'contract_summary') {
-      return summarizeContractTerms();
+    if (!contract?.content) {
+      console.error('❌ No contract content available for analysis');
+      toast.error('Contract content not available');
+      return null;
     }
 
-    // For other analysis types, use the question format
-    const analysisQuestions = {
-      key_terms: 'Please identify and explain the key terms and definitions in this contract.',
-      risk_assessment: 'Please analyze the potential risks and liabilities in this contract.',
-      obligations: 'Please list the main obligations and responsibilities of each party.',
-      financial_terms: 'Please analyze the financial terms, payment schedules, and monetary obligations.',
-      termination: 'Please explain the termination clauses and conditions in this contract.'
+    if (!user) {
+      console.error('❌ User not authenticated');
+      toast.error('Please log in to perform analysis');
+      return null;
+    }
+
+    // Map frontend analysis types to backend types
+    const analysisTypeMap: { [key: string]: string } = {
+      summary: 'summary',
+      keyTerms: 'keyTerms', 
+      risks: 'risks',
+      suggestions: 'suggestions',
+      comprehensive_summary: 'summary',
+      contract_summary: 'summary',
+      key_terms: 'keyTerms',
+      risk_assessment: 'risks'
     };
 
-    const question = analysisQuestions[analysisType as keyof typeof analysisQuestions] || 
-                    `Please provide a detailed analysis of the ${analysisType.replace('_', ' ')} in this contract.`;
+    const backendAnalysisType = analysisTypeMap[analysisType] || analysisType;
 
     // Add analysis to history immediately
     const tempId = `temp-analysis-${Date.now()}`;
@@ -233,37 +242,73 @@ export const useEnhancedContractAssistant = ({
       isProcessing: true
     };
     setQuestionHistory(prev => [...prev, analysisItem]);
+    setIsProcessing(true);
 
     try {
-      const result = await askQuestion(question);
-      
-      // Update the analysis item
-      if (result) {
-        const completedAnalysis: QuestionHistoryItem = {
-          ...analysisItem,
-          id: `analysis-${Date.now()}`,
-          answer: result.answer,
-          sources: result.sources,
-          isProcessing: false
-        };
+      // Call the new summarization endpoint with analysis type
+      const { data, error: functionError } = await supabase.functions.invoke('contract-assistant', {
+        body: {
+          requestType: 'summarize_contract_terms',
+          dealId: 'demo-deal',
+          documentId: contract.id,
+          versionId: contract.id,
+          analysisType: backendAnalysisType
+        }
+      });
 
-        setQuestionHistory(prev => 
-          prev.map(item => item.id === tempId ? completedAnalysis : item)
-        );
-
-        return {
-          analysis: result.answer,
-          sources: result.sources
-        };
+      if (functionError) {
+        console.error('❌ Function error:', functionError);
+        throw new Error(functionError.message || 'Failed to complete analysis');
       }
 
-      return null;
+      if (!data?.analysis) {
+        console.error('❌ No analysis received:', data);
+        throw new Error('No analysis received from AI service');
+      }
+
+      console.log('✅ Analysis completed successfully:', {
+        analysisType: backendAnalysisType,
+        analysisLength: data.analysis.length
+      });
+
+      // Update the analysis item with results
+      const completedAnalysis: QuestionHistoryItem = {
+        ...analysisItem,
+        id: `analysis-${Date.now()}`,
+        answer: data.analysis,
+        sources: data.sources || ['AI Analysis', 'Contract Content Review'],
+        isProcessing: false
+      };
+
+      setQuestionHistory(prev => 
+        prev.map(item => item.id === tempId ? completedAnalysis : item)
+      );
+
+      return {
+        analysis: data.analysis,
+        sources: data.sources || ['AI Analysis', 'Contract Content Review'],
+        analysisType: data.analysisType || backendAnalysisType
+      };
+
     } catch (error) {
-      // Remove the temp analysis item on error
-      setQuestionHistory(prev => prev.filter(item => item.id !== tempId));
+      console.error('❌ Error in contract analysis:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to complete analysis';
+      setError(errorMessage);
+
+      // Update the analysis item with error state
+      setQuestionHistory(prev => 
+        prev.map(item => 
+          item.id === tempId 
+            ? { ...item, answer: `Error: ${errorMessage}`, isProcessing: false }
+            : item
+        )
+      );
+
       throw error;
+    } finally {
+      setIsProcessing(false);
     }
-  }, [askQuestion, summarizeContractTerms, contract]);
+  }, [contract, user]);
 
   return {
     questionHistory,
