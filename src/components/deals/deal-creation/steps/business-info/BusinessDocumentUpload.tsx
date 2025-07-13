@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Upload, FileText, X, ChevronDown, Info } from 'lucide-react';
+import { FileText, ChevronDown, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDocumentUploadWizard } from '@/hooks/deals/useDocumentUploadWizard';
-import { DealCreationData, UploadedDocument } from '../../types';
+import { DealCreationData } from '../../types';
+
+// Import the same components used in step 4
+import { DocumentRequirements } from '../../document-upload/DocumentRequirements';
+import { DocumentUploadArea } from '../../document-upload/DocumentUploadArea';
+import { UploadedDocumentsList } from '../../document-upload/UploadedDocumentsList';
 
 interface BusinessDocumentUploadProps {
   data: DealCreationData;
@@ -30,8 +34,8 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
 
-    const newDocuments: UploadedDocument[] = [];
-    const errors: string[] = [];
+    const newDocuments = [];
+    const errors = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -42,16 +46,13 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
         continue;
       }
 
-      // Validate file type
+      // Validate file type - same as step 4
       const allowedTypes = [
         'application/pdf', 
         'image/jpeg', 
         'image/png', 
         'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ];
       if (!allowedTypes.includes(file.type)) {
         errors.push(`${file.name}: File type not supported`);
@@ -81,7 +82,7 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
       
       toast({
         title: "Documents Uploaded",
-        description: `${newDocuments.length} document(s) uploaded successfully for AI analysis.`,
+        description: `${newDocuments.length} document(s) uploaded successfully.`,
       });
     }
 
@@ -116,6 +117,14 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
     });
   };
 
+  const updateDocumentCategory = (docId: string, category: string) => {
+    onUpdateData({
+      uploadedDocuments: (data.uploadedDocuments || []).map(doc => 
+        doc.id === docId ? { ...doc, category } : doc
+      )
+    });
+  };
+
   const uploadedDocuments = data.uploadedDocuments || [];
 
   return (
@@ -138,90 +147,24 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Upload business documents (financial statements, business plans, etc.) to help AI generate more accurate and detailed deal descriptions.
+            Upload business documents to help speed up the due diligence process. These documents will be securely stored and linked to your deal.
           </AlertDescription>
         </Alert>
 
-        {/* Upload Area */}
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-          <input
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
-            className="hidden"
-            id="business-document-upload"
-            onChange={(e) => handleFileUpload(e.target.files)}
-            disabled={uploading}
-          />
-          <div className="space-y-2">
-            <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-            <div>
-              <Label 
-                htmlFor="business-document-upload" 
-                className="cursor-pointer text-sm font-medium hover:text-primary"
-              >
-                Click to upload documents
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, TXT (max 10MB each)
-              </p>
-            </div>
-          </div>
-          {uploading && (
-            <div className="mt-2 text-sm text-muted-foreground">
-              Uploading documents...
-            </div>
-          )}
-        </div>
+        <DocumentRequirements uploadedDocuments={uploadedDocuments} />
 
-        {/* Upload Errors */}
-        {uploadErrors.length > 0 && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              <ul className="list-disc list-inside space-y-1">
-                {uploadErrors.map((error, index) => (
-                  <li key={index} className="text-sm">{error}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
+        <DocumentUploadArea 
+          uploading={uploading}
+          uploadErrors={uploadErrors}
+          onFileUpload={handleFileUpload}
+        />
 
-        {/* Uploaded Documents List */}
-        {uploadedDocuments.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Uploaded Documents ({uploadedDocuments.length})
-            </Label>
-            <div className="space-y-2">
-              {uploadedDocuments.map((doc) => (
-                <div 
-                  key={doc.id} 
-                  className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.category && `${doc.category} • `}
-                        {doc.size ? `${(doc.size / 1024 / 1024).toFixed(1)} MB` : '0.0 MB'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeDocument(doc.id)}
-                    disabled={uploading}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <UploadedDocumentsList
+          uploadedDocuments={uploadedDocuments}
+          uploading={uploading}
+          onRemoveDocument={removeDocument}
+          onUpdateDocumentCategory={updateDocumentCategory}
+        />
 
         {uploadedDocuments.length > 0 && (
           <Alert>
