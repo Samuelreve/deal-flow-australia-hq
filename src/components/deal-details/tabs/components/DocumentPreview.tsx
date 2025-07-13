@@ -44,10 +44,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     setIframeError(false);
     
     try {
-      // Get the document version details
+      // Get the document version details including category
       const { data: versionData, error: versionError } = await supabase
         .from('document_versions')
-        .select('storage_path')
+        .select(`
+          storage_path,
+          document_id,
+          documents!inner(category)
+        `)
         .eq('id', selectedDocument.latestVersionId)
         .single();
 
@@ -57,15 +61,20 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      // Create signed URL for the document
-      // Construct full storage path with deal ID
-      const fullStoragePath = versionData.storage_path.includes('/') 
-        ? versionData.storage_path 
-        : `${dealId}/${versionData.storage_path}`;
+      // Determine which bucket to use based on document category or storage path
+      let bucketName = 'deal_documents'; // default
+      const documentCategory = versionData.documents?.category;
       
+      if (documentCategory === 'business_document' || versionData.storage_path.includes('temp-business-docs')) {
+        bucketName = 'business_document';
+      }
+
+      console.log('Using bucket:', bucketName, 'for storage path:', versionData.storage_path);
+
+      // Create signed URL for the document
       const { data: urlData, error: urlError } = await supabase.storage
-        .from('deal_documents')
-        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
+        .from(bucketName)
+        .createSignedUrl(versionData.storage_path, 3600); // 1 hour expiry
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);

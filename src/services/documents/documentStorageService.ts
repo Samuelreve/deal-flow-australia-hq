@@ -112,10 +112,13 @@ export const documentStorageService = {
     try {
       console.log('Getting signed URL for version:', versionId);
       
-      // First, get the version details from the database
+      // First, get the version details and document category from the database
       const { data: version, error: versionError } = await supabase
         .from('document_versions')
-        .select('*')
+        .select(`
+          *,
+          documents!inner(category)
+        `)
         .eq('id', versionId)
         .eq('document_id', documentId)
         .single();
@@ -125,12 +128,18 @@ export const documentStorageService = {
         return { error: versionError, data: null };
       }
       
-      // Create a signed URL directly using the storage path
-      // The storage_path already contains the full path structure
-      console.log('Creating signed URL for storage path:', version.storage_path);
+      // Determine which bucket to use based on document category or storage path
+      let bucketName = 'deal_documents'; // default
+      const documentCategory = version.documents?.category;
+      
+      if (documentCategory === 'business_document' || version.storage_path.includes('temp-business-docs')) {
+        bucketName = 'business_document';
+      }
+      
+      console.log('Creating signed URL for storage path:', version.storage_path, 'in bucket:', bucketName);
       
       const { data: urlData, error } = await supabase.storage
-        .from('deal_documents')
+        .from(bucketName)
         .createSignedUrl(version.storage_path, expiresIn);
       
       if (error) {
