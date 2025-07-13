@@ -23,19 +23,53 @@ const serve_handler = async (req: Request) => {
 
     console.log('🔍 Starting OCR extraction for:', fileName);
 
-    // Convert base64 to Uint8Array
-    const binaryString = atob(fileBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    // Validate base64 format
+    if (!fileBase64.match(/^[A-Za-z0-9+/]+=*$/)) {
+      console.error('❌ Invalid base64 format');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid file format - base64 expected' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    console.log('📄 File converted to bytes:', bytes.length);
+    // Convert base64 to Uint8Array with better error handling
+    let bytes;
+    try {
+      const binaryString = atob(fileBase64);
+      bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      console.log('📄 File converted to bytes:', bytes.length);
+      
+      // Validate minimum PDF size (PDF files should be at least 100 bytes)
+      if (bytes.length < 100) {
+        throw new Error('File too small to be a valid PDF');
+      }
+      
+      // Check PDF magic number
+      const pdfHeader = new TextDecoder().decode(bytes.slice(0, 4));
+      if (pdfHeader !== '%PDF') {
+        throw new Error('File is not a valid PDF - missing PDF header');
+      }
+    } catch (error) {
+      console.error('❌ Failed to process file data:', error);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Invalid file data: ${error.message}` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Import OCR libraries with error handling
     let renderPageAsImage, Tesseract;
     try {
-      const unpdfModule = await import("https://esm.sh/unpdf@0.11.0");
+      const unpdfModule = await import("https://esm.sh/unpdf@0.10.0");
       renderPageAsImage = unpdfModule.renderPageAsImage;
       console.log('✅ unpdf loaded successfully');
     } catch (error) {
@@ -67,16 +101,24 @@ const serve_handler = async (req: Request) => {
     let images;
     try {
       console.log('🔍 Rendering PDF pages as images...');
+      console.log('📊 PDF validation passed, starting page rendering...');
+      
       images = await renderPageAsImage(bytes, { 
-        scale: 1.5,  // Reduced scale for stability
-        background: 'white'
+        scale: 1.0,  // Reduced scale for better stability
+        background: 'white',
+        // Add canvas size limits
+        canvas: {
+          width: 1200,
+          height: 1600
+        }
       });
-      console.log('✅ PDF pages rendered successfully');
+      console.log('✅ PDF pages rendered successfully, image count:', Array.isArray(images) ? images.length : 1);
     } catch (error) {
       console.error('❌ Failed to render PDF pages:', error);
+      console.error('Error details:', error.stack);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Failed to convert PDF pages to images for OCR' 
+        error: `Failed to convert PDF pages to images for OCR: ${error.message}` 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
