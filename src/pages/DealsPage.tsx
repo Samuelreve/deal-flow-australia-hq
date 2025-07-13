@@ -15,7 +15,7 @@ import EmptyDealsState from "@/components/deals/EmptyDealsState";
 const DealsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { deals: rawDeals, loading, error } = useDeals();
+  const { deals: rawDeals, loading, error, deleteDeal } = useDeals();
   const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
@@ -97,7 +97,7 @@ const DealsPage = () => {
             canCreateDeals={canCreateDeals} 
           />
         ) : (
-          <DealsTable deals={filteredDeals} totalDeals={deals.length} />
+          <DealsTable deals={filteredDeals} totalDeals={deals.length} onDelete={deleteDeal} />
         )}
       </div>
     </AppLayout>

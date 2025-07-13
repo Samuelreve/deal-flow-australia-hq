@@ -5,17 +5,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { Filter } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Filter, Trash2 } from "lucide-react";
 import { DealSummary } from "@/types/deal";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface DealsTableProps {
   deals: DealSummary[];
   totalDeals: number;
+  onDelete: (dealId: string) => Promise<void>;
 }
 
-const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
+const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const getStatusText = (status: string) => {
     switch (status) {
@@ -37,6 +51,22 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
       month: "short",
       year: "numeric"
     }).format(date);
+  };
+  
+  const handleDelete = async (dealId: string, dealTitle: string) => {
+    try {
+      await onDelete(dealId);
+      toast({
+        title: "Deal deleted",
+        description: `"${dealTitle}" has been successfully deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the deal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (deals.length === 0) {
@@ -103,9 +133,35 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
                   </Badge>
                 </td>
                 <td className="p-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
-                    View
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
+                      View
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{deal.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(deal.id, deal.title)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </td>
               </tr>
             ))}
