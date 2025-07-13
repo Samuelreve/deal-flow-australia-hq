@@ -5,16 +5,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { Filter } from "lucide-react";
+import { Filter, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { DealSummary } from "@/types/deal";
 import { cn } from "@/lib/utils";
 
 interface DealsTableProps {
   deals: DealSummary[];
   totalDeals: number;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onDeleteDeal: (dealId: string) => void;
+  canDelete: boolean;
 }
 
-const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
+const DealsTable: React.FC<DealsTableProps> = ({ 
+  deals, 
+  totalDeals, 
+  currentPage, 
+  totalPages, 
+  onPageChange, 
+  onDeleteDeal, 
+  canDelete 
+}) => {
   const navigate = useNavigate();
   
   const getStatusText = (status: string) => {
@@ -59,7 +72,7 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
     <>
       <div className="flex items-center justify-between px-4">
         <p className="text-sm text-muted-foreground">
-          Showing {deals.length} of {totalDeals} deals
+          Showing {(currentPage - 1) * 15 + 1}-{Math.min(currentPage * 15, totalDeals)} of {totalDeals} deals
         </p>
       </div>
       
@@ -71,7 +84,7 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
               <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Date</th>
               <th className="text-left p-4 text-sm font-medium text-muted-foreground hidden md:table-cell">Health</th>
               <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
-              <th className="text-right p-4"></th>
+              <th className="text-right p-4 text-sm font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -103,15 +116,79 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
                   </Badge>
                 </td>
                 <td className="p-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
-                    View
-                  </Button>
+                  <div className="flex items-center gap-2 justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
+                      View
+                    </Button>
+                    {canDelete && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onDeleteDeal(deal.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNumber;
+              if (totalPages <= 5) {
+                pageNumber = i + 1;
+              } else if (currentPage <= 3) {
+                pageNumber = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNumber = totalPages - 4 + i;
+              } else {
+                pageNumber = currentPage - 2 + i;
+              }
+              
+              return (
+                <Button
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(pageNumber)}
+                  className="w-8 h-8 p-0"
+                >
+                  {pageNumber}
+                </Button>
+              );
+            })}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </>
   );
 };

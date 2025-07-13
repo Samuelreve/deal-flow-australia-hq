@@ -3,8 +3,14 @@ import { useState, useEffect } from 'react';
 import { dealsService, Deal } from '@/services/dealsService';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useDeals = () => {
+interface PaginationOptions {
+  page: number;
+  limit: number;
+}
+
+export const useDeals = (pagination?: PaginationOptions) => {
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
@@ -13,13 +19,14 @@ export const useDeals = () => {
     if (isAuthenticated) {
       fetchDeals();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pagination?.page, pagination?.limit]);
 
   const fetchDeals = async () => {
     try {
       setLoading(true);
-      const dealsData = await dealsService.getDeals();
-      setDeals(dealsData);
+      const result = await dealsService.getDeals(pagination);
+      setDeals(result.deals);
+      setTotalCount(result.totalCount);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch deals:', err);
@@ -33,6 +40,7 @@ export const useDeals = () => {
     try {
       const newDeal = await dealsService.createDeal(dealData);
       setDeals(prev => [newDeal, ...prev]);
+      setTotalCount(prev => prev + 1);
       return newDeal;
     } catch (err) {
       console.error('Failed to create deal:', err);
@@ -40,9 +48,20 @@ export const useDeals = () => {
     }
   };
 
+  const deleteDeal = async (dealId: string) => {
+    try {
+      await dealsService.deleteDeal(dealId);
+      setDeals(prev => prev.filter(deal => deal.id !== dealId));
+      setTotalCount(prev => prev - 1);
+    } catch (err) {
+      console.error('Failed to delete deal:', err);
+      throw err;
+    }
+  };
+
   // Calculate metrics from real data
   const metrics = {
-    total: deals.length,
+    total: totalCount,
     active: deals.filter(d => d.status === 'active').length,
     completed: deals.filter(d => d.status === 'completed').length,
     draft: deals.filter(d => d.status === 'draft').length,
@@ -53,10 +72,12 @@ export const useDeals = () => {
 
   return {
     deals,
+    totalCount,
     loading,
     error,
     metrics,
     createDeal,
+    deleteDeal,
     refreshDeals: fetchDeals
   };
 };

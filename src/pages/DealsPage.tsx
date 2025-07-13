@@ -15,10 +15,16 @@ import EmptyDealsState from "@/components/deals/EmptyDealsState";
 const DealsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { deals: rawDeals, loading, error } = useDeals();
+  const [currentPage, setCurrentPage] = useState(1);
   const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
+  
+  const dealsPerPage = 15;
+  const { deals: rawDeals, totalCount, loading, error, deleteDeal } = useDeals({
+    page: currentPage,
+    limit: dealsPerPage
+  });
   
   // Convert deals from service format to DealSummary format
   const deals = convertDealsToDealSummaries(rawDeals);
@@ -43,9 +49,21 @@ const DealsPage = () => {
     
     setFilteredDeals(filtered);
   }, [searchTerm, statusFilter, deals]);
+
+  const handleDeleteDeal = async (dealId: string) => {
+    if (window.confirm('Are you sure you want to delete this deal? This action cannot be undone.')) {
+      try {
+        await deleteDeal(dealId);
+      } catch (error) {
+        console.error('Failed to delete deal:', error);
+      }
+    }
+  };
   
   const canCreateDeals = user?.profile?.role === "seller" || user?.profile?.role === "admin";
   const isFiltered = searchTerm !== "" || statusFilter !== "all";
+  
+  const totalPages = Math.ceil(totalCount / dealsPerPage);
   
   if (loading) {
     return (
@@ -97,7 +115,15 @@ const DealsPage = () => {
             canCreateDeals={canCreateDeals} 
           />
         ) : (
-          <DealsTable deals={filteredDeals} totalDeals={deals.length} />
+          <DealsTable 
+            deals={filteredDeals} 
+            totalDeals={totalCount}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onDeleteDeal={handleDeleteDeal}
+            canDelete={canCreateDeals}
+          />
         )}
       </div>
     </AppLayout>

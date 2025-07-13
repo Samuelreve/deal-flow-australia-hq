@@ -20,11 +20,11 @@ export interface Deal {
 }
 
 export const dealsService = {
-  async getDeals(): Promise<Deal[]> {
+  async getDeals(pagination?: { page: number; limit: number }): Promise<{ deals: Deal[]; totalCount: number }> {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      return [];
+      return { deals: [], totalCount: 0 };
     }
 
     // First get deal IDs where user is a participant
@@ -42,7 +42,7 @@ export const dealsService = {
         *,
         seller:profiles!seller_id(name),
         buyer:profiles!buyer_id(name)
-      `);
+      `, { count: 'exact' });
 
     // Add conditions for seller, buyer, or participant
     if (participantDealIds.length > 0) {
@@ -51,14 +51,23 @@ export const dealsService = {
       query = query.or(`seller_id.eq.${user.id},buyer_id.eq.${user.id}`);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
+
+    // Apply pagination if provided
+    if (pagination) {
+      const from = (pagination.page - 1) * pagination.limit;
+      const to = from + pagination.limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error('Error fetching deals:', error);
       throw error;
     }
 
-    return data || [];
+    return { deals: data || [], totalCount: count || 0 };
   },
 
   async createDeal(deal: Partial<Deal>): Promise<Deal> {
@@ -133,5 +142,45 @@ export const dealsService = {
     }
 
     return data;
+  },
+
+  async deleteDeal(id: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Check if user can delete this deal (must be seller or admin)
+    const { data: deal, error: fetchError } = await supabase
+      .from('deals')
+      .select('seller_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching deal for deletion check:', fetchError);
+      throw new Error('Deal not found');
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (deal.seller_id !== user.id && profile?.role !== 'admin') {
+      throw new Error('Permission denied: Only the seller or admin can delete this deal');
+    }
+
+    const { error } = await supabase
+      .from('deals')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting deal:', error);
+      throw error;
+    }
   }
 };
