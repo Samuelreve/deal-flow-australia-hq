@@ -92,8 +92,26 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   const getDocumentType = () => {
-    if (!selectedDocument?.type) return 'unknown';
-    return selectedDocument.type.toLowerCase();
+    if (!selectedDocument?.name) return 'unknown';
+    
+    // Extract file extension from the document name
+    const extension = selectedDocument.name.split('.').pop()?.toLowerCase();
+    if (!extension) return 'unknown';
+    
+    // Map extensions to document types
+    const extensionMap: { [key: string]: string } = {
+      'pdf': 'pdf',
+      'doc': 'word',
+      'docx': 'word',
+      'xls': 'excel', 
+      'xlsx': 'excel',
+      'ppt': 'powerpoint',
+      'pptx': 'powerpoint',
+      'txt': 'text',
+      'rtf': 'rtf'
+    };
+    
+    return extensionMap[extension] || extension;
   };
 
   const isPdfDocument = () => {
