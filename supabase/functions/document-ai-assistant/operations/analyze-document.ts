@@ -1,43 +1,47 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import mammoth from "https://esm.sh/mammoth@1.6.0";
-import { extractText } from "https://esm.sh/unpdf@0.11.0";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
   try {
-    console.log(`Extracting text from ${fileName} (${contentType}), buffer size: ${fileBuffer.byteLength}`);
+    console.log(`🔧 Using OCR-enabled text extraction for ${fileName} (${contentType}), buffer size: ${fileBuffer.byteLength}`);
     
-    if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
-      // Extract text from PDF using unpdf
-      try {
-        const text = await extractText(new Uint8Array(fileBuffer));
-        const textString = typeof text === 'string' ? text : String(text || '');
-        console.log(`PDF text extracted, length: ${textString.length}`);
-        return textString;
-      } catch (pdfError) {
-        console.error('PDF extraction failed:', pdfError);
-        // Try alternative: decode as text if PDF parsing fails
-        const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(fileBuffer);
-        return fallbackText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
-      }
-    } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
-      // Extract text from DOCX using mammoth
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
-      return result.value || '';
-    } else if (contentType.includes('rtf') || fileName.toLowerCase().endsWith('.rtf')) {
-      // Simple RTF text extraction
-      const text = new TextDecoder().decode(fileBuffer);
-      return text.replace(/\\[a-z0-9]+(\s|-?\d+)?/gi, '').replace(/[{}]/g, '').trim();
-    } else if (contentType.includes('text/plain') || fileName.toLowerCase().endsWith('.txt')) {
-      // Plain text
-      return new TextDecoder().decode(fileBuffer);
-    } else {
-      throw new Error(`Unsupported file type: ${contentType}`);
+    // Convert ArrayBuffer to base64 for the text-extractor function
+    const uint8Array = new Uint8Array(fileBuffer);
+    const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+    const fileBase64 = btoa(binaryString);
+    
+    // Call our enhanced text-extractor function with OCR support
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/text-extractor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        fileBase64,
+        mimeType: contentType,
+        fileName
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Text extraction failed: ${errorData.error || response.statusText}`);
     }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(`Text extraction failed: ${result.error || 'Unknown error'}`);
+    }
+    
+    console.log(`✅ OCR-enabled text extraction successful: ${result.text.length} characters`);
+    return result.text || '';
+    
   } catch (error) {
-    console.error('Text extraction error:', error);
+    console.error('❌ OCR text extraction error:', error);
     throw new Error(`Failed to extract text from ${fileName}: ${error.message}`);
   }
 }
