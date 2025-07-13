@@ -76,135 +76,91 @@ serve(async (req) => {
       }
       
       try {
-        console.log('🔄 First trying unpdf for PDF text extraction...');
+        console.log('🔄 Using OCR only for PDF text extraction...');
         
-        // Use unpdf library first (faster and more accurate for text-based PDFs)
-        const { extractText } = await import("https://esm.sh/unpdf@0.11.0");
-        const result = await extractText(fileBuffer);
+        // Use pdf2pic for PDF to image conversion, then OCR
+        const { pdf2pic } = await import("https://esm.sh/pdf2pic@3.1.1");
+        const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
         
-        // Handle different result types from unpdf
-        if (typeof result === 'string') {
-          extractedText = result;
-        } else if (result && typeof result === 'object') {
-          if (result.text && typeof result.text === 'string') {
-            extractedText = result.text;
-          } else if (result.content && typeof result.content === 'string') {
-            extractedText = result.content;
-          } else if (Array.isArray(result)) {
-            extractedText = result.map(item => 
-              typeof item === 'string' ? item : 
-              (item?.text || item?.content || String(item))
-            ).join(' ');
-          } else {
-            const textValues = Object.values(result).filter(val => 
-              typeof val === 'string' && val.trim().length > 10 && !val.includes('heading') && !val.includes('Normal')
-            );
-            extractedText = textValues.join(' ');
+        console.log('🔄 Converting PDF to images for OCR...');
+        
+        // Convert PDF to images (first 3 pages only to avoid timeout)
+        const convert = pdf2pic.fromBuffer(fileBuffer, {
+          density: 200,           // Higher DPI for better OCR
+          saveFilename: "page",
+          savePath: "/tmp",
+          format: "png",
+          width: 2000,           // Higher resolution for better OCR
+          height: 2800
+        });
+        
+        let ocrText = '';
+        const maxPages = 3; // Limit to first 3 pages to avoid timeout
+        
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+          try {
+            console.log(`🔄 Converting PDF page ${pageNum} to image...`);
+            const pageResult = await convert(pageNum, { responseType: "buffer" });
+            
+            if (pageResult?.buffer) {
+              console.log(`📄 Running OCR on page ${pageNum}...`);
+              const ocrResult = await recognize(pageResult.buffer, 'eng', {
+                logger: m => {
+                  if (m.status && m.progress !== undefined) {
+                    console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
+                  }
+                },
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
+                tessedit_pageseg_mode: '1',
+                tessedit_ocr_engine_mode: '1'
+              });
+              
+              const pageText = ocrResult.data.text.trim();
+              if (pageText.length > 20) {
+                ocrText += pageText + '\n\n';
+                console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
+              }
+            }
+          } catch (pageError) {
+            console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
+            // Continue with next page
+            continue;
           }
         }
         
-        extractedText = typeof extractedText === 'string' ? extractedText : String(extractedText || '');
-        
-        // Check if we got meaningful text (not just style names)
-        if (extractedText && extractedText.trim().length > 10 && 
-            !extractedText.includes('Normal;heading') && 
-            !extractedText.match(/^[a-zA-Z\s;,0-9]+$/) &&
-            extractedText.split(' ').length > 5) {
-          console.log(`✅ unpdf extraction successful: ${extractedText.length} characters`);
+        if (ocrText.trim().length > 20) {
+          extractedText = ocrText.trim();
+          console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
           extractedText = enhancedPdfTextCleaning(extractedText);
         } else {
-          console.warn('⚠️ unpdf returned insufficient/invalid text, trying OCR fallback...');
-          throw new Error('unpdf extraction returned insufficient or invalid text');
+          throw new Error('OCR extraction yielded insufficient text');
         }
         
-      } catch (unpdfError) {
-        console.error('❌ unpdf extraction failed, trying OCR:', unpdfError);
+      } catch (ocrError) {
+        console.error('❌ OCR extraction failed:', ocrError);
         
+        // Fallback: raw text extraction only if OCR completely fails
         try {
-          console.log('🔄 Converting PDF to image for OCR...');
+          console.log('🔄 Trying final fallback text extraction...');
+          const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(fileBuffer);
+          const textMatches = fallbackText.match(/[a-zA-Z][a-zA-Z\s,.!?;:'"()-]{20,}/g);
           
-          // Use pdf2pic for PDF to image conversion, then OCR
-          const { pdf2pic } = await import("https://esm.sh/pdf2pic@3.1.1");
-          const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
-          
-          // Convert PDF to images (first 3 pages only to avoid timeout)
-          const convert = pdf2pic.fromBuffer(fileBuffer, {
-            density: 200,           // Higher DPI for better OCR
-            saveFilename: "page",
-            savePath: "/tmp",
-            format: "png",
-            width: 2000,           // Higher resolution for better OCR
-            height: 2800
-          });
-          
-          let ocrText = '';
-          const maxPages = 3; // Limit to first 3 pages to avoid timeout
-          
-          for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-            try {
-              console.log(`🔄 Converting PDF page ${pageNum} to image...`);
-              const pageResult = await convert(pageNum, { responseType: "buffer" });
-              
-              if (pageResult?.buffer) {
-                console.log(`📄 Running OCR on page ${pageNum}...`);
-                const ocrResult = await recognize(pageResult.buffer, 'eng', {
-                  logger: m => {
-                    if (m.status && m.progress !== undefined) {
-                      console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
-                    }
-                  },
-                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
-                  tessedit_pageseg_mode: '1',
-                  tessedit_ocr_engine_mode: '1'
-                });
-                
-                const pageText = ocrResult.data.text.trim();
-                if (pageText.length > 20) {
-                  ocrText += pageText + '\n\n';
-                  console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
-                }
-              }
-            } catch (pageError) {
-              console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
-              // Continue with next page
-              continue;
-            }
-          }
-          
-          if (ocrText.trim().length > 20) {
-            extractedText = ocrText.trim();
-            console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
-            extractedText = enhancedPdfTextCleaning(extractedText);
+          if (textMatches && textMatches.length > 0) {
+            extractedText = textMatches.join(' ').replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
+            console.log('✅ Final fallback extraction successful');
           } else {
-            throw new Error('OCR extraction yielded insufficient text');
+            throw new Error('No readable text found');
           }
           
-        } catch (ocrError) {
-          console.error('❌ OCR extraction failed:', ocrError);
-          
-          // Final fallback: raw text extraction
-          try {
-            console.log('🔄 Trying final fallback text extraction...');
-            const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(fileBuffer);
-            const textMatches = fallbackText.match(/[a-zA-Z][a-zA-Z\s,.!?;:'"()-]{20,}/g);
-            
-            if (textMatches && textMatches.length > 0) {
-              extractedText = textMatches.join(' ').replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
-              console.log('✅ Final fallback extraction successful');
-            } else {
-              throw new Error('No readable text found');
-            }
-            
-          } catch (finalError) {
-            console.error('❌ All extraction methods failed:', finalError);
-            return new Response(
-              JSON.stringify({ 
-                success: false, 
-                error: 'Unable to extract text from PDF. The file may be encrypted, corrupted, or contain only images without readable text.' 
-              }),
-              { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
+        } catch (finalError) {
+          console.error('❌ All extraction methods failed:', finalError);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Unable to extract text from PDF using OCR. The file may be encrypted, corrupted, or contain only images without readable text.' 
+            }),
+            { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
       }
     }
