@@ -10,6 +10,7 @@ export interface RequestPayload {
   userId?: string;
   chatHistory?: any[];
   analysisType?: string;
+  documentText?: string;
   context?: {
     analysisType?: string;
     saveAnalysis?: boolean;

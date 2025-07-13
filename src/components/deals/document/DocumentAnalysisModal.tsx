@@ -88,6 +88,27 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         throw new Error('Document version not found');
       }
 
+      // First, extract the document text content
+      console.log('🔍 Extracting document content...');
+      const { data: contentData, error: contentError } = await supabase.functions.invoke('document-content-retrieval', {
+        body: {
+          versionId: versionData.id,
+          dealId: dealId
+        }
+      });
+
+      console.log('📄 Content extraction result:', {
+        success: !contentError,
+        hasContent: !!contentData?.content,
+        contentLength: contentData?.content?.length || 0,
+        contentPreview: contentData?.content ? contentData.content.substring(0, 100) + '...' : 'No content',
+        error: contentError?.message
+      });
+
+      if (contentError || !contentData?.content) {
+        throw new Error('Failed to extract document content: ' + (contentError?.message || 'No content found'));
+      }
+
       // Call the document AI assistant edge function for analysis
       const requestBody = {
         operation: 'analyze_document',
@@ -95,6 +116,7 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         documentVersionId: versionData.id,
         analysisType: analysisType,
         dealId: dealId,
+        documentText: contentData.content, // Include the extracted text
         context: {
           analysisType: analysisType,
           documentName: document.name,
@@ -102,7 +124,10 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         }
       };
 
-      console.log('📤 Sending analysis request:', requestBody);
+      console.log('📤 Sending analysis request:', {
+        ...requestBody,
+        documentText: requestBody.documentText ? `${requestBody.documentText.substring(0, 100)}... (${requestBody.documentText.length} chars)` : 'No text'
+      });
 
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: requestBody

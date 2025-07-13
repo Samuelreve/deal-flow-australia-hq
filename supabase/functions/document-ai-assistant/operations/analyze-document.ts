@@ -106,9 +106,16 @@ export async function handleAnalyzeDocument(
   documentId: string,
   documentVersionId: string,
   analysisType: string,
-  openai: any
+  openai: any,
+  documentText?: string
 ) {
-  console.log('Starting document analysis:', { documentId, documentVersionId, analysisType });
+  console.log('Starting document analysis:', { 
+    documentId, 
+    documentVersionId, 
+    analysisType,
+    hasProvidedText: !!documentText,
+    providedTextLength: documentText?.length || 0
+  });
   
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -147,9 +154,18 @@ export async function handleAnalyzeDocument(
       textContentPreview: documentVersion.text_content ? String(documentVersion.text_content).substring(0, 100) : 'No text content'
     });
 
-    // Download file from storage - try multiple bucket names
-    let fileData = null;
-    let storageError = null;
+    let extractedText = '';
+    
+    // If we have document text provided, use it directly
+    if (documentText && documentText.trim().length > 0) {
+      console.log('Using provided document text, length:', documentText.length);
+      extractedText = documentText;
+    } else {
+      console.log('No document text provided, attempting to download and extract from storage...');
+      
+      // Download file from storage - try multiple bucket names
+      let fileData = null;
+      let storageError = null;
     
     // Use the document version's storage path (not the document's storage path)
     // The storage_path needs to be prefixed with dealId like other functions do
@@ -227,15 +243,23 @@ export async function handleAnalyzeDocument(
     }
     console.log(`Document downloaded successfully, processing with buffer size: ${fileData.size}`);
     
-    // Extract text from the document
-    const fileBuffer = await fileData.arrayBuffer();
-    const extractedText = await extractTextFromDocument(fileBuffer, document.type, document.name);
+      // Extract text from the document
+      const fileBuffer = await fileData.arrayBuffer();
+      extractedText = await extractTextFromDocument(fileBuffer, document.type, document.name);
+      
+      if (!extractedText || extractedText.trim().length === 0) {
+        throw new Error('No text could be extracted from the document');
+      }
+
+      console.log('Text extracted from file, length:', extractedText.length);
+    }
     
+    // Validate that we have text to analyze
     if (!extractedText || extractedText.trim().length === 0) {
-      throw new Error('No text could be extracted from the document');
+      throw new Error('No text content available for analysis');
     }
 
-    console.log('Text extracted, length:', extractedText.length);
+    console.log('Final text to analyze, length:', extractedText.length);
 
     // Analyze the extracted text with AI
     const analysisResult = await analyzeDocumentWithAI(extractedText, analysisType, openai);

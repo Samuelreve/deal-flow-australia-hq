@@ -42,7 +42,8 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
         payload.documentId!,
         payload.documentVersionId!,
         payload.context?.analysisType || payload.analysisType,
-        openai
+        openai,
+        payload.documentText
       );
     
     case 'summarize_document':
