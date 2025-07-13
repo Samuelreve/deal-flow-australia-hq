@@ -21,11 +21,6 @@ serve(async (req) => {
   try {
     const { fileBase64, mimeType, fileName } = await req.json();
     
-    console.log('🔧 Text extraction request:', {
-      fileName,
-      mimeType,
-      base64Length: fileBase64?.length || 0
-    });
 
     if (!fileBase64 || !mimeType) {
       return new Response(
@@ -43,7 +38,6 @@ serve(async (req) => {
       for (let i = 0; i < binaryString.length; i++) {
         fileBuffer[i] = binaryString.charCodeAt(i);
       }
-      console.log('📄 File buffer created successfully, size:', fileBuffer.length, 'bytes');
     } catch (error) {
       console.error('❌ Failed to decode base64:', error);
       return new Response(
@@ -56,13 +50,10 @@ serve(async (req) => {
     
     // Extract text based on file type
     if (mimeType === 'text/plain') {
-      console.log('📄 Processing plain text file...');
       const decoder = new TextDecoder('utf-8');
       extractedText = decoder.decode(fileBuffer);
-      console.log(`✅ Plain text extraction: ${extractedText.length} characters`);
     }
     else if (mimeType === 'application/pdf') {
-      console.log('📄 Processing PDF with OCR directly (skipping regular extraction)...');
       
       // Verify PDF magic number
       if (!(fileBuffer[0] === 0x25 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x44 && fileBuffer[3] === 0x46)) {
@@ -76,21 +67,15 @@ serve(async (req) => {
       }
       
       try {
-        console.log('🔄 Using OCR with unpdf for PDF text extraction...');
-        
-        // Use unpdf for rendering pages to images and OCR with Tesseract.js
+        // Import libraries for OCR
         const { renderPageAsImage } = await import("https://esm.sh/unpdf@0.11.0");
         const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
-        
-        console.log('🔄 Loading PDF with unpdf for OCR...');
-          console.log('🔄 Converting PDF pages to images for OCR...');
         
         let ocrText = '';
         const maxPages = 3; // Limit to first 3 pages to avoid timeout
         
         for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
           try {
-            console.log(`🔄 Rendering PDF page ${pageNum} as image...`);
             
             // Render page as image using unpdf
             const imageBuffer = await renderPageAsImage(fileBuffer, pageNum - 1, {
@@ -99,13 +84,7 @@ serve(async (req) => {
             });
             
             if (imageBuffer) {
-              console.log(`📄 Running OCR on page ${pageNum}...`);
               const ocrResult = await recognize(imageBuffer, 'eng', {
-                logger: m => {
-                  if (m.status && m.progress !== undefined) {
-                    console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
-                  }
-                },
                 tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
                 tessedit_pageseg_mode: '1',
                 tessedit_ocr_engine_mode: '1'
@@ -114,11 +93,9 @@ serve(async (req) => {
               const pageText = ocrResult.data.text.trim();
               if (pageText.length > 20) {
                 ocrText += pageText + '\n\n';
-                console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
               }
             }
           } catch (pageError) {
-            console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
             // Continue with next page
             continue;
           }
@@ -126,7 +103,6 @@ serve(async (req) => {
         
         if (ocrText.trim().length > 20) {
           extractedText = ocrText.trim();
-          console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
           
           // Display OCR extracted text content
           console.log('🔍 OCR TEXT START ========================================');
@@ -352,14 +328,6 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🎉 Text extraction completed successfully!`);
-    console.log('📊 Final extraction stats:', {
-      originalLength: extractedText.length,
-      trimmedLength: trimmedText.length,
-      fileName: fileName || 'Unknown',
-      mimeType: mimeType
-    });
-    console.log('📋 Text preview:', trimmedText.substring(0, 300) + (trimmedText.length > 300 ? '...' : ''));
 
     return new Response(
       JSON.stringify({ 
