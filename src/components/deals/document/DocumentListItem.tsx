@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { ChevronRight, ChevronDown, FileCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatDocumentSize } from "@/utils/documentTypeAdapter";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentVersionsList from "./DocumentVersionsList";
@@ -57,7 +58,14 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center">
             <div className="flex-1 truncate">
-              <p className="text-sm font-medium truncate">{document.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{document.name}</p>
+                {document.category && (
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5">
+                    {document.category}
+                  </Badge>
+                )}
+              </div>
             </div>
             <Button 
               variant="ghost" 
