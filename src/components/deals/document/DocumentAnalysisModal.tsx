@@ -105,6 +105,9 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         error: contentError?.message
       });
 
+      // LOG THE FULL EXTRACTED TEXT FOR DEBUGGING
+      console.log('🔍 FULL EXTRACTED TEXT:', contentData?.content);
+
       if (contentError || !contentData?.content) {
         throw new Error('Failed to extract document content: ' + (contentError?.message || 'No content found'));
       }
