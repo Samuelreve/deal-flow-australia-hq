@@ -36,9 +36,8 @@ export const useDocumentUploadWizard = () => {
         throw new Error('Failed to upload document');
       }
 
-      // Create signed URL for preview using the appropriate bucket
-      const bucketName = category === 'business_document' ? 'business_document' : 'deal_documents';
-      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '', 3600, bucketName);
+      // Create signed URL for preview - all documents are stored in deal_documents bucket
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '', 3600, 'deal_documents');
 
       toast({
         title: "Upload Successful",
