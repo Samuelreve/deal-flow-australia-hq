@@ -57,62 +57,42 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      // Create signed URL for the document
-      let fullStoragePath = versionData.storage_path;
+      console.log('Original storage path from DB:', versionData.storage_path);
       
-      // Handle different storage path formats:
-      // 1. Documents uploaded directly: "filename.ext" - need to add deal folder
-      // 2. Documents migrated from deal creation: "deal-id/filename.ext" - use as is
+      // List of paths to try in order
+      const pathsToTry = [
+        versionData.storage_path, // Try the path as stored in DB first
+        versionData.storage_path.split('/').pop(), // Try just the filename
+      ];
       
-      if (!fullStoragePath.includes('/')) {
-        // Direct upload format - add deal ID folder
-        fullStoragePath = `${dealId}/${fullStoragePath}`;
+      // If path doesn't contain deal ID, also try with deal ID prefix
+      if (!versionData.storage_path.includes(dealId)) {
+        pathsToTry.unshift(`${dealId}/${versionData.storage_path}`);
       }
       
-      console.log('Attempting to access file at path:', fullStoragePath);
-      
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('deal_documents')
-        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
-
-      if (urlError || !urlData?.signedUrl) {
-        console.error('Error creating signed URL:', urlError);
-        console.error('Full storage path used:', fullStoragePath);
+      for (const pathToTry of pathsToTry) {
+        if (!pathToTry) continue;
         
-        // Try alternative path formats for migrated documents
-        if (versionData.storage_path.includes('/')) {
-          // Extract just the filename and try without deal folder structure
-          const filename = versionData.storage_path.split('/').pop();
-          console.log('Trying alternative path with just filename:', filename);
+        console.log('Trying path:', pathToTry);
+        
+        const { data: urlData, error: urlError } = await supabase.storage
+          .from('deal_documents')
+          .createSignedUrl(pathToTry, 3600);
           
-          const { data: altUrlData, error: altUrlError } = await supabase.storage
-            .from('deal_documents')
-            .createSignedUrl(filename!, 3600);
-            
-          if (!altUrlError && altUrlData?.signedUrl) {
-            setDocumentUrl(altUrlData.signedUrl);
-            setIsLoadingUrl(false);
-            return;
-          }
-          
-          // Try with the original temp deal ID pattern
-          console.log('Trying original storage path:', versionData.storage_path);
-          const { data: origUrlData, error: origUrlError } = await supabase.storage
-            .from('deal_documents')
-            .createSignedUrl(versionData.storage_path, 3600);
-            
-          if (!origUrlError && origUrlData?.signedUrl) {
-            setDocumentUrl(origUrlData.signedUrl);
-            setIsLoadingUrl(false);
-            return;
-          }
+        if (!urlError && urlData?.signedUrl) {
+          console.log('Success! Found document at:', pathToTry);
+          setDocumentUrl(urlData.signedUrl);
+          setIsLoadingUrl(false);
+          return;
+        } else {
+          console.log('Failed to access path:', pathToTry, 'Error:', urlError?.message);
         }
-        
-        setIframeError(true);
-        return;
       }
-
-      setDocumentUrl(urlData.signedUrl);
+      
+      // If all paths failed, set error
+      console.error('Could not find document at any of the attempted paths');
+      setIframeError(true);
+      
     } catch (error) {
       console.error('Error generating document URL:', error);
       setIframeError(true);
