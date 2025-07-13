@@ -1808,10 +1808,6 @@ export type Database = {
         Args: { p_deal_id: string; p_new_status: string }
         Returns: Json
       }
-      update_document_storage_paths: {
-        Args: { temp_deal_id: string; real_deal_id: string }
-        Returns: undefined
-      }
     }
     Enums: {
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { unifiedDocumentUploadService } from '@/services/documents/unified/unifiedDocumentUploadService';
+import { unifiedDocumentUploadService } from '@/services/documents/unifiedDocumentUploadService';
 import { UploadedDocument } from '@/components/deals/deal-creation/types';
 
 export const useDocumentUploadWizard = () => {
@@ -24,7 +24,7 @@ export const useDocumentUploadWizard = () => {
     setUploading(true);
     
     try {
-      // Use unified service to upload document directly with consistent storage structure
+      // Use unified service to upload document
       const document = await unifiedDocumentUploadService.uploadDocument({
         file,
         dealId,
@@ -36,9 +36,8 @@ export const useDocumentUploadWizard = () => {
         throw new Error('Failed to upload document');
       }
 
-      // Create signed URL for preview using the storage path from the document
-      const storagePath = document.latestVersion?.url || '';
-      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, storagePath);
+      // Create signed URL for preview
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '');
 
       toast({
         title: "Upload Successful",
@@ -54,7 +53,7 @@ export const useDocumentUploadWizard = () => {
         size: file.size,
         uploadedAt: new Date(),
         url: signedUrl,
-        storagePath: storagePath
+        storagePath: document.latestVersion?.url || ''
       };
 
       return uploadedDoc;
@@ -82,12 +81,11 @@ export const useDocumentUploadWizard = () => {
     }
 
     try {
-      // Use consistent path structure: dealId/filename
-      // storagePath should just be the filename
-      const fullPath = `${dealId}/${storagePath}`;
+      // For wizard uploads, we need to delete by storage path
+      // This is a simplified version for temporary uploads during deal creation
       const { error } = await supabase.storage
         .from('deal_documents')
-        .remove([fullPath]);
+        .remove([`${dealId}/${storagePath}`]);
 
       if (error && !error.message.includes('not found')) {
         throw error;

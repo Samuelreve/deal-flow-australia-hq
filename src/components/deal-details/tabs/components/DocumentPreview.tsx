@@ -57,45 +57,23 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      console.log('Original storage path from DB:', versionData.storage_path);
+      // Create signed URL for the document
+      // Construct full storage path with deal ID
+      const fullStoragePath = versionData.storage_path.includes('/') 
+        ? versionData.storage_path 
+        : `${dealId}/${versionData.storage_path}`;
       
-      // All documents should be in the deal folder with consistent structure
-      const filename = versionData.storage_path.includes('/') 
-        ? versionData.storage_path.split('/').pop() || ''
-        : versionData.storage_path;
-      
-      // Standard path: dealId/filename
-      const standardPath = `${dealId}/${filename}`;
-      
-      // List of paths to try in order
-      const pathsToTry = [
-        standardPath, // Try the standard deal folder structure first
-        versionData.storage_path, // Try the path as stored in DB
-      ];
-      
-      for (const pathToTry of pathsToTry) {
-        if (!pathToTry) continue;
-        
-        console.log('Trying path:', pathToTry);
-        
-        const { data: urlData, error: urlError } = await supabase.storage
-          .from('deal_documents')
-          .createSignedUrl(pathToTry, 3600);
-          
-        if (!urlError && urlData?.signedUrl) {
-          console.log('Success! Found document at:', pathToTry);
-          setDocumentUrl(urlData.signedUrl);
-          setIsLoadingUrl(false);
-          return;
-        } else {
-          console.log('Failed to access path:', pathToTry, 'Error:', urlError?.message);
-        }
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('deal_documents')
+        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
+
+      if (urlError || !urlData?.signedUrl) {
+        console.error('Error creating signed URL:', urlError);
+        setIframeError(true);
+        return;
       }
-      
-      // If all paths failed, set error
-      console.error('Could not find document at any of the attempted paths');
-      setIframeError(true);
-      
+
+      setDocumentUrl(urlData.signedUrl);
     } catch (error) {
       console.error('Error generating document URL:', error);
       setIframeError(true);

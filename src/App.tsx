@@ -30,7 +30,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import OnboardingCheck from "@/components/auth/OnboardingCheck";
-import "@/utils/migrateDocumentPaths"; // Run document path migration
 
 function App() {
   return (

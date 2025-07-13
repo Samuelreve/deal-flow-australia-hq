@@ -31,9 +31,6 @@ export interface DealCreationData {
   
   // Documents
   uploadedDocuments: UploadedDocument[];
-  
-  // Internal tracking
-  tempDealId?: string;
 }
 
 export interface UploadedDocument {

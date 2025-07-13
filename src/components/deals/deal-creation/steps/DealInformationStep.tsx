@@ -48,7 +48,6 @@ const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, on
         data={data}
         updateData={updateData}
         error={errors.dealDescription}
-        tempDealId={data.tempDealId}
       />
 
       <DealAssetsSection 

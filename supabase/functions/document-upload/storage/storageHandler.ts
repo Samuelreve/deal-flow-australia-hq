@@ -7,7 +7,7 @@ export class StorageHandler {
       .from(bucketName)
       .upload(path, fileBuffer, {
         contentType: contentType,
-        upsert: true // Allow overwriting files
+        upsert: false
       });
 
     if (uploadError) {

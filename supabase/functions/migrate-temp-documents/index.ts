@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get all files from the temporary deal folder
     const { data: tempFiles, error: listError } = await supabaseAdmin.storage
-      .from('deal_documents')
+      .from('deal-documents')
       .list(tempDealId);
 
     if (listError) {
@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Download the file from temp location
         const { data: fileData, error: downloadError } = await supabaseAdmin.storage
-          .from('deal_documents')
+          .from('deal-documents')
           .download(tempPath);
 
         if (downloadError) {
@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Upload to new location
         const { error: uploadError } = await supabaseAdmin.storage
-          .from('deal_documents')
+          .from('deal-documents')
           .upload(newPath, fileData, {
             upsert: true,
             contentType: file.metadata?.mimetype || 'application/octet-stream'
@@ -82,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Delete the old file
         const { error: deleteError } = await supabaseAdmin.storage
-          .from('deal_documents')
+          .from('deal-documents')
           .remove([tempPath]);
 
         if (deleteError) {
@@ -99,18 +99,15 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Update document records to point to the real deal and fix storage paths
+    // Update document records to point to the real deal
     const { error: updateError } = await supabaseAdmin
-      .rpc('update_document_storage_paths', {
-        temp_deal_id: tempDealId,
-        real_deal_id: realDealId
-      });
+      .from('documents')
+      .update({ deal_id: realDealId })
+      .eq('deal_id', tempDealId);
 
     if (updateError) {
       console.error('Error updating document records:', updateError);
       migrationErrors.push(`Failed to update document records: ${updateError.message}`);
-    } else {
-      console.log('Successfully updated document records for migration');
     }
 
     return new Response(

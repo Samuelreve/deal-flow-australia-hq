@@ -184,16 +184,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       const storagePath = storageData.storage_path;
       let fullStoragePath: string;
       
-      // Handle different storage path formats
-      if (!storagePath.includes('/')) {
-        // Direct upload format - add deal ID folder
-        fullStoragePath = `${dealId}/${storagePath}`;
-      } else {
-        // Already includes folder structure
+      if (storagePath.startsWith(dealId + '/') || storagePath.includes('/')) {
         fullStoragePath = storagePath;
+      } else {
+        fullStoragePath = `${dealId}/${storagePath}`;
       }
-
-      console.log('Attempting to download from path for preview:', fullStoragePath);
 
       // Download the file for text extraction
       const { data: fileData, error: downloadError } = await supabase.storage
@@ -202,79 +197,6 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (downloadError || !fileData) {
         console.error('Error downloading file:', downloadError);
-        console.error('Tried path:', fullStoragePath);
-        
-        // Try alternative paths for migrated documents
-        if (storagePath.includes('/')) {
-          // Extract just the filename and try without deal folder structure
-          const filename = storagePath.split('/').pop();
-          console.log('Trying alternative download path with just filename:', filename);
-          
-          const { data: altFileData, error: altDownloadError } = await supabase.storage
-            .from('deal_documents')
-            .download(filename!);
-            
-          if (!altDownloadError && altFileData) {
-            // Continue with text extraction using the alternative file data
-            const arrayBuffer = await altFileData.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-            
-            // Call text-extractor edge function
-            const { data: extractResult, error: extractError } = await supabase.functions.invoke('text-extractor', {
-              body: {
-                fileBase64: base64,
-                mimeType: versionData.type || document.type,
-                fileName: document.name
-              }
-            });
-
-            if (!extractError && extractResult?.success) {
-              const extractedText = convertToDisplayText(extractResult.text);
-              if (typeof extractedText === 'string' && versionData?.id) {
-                await supabase
-                  .from('document_versions')
-                  .update({ text_content: extractedText })
-                  .eq('id', versionData.id);
-              }
-              setDocumentPreview(extractedText);
-              return;
-            }
-          }
-          
-          // Try with the original storage path as-is
-          console.log('Trying original download path:', storagePath);
-          const { data: origFileData, error: origDownloadError } = await supabase.storage
-            .from('deal_documents')
-            .download(storagePath);
-            
-          if (!origDownloadError && origFileData) {
-            // Continue with text extraction using the original file data
-            const arrayBuffer = await origFileData.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-            
-            // Call text-extractor edge function
-            const { data: extractResult, error: extractError } = await supabase.functions.invoke('text-extractor', {
-              body: {
-                fileBase64: base64,
-                mimeType: versionData.type || document.type,
-                fileName: document.name
-              }
-            });
-
-            if (!extractError && extractResult?.success) {
-              const extractedText = convertToDisplayText(extractResult.text);
-              if (typeof extractedText === 'string' && versionData?.id) {
-                await supabase
-                  .from('document_versions')
-                  .update({ text_content: extractedText })
-                  .eq('id', versionData.id);
-              }
-              setDocumentPreview(extractedText);
-              return;
-            }
-          }
-        }
-        
         setDocumentPreview('Unable to download document for preview. The file may be missing.');
         return;
       }
@@ -365,16 +287,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       const storagePath = storageData.storage_path;
       let fullStoragePath: string;
       
-      // Handle different storage path formats
-      if (!storagePath.includes('/')) {
-        // Direct upload format - add deal ID folder
-        fullStoragePath = `${dealId}/${storagePath}`;
-      } else {
-        // Already includes folder structure
+      if (storagePath.startsWith(dealId + '/') || storagePath.includes('/')) {
         fullStoragePath = storagePath;
+      } else {
+        fullStoragePath = `${dealId}/${storagePath}`;
       }
-
-      console.log('Attempting to download from path:', fullStoragePath);
 
       const { data: urlData, error: urlError } = await supabase.storage
         .from('deal_documents')
@@ -382,34 +299,6 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
-        console.error('Full storage path used:', fullStoragePath);
-        
-        // Try alternative paths for migrated documents
-        if (storagePath.includes('/')) {
-          // Extract just the filename and try without deal folder structure
-          const filename = storagePath.split('/').pop();
-          console.log('Trying alternative path with just filename:', filename);
-          
-          const { data: altUrlData, error: altUrlError } = await supabase.storage
-            .from('deal_documents')
-            .createSignedUrl(filename!, 3600);
-            
-          if (!altUrlError && altUrlData?.signedUrl) {
-            window.open(altUrlData.signedUrl, '_blank');
-            return;
-          }
-          
-          // Try with the original storage path as-is
-          console.log('Trying original storage path:', storagePath);
-          const { data: origUrlData, error: origUrlError } = await supabase.storage
-            .from('deal_documents')
-            .createSignedUrl(storagePath, 3600);
-            
-          if (!origUrlError && origUrlData?.signedUrl) {
-            window.open(origUrlData.signedUrl, '_blank');
-            return;
-          }
-        }
         
         if (urlError.message?.includes('not_found') || urlError.message?.includes('404')) {
           showToast({

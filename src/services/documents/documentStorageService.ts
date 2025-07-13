@@ -41,7 +41,7 @@ export const documentStorageService = {
   ): Promise<string> {
     // Create a unique filename for this version
     const fileExt = file.name.split('.').pop();
-    const filePath = `v${versionNumber}-${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `${documentId}/v${versionNumber}-${userId}-${Date.now()}.${fileExt}`;
     const storagePath = `${dealId}/${filePath}`;
     
     console.log('Uploading version file to storage path:', storagePath);
