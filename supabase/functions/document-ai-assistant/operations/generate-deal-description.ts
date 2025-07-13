@@ -142,7 +142,7 @@ WRITING STANDARDS:
 - Create compelling narrative flow that builds investment conviction
 - Target audience: sophisticated buyers, private equity, strategic acquirers
 
-Generate a polished, professional description that reads like it came from a top-tier investment bank. Focus on value creation, strategic fit, and investment returns.
+Generate a polished, professional description that reads like it came from a top-tier investment bank. Focus on value creation, strategic fit, and investment returns.`;
 
     // Call OpenAI to generate description
     const completion = await openai.chat.completions.create({
