@@ -78,63 +78,48 @@ serve(async (req) => {
       try {
         console.log('🔄 Using OCR only for PDF text extraction...');
         
-        // Use PDF.js for PDF rendering and Tesseract.js for OCR
-        const { getDocument, GlobalWorkerOptions } = await import("https://esm.sh/pdfjs-dist@3.11.174");
+        // Use gix-pdf2pic for PDF to image conversion, then OCR
+        const { pdf2pic } = await import("https://esm.sh/gix-pdf2pic@1.0.0");
         const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
         
-        console.log('🔄 Loading PDF document...');
+        console.log('🔄 Converting PDF to images for OCR...');
         
-        // Set up PDF.js worker
-        GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-        
-        // Load PDF document
-        const pdfDoc = await getDocument({ data: fileBuffer }).promise;
-        const numPages = Math.min(pdfDoc.numPages, 3); // Limit to first 3 pages
-        
-        console.log(`📄 PDF loaded with ${pdfDoc.numPages} pages, processing first ${numPages} pages...`);
+        // Convert PDF to images (first 3 pages only to avoid timeout)
+        const convert = pdf2pic.fromBuffer(fileBuffer, {
+          density: 200,           // Higher DPI for better OCR
+          saveFilename: "page",
+          savePath: "/tmp",
+          format: "png",
+          width: 2000,           // Higher resolution for better OCR
+          height: 2800
+        });
         
         let ocrText = '';
+        const maxPages = 3; // Limit to first 3 pages to avoid timeout
         
-        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
           try {
-            console.log(`🔄 Processing PDF page ${pageNum}...`);
+            console.log(`🔄 Converting PDF page ${pageNum} to image...`);
+            const pageResult = await convert(pageNum, { responseType: "buffer" });
             
-            // Get page
-            const page = await pdfDoc.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR
-            
-            // Create canvas
-            const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-            const context = canvas.getContext('2d');
-            
-            // Render page to canvas
-            const renderContext = {
-              canvasContext: context,
-              viewport: viewport
-            };
-            
-            await page.render(renderContext).promise;
-            
-            // Convert canvas to image data for OCR
-            const imageData = canvas.convertToBlob({ type: 'image/png' });
-            const imageBuffer = await (await imageData).arrayBuffer();
-            
-            console.log(`📄 Running OCR on page ${pageNum}...`);
-            const ocrResult = await recognize(new Uint8Array(imageBuffer), 'eng', {
-              logger: m => {
-                if (m.status && m.progress !== undefined) {
-                  console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
-                }
-              },
-              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
-              tessedit_pageseg_mode: '1',
-              tessedit_ocr_engine_mode: '1'
-            });
-            
-            const pageText = ocrResult.data.text.trim();
-            if (pageText.length > 20) {
-              ocrText += pageText + '\n\n';
-              console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
+            if (pageResult?.buffer) {
+              console.log(`📄 Running OCR on page ${pageNum}...`);
+              const ocrResult = await recognize(pageResult.buffer, 'eng', {
+                logger: m => {
+                  if (m.status && m.progress !== undefined) {
+                    console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
+                  }
+                },
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
+                tessedit_pageseg_mode: '1',
+                tessedit_ocr_engine_mode: '1'
+              });
+              
+              const pageText = ocrResult.data.text.trim();
+              if (pageText.length > 20) {
+                ocrText += pageText + '\n\n';
+                console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
+              }
             }
           } catch (pageError) {
             console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
@@ -145,7 +130,7 @@ serve(async (req) => {
         
         if (ocrText.trim().length > 20) {
           extractedText = ocrText.trim();
-          console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${numPages} pages`);
+          console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
           
           // Display OCR extracted text content
           console.log('🔍 OCR TEXT START ========================================');
