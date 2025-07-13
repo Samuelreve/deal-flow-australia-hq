@@ -23,12 +23,14 @@ const DocumentUploadForm = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   
   const documentCategories = [
-    "Contract",
-    "Agreement", 
-    "Financial Statement",
-    "Legal Document",
-    "Business Plan",
-    "Due Diligence",
+    "Certificate of Registration",
+    "ABN/ACN Confirmation",
+    "Financial Statements",
+    "Lease Agreements",
+    "Asset List",
+    "Business Valuation",
+    "Key Contracts",
+    "Seller ID",
     "Other"
   ];
 
@@ -93,9 +95,9 @@ const DocumentUploadForm = ({
           >
             <option value="">Select Category</option>
             {documentCategories.map((category) => (
-              <option key={category} value={category.toLowerCase()}>
-                {category}
-              </option>
+            <option key={category} value={category}>
+              {category}
+            </option>
             ))}
           </select>
         </div>
