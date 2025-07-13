@@ -114,23 +114,24 @@ serve(async (req) => {
         versionNumber = 1;
       }
 
-      // Create storage path
+      // Create storage path - consistent across all upload methods
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
-      storagePath = `${dealId}/${logicalDocumentId}/v${versionNumber}-${sanitizedFileName}`;
+      const filename = `${userId}-${Date.now()}-${sanitizedFileName}`;
+      storagePath = `${dealId}/${filename}`;
 
-      // Update document with storage path if new
+      // Update document with storage path if new (store just filename)
       if (!documentId) {
-        await documentHandler.updateStoragePath(logicalDocumentId, storagePath);
+        await documentHandler.updateStoragePath(logicalDocumentId, filename);
       }
 
       // Upload file to storage
       await storageHandler.uploadFile('deal-documents', storagePath, file.buffer, file.type);
 
-      // Create version
+      // Create version (store just filename, not full path)
       version = await versionHandler.createVersion({
         documentId: logicalDocumentId,
         versionNumber,
-        storagePath,
+        storagePath: filename, // Store just filename
         size: file.size,
         type: file.type,
         userId
