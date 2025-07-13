@@ -77,22 +77,35 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         .limit(1)
         .single();
 
+      console.log('📄 Document version data:', {
+        versionData,
+        versionError,
+        textContentType: typeof versionData?.text_content,
+        textContentValue: versionData?.text_content
+      });
+
       if (versionError || !versionData?.id) {
         throw new Error('Document version not found');
       }
 
       // Call the document AI assistant edge function for analysis
-      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body: {
-          operation: 'analyze_document',
-          documentId: document.id,
-          documentVersionId: versionData.id,
+      const requestBody = {
+        operation: 'analyze_document',
+        documentId: document.id,
+        documentVersionId: versionData.id,
+        analysisType: analysisType,
+        dealId: dealId,
+        context: {
           analysisType: analysisType,
-          dealId: dealId,
           documentName: document.name,
-          documentType: document.type,
-          textContent: versionData.text_content
+          documentType: document.type
         }
+      };
+
+      console.log('📤 Sending analysis request:', requestBody);
+
+      const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
+        body: requestBody
       });
 
       console.log('📡 DocumentAnalysisModal AI response:', {
@@ -107,13 +120,17 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         throw new Error('Failed to analyze document');
       }
 
-      if (result?.success) {
+      // The response from document-ai-assistant comes directly with summary, keyTerms, etc.
+      // No nested 'success' property based on network logs
+      if (result && !error) {
         const analysisResult: AnalysisResult = {
           analysisType,
-          summary: result.result.summary,
-          keyTerms: result.result.keyTerms,
-          risks: result.result.risks
+          summary: result.summary,
+          keyTerms: result.keyTerms || result.keyPoints || [],
+          risks: result.risks || []
         };
+
+        console.log('✅ Analysis result processed:', analysisResult);
 
         setAnalysisResults(prev => ({
           ...prev,
@@ -125,7 +142,7 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
           description: `${analysisType.replace('_', ' ')} analysis has been generated`,
         });
       } else {
-        throw new Error(result?.error || 'Analysis failed');
+        throw new Error('No analysis result received');
       }
     } catch (error: any) {
       console.error("Error performing analysis:", error);

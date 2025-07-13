@@ -141,7 +141,10 @@ export async function handleAnalyzeDocument(
       name: document.name, 
       type: document.type, 
       documentStoragePath: document.storage_path,
-      versionStoragePath: documentVersion.storage_path 
+      versionStoragePath: documentVersion.storage_path,
+      textContentType: typeof documentVersion.text_content,
+      textContentLength: documentVersion.text_content ? documentVersion.text_content.length : 0,
+      textContentPreview: documentVersion.text_content ? String(documentVersion.text_content).substring(0, 100) : 'No text content'
     });
 
     // Download file from storage - try multiple bucket names
