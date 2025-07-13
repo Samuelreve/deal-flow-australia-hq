@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, FileText, AlertTriangle, Key } from "lucide-react";
@@ -23,25 +23,38 @@ interface DocumentAnalysisModalProps {
   onClose: () => void;
   document: Document | null;
   dealId: string;
+  analysisType: 'summary' | 'key_terms' | 'risks';
 }
 
 const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
   isOpen,
   onClose,
   document,
-  dealId
+  dealId,
+  analysisType
 }) => {
-  const [activeTab, setActiveTab] = useState('summary');
   const [analysisResults, setAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const analysisTypes = [
-    { id: 'summary', label: 'Summary', icon: FileText },
-    { id: 'key_terms', label: 'Key Terms', icon: Key },
-    { id: 'risks', label: 'Risks', icon: AlertTriangle }
-  ];
+  const getAnalysisTitle = (type: string) => {
+    switch (type) {
+      case 'summary': return 'Document Summary';
+      case 'key_terms': return 'Key Terms';
+      case 'risks': return 'Risk Analysis';
+      default: return 'Document Analysis';
+    }
+  };
+
+  const getAnalysisIcon = (type: string) => {
+    switch (type) {
+      case 'summary': return FileText;
+      case 'key_terms': return Key;
+      case 'risks': return AlertTriangle;
+      default: return FileText;
+    }
+  };
 
   const performAnalysis = async (analysisType: string) => {
     if (!document || !user) return;
@@ -231,35 +244,29 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     }
   };
 
+  // Auto-trigger analysis when modal opens
+  React.useEffect(() => {
+    if (isOpen && document && !analysisResults[analysisType]) {
+      performAnalysis(analysisType);
+    }
+  }, [isOpen, document, analysisType]);
+
   if (!document) return null;
+
+  const Icon = getAnalysisIcon(analysisType);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>AI Document Analysis: {document.name}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className="h-5 w-5" />
+            {getAnalysisTitle(analysisType)}: {document.name}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              {analysisTypes.map((type) => {
-                const Icon = type.icon;
-                return (
-                  <TabsTrigger key={type.id} value={type.id} className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    {type.label}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            {analysisTypes.map((type) => (
-              <TabsContent key={type.id} value={type.id} className="mt-6">
-                {renderAnalysisContent(type.id)}
-              </TabsContent>
-            ))}
-          </Tabs>
+          {renderAnalysisContent(analysisType)}
         </div>
       </DialogContent>
     </Dialog>

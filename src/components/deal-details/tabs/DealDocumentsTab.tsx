@@ -329,6 +329,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
 
   // State for document analysis modal
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [currentAnalysisType, setCurrentAnalysisType] = useState<'summary' | 'key_terms' | 'risks'>('summary');
 
   const handleAnalyzeDocument = async (type: 'summary' | 'key_terms' | 'risks') => {
     if (!selectedDocument) {
@@ -336,7 +337,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
       return;
     }
 
-    // Open the document analysis modal
+    // Set the analysis type and open the modal
+    setCurrentAnalysisType(type);
     setShowAnalysisModal(true);
   };
 
@@ -497,6 +499,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
           onClose={() => setShowAnalysisModal(false)}
           document={selectedDocument}
           dealId={dealId}
+          analysisType={currentAnalysisType}
         />
       )}
 
