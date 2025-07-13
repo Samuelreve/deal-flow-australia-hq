@@ -67,23 +67,35 @@ serve(async (req) => {
       }
       
       try {
+        console.log('🔧 Starting PDF OCR process...');
         // Import libraries for OCR
         const { renderPageAsImage } = await import("https://esm.sh/unpdf@0.11.0");
         const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
+        
+        console.log('✅ Libraries imported successfully');
         
         let ocrText = '';
         const maxPages = 3; // Limit to first 3 pages to avoid timeout
         
         for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
           try {
+            console.log(`🔧 Processing page ${pageNum}...`);
             
             // Render page as image using unpdf
+            console.log(`🔧 Calling renderPageAsImage for page ${pageNum}...`);
             const imageBuffer = await renderPageAsImage(fileBuffer, pageNum - 1, {
               scale: 2.0,  // Higher scale for better OCR
               format: 'png'
             });
             
+            console.log(`🔧 Image buffer result:`, {
+              hasBuffer: !!imageBuffer,
+              bufferSize: imageBuffer?.length || 0,
+              bufferType: typeof imageBuffer
+            });
+            
             if (imageBuffer) {
+              console.log(`🔧 Starting OCR for page ${pageNum}...`);
               const ocrResult = await recognize(imageBuffer, 'eng', {
                 tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
                 tessedit_pageseg_mode: '1',
@@ -91,15 +103,33 @@ serve(async (req) => {
               });
               
               const pageText = ocrResult.data.text.trim();
+              console.log(`🔧 OCR result for page ${pageNum}:`, {
+                textLength: pageText.length,
+                confidence: ocrResult.data.confidence,
+                textPreview: pageText.substring(0, 100)
+              });
+              
               if (pageText.length > 20) {
                 ocrText += pageText + '\n\n';
+              } else {
+                console.log(`⚠️ Page ${pageNum} yielded insufficient text`);
               }
+            } else {
+              console.log(`❌ No image buffer generated for page ${pageNum}`);
             }
           } catch (pageError) {
+            console.error(`❌ OCR failed for page ${pageNum}:`, pageError.message);
             // Continue with next page
             continue;
           }
         }
+        
+        
+        console.log(`🔧 Final OCR result:`, {
+          totalPages: maxPages,
+          ocrTextLength: ocrText.trim().length,
+          hasContent: ocrText.trim().length > 20
+        });
         
         if (ocrText.trim().length > 20) {
           extractedText = ocrText.trim();
