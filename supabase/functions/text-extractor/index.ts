@@ -131,6 +131,12 @@ serve(async (req) => {
         if (ocrText.trim().length > 20) {
           extractedText = ocrText.trim();
           console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
+          
+          // Display OCR extracted text content
+          console.log('🔍 OCR TEXT START ========================================');
+          console.log(extractedText);
+          console.log('🔍 OCR TEXT END ==========================================');
+          
           extractedText = enhancedPdfTextCleaning(extractedText);
         } else {
           throw new Error('OCR extraction yielded insufficient text');
