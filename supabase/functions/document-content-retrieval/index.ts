@@ -162,7 +162,9 @@ serve(async (req) => {
     const base64 = btoa(binary);
     
     console.log('Calling text-extractor function...');
-    const { data: extractionResult, error: extractionError } = await supabase.functions
+    
+    // Add timeout protection for large files
+    const extractionPromise = supabase.functions
       .invoke('text-extractor', {
         body: {
           fileBase64: base64,
@@ -171,12 +173,52 @@ serve(async (req) => {
         }
       });
     
+    // Set a 45-second timeout for text extraction
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Text extraction timeout')), 45000)
+    );
+    
+    let extractionResult;
+    let extractionError;
+    
+    try {
+      const { data, error } = await Promise.race([extractionPromise, timeoutPromise]);
+      extractionResult = data;
+      extractionError = error;
+    } catch (timeoutError) {
+      console.error('Text extraction timed out:', timeoutError);
+      extractionError = timeoutError;
+    }
+    
     let content = '';
     if (extractionError) {
       console.error('Text extraction failed:', extractionError);
-      content = 'Text extraction failed for this document type.';
+      // For PDFs that fail, try a fallback simple text extraction
+      if (version.type.includes('pdf')) {
+        console.log('Attempting fallback PDF text extraction...');
+        try {
+          const fallbackText = new TextDecoder('utf-8', { ignoreBOM: true }).decode(arrayBuffer);
+          // Very basic text extraction - look for readable text patterns
+          const cleanText = fallbackText
+            .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          if (cleanText.length > 100) {
+            content = cleanText.substring(0, 10000); // Limit to first 10k chars
+            console.log('Fallback extraction yielded:', content.length, 'characters');
+          } else {
+            content = 'Text extraction failed for this document type. Please ensure the PDF contains extractable text.';
+          }
+        } catch (fallbackError) {
+          console.error('Fallback extraction failed:', fallbackError);
+          content = 'Text extraction failed for this document type.';
+        }
+      } else {
+        content = 'Text extraction failed for this document type.';
+      }
     } else if (extractionResult?.success && extractionResult?.text) {
-      content = extractionResult.text;
+      content = String(extractionResult.text);
       console.log('Text extraction successful:', content.length, 'characters');
       
       // Save extracted text back to database for future use
@@ -185,7 +227,7 @@ serve(async (req) => {
         .update({ text_content: content })
         .eq('id', versionId);
     } else {
-      console.log('No text content extracted');
+      console.log('No text content extracted:', extractionResult);
       content = 'No readable text content found in this document.';
     }
 
