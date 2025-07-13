@@ -205,7 +205,7 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
                       <p className="text-sm font-medium">{doc.filename}</p>
                       <p className="text-xs text-muted-foreground">
                         {doc.category && `${doc.category} • `}
-                        {(doc.size && (doc.size / 1024 / 1024).toFixed(1))} MB
+                        {doc.size ? `${(doc.size / 1024 / 1024).toFixed(1)} MB` : '0.0 MB'}
                       </p>
                     </div>
                   </div>
