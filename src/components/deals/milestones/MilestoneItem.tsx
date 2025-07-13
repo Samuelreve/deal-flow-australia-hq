@@ -47,20 +47,20 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     isParticipant: isParticipant
   });
   
-  // Check if this is the "Closing Preparations" milestone
-  const isClosingPreparations = milestone.title.toLowerCase().includes('closing preparation');
+  // Check if this is the "Document Signing" milestone
+  const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
   
-  // Only show sign button for "Closing Preparations" milestone
-  const showSignButton = isClosingPreparations && 
+  // Only show sign button for "Document Signing" milestone when it's in progress
+  const showSignButton = isDocumentSigning && 
     ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
     milestone.status === 'in_progress';
   
   // Check if documents are signed for this deal
   useEffect(() => {
-    if (isClosingPreparations) {
+    if (isDocumentSigning) {
       checkDocumentSignatures();
     }
-  }, [dealId, isClosingPreparations]);
+  }, [dealId, isDocumentSigning]);
 
   const checkDocumentSignatures = async () => {
     if (!dealId) return;
@@ -91,9 +91,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     }
   };
   
-  // Prevent completing Closing Preparations if documents aren't signed
+  // Prevent completing Document Signing if documents aren't signed
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
-    (!isClosingPreparations || documentsAreSigned);
+    (!isDocumentSigning || documentsAreSigned);
 
   const handleSignDocument = () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
@@ -240,23 +240,23 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {/* Action Buttons - Only show if user has permission */}
       {canUpdateMilestone && (
         <div className="flex flex-wrap gap-2">
-          {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Closing Preparations */}
+          {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Document Signing */}
           {milestone.status === 'in_progress' && (
             <button
               onClick={() => {
-                if (isClosingPreparations && !documentsAreSigned) {
-                  alert('Documents must be signed before completing the Closing Preparations milestone.');
+                if (isDocumentSigning && !documentsAreSigned) {
+                  alert('Documents must be signed before completing the Document Signing milestone.');
                   return;
                 }
                 onUpdateStatus(milestone.id, 'completed');
               }}
-              disabled={updatingMilestoneId === milestone.id || (isClosingPreparations && !documentsAreSigned)}
+              disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && !documentsAreSigned)}
               className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                isClosingPreparations && !documentsAreSigned 
+                isDocumentSigning && !documentsAreSigned 
                   ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                   : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
               } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isClosingPreparations && !documentsAreSigned ? 'Documents must be signed first' : ''}
+              title={isDocumentSigning && !documentsAreSigned ? 'Documents must be signed first' : ''}
             >
               {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
             </button>
