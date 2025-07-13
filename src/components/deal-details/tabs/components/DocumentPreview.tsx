@@ -59,17 +59,36 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
       console.log('Original storage path from DB:', versionData.storage_path);
       
+      // Get all possible temp deal paths by querying storage for files with this user and timestamp pattern
+      const filename = versionData.storage_path.split('/').pop() || '';
+      const baseFilename = filename.replace(/^.*-(\d+)\.(.*?)$/, '$1.$2'); // Extract timestamp and extension
+      
       // List of paths to try in order
       const pathsToTry = [
         versionData.storage_path, // Try the path as stored in DB first
-        `b33ce696-d2d4-41ca-a856-f85c317255d4/${versionData.storage_path.split('/').pop()}`, // Try the temp deal path we found
-        versionData.storage_path.split('/').pop(), // Try just the filename
       ];
       
-      // If path doesn't contain deal ID, also try with deal ID prefix
-      if (!versionData.storage_path.includes(dealId)) {
-        pathsToTry.unshift(`${dealId}/${versionData.storage_path}`);
+      // If it contains a deal ID, try the exact path
+      if (versionData.storage_path.includes('/')) {
+        pathsToTry.push(versionData.storage_path);
+      } else {
+        // Add deal folder if missing
+        pathsToTry.push(`${dealId}/${versionData.storage_path}`);
       }
+      
+      // Try common temp deal patterns (we know some files got stuck in temp folders)
+      const tempDealPatterns = [
+        'b33ce696-d2d4-41ca-a856-f85c317255d4', // Known temp deal ID from storage query
+        'temp-1752391544281',
+        'temp-1752391399201',
+      ];
+      
+      tempDealPatterns.forEach(tempId => {
+        pathsToTry.push(`${tempId}/${filename}`);
+      });
+      
+      // Finally try just the filename
+      pathsToTry.push(filename);
       
       for (const pathToTry of pathsToTry) {
         if (!pathToTry) continue;
