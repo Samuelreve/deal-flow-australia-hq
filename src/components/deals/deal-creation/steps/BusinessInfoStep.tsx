@@ -51,7 +51,7 @@ const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
         showDocuments={showDocuments}
         onToggleDocuments={setShowDocuments}
         onUpdateData={updateData}
-        tempDealId={data.tempDealId || `temp-${Date.now()}`}
+        tempDealId={data.tempDealId || crypto.randomUUID()}
       />
 
       <div className="flex justify-end pt-6">
