@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { unifiedDocumentUploadService } from '@/services/documents/unifiedDocumentUploadService';
+import { unifiedDocumentUploadService } from '@/services/documents/unified/unifiedDocumentUploadService';
 import { UploadedDocument } from '@/components/deals/deal-creation/types';
 
 export const useDocumentUploadWizard = () => {
