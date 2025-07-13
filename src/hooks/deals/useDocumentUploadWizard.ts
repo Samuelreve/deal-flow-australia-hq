@@ -11,7 +11,7 @@ export const useDocumentUploadWizard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const uploadFile = async (file: File, dealId: string, category: string = 'Other'): Promise<UploadedDocument | null> => {
+  const uploadFile = async (file: File, dealId: string): Promise<UploadedDocument | null> => {
     if (!file || !dealId || !user) {
       toast({
         title: "Upload Error",
@@ -28,7 +28,7 @@ export const useDocumentUploadWizard = () => {
       const document = await unifiedDocumentUploadService.uploadDocument({
         file,
         dealId,
-        category,
+        category: 'Other', // Default category for wizard uploads
         userId: user.id
       });
 
@@ -49,7 +49,7 @@ export const useDocumentUploadWizard = () => {
         id: document.id,
         filename: file.name,
         type: file.type,
-        category,
+        category: 'Other',
         size: file.size,
         uploadedAt: new Date(),
         url: signedUrl,

@@ -5,31 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Filter, Trash2 } from "lucide-react";
+import { Filter } from "lucide-react";
 import { DealSummary } from "@/types/deal";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 interface DealsTableProps {
   deals: DealSummary[];
   totalDeals: number;
-  onDelete: (dealId: string) => Promise<void>;
 }
 
-const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) => {
+const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals }) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   const getStatusText = (status: string) => {
     switch (status) {
@@ -52,22 +38,6 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) 
       year: "numeric"
     }).format(date);
   };
-  
-  const handleDelete = async (dealId: string, dealTitle: string) => {
-    try {
-      await onDelete(dealId);
-      toast({
-        title: "Deal deleted",
-        description: `"${dealTitle}" has been successfully deleted.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete the deal. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (deals.length === 0) {
     return (
@@ -86,8 +56,15 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) 
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
-      <table className="w-full">
+    <>
+      <div className="flex items-center justify-between px-4">
+        <p className="text-sm text-muted-foreground">
+          Showing {deals.length} of {totalDeals} deals
+        </p>
+      </div>
+      
+      <div className="rounded-lg border overflow-hidden">
+        <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
               <th className="text-left p-4 text-sm font-medium text-muted-foreground">Deal</th>
@@ -126,41 +103,16 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) 
                   </Badge>
                 </td>
                 <td className="p-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
-                      View
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Deal</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{deal.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(deal.id, deal.title)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/deals/${deal.id}`)}>
+                    View
+                  </Button>
                 </td>
               </tr>
             ))}
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };
 

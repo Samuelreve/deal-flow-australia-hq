@@ -40,16 +40,6 @@ export const useDeals = () => {
     }
   };
 
-  const deleteDeal = async (dealId: string) => {
-    try {
-      await dealsService.deleteDeal(dealId);
-      setDeals(prev => prev.filter(deal => deal.id !== dealId));
-    } catch (err) {
-      console.error('Failed to delete deal:', err);
-      throw err;
-    }
-  };
-
   // Calculate metrics from real data
   const metrics = {
     total: deals.length,
@@ -67,7 +57,6 @@ export const useDeals = () => {
     error,
     metrics,
     createDeal,
-    deleteDeal,
     refreshDeals: fetchDeals
   };
 };

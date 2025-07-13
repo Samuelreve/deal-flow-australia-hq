@@ -44,14 +44,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     setIframeError(false);
     
     try {
-      // Get the document version details including category
+      // Get the document version details
       const { data: versionData, error: versionError } = await supabase
         .from('document_versions')
-        .select(`
-          storage_path,
-          document_id,
-          documents!document_versions_document_id_fkey(category)
-        `)
+        .select('storage_path')
         .eq('id', selectedDocument.latestVersionId)
         .single();
 
@@ -61,28 +57,18 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         return;
       }
 
-      // Determine which bucket to use based on document category or storage path
-      let bucketName = 'deal_documents'; // default
-      const documentCategory = versionData.documents?.category;
-      
-      if (documentCategory === 'business_document' || versionData.storage_path.includes('temp-business-docs')) {
-        bucketName = 'business_document';
-      }
-
-      console.log('Using bucket:', bucketName, 'for storage path:', versionData.storage_path);
-
       // Create signed URL for the document
+      // Construct full storage path with deal ID
+      const fullStoragePath = versionData.storage_path.includes('/') 
+        ? versionData.storage_path 
+        : `${dealId}/${versionData.storage_path}`;
+      
       const { data: urlData, error: urlError } = await supabase.storage
-        .from(bucketName)
-        .createSignedUrl(versionData.storage_path, 3600); // 1 hour expiry
-
-      console.log('Signed URL generation result:', { urlData, urlError, bucketName, storage_path: versionData.storage_path });
+        .from('deal_documents')
+        .createSignedUrl(fullStoragePath, 3600); // 1 hour expiry
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
-        console.error('URL Data:', urlData);
-        console.error('Bucket Name:', bucketName);
-        console.error('Storage Path:', versionData.storage_path);
         setIframeError(true);
         return;
       }
@@ -97,26 +83,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   const getDocumentType = () => {
-    if (!selectedDocument?.name) return 'unknown';
-    
-    // Extract file extension from the document name
-    const extension = selectedDocument.name.split('.').pop()?.toLowerCase();
-    if (!extension) return 'unknown';
-    
-    // Map extensions to document types
-    const extensionMap: { [key: string]: string } = {
-      'pdf': 'pdf',
-      'doc': 'word',
-      'docx': 'word',
-      'xls': 'excel', 
-      'xlsx': 'excel',
-      'ppt': 'powerpoint',
-      'pptx': 'powerpoint',
-      'txt': 'text',
-      'rtf': 'rtf'
-    };
-    
-    return extensionMap[extension] || extension;
+    if (!selectedDocument?.type) return 'unknown';
+    return selectedDocument.type.toLowerCase();
   };
 
   const isPdfDocument = () => {

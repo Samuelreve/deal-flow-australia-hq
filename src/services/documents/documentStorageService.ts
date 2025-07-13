@@ -112,13 +112,10 @@ export const documentStorageService = {
     try {
       console.log('Getting signed URL for version:', versionId);
       
-      // First, get the version details and document category from the database
+      // First, get the version details from the database
       const { data: version, error: versionError } = await supabase
         .from('document_versions')
-        .select(`
-          *,
-          documents!document_versions_document_id_fkey(category)
-        `)
+        .select('*')
         .eq('id', versionId)
         .eq('document_id', documentId)
         .single();
@@ -128,29 +125,10 @@ export const documentStorageService = {
         return { error: versionError, data: null };
       }
       
-      // Determine which bucket to use based on document category or storage path
-      let bucketName = 'deal_documents'; // default
-      const documentCategory = version.documents?.category;
+      // Create a signed URL for the version's file
+      const signedUrl = await this.createSignedUrl(dealId, version.storage_path, expiresIn);
       
-      if (documentCategory === 'business_document' || version.storage_path.includes('temp-business-docs')) {
-        bucketName = 'business_document';
-      }
-      
-      console.log('Creating signed URL for storage path:', version.storage_path, 'in bucket:', bucketName);
-      
-      const { data: urlData, error } = await supabase.storage
-        .from(bucketName)
-        .createSignedUrl(version.storage_path, expiresIn);
-      
-      if (error) {
-        console.error('Error creating signed URL:', error);
-        return { 
-          error: { message: 'Failed to create signed URL' }, 
-          data: null 
-        };
-      }
-      
-      if (!urlData?.signedUrl) {
+      if (!signedUrl) {
         return { 
           error: { message: 'Failed to create signed URL' }, 
           data: null 
@@ -160,7 +138,7 @@ export const documentStorageService = {
       return { 
         data: { 
           version,
-          signedUrl: urlData.signedUrl
+          signedUrl
         },
         error: null
       };

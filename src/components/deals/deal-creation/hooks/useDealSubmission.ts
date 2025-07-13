@@ -125,11 +125,8 @@ export const useDealSubmission = () => {
       // Milestones will be created only when user explicitly generates them
 
       // Migrate temporary documents to the final deal
-      // Always try to migrate if we have a tempDealId, regardless of uploadedDocuments length
-      // because business documents might be stored separately from other documents
-      if (tempDealId) {
+      if (tempDealId && formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
         console.log('Migrating temporary documents to final deal:', finalDealId);
-        console.log('Total documents in wizard data:', formData.uploadedDocuments?.length || 0);
         
         try {
           // Call the migration edge function to move files from temp to real deal paths

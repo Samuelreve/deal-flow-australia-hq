@@ -66,8 +66,7 @@ export const DealDescriptionSection: React.FC<DealDescriptionSectionProps> = ({
             askingPrice: data.askingPrice,
             businessState: data.businessState,
             reasonForSelling: data.reasonForSelling
-          },
-          uploadedDocuments: data.uploadedDocuments || []
+          }
         }
       });
 

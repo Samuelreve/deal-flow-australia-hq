@@ -82,8 +82,8 @@ export class UnifiedDocumentUploadService {
     documentName?: string,
     onProgress?: (progress: number) => void
   ): Promise<Document> {
-    // Upload file to storage (always use deal_documents bucket)
-    const filePath = await this.storageService.uploadFileToStorage(file, dealId, userId, 'deal_documents');
+    // Upload file to storage
+    const filePath = await this.storageService.uploadFileToStorage(file, dealId, userId);
     onProgress?.(50);
 
     // Create document and version records
@@ -132,8 +132,8 @@ export class UnifiedDocumentUploadService {
   /**
    * Create signed URL for document access
    */
-  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600, bucketName?: string): Promise<string | null> {
-    return await this.storageService.createSignedUrl(dealId, filePath, expiresIn, bucketName);
+  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
+    return await this.storageService.createSignedUrl(dealId, filePath, expiresIn);
   }
 
   /**

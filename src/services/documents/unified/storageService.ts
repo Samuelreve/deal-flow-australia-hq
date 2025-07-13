@@ -9,20 +9,20 @@ export class DocumentStorageService {
   /**
    * Upload file to storage with unique path
    */
-  async uploadFileToStorage(file: File, dealId: string, userId: string, bucketName: string = 'deal_documents'): Promise<string> {
+  async uploadFileToStorage(file: File, dealId: string, userId: string): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
-      .from(bucketName)
+      .from('deal_documents')
       .upload(storagePath, file);
 
     if (uploadError) {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
-    return storagePath;
+    return filePath;
   }
 
   /**
@@ -47,19 +47,17 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload version file: ${uploadError.message}`);
     }
 
-    return storagePath;
+    return filePath;
   }
 
   /**
    * Create signed URL for document access
    */
-  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600, bucketName: string = 'deal_documents'): Promise<string | null> {
+  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
     try {
-      // If filePath already contains the dealId prefix, use it as is
-      // Otherwise, prepend the dealId for backward compatibility
-      const fullPath = filePath.startsWith(`${dealId}/`) ? filePath : `${dealId}/${filePath}`;
+      const fullPath = `${dealId}/${filePath}`;
       const { data: urlData, error } = await supabase.storage
-        .from(bucketName)
+        .from('deal_documents')
         .createSignedUrl(fullPath, expiresIn);
 
       if (error) {
@@ -77,13 +75,10 @@ export class DocumentStorageService {
   /**
    * Delete files from storage
    */
-  async deleteFiles(dealId: string, filePaths: string[], bucketName: string = 'deal_documents'): Promise<void> {
-    // Handle both old format (filename only) and new format (dealId/filename)
-    const fullPaths = filePaths.map(path => 
-      path.startsWith(`${dealId}/`) ? path : `${dealId}/${path}`
-    );
+  async deleteFiles(dealId: string, filePaths: string[]): Promise<void> {
+    const fullPaths = filePaths.map(path => `${dealId}/${path}`);
     await supabase.storage
-      .from(bucketName)
+      .from('deal_documents')
       .remove(fullPaths);
   }
 }

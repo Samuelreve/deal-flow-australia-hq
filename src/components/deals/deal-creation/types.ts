@@ -55,7 +55,6 @@ export interface StepProps {
   isLastStep: boolean;
   onSubmit?: () => void;
   isSubmitting?: boolean;
-  tempDealId?: string;
 }
 
 // Enhanced constants for the new wizard

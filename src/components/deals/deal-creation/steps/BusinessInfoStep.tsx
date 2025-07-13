@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Building2 } from 'lucide-react';
+import { Building2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StepProps } from '../types';
 import { BusinessInformationForm } from './business-info/BusinessInformationForm';
@@ -9,7 +9,7 @@ import { AdvancedBusinessDetails } from './business-info/AdvancedBusinessDetails
 import { BusinessDocumentUpload } from './business-info/BusinessDocumentUpload';
 import { validateBusinessInfoStep } from './business-info/BusinessValidation';
 
-const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, tempDealId }) => {
+const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,7 +51,7 @@ const BusinessInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, tempD
         showDocuments={showDocuments}
         onToggleDocuments={setShowDocuments}
         onUpdateData={updateData}
-        tempDealId={tempDealId || ''}
+        tempDealId={data.tempDealId || `temp-${Date.now()}`}
       />
 
       <div className="flex justify-end pt-6">

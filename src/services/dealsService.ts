@@ -133,17 +133,5 @@ export const dealsService = {
     }
 
     return data;
-  },
-
-  async deleteDeal(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('deals')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting deal:', error);
-      throw error;
-    }
   }
 };

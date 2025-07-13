@@ -45,7 +45,6 @@ export const WizardStepRenderer: React.FC<WizardStepRendererProps> = ({
       isLastStep={currentStep === WIZARD_STEPS.length}
       onSubmit={onSubmit}
       isSubmitting={isSubmitting}
-      tempDealId={tempDealId}
       {...additionalProps}
     />
   );
