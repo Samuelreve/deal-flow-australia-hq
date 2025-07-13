@@ -84,27 +84,7 @@ serve(async (req) => {
         
         console.log('🔄 Loading PDF with unpdf...');
         
-        // First try regular text extraction to see if we can get usable text
-        let hasUsableText = false;
-        try {
-          const textResult = await extractText(fileBuffer);
-          const textString = typeof textResult === 'string' ? textResult : String(textResult || '');
-          
-          // Check if we got meaningful text (not just style names)
-          if (textString && textString.trim().length > 20 && 
-              !textString.includes('Normal;heading') && 
-              !textString.match(/^[a-zA-Z\s;,0-9]+$/) &&
-              textString.split(' ').length > 10) {
-            console.log('✅ Found usable text with unpdf, skipping OCR');
-            extractedText = enhancedPdfTextCleaning(textString);
-            hasUsableText = true;
-          }
-        } catch (textError) {
-          console.log('⚠️ unpdf text extraction failed, proceeding with OCR:', textError.message);
-        }
-        
-        // If we don't have usable text, use OCR
-        if (!hasUsableText) {
+        // Use OCR directly with unpdf for PDF text extraction
           console.log('🔄 Converting PDF pages to images for OCR...');
           
           let ocrText = '';
