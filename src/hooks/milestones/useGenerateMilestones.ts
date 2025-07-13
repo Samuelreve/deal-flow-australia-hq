@@ -60,30 +60,24 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
   
   const autoSaveMilestones = async (milestoneItems: MilestoneItem[]) => {
     try {
-      // Get current highest order_index
-      const { data: existingMilestones, error: fetchError } = await supabase
+      // Delete existing milestones first to replace them
+      const { error: deleteError } = await supabase
         .from('milestones')
-        .select('order_index')
-        .eq('deal_id', dealId)
-        .order('order_index', { ascending: false })
-        .limit(1);
+        .delete()
+        .eq('deal_id', dealId);
         
-      if (fetchError) throw fetchError;
+      if (deleteError) throw deleteError;
       
-      const startOrderIndex = existingMilestones && existingMilestones.length > 0 
-        ? existingMilestones[0].order_index + 10
-        : 10;
-      
-      // Prepare milestone data for insertion
+      // Prepare milestone data for insertion with consistent order
       const milestonesToInsert = milestoneItems.map((milestone, index) => ({
         deal_id: dealId,
         title: milestone.name,
         description: milestone.description,
         status: 'not_started' as MilestoneStatus,
-        order_index: startOrderIndex + (index * 10)
+        order_index: (index + 1) * 10
       }));
       
-      // Insert milestones to database
+      // Insert new milestones to database
       const { error: insertError } = await supabase
         .from('milestones')
         .insert(milestonesToInsert);
@@ -147,19 +141,13 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         return;
       }
       
-      // Get current highest order_index
-      const { data: existingMilestones, error: fetchError } = await supabase
+      // Delete existing milestones first to replace them
+      const { error: deleteError } = await supabase
         .from('milestones')
-        .select('order_index')
-        .eq('deal_id', dealId)
-        .order('order_index', { ascending: false })
-        .limit(1);
+        .delete()
+        .eq('deal_id', dealId);
         
-      if (fetchError) throw fetchError;
-      
-      const startOrderIndex = existingMilestones && existingMilestones.length > 0 
-        ? existingMilestones[0].order_index + 10
-        : 10;
+      if (deleteError) throw deleteError;
       
       // Prepare milestone data for insertion with explicit typing for the status
       const milestonesToInsert = selectedMilestones.map((milestone, index) => ({
@@ -167,10 +155,10 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         title: milestone.name,
         description: milestone.description,
         status: 'not_started' as MilestoneStatus, // Using the explicit enum type from types/deal.ts
-        order_index: startOrderIndex + (index * 10)
+        order_index: (index + 1) * 10
       }));
       
-      // Insert milestones to database
+      // Insert new milestones to database
       const { error: insertError } = await supabase
         .from('milestones')
         .insert(milestonesToInsert);
