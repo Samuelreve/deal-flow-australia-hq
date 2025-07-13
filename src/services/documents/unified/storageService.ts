@@ -57,6 +57,12 @@ export class DocumentStorageService {
    */
   async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
     try {
+      // Validate inputs
+      if (!dealId || !filePath) {
+        console.error('Missing required parameters for signed URL creation:', { dealId, filePath });
+        return null;
+      }
+
       const fullPath = `${dealId}/${filePath}`;
       const { data: urlData, error } = await supabase.storage
         .from('deal_documents')
