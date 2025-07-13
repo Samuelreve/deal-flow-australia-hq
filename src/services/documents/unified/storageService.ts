@@ -22,7 +22,7 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
-    return filePath;
+    return storagePath;
   }
 
   /**
@@ -47,7 +47,7 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload version file: ${uploadError.message}`);
     }
 
-    return filePath;
+    return storagePath;
   }
 
   /**
@@ -55,7 +55,9 @@ export class DocumentStorageService {
    */
   async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600, bucketName: string = 'deal_documents'): Promise<string | null> {
     try {
-      const fullPath = `${dealId}/${filePath}`;
+      // If filePath already contains the dealId prefix, use it as is
+      // Otherwise, prepend the dealId for backward compatibility
+      const fullPath = filePath.startsWith(`${dealId}/`) ? filePath : `${dealId}/${filePath}`;
       const { data: urlData, error } = await supabase.storage
         .from(bucketName)
         .createSignedUrl(fullPath, expiresIn);
@@ -76,7 +78,10 @@ export class DocumentStorageService {
    * Delete files from storage
    */
   async deleteFiles(dealId: string, filePaths: string[], bucketName: string = 'deal_documents'): Promise<void> {
-    const fullPaths = filePaths.map(path => `${dealId}/${path}`);
+    // Handle both old format (filename only) and new format (dealId/filename)
+    const fullPaths = filePaths.map(path => 
+      path.startsWith(`${dealId}/`) ? path : `${dealId}/${path}`
+    );
     await supabase.storage
       .from(bucketName)
       .remove(fullPaths);
