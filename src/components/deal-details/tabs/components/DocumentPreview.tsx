@@ -58,11 +58,14 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       }
 
       // Create signed URL for the document
-      // The storage path should already include the deal folder structure
       let fullStoragePath = versionData.storage_path;
       
-      // If the storage path doesn't include the deal ID, add it
+      // Handle different storage path formats:
+      // 1. Documents uploaded directly: "filename.ext" - need to add deal folder
+      // 2. Documents migrated from deal creation: "deal-id/filename.ext" - use as is
+      
       if (!fullStoragePath.includes('/')) {
+        // Direct upload format - add deal ID folder
         fullStoragePath = `${dealId}/${fullStoragePath}`;
       }
       
@@ -76,18 +79,30 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         console.error('Error creating signed URL:', urlError);
         console.error('Full storage path used:', fullStoragePath);
         
-        // Try alternative path formats
-        if (!versionData.storage_path.includes('/')) {
-          // Try with temp deal ID pattern if original path doesn't work
-          const alternativePath = versionData.storage_path;
-          console.log('Trying alternative path:', alternativePath);
+        // Try alternative path formats for migrated documents
+        if (versionData.storage_path.includes('/')) {
+          // Extract just the filename and try without deal folder structure
+          const filename = versionData.storage_path.split('/').pop();
+          console.log('Trying alternative path with just filename:', filename);
           
           const { data: altUrlData, error: altUrlError } = await supabase.storage
             .from('deal_documents')
-            .createSignedUrl(alternativePath, 3600);
+            .createSignedUrl(filename!, 3600);
             
           if (!altUrlError && altUrlData?.signedUrl) {
             setDocumentUrl(altUrlData.signedUrl);
+            setIsLoadingUrl(false);
+            return;
+          }
+          
+          // Try with the original temp deal ID pattern
+          console.log('Trying original storage path:', versionData.storage_path);
+          const { data: origUrlData, error: origUrlError } = await supabase.storage
+            .from('deal_documents')
+            .createSignedUrl(versionData.storage_path, 3600);
+            
+          if (!origUrlError && origUrlData?.signedUrl) {
+            setDocumentUrl(origUrlData.signedUrl);
             setIsLoadingUrl(false);
             return;
           }
