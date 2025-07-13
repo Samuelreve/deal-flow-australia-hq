@@ -117,7 +117,7 @@ export const documentStorageService = {
         .from('document_versions')
         .select(`
           *,
-          documents!inner(category)
+          documents!document_versions_document_id_fkey(category)
         `)
         .eq('id', versionId)
         .eq('document_id', documentId)

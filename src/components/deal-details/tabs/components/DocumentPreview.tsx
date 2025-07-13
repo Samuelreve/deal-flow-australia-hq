@@ -50,7 +50,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         .select(`
           storage_path,
           document_id,
-          documents!inner(category)
+          documents!document_versions_document_id_fkey(category)
         `)
         .eq('id', selectedDocument.latestVersionId)
         .single();
