@@ -16,6 +16,8 @@ interface MilestoneItemProps {
   onUpdateStatus: (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => void;
   isParticipant?: boolean;
   dealId: string;
+  canStart?: boolean;
+  previousMilestone?: Milestone | null;
 }
 
 const MilestoneItem: React.FC<MilestoneItemProps> = ({ 
@@ -24,7 +26,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   updatingMilestoneId, 
   onUpdateStatus,
   isParticipant = true,
-  dealId
+  dealId,
+  canStart = true,
+  previousMilestone
 }) => {
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
@@ -237,6 +241,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <p className="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{milestone.description}</p>
       )}
 
+      {/* Sequential milestone warning */}
+      {milestone.status === 'not_started' && !canStart && previousMilestone && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800">
+            <span className="font-medium">Waiting for previous milestone:</span> "{previousMilestone.title}" must be completed before this milestone can be started.
+          </p>
+        </div>
+      )}
+
       {/* Action Buttons - Only show if user has permission */}
       {canUpdateMilestone && (
         <div className="flex flex-wrap gap-2">
@@ -262,12 +275,19 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             </button>
           )}
           
-          {/* "Start Milestone" button - only for not_started milestones */}
+          {/* "Start Milestone" button - only for not_started milestones if previous milestone is completed */}
           {milestone.status === 'not_started' && (
             <button
               onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
-              disabled={updatingMilestoneId === milestone.id}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
+              disabled={updatingMilestoneId === milestone.id || !canStart}
+              className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                !canStart 
+                  ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                  : 'text-white bg-blue-600 hover:bg-blue-700'
+              } rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
+                !canStart ? 'focus:ring-gray-100' : 'focus:ring-blue-300'
+              }`}
+              title={!canStart ? `Previous milestone "${previousMilestone?.title}" must be completed first` : ''}
             >
               {updatingMilestoneId === milestone.id ? 'Updating...' : 'Start Milestone'}
             </button>

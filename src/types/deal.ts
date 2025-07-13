@@ -14,6 +14,7 @@ export interface Milestone {
   assignedTo?: string[];
   completedAt?: Date;
   documents?: Document[];
+  order_index?: number; // Added order_index for sequential milestone logic (optional for backward compatibility)
 }
 
 // Define document version type
