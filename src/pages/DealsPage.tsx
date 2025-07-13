@@ -11,6 +11,16 @@ import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 import DealFilters from "@/components/deals/DealFilters";
 import DealsTable from "@/components/deals/DealsTable";
 import EmptyDealsState from "@/components/deals/EmptyDealsState";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const DealsPage = () => {
   const { user } = useAuth();
@@ -19,6 +29,7 @@ const DealsPage = () => {
   const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
+  const [dealToDelete, setDealToDelete] = useState<string | null>(null);
   
   const dealsPerPage = 15;
   const { deals: rawDeals, totalCount, loading, error, deleteDeal } = useDeals({
@@ -50,14 +61,23 @@ const DealsPage = () => {
     setFilteredDeals(filtered);
   }, [searchTerm, statusFilter, deals]);
 
-  const handleDeleteDeal = async (dealId: string) => {
-    if (window.confirm('Are you sure you want to delete this deal? This action cannot be undone.')) {
+  const handleDeleteDeal = (dealId: string) => {
+    setDealToDelete(dealId);
+  };
+
+  const confirmDelete = async () => {
+    if (dealToDelete) {
       try {
-        await deleteDeal(dealId);
+        await deleteDeal(dealToDelete);
+        setDealToDelete(null);
       } catch (error) {
         console.error('Failed to delete deal:', error);
       }
     }
+  };
+
+  const cancelDelete = () => {
+    setDealToDelete(null);
   };
   
   const canCreateDeals = user?.profile?.role === "seller" || user?.profile?.role === "admin";
@@ -126,6 +146,23 @@ const DealsPage = () => {
           />
         )}
       </div>
+
+      <AlertDialog open={dealToDelete !== null} onOpenChange={cancelDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you really want to delete this deal? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
