@@ -218,8 +218,31 @@ serve(async (req) => {
         content = 'Text extraction failed for this document type.';
       }
     } else if (extractionResult?.success && extractionResult?.text) {
-      content = String(extractionResult.text);
+      // Properly handle the extracted text - ensure it's a string
+      let extractedText = extractionResult.text;
+      
+      // If it's an object, try to extract the actual text content
+      if (typeof extractedText === 'object') {
+        console.log('Extracted text is an object:', extractedText);
+        
+        // Try common object properties that might contain text
+        if (extractedText.content) {
+          extractedText = extractedText.content;
+        } else if (extractedText.text) {
+          extractedText = extractedText.text;
+        } else if (extractedText.data) {
+          extractedText = extractedText.data;
+        } else {
+          // If we can't find text content, stringify and log the object
+          console.error('Cannot extract text from object:', JSON.stringify(extractedText, null, 2));
+          extractedText = 'Unable to extract readable text from this document format.';
+        }
+      }
+      
+      // Ensure we have a string
+      content = typeof extractedText === 'string' ? extractedText : String(extractedText);
       console.log('Text extraction successful:', content.length, 'characters');
+      console.log('First 200 chars of extracted text:', content.substring(0, 200));
       
       // Save extracted text back to database for future use
       await supabase
