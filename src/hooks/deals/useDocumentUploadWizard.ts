@@ -24,7 +24,7 @@ export const useDocumentUploadWizard = () => {
     setUploading(true);
     
     try {
-      // Use unified service to upload document
+      // Use unified service to upload document directly with consistent storage structure
       const document = await unifiedDocumentUploadService.uploadDocument({
         file,
         dealId,
@@ -36,8 +36,9 @@ export const useDocumentUploadWizard = () => {
         throw new Error('Failed to upload document');
       }
 
-      // Create signed URL for preview
-      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '');
+      // Create signed URL for preview using the storage path from the document
+      const storagePath = document.latestVersion?.url || '';
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, storagePath);
 
       toast({
         title: "Upload Successful",
@@ -53,7 +54,7 @@ export const useDocumentUploadWizard = () => {
         size: file.size,
         uploadedAt: new Date(),
         url: signedUrl,
-        storagePath: document.latestVersion?.url || ''
+        storagePath: storagePath
       };
 
       return uploadedDoc;
