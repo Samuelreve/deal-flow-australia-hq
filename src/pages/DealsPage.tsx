@@ -22,7 +22,6 @@ const DealsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   
   const ITEMS_PER_PAGE = 15;
-  
   // Convert deals from service format to DealSummary format
   const deals = convertDealsToDealSummaries(rawDeals);
   
@@ -45,9 +44,12 @@ const DealsPage = () => {
     }
     
     setFilteredDeals(filtered);
-    // Reset to first page when filters change
-    setCurrentPage(1);
   }, [searchTerm, statusFilter, deals]);
+  
+  // Reset to first page when filters change (separate useEffect to avoid loop)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
   
   // Calculate pagination
   const totalFilteredDeals = filteredDeals.length;
