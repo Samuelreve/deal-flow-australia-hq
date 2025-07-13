@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import { useTempDealCreation } from './useTempDealCreation';
 import { WIZARD_STEPS } from '../config/wizardSteps';
 
@@ -14,6 +15,20 @@ export const useWizardNavigation = ({
   formData
 }: UseWizardNavigationProps) => {
   const { tempDealId, createTempDealIfNeeded } = useTempDealCreation();
+
+  // Create temp deal when wizard starts for consistent use across all steps
+  useEffect(() => {
+    const initializeTempDeal = async () => {
+      if (!tempDealId && currentStep === 1) {
+        const dealId = await createTempDealIfNeeded(
+          formData.businessLegalName || formData.dealTitle || 'Draft Deal',
+          'Temporary deal for document upload'
+        );
+        console.log('Temp deal created for wizard:', dealId);
+      }
+    };
+    initializeTempDeal();
+  }, [currentStep, tempDealId, createTempDealIfNeeded, formData.businessLegalName, formData.dealTitle]);
 
   const nextStep = async () => {
     if (currentStep < WIZARD_STEPS.length) {
