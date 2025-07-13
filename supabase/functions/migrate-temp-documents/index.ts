@@ -104,14 +104,32 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update document records to point to the real deal
-    const { error: updateError } = await supabaseAdmin
+    console.log(`Updating document records from ${tempDealId} to ${realDealId}`);
+    
+    // First, check how many documents we're migrating
+    const { data: documentsToMigrate, error: countError } = await supabaseAdmin
+      .from('documents')
+      .select('id, name, category')
+      .eq('deal_id', tempDealId);
+    
+    if (countError) {
+      console.error('Error counting documents to migrate:', countError);
+      migrationErrors.push(`Failed to count documents: ${countError.message}`);
+    } else {
+      console.log(`Found ${documentsToMigrate?.length || 0} documents to migrate:`, documentsToMigrate);
+    }
+
+    const { error: updateError, count: updatedCount } = await supabaseAdmin
       .from('documents')
       .update({ deal_id: realDealId })
-      .eq('deal_id', tempDealId);
+      .eq('deal_id', tempDealId)
+      .select('id', { count: 'exact', head: true });
 
     if (updateError) {
       console.error('Error updating document records:', updateError);
       migrationErrors.push(`Failed to update document records: ${updateError.message}`);
+    } else {
+      console.log(`Successfully updated ${updatedCount || 0} document records`);
     }
 
     return new Response(
