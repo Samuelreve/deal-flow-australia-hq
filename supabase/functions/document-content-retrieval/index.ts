@@ -92,12 +92,21 @@ serve(async (req) => {
     
     if (!textError && versionWithText?.text_content) {
       console.log('Found extracted text content in database');
-      return {
-        content: versionWithText.text_content,
-        mimeType: version.type,
-        documentId: version.document_id,
-        versionId
-      };
+      return new Response(
+        JSON.stringify({
+          content: versionWithText.text_content,
+          mimeType: version.type,
+          documentId: version.document_id,
+          versionId
+        }),
+        { 
+          status: 200, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
 
     console.log('No extracted text found in database, attempting file download...');

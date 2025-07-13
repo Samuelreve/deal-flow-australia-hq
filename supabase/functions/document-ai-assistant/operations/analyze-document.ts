@@ -44,7 +44,7 @@ async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: str
 
 async function analyzeDocumentWithAI(text: string, analysisType: string, openai: any): Promise<any> {
   const prompts = {
-    'summary': `Please provide a comprehensive summary of this document. Focus on the main purpose, key parties involved, important terms, and overall structure. Document content:\n\n${text}`,
+    'summary': `Please provide a concise summary of this document in exactly 3-4 sentences. Focus on the main purpose, key parties involved, and most important terms. Keep it brief and professional. Document content:\n\n${text}`,
     'key_terms': `Extract and list the key terms, important clauses, and significant provisions from this document. Return them as a simple list. Document content:\n\n${text}`,
     'risks': `Identify potential risks, concerns, or red flags in this document. Focus on legal, financial, and operational risks. Document content:\n\n${text}`
   };
