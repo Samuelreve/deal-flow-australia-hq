@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get all files from the temporary deal folder
     const { data: tempFiles, error: listError } = await supabaseAdmin.storage
-      .from('deal-documents')
+      .from('deal_documents')
       .list(tempDealId);
 
     if (listError) {
@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Download the file from temp location
         const { data: fileData, error: downloadError } = await supabaseAdmin.storage
-          .from('deal-documents')
+          .from('deal_documents')
           .download(tempPath);
 
         if (downloadError) {
@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Upload to new location
         const { error: uploadError } = await supabaseAdmin.storage
-          .from('deal-documents')
+          .from('deal_documents')
           .upload(newPath, fileData, {
             upsert: true,
             contentType: file.metadata?.mimetype || 'application/octet-stream'
@@ -82,7 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Delete the old file
         const { error: deleteError } = await supabaseAdmin.storage
-          .from('deal-documents')
+          .from('deal_documents')
           .remove([tempPath]);
 
         if (deleteError) {
@@ -101,9 +101,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Update document records to point to the real deal
     const { error: updateError } = await supabaseAdmin
-      .from('documents')
-      .update({ deal_id: realDealId })
-      .eq('deal_id', tempDealId);
+      .rpc('update_document_storage_paths', {
+        temp_deal_id: tempDealId,
+        real_deal_id: realDealId
+      });
 
     if (updateError) {
       console.error('Error updating document records:', updateError);
