@@ -11,7 +11,7 @@ export const useDocumentUploadWizard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const uploadFile = async (file: File, dealId: string): Promise<UploadedDocument | null> => {
+  const uploadFile = async (file: File, dealId: string, category: string = 'Other'): Promise<UploadedDocument | null> => {
     if (!file || !dealId || !user) {
       toast({
         title: "Upload Error",
@@ -28,7 +28,7 @@ export const useDocumentUploadWizard = () => {
       const document = await unifiedDocumentUploadService.uploadDocument({
         file,
         dealId,
-        category: 'Other', // Default category for wizard uploads
+        category,
         userId: user.id
       });
 
@@ -36,8 +36,9 @@ export const useDocumentUploadWizard = () => {
         throw new Error('Failed to upload document');
       }
 
-      // Create signed URL for preview
-      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '');
+      // Create signed URL for preview using the appropriate bucket
+      const bucketName = category === 'business_document' ? 'business_document' : 'deal_documents';
+      const signedUrl = await unifiedDocumentUploadService.createSignedUrl(dealId, document.latestVersion?.url || '', 3600, bucketName);
 
       toast({
         title: "Upload Successful",
@@ -49,7 +50,7 @@ export const useDocumentUploadWizard = () => {
         id: document.id,
         filename: file.name,
         type: file.type,
-        category: 'Other',
+        category,
         size: file.size,
         uploadedAt: new Date(),
         url: signedUrl,

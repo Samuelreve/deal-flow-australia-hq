@@ -58,9 +58,9 @@ export const BusinessDocumentUpload: React.FC<BusinessDocumentUploadProps> = ({
         continue;
       }
 
-      // Upload file to storage
+      // Upload file to storage with business_document category
       try {
-        const uploadedDoc = await uploadFile(file, tempDealId);
+        const uploadedDoc = await uploadFile(file, tempDealId, 'business_document');
         if (uploadedDoc) {
           newDocuments.push(uploadedDoc);
         } else {

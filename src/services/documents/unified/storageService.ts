@@ -9,13 +9,13 @@ export class DocumentStorageService {
   /**
    * Upload file to storage with unique path
    */
-  async uploadFileToStorage(file: File, dealId: string, userId: string): Promise<string> {
+  async uploadFileToStorage(file: File, dealId: string, userId: string, bucketName: string = 'deal_documents'): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('deal_documents')
+      .from(bucketName)
       .upload(storagePath, file);
 
     if (uploadError) {
@@ -53,11 +53,11 @@ export class DocumentStorageService {
   /**
    * Create signed URL for document access
    */
-  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
+  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600, bucketName: string = 'deal_documents'): Promise<string | null> {
     try {
       const fullPath = `${dealId}/${filePath}`;
       const { data: urlData, error } = await supabase.storage
-        .from('deal_documents')
+        .from(bucketName)
         .createSignedUrl(fullPath, expiresIn);
 
       if (error) {
@@ -75,10 +75,10 @@ export class DocumentStorageService {
   /**
    * Delete files from storage
    */
-  async deleteFiles(dealId: string, filePaths: string[]): Promise<void> {
+  async deleteFiles(dealId: string, filePaths: string[], bucketName: string = 'deal_documents'): Promise<void> {
     const fullPaths = filePaths.map(path => `${dealId}/${path}`);
     await supabase.storage
-      .from('deal_documents')
+      .from(bucketName)
       .remove(fullPaths);
   }
 }
