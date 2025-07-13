@@ -3,46 +3,57 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
+/**
+ * Extract text using OCR (Optical Character Recognition) for all document types
+ */
+async function extractTextWithOCR(fileData: Blob, fileName: string): Promise<string> {
+  console.log('Starting OCR extraction for:', fileName);
+  
   try {
-    console.log(`🔧 Using OCR-enabled text extraction for ${fileName} (${contentType}), buffer size: ${fileBuffer.byteLength}`);
+    // Convert Blob to base64
+    const fileBuffer = await fileData.arrayBuffer();
+    const bytes = new Uint8Array(fileBuffer);
     
-    // Convert ArrayBuffer to base64 for the text-extractor function
-    const uint8Array = new Uint8Array(fileBuffer);
-    const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
-    const fileBase64 = btoa(binaryString);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.slice(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
     
-    // Call our enhanced text-extractor function with OCR support
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/text-extractor`, {
+    // Call the OCR service
+    const response = await fetch(`${supabaseUrl}/functions/v1/text-extractor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'Authorization': `Bearer ${supabaseKey}`
       },
       body: JSON.stringify({
-        fileBase64,
-        mimeType: contentType,
-        fileName
+        fileBase64: base64,
+        mimeType: fileData.type || 'application/pdf',
+        fileName: fileName
       })
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(`Text extraction failed: ${errorData.error || response.statusText}`);
+      throw new Error(`OCR service responded with status: ${response.status}`);
     }
     
     const result = await response.json();
     
     if (!result.success) {
-      throw new Error(`Text extraction failed: ${result.error || 'Unknown error'}`);
+      throw new Error(result.error || 'OCR extraction failed');
     }
     
-    console.log(`✅ OCR-enabled text extraction successful: ${result.text.length} characters`);
-    return result.text || '';
+    console.log('OCR extraction completed successfully');
+    console.log('Extracted text length:', result.text?.length || 0);
+    console.log('Pages processed:', result.pageCount || 'unknown');
     
+    return result.text || '';
   } catch (error) {
-    console.error('❌ OCR text extraction error:', error);
-    throw new Error(`Failed to extract text from ${fileName}: ${error.message}`);
+    console.error('OCR extraction error:', error);
+    throw new Error(`OCR failed: ${error.message}`);
   }
 }
 
@@ -113,7 +124,7 @@ export async function handleAnalyzeDocument(
   openai: any,
   documentText?: string
 ) {
-  console.log('Starting document analysis:', { 
+  console.log('Starting OCR-based document analysis:', { 
     documentId, 
     documentVersionId, 
     analysisType,
@@ -148,14 +159,10 @@ export async function handleAnalyzeDocument(
       throw new Error('Document version not found in database');
     }
 
-    console.log('Found document:', { 
+    console.log('Found document for OCR analysis:', { 
       name: document.name, 
       type: document.type, 
-      documentStoragePath: document.storage_path,
-      versionStoragePath: documentVersion.storage_path,
-      textContentType: typeof documentVersion.text_content,
-      textContentLength: documentVersion.text_content ? documentVersion.text_content.length : 0,
-      textContentPreview: documentVersion.text_content ? String(documentVersion.text_content).substring(0, 100) : 'No text content'
+      versionStoragePath: documentVersion.storage_path
     });
 
     let extractedText = '';
@@ -165,97 +172,49 @@ export async function handleAnalyzeDocument(
       console.log('Using provided document text, length:', documentText.length);
       extractedText = documentText;
     } else {
-      console.log('No document text provided, attempting to download and extract from storage...');
+      console.log('No document text provided, using OCR extraction from storage...');
       
-      // Download file from storage - try multiple bucket names
-      let fileData = null;
-      let storageError = null;
-    
-    // Use the document version's storage path (not the document's storage path)
-    // The storage_path needs to be prefixed with dealId like other functions do
-    const storagePath = documentVersion.storage_path;
-    
-    // Check if storage path already includes deal ID (some inconsistency in database)
-    let fullStoragePath: string;
-    if (storagePath.startsWith(document.deal_id + '/') || storagePath.includes('/')) {
-      // Path already contains deal ID or folder structure
-      fullStoragePath = storagePath;
-    } else {
-      // Path is just filename, need to add deal ID prefix
-      fullStoragePath = `${document.deal_id}/${storagePath}`;
-    }
-    
-    console.log('Storage path analysis:', { 
-      originalStoragePath: storagePath, 
-      dealId: document.deal_id, 
-      fullStoragePath: fullStoragePath 
-    });
-    
-    // Try deal-documents bucket first (with hyphen - the correct one)
-    const { data: fileData1, error: storageError1 } = await supabase.storage
-      .from('deal-documents')
-      .download(fullStoragePath);
-    
-    if (fileData1 && !storageError1) {
-      fileData = fileData1;
-    } else {
-      console.log('deal-documents bucket failed, trying deal_documents bucket');
-      // Try deal_documents bucket (with underscore - alternative)
-      const { data: fileData2, error: storageError2 } = await supabase.storage
-        .from('deal_documents')
-        .download(fullStoragePath);
+      // Download file from storage
+      const storagePath = documentVersion.storage_path;
+      let fullStoragePath: string;
       
-      if (fileData2 && !storageError2) {
-        fileData = fileData2;
+      if (storagePath.startsWith(document.deal_id + '/') || storagePath.includes('/')) {
+        fullStoragePath = storagePath;
       } else {
-        console.log('deal_documents bucket failed, trying Documents bucket');
-        // Try Documents bucket
-        const { data: fileData3, error: storageError3 } = await supabase.storage
-          .from('Documents')
+        fullStoragePath = `${document.deal_id}/${storagePath}`;
+      }
+      
+      console.log('Storage path for OCR:', { originalStoragePath: storagePath, fullStoragePath });
+      
+      // Try to download from storage buckets
+      let fileData = null;
+      const buckets = ['deal_documents', 'deal-documents', 'Documents', 'contracts'];
+      
+      for (const bucket of buckets) {
+        const { data, error } = await supabase.storage
+          .from(bucket)
           .download(fullStoragePath);
         
-        if (fileData3 && !storageError3) {
-          fileData = fileData3;
-        } else {
-          console.log('Documents bucket failed, trying contracts bucket');
-          // Try contracts bucket
-          const { data: fileData4, error: storageError4 } = await supabase.storage
-            .from('contracts')
-            .download(fullStoragePath);
-          
-          if (fileData4 && !storageError4) {
-            fileData = fileData4;
-          } else {
-            storageError = storageError4 || storageError3 || storageError2 || storageError1;
-          }
+        if (data && !error) {
+          fileData = data;
+          console.log(`Document downloaded from ${bucket} bucket for OCR`);
+          break;
         }
       }
-    }
 
-    if (!fileData) {
-      console.error('All storage download attempts failed:', {
-        'deal-documents': storageError1?.message || JSON.stringify(storageError1),
-        'deal_documents': storageError2?.message || JSON.stringify(storageError2),
-        'Documents': storageError3?.message || JSON.stringify(storageError3),
-        'contracts': storageError4?.message || JSON.stringify(storageError4),
-        finalError: storageError?.message || JSON.stringify(storageError),
-        storagePath: storagePath,
-        fullStoragePath: fullStoragePath,
-        dealId: document.deal_id
-      });
-      throw new Error(`Failed to download document from storage. Tried multiple buckets. Storage path: ${storagePath}. Full path: ${fullStoragePath}. Last error: ${storageError?.message || JSON.stringify(storageError) || 'Unknown error'}`);
-    }
-    console.log(`Document downloaded successfully, processing with buffer size: ${fileData.size}`);
-    
-      // Extract text from the document
-      const fileBuffer = await fileData.arrayBuffer();
-      extractedText = await extractTextFromDocument(fileBuffer, document.type, document.name);
+      if (!fileData) {
+        throw new Error(`Failed to download document from storage. Path: ${fullStoragePath}`);
+      }
+      
+      // Use OCR extraction for all documents
+      console.log('Extracting text using OCR...');
+      extractedText = await extractTextWithOCR(fileData, document.name);
       
       if (!extractedText || extractedText.trim().length === 0) {
-        throw new Error('No text could be extracted from the document');
+        throw new Error('No text could be extracted via OCR');
       }
 
-      console.log('Text extracted from file, length:', extractedText.length);
+      console.log('OCR text extracted, length:', extractedText.length);
     }
     
     // Validate that we have text to analyze
@@ -273,7 +232,7 @@ export async function handleAnalyzeDocument(
       disclaimer: 'This analysis is provided by AI and should be reviewed by qualified professionals for accuracy and completeness.'
     };
   } catch (error) {
-    console.error('Error in handleAnalyzeDocument:', error);
+    console.error('Error in OCR-based document analysis:', error);
     throw new Error(`Failed to analyze document: ${error.message}`);
   }
 }

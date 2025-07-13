@@ -112,25 +112,22 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         throw new Error('Failed to extract document content: ' + (contentError?.message || 'No content found'));
       }
 
-      // Call the document AI assistant edge function for analysis
+      // Call the document AI assistant edge function for OCR-based analysis
       const requestBody = {
         operation: 'analyze_document',
         documentId: document.id,
         documentVersionId: versionData.id,
         analysisType: analysisType,
         dealId: dealId,
-        documentText: contentData.content, // Include the extracted text
         context: {
           analysisType: analysisType,
           documentName: document.name,
-          documentType: document.type
+          documentType: document.type,
+          useOCR: true
         }
       };
 
-      console.log('📤 Sending analysis request:', {
-        ...requestBody,
-        documentText: requestBody.documentText ? `${requestBody.documentText.substring(0, 100)}... (${requestBody.documentText.length} chars)` : 'No text'
-      });
+      console.log('📤 Sending OCR-based analysis request:', requestBody);
 
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: requestBody
