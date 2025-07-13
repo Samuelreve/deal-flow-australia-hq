@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Update document records to point to the real deal
+    // Update document records to point to the real deal and fix storage paths
     const { error: updateError } = await supabaseAdmin
       .rpc('update_document_storage_paths', {
         temp_deal_id: tempDealId,
@@ -109,6 +109,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (updateError) {
       console.error('Error updating document records:', updateError);
       migrationErrors.push(`Failed to update document records: ${updateError.message}`);
+    } else {
+      console.log('Successfully updated document records for migration');
     }
 
     return new Response(

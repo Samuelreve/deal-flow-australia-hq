@@ -58,10 +58,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       }
 
       // Create signed URL for the document
-      // Construct full storage path with deal ID
-      const fullStoragePath = versionData.storage_path.includes('/') 
-        ? versionData.storage_path 
-        : `${dealId}/${versionData.storage_path}`;
+      // The storage path should already include the deal folder structure
+      let fullStoragePath = versionData.storage_path;
+      
+      // If the storage path doesn't include the deal ID, add it
+      if (!fullStoragePath.includes('/')) {
+        fullStoragePath = `${dealId}/${fullStoragePath}`;
+      }
+      
+      console.log('Attempting to access file at path:', fullStoragePath);
       
       const { data: urlData, error: urlError } = await supabase.storage
         .from('deal_documents')
@@ -69,6 +74,25 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
+        console.error('Full storage path used:', fullStoragePath);
+        
+        // Try alternative path formats
+        if (!versionData.storage_path.includes('/')) {
+          // Try with temp deal ID pattern if original path doesn't work
+          const alternativePath = versionData.storage_path;
+          console.log('Trying alternative path:', alternativePath);
+          
+          const { data: altUrlData, error: altUrlError } = await supabase.storage
+            .from('deal_documents')
+            .createSignedUrl(alternativePath, 3600);
+            
+          if (!altUrlError && altUrlData?.signedUrl) {
+            setDocumentUrl(altUrlData.signedUrl);
+            setIsLoadingUrl(false);
+            return;
+          }
+        }
+        
         setIframeError(true);
         return;
       }
