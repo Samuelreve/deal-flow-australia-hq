@@ -9,18 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface Document {
-  id: string;
-  name: string;
-  category?: string;
-  status: string;
-  version: number;
-  size: number;
-  type: string;
-  created_at: string;
-  uploaded_by: string;
-  storage_path: string;
-}
+import { Document } from "@/types/deal";
 
 interface AnalysisResult {
   summary?: string;
@@ -66,53 +55,38 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     setLoadingAnalysis(prev => ({ ...prev, [analysisType]: true }));
     
     try {
-      // For summary analysis, use the summarize_document operation with my improved AI
-      let operation, body;
-      
-      if (analysisType === 'summary') {
-        console.log('📋 Using summarize_document operation for concise summary');
-        operation = 'summarize_document';
-        body = {
-          operation,
-          documentId: document.id,
-          documentVersionId: document.id, // Use document ID as version ID for now
-          userId: user.id,
-          dealId: dealId,
-          content: '', // Empty content means it will fetch from database
-          context: { 
-            operationType: 'document_summary',
-            documentName: document.name,
-            documentType: document.type
-          }
-        };
-      } else {
-        console.log('📊 Using analyze_document operation for other analysis types');
-        operation = 'analyze_document';
-        body = {
-          operation,
-          documentId: document.id,
-          documentVersionId: document.id,
-          userId: user.id,
-          dealId: dealId,
-          context: {
-            analysisType: analysisType,
-            documentName: document.name,
-            documentType: document.type
-          }
-        };
+      // Get the latest document version
+      const { data: versionData, error: versionError } = await supabase
+        .from('document_versions')
+        .select('id, text_content')
+        .eq('document_id', document.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (versionError || !versionData?.id) {
+        throw new Error('Document version not found');
       }
 
       // Call the document AI assistant edge function for analysis
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
-        body
+        body: {
+          operation: 'analyze_document',
+          documentId: document.id,
+          documentVersionId: versionData.id,
+          analysisType: analysisType,
+          dealId: dealId,
+          documentName: document.name,
+          documentType: document.type,
+          textContent: versionData.text_content
+        }
       });
 
       console.log('📡 DocumentAnalysisModal AI response:', {
         success: !error,
         hasData: !!result,
         error: error?.message,
-        resultKeys: result ? Object.keys(result) : [],
-        summaryLength: result?.summary?.length || 0
+        result: result
       });
 
       if (error) {
@@ -123,7 +97,9 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
       if (result?.success) {
         const analysisResult: AnalysisResult = {
           analysisType,
-          ...result
+          summary: result.summary,
+          keyTerms: result.keyTerms,
+          risks: result.risks
         };
 
         setAnalysisResults(prev => ({

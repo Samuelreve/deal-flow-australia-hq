@@ -9,6 +9,7 @@ export interface RequestPayload {
   content?: string;
   userId?: string;
   chatHistory?: any[];
+  analysisType?: string;
   context?: {
     analysisType?: string;
     saveAnalysis?: boolean;

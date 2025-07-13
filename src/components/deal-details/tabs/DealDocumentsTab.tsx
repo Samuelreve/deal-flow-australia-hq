@@ -6,7 +6,7 @@ import TemplateGenerationModal from "@/components/deals/document/TemplateGenerat
 import DocumentListPanel from "./components/DocumentListPanel";
 import DocumentViewerPanel from "./components/DocumentViewerPanel";
 import { Document } from "@/types/deal";
-import DocumentAnalysisModal from "./components/DocumentAnalysisModal";
+import DocumentAnalysisModal from "@/components/deals/document/DocumentAnalysisModal";
 import ContractAnalyzerDialog from "@/components/deals/document/ContractAnalyzerDialog";
 import { useAnalysisOperations } from "@/hooks/document-ai/useAnalysisOperations";
 import { toast } from "sonner";
@@ -327,28 +327,17 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     }
   };
 
+  // State for document analysis modal
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+
   const handleAnalyzeDocument = async (type: 'summary' | 'key_terms' | 'risks') => {
     if (!selectedDocument) {
       toast.error("Please select a document first");
       return;
     }
 
-    // Get the latest document version
-    const { data: versionData, error: versionError } = await supabase
-      .from('document_versions')
-      .select('id')
-      .eq('document_id', selectedDocument.id)
-      .order('version_number', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (versionError || !versionData?.id) {
-      toast.error("Unable to find document version for analysis");
-      return;
-    }
-
-    // Open the contract analyzer dialog
-    setShowContractAnalyzer(true);
+    // Open the document analysis modal
+    setShowAnalysisModal(true);
   };
 
   const handleAddComment = async (content: string, parentCommentId?: string) => {
@@ -501,6 +490,16 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         onDocumentSaved={() => fetchDocuments()}
       />
       
+      {/* Document Analysis Modal */}
+      {selectedDocument && (
+        <DocumentAnalysisModal
+          isOpen={showAnalysisModal}
+          onClose={() => setShowAnalysisModal(false)}
+          document={selectedDocument}
+          dealId={dealId}
+        />
+      )}
+
       {/* Contract Analyzer Dialog */}
       {selectedDocument && (
         <ContractAnalyzerDialog

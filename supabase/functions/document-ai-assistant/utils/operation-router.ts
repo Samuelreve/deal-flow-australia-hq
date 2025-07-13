@@ -41,7 +41,7 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
       return await handleAnalyzeDocument(
         payload.documentId!,
         payload.documentVersionId!,
-        payload.context!.analysisType,
+        payload.context?.analysisType || payload.analysisType,
         openai
       );
     

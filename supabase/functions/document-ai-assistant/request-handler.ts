@@ -8,7 +8,7 @@ import { RequestPayload } from "./types.ts";
 export async function handleRequest(req: Request, openai: any, supabaseUrl: string, supabaseKey: string) {
   try {
     const requestBody = await req.json();
-    const { operation, content = "", context = {}, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory } = requestBody;
+    const { operation, content = "", context = {}, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory, analysisType } = requestBody;
     
     if (!operation) {
       return createErrorResponse('Missing required field: operation', 400);
@@ -24,7 +24,8 @@ export async function handleRequest(req: Request, openai: any, supabaseUrl: stri
       documentId,
       documentVersionId,
       milestoneId,
-      chatHistory
+      chatHistory,
+      analysisType
     };
 
     // Get user from auth header
