@@ -82,11 +82,8 @@ export class UnifiedDocumentUploadService {
     documentName?: string,
     onProgress?: (progress: number) => void
   ): Promise<Document> {
-    // Use business_document bucket for business documents, otherwise use deal_documents
-    const bucketName = category === 'business_document' ? 'business_document' : 'deal_documents';
-    
-    // Upload file to storage
-    const filePath = await this.storageService.uploadFileToStorage(file, dealId, userId, bucketName);
+    // Upload file to storage (always use deal_documents bucket)
+    const filePath = await this.storageService.uploadFileToStorage(file, dealId, userId, 'deal_documents');
     onProgress?.(50);
 
     // Create document and version records
