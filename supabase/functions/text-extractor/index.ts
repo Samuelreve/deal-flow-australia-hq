@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Import PDF.js for direct text extraction (much more reliable than OCR)
+import { getDocument } from "https://esm.sh/pdf.mjs";
+
 const serve_handler = async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,10 +24,15 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    console.log('🔍 Starting OCR extraction for:', fileName);
+    console.log('🔍 Starting PDF text extraction for:', fileName);
 
-    // Validate base64 format
-    if (!fileBase64.match(/^[A-Za-z0-9+/]+=*$/)) {
+    // Validate base64 format and clean up
+    let cleanBase64 = fileBase64;
+    if (fileBase64.includes(',')) {
+      cleanBase64 = fileBase64.split(',')[1]; // Remove data URL prefix if present
+    }
+    
+    if (!cleanBase64.match(/^[A-Za-z0-9+/]+=*$/)) {
       console.error('❌ Invalid base64 format');
       return new Response(JSON.stringify({ 
         success: false, 
@@ -38,7 +46,7 @@ const serve_handler = async (req: Request) => {
     // Convert base64 to Uint8Array with better error handling
     let bytes;
     try {
-      const binaryString = atob(fileBase64);
+      const binaryString = atob(cleanBase64);
       bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
@@ -66,165 +74,99 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    // Import OCR libraries with error handling
-    let renderPageAsImage, Tesseract;
-    try {
-      const unpdfModule = await import("https://esm.sh/unpdf@0.10.0");
-      renderPageAsImage = unpdfModule.renderPageAsImage;
-      console.log('✅ unpdf loaded successfully');
-    } catch (error) {
-      console.error('❌ Failed to load unpdf:', error);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Failed to load PDF processing library' 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    try {
-      Tesseract = await import("https://esm.sh/tesseract.js@4.1.1");
-      console.log('✅ Tesseract loaded successfully');
-    } catch (error) {
-      console.error('❌ Failed to load Tesseract:', error);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Failed to load OCR library' 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Extract images from PDF pages for OCR
-    let images;
-    try {
-      console.log('🔍 Rendering PDF pages as images...');
-      console.log('📊 PDF validation passed, starting page rendering...');
-      
-      images = await renderPageAsImage(bytes, { 
-        scale: 1.0,  // Reduced scale for better stability
-        background: 'white',
-        // Add canvas size limits
-        canvas: {
-          width: 1200,
-          height: 1600
-        }
-      });
-      console.log('✅ PDF pages rendered successfully, image count:', Array.isArray(images) ? images.length : 1);
-    } catch (error) {
-      console.error('❌ Failed to render PDF pages:', error);
-      console.error('Error details:', error.stack);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: `Failed to convert PDF pages to images for OCR: ${error.message}` 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    if (!images || (Array.isArray(images) && images.length === 0)) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'No images could be extracted from PDF for OCR' 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Handle both array and single image responses
-    const imageArray = Array.isArray(images) ? images : [images];
-    console.log(`📄 Processing ${imageArray.length} pages with OCR`);
-
-    console.log('OCR TEXT START');
+    // Extract text directly from PDF using PDF.js
     let allText = '';
+    let totalPages = 0;
     let successfulPages = 0;
-    
-    // Process each page image with OCR - with better error handling
-    for (let i = 0; i < imageArray.length; i++) {
-      const image = imageArray[i];
-      
-      try {
-        console.log(`🔍 Starting OCR for page ${i + 1}/${imageArray.length}`);
-        
-        // Create worker with proper error handling
-        const worker = await Tesseract.createWorker();
-        
-        try {
-          await worker.loadLanguage('eng');
-          await worker.initialize('eng');
-          
-          console.log(`⚙️ Tesseract worker initialized for page ${i + 1}`);
-          
-          // Perform OCR with timeout protection
-          const { data: { text } } = await worker.recognize(image, {
-            logger: m => {
-              if (m.status === 'recognizing text') {
-                console.log(`OCR Progress Page ${i + 1}: ${Math.round(m.progress * 100)}%`);
-              }
-            }
-          });
-          
-          await worker.terminate();
-          
-          if (text && text.trim()) {
-            allText += text + '\n\n';
-            successfulPages++;
-            console.log(`✅ Page ${i + 1} OCR completed: ${text.length} characters`);
-          } else {
-            console.log(`⚠️ Page ${i + 1} OCR returned no text`);
-          }
-          
-        } catch (workerError) {
-          console.error(`❌ OCR worker error for page ${i + 1}:`, workerError);
-          await worker.terminate().catch(() => {}); // Cleanup even if it fails
-        }
-        
-      } catch (pageError) {
-        console.error(`❌ OCR error for page ${i + 1}:`, pageError.message);
-        // Continue with other pages even if one fails
-      }
-    }
-    
-    console.log('OCR TEXT END');
-    console.log(`📊 OCR Summary: ${successfulPages}/${imageArray.length} pages processed successfully`);
 
-    if (!allText.trim()) {
+    try {
+      console.log('🔄 Loading PDF document with PDF.js...');
+      
+      // Load PDF document
+      const pdfDoc = await getDocument({ data: bytes }).promise;
+      totalPages = pdfDoc.numPages;
+      
+      console.log(`📖 PDF loaded successfully with ${totalPages} pages`);
+
+      // Extract text from each page
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        try {
+          console.log(`📄 Processing page ${pageNum}/${totalPages}...`);
+          
+          const page = await pdfDoc.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          // Combine text items into readable text
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ')
+            .trim();
+          
+          if (pageText) {
+            allText += pageText + '\n\n';
+            successfulPages++;
+            console.log(`✅ Page ${pageNum} processed, extracted ${pageText.length} characters`);
+          } else {
+            console.log(`⚠️ Page ${pageNum} contained no text`);
+          }
+        } catch (pageError) {
+          console.error(`❌ Error processing page ${pageNum}:`, pageError);
+          // Continue with next page instead of failing completely
+          continue;
+        }
+      }
+
+      if (!allText.trim()) {
+        console.warn('⚠️ No text could be extracted from any pages');
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'No readable text found in the PDF document',
+          method: 'PDF.js',
+          pageCount: totalPages,
+          successfulPages: successfulPages
+        }), {
+          status: 422,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Clean up the extracted text
+      const cleanedText = allText
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
+        .trim();
+
+      console.log(`✅ PDF text extraction completed successfully: ${cleanedText.length} characters from ${successfulPages}/${totalPages} pages`);
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        text: cleanedText,
+        method: 'PDF.js',
+        pageCount: totalPages,
+        successfulPages: successfulPages
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+
+    } catch (extractionError) {
+      console.error('❌ PDF text extraction failed:', extractionError);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: `No text could be extracted via OCR from any of the ${imageArray.length} pages` 
+        error: `Text extraction failed: ${extractionError.message}`,
+        method: 'PDF.js',
+        pageCount: totalPages,
+        successfulPages: successfulPages
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    // Clean up the OCR text
-    const cleanedText = allText
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
-      .trim();
-
-    console.log(`✅ OCR extraction completed successfully: ${cleanedText.length} characters`);
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      text: cleanedText,
-      method: 'ocr',
-      pageCount: imageArray.length,
-      successfulPages: successfulPages
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
 
   } catch (error) {
-    console.error('❌ OCR Text extractor error:', error);
+    console.error('❌ PDF text extractor error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: `OCR extraction failed: ${error.message}` 
+      error: `PDF text extraction failed: ${error.message}` 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
