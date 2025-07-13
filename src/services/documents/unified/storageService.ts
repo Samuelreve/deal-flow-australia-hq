@@ -12,6 +12,7 @@ export class DocumentStorageService {
   async uploadFileToStorage(file: File, dealId: string, userId: string): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
+    // Always use the deal folder structure for consistency
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
@@ -22,6 +23,7 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
+    // Return just the filename, not the full path
     return filePath;
   }
 
@@ -36,7 +38,8 @@ export class DocumentStorageService {
     userId: string
   ): Promise<string> {
     const fileExt = file.name.split('.').pop();
-    const filePath = `${documentId}/v${versionNumber}-${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `v${versionNumber}-${userId}-${Date.now()}.${fileExt}`;
+    // Consistent folder structure: dealId/filename
     const storagePath = `${dealId}/${filePath}`;
 
     const { error: uploadError } = await supabase.storage
