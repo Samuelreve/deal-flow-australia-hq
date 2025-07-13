@@ -127,6 +127,8 @@ export const useDealSubmission = () => {
       // Migrate temporary documents to the final deal
       if (tempDealId && formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
         console.log('Migrating temporary documents to final deal:', finalDealId);
+        console.log('Temp deal ID:', tempDealId);
+        console.log('Documents to migrate:', formData.uploadedDocuments.length);
         
         try {
           // Call the migration edge function to move files from temp to real deal paths
@@ -148,7 +150,14 @@ export const useDealSubmission = () => {
               variant: "default"
             });
           } else {
-            console.log('Document migration completed:', migrationResult);
+            console.log('Document migration completed successfully:', migrationResult);
+            // Verify migration was successful
+            const { data: migratedDocs } = await supabase
+              .from('documents')
+              .select('id, name, deal_id')
+              .eq('deal_id', finalDealId);
+            
+            console.log('Documents now linked to final deal:', migratedDocs?.length);
           }
         } catch (migrationErr) {
           console.error('Error calling migration function:', migrationErr);
@@ -162,11 +171,14 @@ export const useDealSubmission = () => {
       } else if (formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {
         // For non-temp deals, just verify document linkage
         console.log('Verifying document linkage for deal:', finalDealId);
+        console.log('Documents to verify:', formData.uploadedDocuments.length);
         
         const { data: existingDocs } = await supabase
           .from('documents')
           .select('id, deal_id')
           .in('id', formData.uploadedDocuments.map(doc => doc.id));
+          
+        console.log('Found existing documents:', existingDocs?.length);
 
         if (existingDocs) {
           const docsToUpdate = existingDocs.filter(doc => doc.deal_id !== finalDealId);
