@@ -76,8 +76,13 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         .from(bucketName)
         .createSignedUrl(versionData.storage_path, 3600); // 1 hour expiry
 
+      console.log('Signed URL generation result:', { urlData, urlError, bucketName, storage_path: versionData.storage_path });
+
       if (urlError || !urlData?.signedUrl) {
         console.error('Error creating signed URL:', urlError);
+        console.error('URL Data:', urlData);
+        console.error('Bucket Name:', bucketName);
+        console.error('Storage Path:', versionData.storage_path);
         setIframeError(true);
         return;
       }
