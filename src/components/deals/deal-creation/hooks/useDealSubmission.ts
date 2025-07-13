@@ -149,6 +149,24 @@ export const useDealSubmission = () => {
             });
           } else {
             console.log('Document migration completed:', migrationResult);
+            
+            // Update document categories based on the form data
+            console.log('Updating document categories with correct values...');
+            for (const uploadedDoc of formData.uploadedDocuments) {
+              if (uploadedDoc.category && uploadedDoc.category !== 'Other') {
+                const { error: categoryUpdateError } = await supabase
+                  .from('documents')
+                  .update({ category: uploadedDoc.category })
+                  .eq('name', uploadedDoc.filename)
+                  .eq('deal_id', finalDealId);
+                
+                if (categoryUpdateError) {
+                  console.warn('Error updating document category:', categoryUpdateError);
+                } else {
+                  console.log(`Updated category for ${uploadedDoc.filename} to ${uploadedDoc.category}`);
+                }
+              }
+            }
           }
         } catch (migrationErr) {
           console.error('Error calling migration function:', migrationErr);
