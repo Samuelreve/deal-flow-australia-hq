@@ -110,9 +110,9 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
       if (result?.success) {
         const analysisResult: AnalysisResult = {
           analysisType,
-          summary: result.result?.summary,
-          keyTerms: result.result?.keyTerms,
-          risks: result.result?.risks
+          summary: result.result.summary,
+          keyTerms: result.result.keyTerms,
+          risks: result.result.risks
         };
 
         setAnalysisResults(prev => ({
