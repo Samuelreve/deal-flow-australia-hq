@@ -125,10 +125,23 @@ export const documentStorageService = {
         return { error: versionError, data: null };
       }
       
-      // Create a signed URL for the version's file
-      const signedUrl = await this.createSignedUrl(dealId, version.storage_path, expiresIn);
+      // Create a signed URL directly using the storage path
+      // The storage_path already contains the full path structure
+      console.log('Creating signed URL for storage path:', version.storage_path);
       
-      if (!signedUrl) {
+      const { data: urlData, error } = await supabase.storage
+        .from('deal_documents')
+        .createSignedUrl(version.storage_path, expiresIn);
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return { 
+          error: { message: 'Failed to create signed URL' }, 
+          data: null 
+        };
+      }
+      
+      if (!urlData?.signedUrl) {
         return { 
           error: { message: 'Failed to create signed URL' }, 
           data: null 
@@ -138,7 +151,7 @@ export const documentStorageService = {
       return { 
         data: { 
           version,
-          signedUrl
+          signedUrl: urlData.signedUrl
         },
         error: null
       };
