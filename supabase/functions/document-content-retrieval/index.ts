@@ -90,8 +90,11 @@ serve(async (req) => {
       .eq('id', versionId)
       .single();
     
-    if (!textError && versionWithText?.text_content) {
-      console.log('Found extracted text content in database');
+    if (!textError && versionWithText?.text_content && 
+        typeof versionWithText.text_content === 'string' && 
+        versionWithText.text_content.trim() !== '' &&
+        versionWithText.text_content !== '[object Object]') {
+      console.log('Found valid extracted text content in database');
       return new Response(
         JSON.stringify({
           content: versionWithText.text_content,
