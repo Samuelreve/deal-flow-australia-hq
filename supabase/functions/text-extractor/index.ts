@@ -78,65 +78,63 @@ serve(async (req) => {
       try {
         console.log('🔄 Using OCR with unpdf for PDF text extraction...');
         
-        // Use unpdf (Deno-compatible) for PDF handling and Tesseract.js for OCR
-        const { extractText, renderPageAsImage } = await import("https://esm.sh/unpdf@0.11.0");
+        // Use unpdf for rendering pages to images and OCR with Tesseract.js
+        const { renderPageAsImage } = await import("https://esm.sh/unpdf@0.11.0");
         const { recognize } = await import("https://esm.sh/tesseract.js@5.0.4");
         
-        console.log('🔄 Loading PDF with unpdf...');
-        
-        // Use OCR directly with unpdf for PDF text extraction
+        console.log('🔄 Loading PDF with unpdf for OCR...');
           console.log('🔄 Converting PDF pages to images for OCR...');
-          
-          let ocrText = '';
-          const maxPages = 3; // Limit to first 3 pages to avoid timeout
-          
-          for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-            try {
-              console.log(`🔄 Rendering PDF page ${pageNum} as image...`);
-              
-              // Render page as image using unpdf
-              const imageBuffer = await renderPageAsImage(fileBuffer, pageNum - 1, {
-                scale: 2.0,  // Higher scale for better OCR
-                format: 'png'
+        
+        let ocrText = '';
+        const maxPages = 3; // Limit to first 3 pages to avoid timeout
+        
+        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+          try {
+            console.log(`🔄 Rendering PDF page ${pageNum} as image...`);
+            
+            // Render page as image using unpdf
+            const imageBuffer = await renderPageAsImage(fileBuffer, pageNum - 1, {
+              scale: 2.0,  // Higher scale for better OCR
+              format: 'png'
+            });
+            
+            if (imageBuffer) {
+              console.log(`📄 Running OCR on page ${pageNum}...`);
+              const ocrResult = await recognize(imageBuffer, 'eng', {
+                logger: m => {
+                  if (m.status && m.progress !== undefined) {
+                    console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
+                  }
+                },
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
+                tessedit_pageseg_mode: '1',
+                tessedit_ocr_engine_mode: '1'
               });
               
-              if (imageBuffer) {
-                console.log(`📄 Running OCR on page ${pageNum}...`);
-                const ocrResult = await recognize(imageBuffer, 'eng', {
-                  logger: m => {
-                    if (m.status && m.progress !== undefined) {
-                      console.log(`OCR Page ${pageNum}: ${m.status} ${Math.round(m.progress * 100)}%`);
-                    }
-                  },
-                  tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?;:\'"()-[]{}/@#$%^&*+=|\\~`<>',
-                  tessedit_pageseg_mode: '1',
-                  tessedit_ocr_engine_mode: '1'
-                });
-                
-                const pageText = ocrResult.data.text.trim();
-                if (pageText.length > 20) {
-                  ocrText += pageText + '\n\n';
-                  console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
-                }
+              const pageText = ocrResult.data.text.trim();
+              if (pageText.length > 20) {
+                ocrText += pageText + '\n\n';
+                console.log(`✅ OCR extracted ${pageText.length} characters from page ${pageNum}`);
               }
-            } catch (pageError) {
-              console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
-              // Continue with next page
-              continue;
             }
+          } catch (pageError) {
+            console.error(`❌ OCR failed for page ${pageNum}:`, pageError);
+            // Continue with next page
+            continue;
           }
+        }
+        
+        if (ocrText.trim().length > 20) {
+          extractedText = ocrText.trim();
+          console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
           
-          if (ocrText.trim().length > 20) {
-            extractedText = ocrText.trim();
-            console.log(`✅ OCR extraction successful: ${extractedText.length} characters from ${maxPages} pages`);
-            
-            // Display OCR extracted text content
-            console.log('🔍 OCR TEXT START ========================================');
-            console.log(extractedText);
-            console.log('🔍 OCR TEXT END ==========================================');
-            
-            extractedText = enhancedPdfTextCleaning(extractedText);
-          } else {
+          // Display OCR extracted text content
+          console.log('🔍 OCR TEXT START ========================================');
+          console.log(extractedText);
+          console.log('🔍 OCR TEXT END ==========================================');
+          
+          extractedText = enhancedPdfTextCleaning(extractedText);
+        } else {
           throw new Error('OCR extraction yielded insufficient text');
         }
         
