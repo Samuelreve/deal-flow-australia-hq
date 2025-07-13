@@ -22,6 +22,7 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
+    // Return just the filename part, not the full path
     return filePath;
   }
 
@@ -47,6 +48,7 @@ export class DocumentStorageService {
       throw new Error(`Failed to upload version file: ${uploadError.message}`);
     }
 
+    // Return just the relative path part, not including dealId
     return filePath;
   }
 
