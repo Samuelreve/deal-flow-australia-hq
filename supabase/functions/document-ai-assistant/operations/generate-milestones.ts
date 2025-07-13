@@ -94,6 +94,32 @@ Respond with a JSON object containing an array of milestones, each with 'name', 
         order: milestone.order || index + 1
       }));
       
+      // Always add Document Signing milestone - insert it before the final milestone
+      const documentSigningMilestone = {
+        name: "Document Signing",
+        description: "Execute and sign all final agreements, contracts, and legal documents required to complete the transaction.",
+        order: generatedMilestones.length // This will place it before the last milestone
+      };
+      
+      // Insert the signing milestone before the last one, and adjust orders
+      if (generatedMilestones.length > 0) {
+        // Adjust the order of the last milestone to make room for signing
+        const lastMilestone = generatedMilestones[generatedMilestones.length - 1];
+        lastMilestone.order = generatedMilestones.length + 1;
+        
+        // Insert the signing milestone
+        generatedMilestones.splice(generatedMilestones.length - 1, 0, documentSigningMilestone);
+        
+        // Re-order all milestones to ensure proper sequence
+        generatedMilestones = generatedMilestones.map((milestone, index) => ({
+          ...milestone,
+          order: index + 1
+        }));
+      } else {
+        // If no milestones were generated, just add the signing milestone
+        generatedMilestones = [documentSigningMilestone];
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       
@@ -158,9 +184,14 @@ function generateDefaultMilestones(dealType: string) {
       order: 6
     },
     {
+      name: "Document Signing",
+      description: "Execute and sign all final agreements, contracts, and legal documents required to complete the transaction.",
+      order: 7
+    },
+    {
       name: "Transaction Completion",
       description: "Execute final agreements, transfer ownership, and complete all regulatory filings.",
-      order: 7
+      order: 8
     }
   ];
 
