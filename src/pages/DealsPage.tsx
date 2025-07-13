@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DealSummary, DealStatus } from "@/types/deal";
 import { useDeals } from "@/hooks/useDeals";
@@ -19,6 +19,9 @@ const DealsPage = () => {
   const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const ITEMS_PER_PAGE = 15;
   
   // Convert deals from service format to DealSummary format
   const deals = convertDealsToDealSummaries(rawDeals);
@@ -42,7 +45,24 @@ const DealsPage = () => {
     }
     
     setFilteredDeals(filtered);
+    // Reset to first page when filters change
+    setCurrentPage(1);
   }, [searchTerm, statusFilter, deals]);
+  
+  // Calculate pagination
+  const totalFilteredDeals = filteredDeals.length;
+  const totalPages = Math.ceil(totalFilteredDeals / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedDeals = filteredDeals.slice(startIndex, endIndex);
+  
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+  
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
   
   const canCreateDeals = user?.profile?.role === "seller" || user?.profile?.role === "admin";
   const isFiltered = searchTerm !== "" || statusFilter !== "all";
@@ -91,13 +111,55 @@ const DealsPage = () => {
       />
       
       <div className="space-y-4">
-        {filteredDeals.length === 0 ? (
+        {totalFilteredDeals === 0 ? (
           <EmptyDealsState 
             isFiltered={isFiltered} 
             canCreateDeals={canCreateDeals} 
           />
         ) : (
-          <DealsTable deals={filteredDeals} totalDeals={deals.length} onDelete={deleteDeal} />
+          <>
+            <DealsTable 
+              deals={paginatedDeals} 
+              totalDeals={totalFilteredDeals}
+              onDelete={deleteDeal} 
+            />
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border rounded-lg bg-background">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>
+                    Showing {startIndex + 1} to {Math.min(endIndex, totalFilteredDeals)} of {totalFilteredDeals} deals
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1 px-3 py-1 text-sm">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>

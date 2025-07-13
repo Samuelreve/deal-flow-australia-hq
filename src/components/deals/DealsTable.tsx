@@ -86,15 +86,8 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) 
   }
 
   return (
-    <>
-      <div className="flex items-center justify-between px-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {deals.length} of {totalDeals} deals
-        </p>
-      </div>
-      
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full">
+    <div className="rounded-lg border overflow-hidden">
+      <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
               <th className="text-left p-4 text-sm font-medium text-muted-foreground">Deal</th>
@@ -165,10 +158,9 @@ const DealsTable: React.FC<DealsTableProps> = ({ deals, totalDeals, onDelete }) 
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+        </tbody>
+      </table>
+    </div>
   );
 };
 
