@@ -42,7 +42,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
-  const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
+  const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'delivered' | 'completed'>('not_started');
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
@@ -94,8 +94,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       const sellerSigned = completedSignatures.some(sig => sig.signer_role === 'seller');
       const adminSigned = completedSignatures.some(sig => sig.signer_role === 'admin');
       
-      // Check if any signatures are sent (waiting for signature)
-      const sentSignatures = allSignatures?.filter(sig => sig.status === 'sent') || [];
+      // Check if any signatures are delivered (waiting for signature)
+      const deliveredSignatures = allSignatures?.filter(sig => sig.status === 'delivered') || [];
       
       // Update signing status based on signatures
       // Admin can act as either buyer or seller, so if admin signed, consider it complete
@@ -103,7 +103,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       if ((buyerSigned && sellerSigned) || adminSigned) {
         setSigningStatus('completed');
         setDocumentsAreSigned(true);
-      } else if (completedSignatures.length > 0 || sentSignatures.length > 0) {
+      } else if (deliveredSignatures.length > 0) {
+        setSigningStatus('delivered');
+        setDocumentsAreSigned(false);
+      } else if (completedSignatures.length > 0) {
         setSigningStatus('partially_signed');
         setDocumentsAreSigned(false);
       } else {
@@ -482,24 +485,43 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             </div>
           )}
 
-          {/* Partially Signed State */}
-          {signingStatus === 'partially_signed' && (
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownloadSignedDocument}
-                  disabled={true}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Save and Download Signed Document
-                </button>
-              </div>
-              <div className="text-xs text-amber-600 font-medium">
-                Waiting for Recipient's Sign
-              </div>
-            </div>
-          )}
+           {/* Delivered State (Waiting for Recipient's Sign) */}
+           {signingStatus === 'delivered' && (
+             <div className="flex flex-col gap-2">
+               <div className="flex gap-2">
+                 <button
+                   onClick={handleDownloadSignedDocument}
+                   disabled={true}
+                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+                 >
+                   <FileText className="w-4 h-4 mr-2" />
+                   Save and Download Signed Document
+                 </button>
+               </div>
+               <div className="text-xs text-amber-600 font-medium">
+                 Waiting for Recipient's Sign
+               </div>
+             </div>
+           )}
+
+           {/* Partially Signed State */}
+           {signingStatus === 'partially_signed' && (
+             <div className="flex flex-col gap-2">
+               <div className="flex gap-2">
+                 <button
+                   onClick={handleDownloadSignedDocument}
+                   disabled={true}
+                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+                 >
+                   <FileText className="w-4 h-4 mr-2" />
+                   Save and Download Signed Document
+                 </button>
+               </div>
+               <div className="text-xs text-amber-600 font-medium">
+                 Waiting for Recipient's Sign
+               </div>
+             </div>
+           )}
 
           {/* Fully Signed State */}
           {signingStatus === 'completed' && (
