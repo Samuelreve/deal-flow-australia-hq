@@ -1,15 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as PDFJS from 'pdfjs-dist';
+import type {
+  PDFDocumentProxy,
+  RenderParameters,
+} from 'pdfjs-dist/types/src/display/api';
 
-// Load PDF.js from window (following the Medium article approach)
-declare global {
-  interface Window {
-    pdfjsLib: any;
-  }
-}
+// Configure PDF.js worker - use local worker file with matching version
+PDFJS.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
 interface SignaturePosition {
   x: number;
@@ -45,8 +46,9 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [pageImages, setPageImages] = useState<string[]>([]);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -58,138 +60,163 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     startX: 0,
     startY: 0
   });
+  
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const renderTaskRef = useRef<PDFJS.RenderTask | null>(null);
+  const [isRendering, setIsRendering] = useState(false);
+  const isRenderingRef = useRef(false);
+  const loadedDocumentUrlRef = useRef<string | null>(null);
 
   // Initialize signature positions
   useEffect(() => {
     if (isOpen && signers.length > 0) {
       const initialPositions = signers.map((signer, index) => {
-        console.log(`Initializing signer ${index}:`, signer.name, 'ID:', signer.recipientId);
         return {
-          x: 100 + (index * 200), // Spread them apart horizontally
+          x: 100 + (index * 200),
           y: 200 + (index * 100),
           page: 1,
           recipientId: signer.recipientId,
           recipientName: signer.name
         };
       });
-      console.log('All initial positions:', initialPositions);
       setSignaturePositions(initialPositions);
       setCurrentSignerIndex(null);
     }
   }, [isOpen, signers]);
 
-  // Load PDF.js library dynamically
+    // Load PDF document (metadata only, not pages) - prevent multiple loads
   useEffect(() => {
-    const loadPdfJs = async () => {
-      if (window.pdfjsLib) return;
+    if (!documentUrl || !isOpen) return;
+    if (loadedDocumentUrlRef.current === documentUrl) return; // Already loaded
 
-      try {
-        // Dynamically import PDF.js
-        const pdfjs = await import('pdfjs-dist');
-        window.pdfjsLib = pdfjs;
-        
-        // Set up worker
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.min.js',
-          import.meta.url
-        ).toString();
-        
-        console.log('PDF.js loaded successfully');
-      } catch (error) {
-        console.error('Error loading PDF.js:', error);
+    console.log(`Loading PDF document: ${documentUrl}`);
+    loadedDocumentUrlRef.current = documentUrl;
+    setIsLoadingPdf(true);
+    setError(null);
+    
+    const loadingTask = PDFJS.getDocument(documentUrl);
+    loadingTask.promise.then(
+      (loadedDoc) => {
+        setPdfDocument(loadedDoc);
+        setTotalPages(loadedDoc.numPages);
+        setCurrentPage(1); // This will trigger first page render
+        setIsLoadingPdf(false);
+        console.log(`✅ PDF metadata loaded - ${loadedDoc.numPages} pages available`);
+      },
+      (error) => {
+        console.error('PDF loading error:', error);
+        setError('Failed to load PDF document');
+        setIsLoadingPdf(false);
+        loadedDocumentUrlRef.current = null; // Reset on error
         toast({
-          title: 'Error loading PDF library',
-          description: 'Failed to load PDF processing library',
+          title: 'Error loading PDF',
+          description: 'Failed to load PDF document',
           variant: 'destructive'
         });
       }
+    );
+  }, [documentUrl, isOpen, toast]);
+
+  // Render ONLY the current page when page changes - with proper synchronization
+  useEffect(() => {
+    if (!pdfDocument || !currentPage) return;
+
+    const renderCurrentPage = async () => {
+      // Immediate check using ref to prevent race conditions
+      if (isRenderingRef.current) {
+        console.log(`⏸️ Skipping render - already rendering`);
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Set rendering flag immediately
+      isRenderingRef.current = true;
+      setIsRendering(true);
+
+      try {
+        // Cancel any ongoing render task first
+        if (renderTaskRef.current) {
+          console.log(`❌ Cancelling previous render task`);
+          renderTaskRef.current.cancel();
+          await new Promise(resolve => setTimeout(resolve, 10)); // Small delay to ensure cancellation
+          renderTaskRef.current = null;
+        }
+        
+        console.log(`🔄 Starting to render page ${currentPage}...`);
+        
+        // Clear canvas completely
+        const context = canvas.getContext('2d')!;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Load ONLY the specific page requested
+        console.log(`📄 Loading page ${currentPage} from PDF...`);
+        const page = await pdfDocument.getPage(currentPage);
+        const viewport = page.getViewport({ scale: zoom });
+        
+        // Set canvas dimensions for this specific page
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext: RenderParameters = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+        
+        // Render ONLY this page
+        console.log(`🎨 Rendering page ${currentPage} to canvas...`);
+        renderTaskRef.current = page.render(renderContext);
+        await renderTaskRef.current.promise;
+        
+        // Clear the render task reference when completed
+        renderTaskRef.current = null;
+        console.log(`✅ Successfully rendered page ${currentPage}`);
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'RenderingCancelledException') {
+          console.log(`🚫 Rendering of page ${currentPage} was cancelled`);
+        } else {
+          console.error(`❌ Error rendering page ${currentPage}:`, error);
+          setError(`Failed to render page ${currentPage}`);
+        }
+        renderTaskRef.current = null;
+      } finally {
+        // Always reset rendering flags
+        isRenderingRef.current = false;
+        setIsRendering(false);
+      }
     };
 
-    loadPdfJs();
-  }, [toast]);
+    renderCurrentPage();
+  }, [currentPage, pdfDocument, zoom]);
 
-  // Convert PDF to images using the Medium article approach
-  const convertPdfToImages = async (url: string) => {
-    if (!window.pdfjsLib) {
-      console.error('PDF.js not loaded');
-      return;
-    }
-
-    try {
-      setIsLoadingPdf(true);
-      console.log('Converting PDF to images:', url);
-      
-      // Fetch PDF and convert to base64 (following the article)
-      const response = await fetch(url);
-      const blob = await response.blob();
-      
-      return new Promise<void>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const data = e.target?.result as string;
-            const base64Data = data.replace(/.*base64,/, '');
-            const binaryData = atob(base64Data);
-            
-            await renderAllPages(binaryData);
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Error converting PDF:', error);
-      toast({
-        title: 'Error converting PDF',
-        description: 'Failed to convert PDF to images',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoadingPdf(false);
-    }
-  };
-
-  // Render all pages to images (following the article approach)
-  const renderAllPages = async (data: string) => {
-    const imagesList: string[] = [];
-    const canvas = document.createElement('canvas');
-    canvas.setAttribute('className', 'canv');
-    
-    const pdf = await window.pdfjsLib.getDocument({ data }).promise;
-    setTotalPages(pdf.numPages);
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      const renderContext = {
-        canvasContext: canvas.getContext('2d'),
-        viewport: viewport,
-      };
-      
-      await page.render(renderContext).promise;
-      const img = canvas.toDataURL('image/png');
-      imagesList.push(img);
-    }
-    
-    setPageImages(imagesList);
-    console.log('PDF converted to images successfully, total pages:', pdf.numPages);
-  };
-
-  // Load and convert PDF when modal opens
+  // Cleanup render tasks on unmount or modal close
   useEffect(() => {
-    if (isOpen && documentUrl && window.pdfjsLib) {
-      convertPdfToImages(documentUrl);
+    if (!isOpen) {
+      // Reset state when modal closes
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+      isRenderingRef.current = false;
+      loadedDocumentUrlRef.current = null;
+      setIsRendering(false);
+      setError(null);
     }
-  }, [isOpen, documentUrl, toast]);
+    
+    return () => {
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+      isRenderingRef.current = false;
+    };
+  }, [isOpen]);
 
-  // Global mouse event handlers for proper drag and drop
+  // Global mouse event handlers for drag and drop
   useEffect(() => {
     const handleGlobalMouseMove = (event: MouseEvent) => {
       if (dragState.isDragging && dragState.recipientId) {
@@ -200,20 +227,13 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
         const x = Math.round((event.clientX - rect.left) / zoom);
         const y = Math.round((event.clientY - rect.top) / zoom);
 
-        setSignaturePositions(prev => {
-          console.log('Current dragState.recipientId:', dragState.recipientId);
-          console.log('All positions before update:', prev.map(p => ({ name: p.recipientName, id: p.recipientId })));
-          
-          return prev.map(pos => {
-            if (pos.recipientId === dragState.recipientId) {
-              console.log(`✅ Updating position for ${pos.recipientName} (${pos.recipientId}): x=${x}, y=${y}`);
-              return { ...pos, x, y };
-            } else {
-              console.log(`❌ NOT updating ${pos.recipientName} (${pos.recipientId})`);
-              return pos;
-            }
-          });
-        });
+        setSignaturePositions(prev => 
+          prev.map(pos => 
+            pos.recipientId === dragState.recipientId 
+              ? { ...pos, x, y }
+              : pos
+          )
+        );
       }
     };
 
@@ -239,10 +259,9 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     };
   }, [dragState, zoom]);
 
-  const handleDocumentClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragState.isDragging) return;
     
-    // Only allow positioning if a signer is selected
     if (currentSignerIndex === null) {
       toast({
         title: 'No signer selected',
@@ -252,10 +271,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       return;
     }
 
-    const container = containerRef.current;
-    if (!container) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const rect = container.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     const x = Math.round((event.clientX - rect.left) / zoom);
     const y = Math.round((event.clientY - rect.top) / zoom);
 
@@ -295,7 +314,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   };
 
   const handleSignatureMouseDown = (recipientId: string, event: React.MouseEvent) => {
-    // Only allow dragging if the current signer is selected
     if (currentSignerIndex === null) {
       toast({
         title: 'No signer selected',
@@ -305,7 +323,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       return;
     }
 
-    // Only allow dragging if the signature belongs to the currently selected signer
     const currentSigner = signers[currentSignerIndex];
     if (currentSigner.recipientId !== recipientId) {
       toast({
@@ -317,21 +334,12 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
 
     event.stopPropagation();
-    console.log('Starting drag for recipientId:', recipientId);
     setDragState({
       isDragging: true,
       recipientId,
       startX: event.clientX,
       startY: event.clientY
     });
-  };
-
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.2, 3));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.2, 0.5));
   };
 
   const handleConfirm = () => {
@@ -348,9 +356,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   };
 
   const currentSigner = currentSignerIndex !== null ? signers[currentSignerIndex] : null;
-  const currentPosition = signaturePositions.find(
-    p => p.recipientId === currentSigner?.recipientId
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -418,7 +423,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                 </p>
               </div>
             )}
-
           </div>
 
           {/* Right Panel - Document Preview */}
@@ -430,22 +434,44 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                   size="sm"
                   variant="outline"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage <= 1}
+                  disabled={currentPage <= 1 || isRendering}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous Page
                 </Button>
                 <span className="text-sm px-3 py-1 bg-muted rounded">
                   Page {currentPage} of {totalPages}
+                  {isRendering && " (Loading page...)"}
                 </span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage >= totalPages}
+                  disabled={currentPage >= totalPages || isRendering}
                 >
                   Next Page
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setZoom(prev => Math.max(0.5, prev - 0.2))}
+                  disabled={zoom <= 0.5}
+                >
+                  Zoom Out
+                </Button>
+                <span className="text-sm px-2">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setZoom(prev => Math.min(3, prev + 0.2))}
+                  disabled={zoom >= 3}
+                >
+                  Zoom In
                 </Button>
               </div>
               <div className="text-sm text-muted-foreground">
@@ -453,91 +479,90 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               </div>
             </div>
 
+            {/* PDF Canvas Container */}
             <div 
               ref={containerRef}
-              className="flex-1 relative cursor-crosshair border rounded-lg bg-white overflow-auto"
-              style={{ 
-                width: '100%',
-                minHeight: '600px'
-              }}
-              onClick={handleDocumentClick}
+              className="flex-1 relative overflow-auto bg-white p-4"
             >
-              {/* Document preview using converted images */}
               {isLoadingPdf ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-gray-600">Converting PDF to images...</p>
+                    <p className="text-gray-600">Loading PDF...</p>
                   </div>
                 </div>
-              ) : pageImages.length > 0 && pageImages[currentPage - 1] ? (
-                <div className="relative w-full h-full flex justify-center bg-gray-100">
-                  <img
-                    src={pageImages[currentPage - 1]}
-                    alt={`PDF Page ${currentPage}`}
-                    className="max-w-full max-h-full object-contain"
-                    style={{
-                      transform: `scale(${zoom})`,
-                      transformOrigin: 'center top'
-                    }}
-                  />
+              ) : error ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-gray-200 p-8 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">❌</div>
+                      <p className="text-gray-600">{error}</p>
+                    </div>
+                  </div>
                 </div>
-              ) : (
+              ) : !documentUrl ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="bg-gray-200 p-8 rounded-lg">
                     <div className="text-center">
                       <div className="text-4xl mb-2">📄</div>
-                      <p className="text-gray-600">No document available</p>
+                      <p className="text-gray-600">No document URL provided</p>
                     </div>
                   </div>
                 </div>
-              )}
-              
-              {/* Overlay for click handling */}
-              <div 
-                className="absolute inset-0 bg-transparent cursor-crosshair"
-                onClick={handleDocumentClick}
-              />
-
-              {/* Render signature position indicators for current page only */}
-              {signaturePositions
-                .filter(position => position.page === currentPage)
-                .map((position) => {
-                  const signer = signers.find(s => s.recipientId === position.recipientId);
-                  const isCurrentSigner = currentSigner?.recipientId === position.recipientId;
-                  
-                  return (
-                    <div
-                      key={position.recipientId}
-                      className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
-                        isCurrentSigner 
-                          ? 'border-primary bg-primary/20 text-primary' 
-                          : 'border-blue-500 bg-blue-500/20 text-blue-700'
-                      }`}
-                      style={{
-                        left: position.x,
-                        top: position.y,
-                        width: '150px',
-                        height: '50px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onMouseDown={(e) => {
-                        handleSignatureMouseDown(position.recipientId, e);
-                      }}
-                    >
-                      {signer?.name || 'Unknown'} - Sign Here
+              ) : (
+                <div className="relative flex justify-center">
+                  {isRendering && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-gray-600">Loading page {currentPage}...</p>
+                      </div>
                     </div>
-                  );
-                })}
-
-              {/* Instruction overlay when no document is loaded */}
-              {!documentUrl && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
-                    Loading document...
-                  </div>
+                  )}
+                  <canvas
+                    ref={canvasRef}
+                    className="border border-gray-300 cursor-crosshair shadow-lg"
+                    onClick={handleCanvasClick}
+                    style={{
+                      maxWidth: '100%',
+                      height: 'auto',
+                      opacity: isRendering ? 0.5 : 1
+                    }}
+                  />
+                  
+                  {/* Signature position overlays */}
+                  {signaturePositions
+                    .filter(position => position.page === currentPage)
+                    .map((position) => {
+                      const signer = signers.find(s => s.recipientId === position.recipientId);
+                      const isCurrentSigner = currentSigner?.recipientId === position.recipientId;
+                      
+                      return (
+                        <div
+                          key={position.recipientId}
+                          className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
+                            isCurrentSigner 
+                              ? 'border-primary bg-primary/20 text-primary' 
+                              : 'border-blue-500 bg-blue-500/20 text-blue-700'
+                          }`}
+                          style={{
+                            left: position.x * zoom,
+                            top: position.y * zoom,
+                            width: 150 * zoom,
+                            height: 50 * zoom,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: Math.max(10, 12 * zoom)
+                          }}
+                          onMouseDown={(e) => {
+                            handleSignatureMouseDown(position.recipientId, e);
+                          }}
+                        >
+                          {signer?.name || 'Unknown'} - Sign Here
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
