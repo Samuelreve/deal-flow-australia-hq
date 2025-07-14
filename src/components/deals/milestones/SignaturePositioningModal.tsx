@@ -250,11 +250,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview */}
+              {/* Document preview using Google Docs viewer */}
               {documentUrl ? (
-                <embed
-                  src={`${documentUrl}#view=FitH`}
-                  type="application/pdf"
+                <iframe
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(documentUrl)}&embedded=true`}
                   className="absolute inset-0 w-full h-full border-0 pointer-events-none"
                   style={{
                     width: '100%',
@@ -262,6 +261,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                     border: 'none'
                   }}
                   title="Document Preview"
+                  allow="fullscreen"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
