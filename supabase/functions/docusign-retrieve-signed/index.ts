@@ -37,6 +37,7 @@ serve(async (req: Request) => {
     }
 
     // Get DocuSign token data from the OAuth function
+    console.log('🔍 Calling DocuSign status endpoint...');
     const tokenResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-sign/status`, {
       method: 'GET',
       headers: {
@@ -45,16 +46,29 @@ serve(async (req: Request) => {
       }
     });
 
+    console.log('📊 Status response status:', tokenResponse.status);
+    console.log('📊 Status response ok:', tokenResponse.ok);
+
     if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('❌ Status response error:', errorText);
       throw new Error('DocuSign not authenticated. Please authenticate first.');
     }
 
     const tokenData: DocuSignTokenData = await tokenResponse.json();
+    console.log('🔍 Raw token data received:', JSON.stringify(tokenData, null, 2));
+    console.log('🔍 Token data access_token:', tokenData.access_token ? 'Present' : 'Missing');
+    console.log('🔍 Token data account_id:', tokenData.account_id);
+    console.log('🔍 Token data base_uri:', tokenData.base_uri);
+
+    if (!tokenData.account_id || !tokenData.base_uri || !tokenData.access_token) {
+      throw new Error(`Missing DocuSign credentials: account_id=${tokenData.account_id}, base_uri=${tokenData.base_uri}, access_token=${tokenData.access_token ? 'present' : 'missing'}`);
+    }
 
     // Download the signed document from DocuSign
     const downloadUrl = `${tokenData.base_uri}/restapi/v2.1/accounts/${tokenData.account_id}/envelopes/${envelopeId}/documents/${documentId}`;
     
-    console.log('Downloading signed document from:', downloadUrl);
+    console.log('📥 Downloading signed document from:', downloadUrl);
 
     const documentResponse = await fetch(downloadUrl, {
       method: 'GET',
