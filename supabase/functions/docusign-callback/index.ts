@@ -62,7 +62,7 @@ serve(async (req: Request) => {
 
     console.log('=== End Webhook Data ===');
 
-    if (event === 'signing_complete' && envelopeId) {
+    if ((event === 'signing_complete' || event === 'envelope-completed') && envelopeId) {
       // Get the signature record to retrieve document and deal info
       const { data: signature, error: sigError } = await supabase
         .from('document_signatures')
