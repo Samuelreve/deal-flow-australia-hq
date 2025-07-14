@@ -18,12 +18,49 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Log the full request details
+    console.log('=== DocuSign Webhook Request ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
+
+    // Get query parameters
     const url = new URL(req.url);
     const event = url.searchParams.get('event');
     const envelopeId = url.searchParams.get('envelopeId');
-    const dealId = url.searchParams.get('dealId'); // Get dealId from query params
+    const dealId = url.searchParams.get('dealId');
+    
+    console.log('Query Parameters:', { event, envelopeId, dealId });
 
-    console.log('DocuSign callback:', { event, envelopeId, dealId });
+    // Try to read request body if it exists
+    let requestBody = null;
+    try {
+      const bodyText = await req.text();
+      if (bodyText) {
+        requestBody = JSON.parse(bodyText);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+      }
+    } catch (e) {
+      console.log('No JSON body or parsing failed:', e.message);
+    }
+
+    // Log document and status information if available
+    if (requestBody) {
+      if (requestBody.status) {
+        console.log('🔄 Document Status:', requestBody.status);
+      }
+      if (requestBody.envelopeId || requestBody.envelope_id) {
+        console.log('📄 Envelope ID:', requestBody.envelopeId || requestBody.envelope_id);
+      }
+      if (requestBody.documents) {
+        console.log('📁 Documents:', requestBody.documents);
+      }
+      if (requestBody.recipients) {
+        console.log('👥 Recipients:', requestBody.recipients);
+      }
+    }
+
+    console.log('=== End Webhook Data ===');
 
     if (event === 'signing_complete' && envelopeId) {
       // Get the signature record to retrieve document and deal info
