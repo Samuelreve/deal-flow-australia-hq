@@ -75,6 +75,32 @@ serve(async (req: Request) => {
 
     console.log('Processing webhook:', { webhookEvent, webhookEnvelopeId, webhookStatus });
 
+    // Update signature status based on webhook event
+    if (webhookEnvelopeId) {
+      let newStatus = 'pending'; // default
+      
+      if (webhookEvent === 'recipient-delivered' || webhookStatus === 'sent') {
+        newStatus = 'sent';
+      } else if (webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') {
+        newStatus = 'completed';
+      }
+      
+      // Update signature status
+      const { error: statusError } = await supabase
+        .from('document_signatures')
+        .update({ 
+          status: newStatus,
+          ...(newStatus === 'completed' ? { signed_at: new Date().toISOString() } : {})
+        })
+        .eq('envelope_id', webhookEnvelopeId);
+
+      if (statusError) {
+        console.error('Error updating signature status:', statusError);
+      } else {
+        console.log(`✅ Signature status updated to: ${newStatus}`);
+      }
+    }
+
     if ((webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
       console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
       
@@ -150,20 +176,7 @@ serve(async (req: Request) => {
         }
       }
 
-      // Update signature status to completed
-      const { error } = await supabase
-        .from('document_signatures')
-        .update({ 
-          status: 'completed',
-          signed_at: new Date().toISOString()
-        })
-        .eq('envelope_id', webhookEnvelopeId);
-
-      if (error) {
-        console.error('Error updating signature status:', error);
-      } else {
-        console.log('✅ Signature status updated successfully');
-      }
+      // Status was already updated above, no need to update again
     }
 
     // Get the deal ID for redirect (from signature record or URL param)
