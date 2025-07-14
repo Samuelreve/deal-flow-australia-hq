@@ -5,6 +5,7 @@ import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
 import DocumentSelectionModal from './DocumentSelectionModal';
+import SignaturePositioningModal from './SignaturePositioningModal';
 import { FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string} | null>(null);
+  const [signers, setSigners] = useState<Array<{email: string, name: string, recipientId: string}>>([]);
   const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
   const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
@@ -107,39 +111,104 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const handleDocumentSelected = async (documentId: string, buyerId?: string) => {
     if (!user) return;
 
-    setSigningInProgress(true);
     try {
-      console.log('Starting DocuSign process for document:', documentId, 'with buyer:', buyerId);
-      
-      // Get user profile for name
-      const { data: profile } = await supabase
+      // Get document URL for positioning
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .select('storage_path, name')
+        .eq('id', documentId)
+        .single();
+
+      if (docError || !document) {
+        throw new Error('Failed to load document');
+      }
+
+      // Get signed URL for document preview
+      const { data: urlData } = await supabase.storage
+        .from('deal_documents')
+        .createSignedUrl(document.storage_path, 3600); // 1 hour expiry
+
+      if (!urlData?.signedUrl) {
+        throw new Error('Failed to generate document preview');
+      }
+
+      // Prepare signers list
+      const currentUserProfile = await supabase
         .from('profiles')
         .select('name')
         .eq('id', user.id)
         .single();
 
-      let buyerInfo = null;
+      const signersList = [
+        {
+          email: user.email!,
+          name: currentUserProfile.data?.name || user.email!,
+          recipientId: '1'
+        }
+      ];
+
+      // Add buyer if selected
       if (buyerId) {
-        // Get buyer profile information
         const { data: buyerProfile } = await supabase
           .from('profiles')
           .select('name, email')
           .eq('id', buyerId)
           .single();
         
-        buyerInfo = buyerProfile;
+        if (buyerProfile) {
+          signersList.push({
+            email: buyerProfile.email,
+            name: buyerProfile.name,
+            recipientId: '2'
+          });
+        }
       }
+
+      // Set up for signature positioning
+      setSelectedDocument({ id: documentId, url: urlData.signedUrl });
+      setSigners(signersList);
+      setIsDocumentModalOpen(false);
+      setIsSignatureModalOpen(true);
+
+    } catch (error: any) {
+      console.error('Error preparing document for positioning:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to prepare document',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSignaturePositionsConfirmed = async (positions: Array<{x: number, y: number, page: number, recipientId: string, recipientName: string}>) => {
+    if (!selectedDocument || !user) return;
+
+    setSigningInProgress(true);
+    try {
+      console.log('Starting DocuSign process with custom positions:', positions);
+
+      // Prepare signers with positions
+      const signersWithPositions = signers.map(signer => {
+        const position = positions.find(p => p.recipientId === signer.recipientId);
+        return {
+          ...signer,
+          xPosition: position?.x.toString() || '100',
+          yPosition: position?.y.toString() || '200',
+          pageNumber: position?.page.toString() || '1'
+        };
+      });
       
       // Call DocuSign edge function to initiate signing
       const { data, error } = await supabase.functions.invoke('docusign-sign', {
         body: {
-          documentId,
+          documentId: selectedDocument.id,
           dealId,
           signerEmail: user.email,
-          signerName: profile?.name || user.email,
+          signerName: signers[0]?.name || user.email,
           signerRole: userRole.toLowerCase(),
-          buyerEmail: buyerInfo?.email,
-          buyerName: buyerInfo?.name
+          buyerEmail: signers[1]?.email,
+          buyerName: signers[1]?.name,
+          signaturePositions: signersWithPositions
         }
       });
 
@@ -151,20 +220,19 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         console.log('Got signing URL from DocuSign:', data.signingUrl);
         
         // Open DocuSign signing URL in new window
-        console.log('Opening signing URL in new tab...');
         const newWindow = window.open(data.signingUrl, '_blank');
         
         if (newWindow) {
           console.log('New tab opened successfully');
         } else {
           console.warn('Failed to open new tab - may be blocked by popup blocker');
-          // Fallback: try to open in same window
           window.location.href = data.signingUrl;
         }
         
-        // Close the modal after successfully opening the signing URL
-        console.log('Closing document selection modal...');
-        setIsDocumentModalOpen(false);
+        // Close the modals
+        setIsSignatureModalOpen(false);
+        setSelectedDocument(null);
+        setSigners([]);
         
         toast({
           title: 'Document signing initiated',
@@ -191,7 +259,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           description: 'Opening consent page in new tab. Please grant consent and try again.',
         });
         
-        // Open consent URL in new tab
         window.open(consentUrl, '_blank');
         return;
       }
@@ -339,6 +406,22 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         onDocumentSelected={handleDocumentSelected}
         isLoading={signingInProgress}
       />
+
+      {/* Signature Positioning Modal */}
+      {selectedDocument && (
+        <SignaturePositioningModal
+          isOpen={isSignatureModalOpen}
+          onClose={() => {
+            setIsSignatureModalOpen(false);
+            setSelectedDocument(null);
+            setSigners([]);
+          }}
+          onConfirm={handleSignaturePositionsConfirmed}
+          documentUrl={selectedDocument.url}
+          signers={signers}
+          isLoading={signingInProgress}
+        />
+      )}
     </li>
   );
 };

@@ -65,6 +65,16 @@ interface DocuSignRequest {
   signerEmail: string;
   signerName: string;
   signerRole: 'buyer' | 'seller';
+  buyerEmail?: string;
+  buyerName?: string;
+  signaturePositions?: Array<{
+    email: string;
+    name: string;
+    recipientId: string;
+    xPosition: string;
+    yPosition: string;
+    pageNumber: string;
+  }>;
 }
 
 interface EnvelopeRecipient {
@@ -72,6 +82,9 @@ interface EnvelopeRecipient {
   name: string;
   recipientId: string;
   routingOrder: string;
+  xPosition?: string;
+  yPosition?: string;
+  pageNumber?: string;
 }
 
 interface EnvelopeDocument {
@@ -621,9 +634,9 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   );
 
   console.log('Parsing request body...');
-  const { documentId, dealId, signerEmail, signerName, signerRole }: DocuSignRequest = await req.json();
+  const { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, signaturePositions }: DocuSignRequest = await req.json();
 
-  console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole });
+  console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, hasPositions: !!signaturePositions });
 
   // Get document details from database
   const { data: document, error: docError } = await supabase
@@ -636,22 +649,56 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     throw new Error('Document not found');
   }
 
-  // Get deal participants to determine who should receive the document
-  const { data: participants, error: participantsError } = await supabase
-    .from('deal_participants')
-    .select('user_id, role, profiles!inner(name, email)')
-    .eq('deal_id', dealId);
+  // Prepare signers list
+  let signers: EnvelopeRecipient[] = [];
 
-  if (participantsError) {
-    throw new Error('Failed to get deal participants');
-  }
+  if (signaturePositions && signaturePositions.length > 0) {
+    // Use the provided signature positions
+    signers = signaturePositions.map((pos, index) => ({
+      email: pos.email,
+      name: pos.name,
+      recipientId: pos.recipientId,
+      routingOrder: (index + 1).toString(),
+      xPosition: pos.xPosition,
+      yPosition: pos.yPosition,
+      pageNumber: pos.pageNumber
+    }));
+    console.log('Using provided signature positions:', signers);
+  } else {
+    // Fallback to legacy behavior - find opposite party
+    const { data: participants, error: participantsError } = await supabase
+      .from('deal_participants')
+      .select('user_id, role, profiles!inner(name, email)')
+      .eq('deal_id', dealId);
 
-  // Find the opposite party to send for signing
-  const oppositeRole = signerRole === 'buyer' ? 'seller' : 'buyer';
-  const oppositeParty = participants.find(p => p.role === oppositeRole);
+    if (participantsError) {
+      throw new Error('Failed to get deal participants');
+    }
 
-  if (!oppositeParty) {
-    throw new Error(`No ${oppositeRole} found for this deal`);
+    // Find the opposite party to send for signing
+    const oppositeRole = signerRole === 'buyer' ? 'seller' : 'buyer';
+    const oppositeParty = participants.find(p => p.role === oppositeRole);
+
+    if (!oppositeParty) {
+      throw new Error(`No ${oppositeRole} found for this deal`);
+    }
+
+    signers = [
+      {
+        email: signerEmail,
+        name: signerName,
+        recipientId: '1',
+        routingOrder: '1'
+      },
+      {
+        email: oppositeParty.profiles.email,
+        name: oppositeParty.profiles.name,
+        recipientId: '2',
+        routingOrder: '2'
+      }
+    ];
+
+    console.log('Using legacy signer setup:', signers);
   }
 
   // Download document from Supabase storage
@@ -707,20 +754,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       fileExtension: document.type.split('/')[1] || 'pdf',
       name: document.name
     },
-    signers: [
-      {
-        email: signerEmail,
-        name: signerName,
-        recipientId: '1',
-        routingOrder: '1'
-      },
-      {
-        email: oppositeParty.profiles.email,
-        name: oppositeParty.profiles.name,
-        recipientId: '2',
-        routingOrder: '2'
-      }
-    ],
+    signers,
     accessToken
   });
 
@@ -1008,25 +1042,16 @@ async function createDocuSignEnvelope(params: {
         signer.clientUserId = signerInfo.recipientId; // Match the clientUserId to recipientId
       }
       
-      // Add signature tabs using anchor positioning
+      // Add signature tabs with coordinates that will be passed from the frontend
       const signHere = new SignHere();
       signHere.documentId = params.document.documentId;
+      signHere.pageNumber = signerInfo.pageNumber || '1';
       signHere.recipientId = signerInfo.recipientId;
       signHere.tabLabel = `SignHere${index + 1}`;
-      
-      // Use anchor text positioning instead of fixed coordinates
-      signHere.anchorString = 'Sign';
-      signHere.anchorUnits = 'pixels';
-      signHere.anchorXOffset = '10';  // Small offset from the anchor text
-      signHere.anchorYOffset = '0';
-      signHere.anchorMatchWholeWord = 'true';
-      signHere.anchorCaseSensitive = 'false';
-      
-      // Alternative anchor strings to try if "Sign" isn't found
-      if (index > 0) {
-        // For additional signers, try other anchor patterns
-        signHere.anchorString = `/sn${index + 1}/`;  // Pattern like /sn2/, /sn3/, etc.
-      }
+      signHere.xPosition = signerInfo.xPosition || '100';
+      signHere.yPosition = signerInfo.yPosition || `${200 + (index * 100)}`;
+      signHere.width = '150';
+      signHere.height = '50';
       
       const tabs = new Tabs();
       tabs.signHereTabs = [signHere];
