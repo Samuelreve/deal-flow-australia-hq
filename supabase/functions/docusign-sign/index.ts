@@ -845,6 +845,33 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   // Get DocuSign access token
   const accessToken = await getDocuSignAccessToken();
 
+  // Save token to database if we have OAuth token data
+  if (docusignTokenData) {
+    try {
+      const { error: dbError } = await supabase
+        .from('docusign_tokens')
+        .upsert({
+          user_id: '00000000-0000-0000-0000-000000000000', // System UUID for edge function tokens
+          access_token: docusignTokenData.access_token,
+          refresh_token: docusignTokenData.refresh_token,
+          account_id: docusignTokenData.account_id,
+          base_uri: docusignTokenData.base_uri,
+          expires_at: new Date(docusignTokenData.expires_at).toISOString(),
+          user_info: docusignTokenData.user_info
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (dbError) {
+        console.error('Failed to save DocuSign token to database:', dbError);
+      } else {
+        console.log('✅ DocuSign token saved to database during signing process');
+      }
+    } catch (dbError) {
+      console.error('Database save error during signing:', dbError);
+    }
+  }
+
   // Create envelope for signing
   const envelope = await createDocuSignEnvelope({
     document: {
