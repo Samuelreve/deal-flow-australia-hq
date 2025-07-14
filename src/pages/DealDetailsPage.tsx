@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ const DealDetailsPage = () => {
   const { dealId } = useParams<{ dealId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +50,24 @@ const DealDetailsPage = () => {
       fetchDealData();
     }
   }, [dealId, user]);
+
+  // Handle URL parameters for tab switching and signed document notification
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const signed = searchParams.get('signed');
+    
+    if (tab) {
+      setActiveTab(tab);
+    }
+    
+    if (signed === 'true') {
+      toast({
+        title: "Document Signed Successfully",
+        description: "The document has been signed and saved to your documents.",
+        variant: "default"
+      });
+    }
+  }, [searchParams, toast]);
 
   const fetchDealData = async () => {
     if (!dealId || !user) return;

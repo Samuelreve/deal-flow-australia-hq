@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Document } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -13,6 +14,7 @@ export const useDocumentsList = (dealId: string, initialDocuments: Document[] = 
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const fetchDocuments = useCallback(async () => {
     if (!dealId) return;
@@ -38,6 +40,16 @@ export const useDocumentsList = (dealId: string, initialDocuments: Document[] = 
       fetchDocuments();
     }
   }, [dealId, fetchDocuments]);
+
+  // Refresh documents when signed=true is in URL (after document signing)
+  useEffect(() => {
+    if (searchParams.get('signed') === 'true' && dealId) {
+      // Add a small delay to ensure the signed document is fully processed
+      setTimeout(() => {
+        fetchDocuments();
+      }, 1000);
+    }
+  }, [searchParams, dealId, fetchDocuments]);
 
   return {
     documents,

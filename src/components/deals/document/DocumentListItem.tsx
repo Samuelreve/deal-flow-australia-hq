@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { ChevronRight, ChevronDown, FileCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDocumentSize } from "@/utils/documentTypeAdapter";
 import { getFileIconByType } from "@/lib/fileIcons";
+import { supabase } from "@/integrations/supabase/client";
 import DocumentVersionsList from "./DocumentVersionsList";
 
 interface DocumentListItemProps {
@@ -42,6 +43,33 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
   onVersionsUpdated
 }) => {
   const Icon = getFileIconByType(document.type || "");
+  const [signatureInfo, setSignatureInfo] = useState<{signer_email: string, signed_at: string} | null>(null);
+
+  // Fetch signature information for signed documents
+  useEffect(() => {
+    if (document.status === 'signed') {
+      fetchSignatureInfo();
+    }
+  }, [document.id, document.status]);
+
+  const fetchSignatureInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('document_signatures')
+        .select('signer_email, signed_at')
+        .eq('document_id', document.id)
+        .eq('status', 'completed')
+        .order('signed_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setSignatureInfo(data);
+      }
+    } catch (error) {
+      console.error('Error fetching signature info:', error);
+    }
+  };
   
   return (
     <div className="bg-muted/20 rounded-md overflow-hidden">
@@ -62,7 +90,10 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
                 <p className="text-sm font-medium truncate">{document.name}</p>
                 {document.status === 'signed' && (
                   <Badge variant="default" className="text-xs px-2 py-0.5 h-5 bg-green-600 hover:bg-green-700 text-white">
-                    Signed
+                    {signatureInfo 
+                      ? `Signed by ${signatureInfo.signer_email}` 
+                      : 'Signed'
+                    }
                   </Badge>
                 )}
                 {document.category && (
