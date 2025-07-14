@@ -103,7 +103,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       if ((buyerSigned && sellerSigned) || adminSigned) {
         setSigningStatus('completed');
         setDocumentsAreSigned(true);
-      } else if (completedSignatures.length > 0 || sentSignatures.length > 0) {
+      } else if (sentSignatures.length > 0) {
+        setSigningStatus('partially_signed');
+        setDocumentsAreSigned(false);
+      } else if (completedSignatures.length > 0) {
         setSigningStatus('partially_signed');
         setDocumentsAreSigned(false);
       } else {

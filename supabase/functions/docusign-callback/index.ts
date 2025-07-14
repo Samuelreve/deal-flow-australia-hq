@@ -79,9 +79,9 @@ serve(async (req: Request) => {
     if (webhookEnvelopeId) {
       let newStatus = 'pending'; // default
       
-      if (webhookEvent === 'recipient-delivered' || webhookStatus === 'sent') {
+      if (webhookEvent === 'recipient-sent' || webhookStatus === 'sent') {
         newStatus = 'sent';
-      } else if (webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') {
+      } else if (webhookEvent === 'envelope-completed' || webhookStatus === 'completed') {
         newStatus = 'completed';
       }
       
@@ -101,7 +101,7 @@ serve(async (req: Request) => {
       }
     }
 
-    if ((webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
+    if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
       console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
       
       // Get the signature record to retrieve document and deal info
