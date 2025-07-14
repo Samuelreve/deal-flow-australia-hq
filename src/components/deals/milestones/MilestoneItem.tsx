@@ -320,61 +320,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     setDownloadingSignedDoc(true);
     try {
-      // Get all completed signatures for this deal
-      const { data: signatures, error: sigError } = await supabase
-        .from('document_signatures')
-        .select('*')
-        .eq('deal_id', dealId)
-        .eq('status', 'completed');
-
-      if (sigError) {
-        throw new Error('Failed to get signature information');
-      }
-
-      if (!signatures || signatures.length === 0) {
-        toast({
-          title: 'No signed documents found',
-          description: 'No completed document signatures found for this deal.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // Use the first completed signature for download
-      const signature = signatures[0];
-
-      // Call the retrieve signed document function
-      const { data, error } = await supabase.functions.invoke('docusign-retrieve-signed', {
-        body: {
-          envelopeId: signature.envelope_id,
-          documentId: signature.document_id,
-          dealId: dealId
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.success) {
-        toast({
-          title: 'Document downloaded successfully',
-          description: `Signed document "${data.signedDocument.name}" has been added to your documents.`,
-        });
-
-        // Refresh the document list by triggering a re-check
-        setTimeout(() => {
-          checkDocumentSignatures();
-        }, 1000);
-      } else {
-        throw new Error(data?.error || 'Failed to download signed document');
-      }
-
+      // Simply refresh the page to show the latest documents
+      // The signed document should already be downloaded by the callback
+      window.location.reload();
     } catch (error: any) {
-      console.error('Error downloading signed document:', error);
+      console.error('Error refreshing page:', error);
       toast({
-        title: 'Download failed',
-        description: error.message || 'Failed to download signed document',
+        title: 'Refresh failed',
+        description: 'Please manually refresh the page to see the latest documents',
         variant: 'destructive'
       });
     } finally {

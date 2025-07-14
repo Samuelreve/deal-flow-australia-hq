@@ -62,39 +62,110 @@ serve(async (req: Request) => {
 
     console.log('=== End Webhook Data ===');
 
-    if ((event === 'signing_complete' || event === 'envelope-completed') && envelopeId) {
+    // Handle webhook events and check if it's from request body
+    let webhookEvent = event;
+    let webhookEnvelopeId = envelopeId;
+    let webhookStatus = null;
+    
+    if (requestBody && requestBody.event) {
+      webhookEvent = requestBody.event;
+      webhookEnvelopeId = requestBody.data?.envelopeId || requestBody.envelopeId;
+      webhookStatus = requestBody.data?.envelopeSummary?.status || requestBody.status;
+    }
+
+    console.log('Processing webhook:', { webhookEvent, webhookEnvelopeId, webhookStatus });
+
+    if ((webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
+      console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
+      
       // Get the signature record to retrieve document and deal info
       const { data: signature, error: sigError } = await supabase
         .from('document_signatures')
         .select('document_id, deal_id')
-        .eq('envelope_id', envelopeId)
+        .eq('envelope_id', webhookEnvelopeId)
         .single();
 
       if (sigError || !signature) {
         console.error('Error finding signature record:', sigError);
       } else {
-        // Call the retrieve signed document function
+        console.log('Found signature record:', signature);
+        
+        // Try to download the signed document directly from DocuSign
         try {
-          const retrieveResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-retrieve-signed`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              envelopeId: envelopeId,
-              documentId: signature.document_id,
-              dealId: signature.deal_id
-            })
-          });
+          // Get DocuSign tokens
+          const { data: tokens, error: tokenError } = await supabase
+            .from('docusign_tokens')
+            .select('*')
+            .single();
 
-          if (retrieveResponse.ok) {
-            console.log('✅ Signed document retrieved and uploaded successfully');
+          if (tokenError || !tokens) {
+            console.log('No DocuSign tokens found, document will be downloaded manually later');
           } else {
-            console.error('Failed to retrieve signed document:', await retrieveResponse.text());
+            console.log('Found DocuSign tokens, attempting to download signed document');
+            
+            // Download the signed document from DocuSign
+            const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/combined`;
+            
+            const docResponse = await fetch(docuSignUrl, {
+              headers: {
+                'Authorization': `Bearer ${tokens.access_token}`,
+                'Accept': 'application/pdf'
+              }
+            });
+
+            if (docResponse.ok) {
+              const pdfBuffer = await docResponse.arrayBuffer();
+              const uint8Array = new Uint8Array(pdfBuffer);
+              
+              // Get original document name
+              const { data: originalDoc } = await supabase
+                .from('documents')
+                .select('name')
+                .eq('id', signature.document_id)
+                .single();
+              
+              const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
+              const filePath = `${signature.deal_id}/${fileName}`;
+              
+              // Upload to Supabase storage
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('deal_documents')
+                .upload(filePath, uint8Array, {
+                  contentType: 'application/pdf',
+                  upsert: true
+                });
+
+              if (uploadError) {
+                console.error('Error uploading signed document:', uploadError);
+              } else {
+                console.log('✅ Signed document uploaded successfully:', filePath);
+                
+                // Create new document record for signed version
+                const { error: docError } = await supabase
+                  .from('documents')
+                  .insert({
+                    deal_id: signature.deal_id,
+                    name: fileName,
+                    type: 'application/pdf',
+                    size: uint8Array.length,
+                    storage_path: filePath,
+                    status: 'signed',
+                    uploaded_by: tokens.user_id || 'system',
+                    category: 'signed_contract'
+                  });
+
+                if (docError) {
+                  console.error('Error creating signed document record:', docError);
+                } else {
+                  console.log('✅ Signed document record created successfully');
+                }
+              }
+            } else {
+              console.error('Failed to download document from DocuSign:', await docResponse.text());
+            }
           }
-        } catch (retrieveError) {
-          console.error('Error calling retrieve signed document function:', retrieveError);
+        } catch (downloadError) {
+          console.error('Error downloading signed document:', downloadError);
         }
       }
 
@@ -105,12 +176,12 @@ serve(async (req: Request) => {
           status: 'completed',
           signed_at: new Date().toISOString()
         })
-        .eq('envelope_id', envelopeId);
+        .eq('envelope_id', webhookEnvelopeId);
 
       if (error) {
         console.error('Error updating signature status:', error);
       } else {
-        console.log('Signature status updated successfully');
+        console.log('✅ Signature status updated successfully');
       }
     }
 
