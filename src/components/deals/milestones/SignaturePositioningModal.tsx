@@ -77,11 +77,13 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
         const y = Math.round((event.clientY - rect.top) / zoom);
 
         setSignaturePositions(prev =>
-          prev.map(pos =>
-            pos.recipientId === dragState.recipientId
-              ? { ...pos, x, y }
-              : pos
-          )
+          prev.map(pos => {
+            if (pos.recipientId === dragState.recipientId) {
+              console.log(`Updating position for ${pos.recipientName} (${pos.recipientId}): x=${x}, y=${y}`);
+              return { ...pos, x, y };
+            }
+            return pos;
+          })
         );
       }
     };
@@ -154,6 +156,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
 
   const handleSignatureMouseDown = (recipientId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    console.log('Starting drag for recipientId:', recipientId);
     setDragState({
       isDragging: true,
       recipientId,
