@@ -1,10 +1,48 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import DocuSignJWT from 'https://esm.sh/docusign-esign@8.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// JWT authentication function
+async function getJWTAccessToken(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string | null> {
+  try {
+    console.log('Attempting JWT authentication with DocuSign...');
+    
+    // Clean up the private key
+    const cleanPrivateKey = privateKey
+      .replace(/\\n/g, '\n')
+      .replace(/-----BEGIN RSA PRIVATE KEY-----/, '-----BEGIN RSA PRIVATE KEY-----\n')
+      .replace(/-----END RSA PRIVATE KEY-----/, '\n-----END RSA PRIVATE KEY-----');
+
+    const apiClient = new DocuSignJWT.ApiClient();
+    apiClient.setOAuthBasePath('https://account-d.docusign.com'); // Demo environment
+    
+    // Request JWT access token
+    const results = await apiClient.requestJWTUserToken(
+      integrationKey,
+      userId,
+      ['signature'],
+      cleanPrivateKey,
+      3600 // 1 hour expiration
+    );
+
+    if (results && results.body && results.body.access_token) {
+      console.log('✅ Successfully obtained JWT access token');
+      return results.body.access_token;
+    } else {
+      console.error('❌ JWT authentication failed: No access token in response');
+      return null;
+    }
+  } catch (error: any) {
+    console.error('❌ JWT authentication error:', error);
+    console.error('Error details:', error.message);
+    return null;
+  }
+}
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -116,60 +154,115 @@ serve(async (req: Request) => {
       } else {
         console.log('Found signature record:', signature);
         
-        // Try to download the signed document directly from DocuSign
+        // Try to download the signed document using JWT authentication
         try {
-          // Get DocuSign tokens
-          const { data: tokens, error: tokenError } = await supabase
-            .from('docusign_tokens')
-            .select('*')
-            .single();
+          console.log('Attempting to download signed document using JWT authentication');
+          
+          // Get DocuSign credentials from Supabase secrets
+          const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+          const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
+          const userId = Deno.env.get('DOCUSIGN_USER_ID');
+          const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
+          const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
 
-          if (tokenError || !tokens) {
-            console.log('No DocuSign tokens found, document will be downloaded manually later');
-          } else {
-            console.log('Found DocuSign tokens, attempting to download signed document');
-            
-            // Download the signed document from DocuSign
-            const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/combined`;
-            
-            const docResponse = await fetch(docuSignUrl, {
-              headers: {
-                'Authorization': `Bearer ${tokens.access_token}`,
-                'Accept': 'application/pdf'
-              }
-            });
+          if (!integrationKey || !userId || !accountId || !privateKey) {
+            console.log('Missing DocuSign JWT credentials, document will be downloaded manually later');
+            return;
+          }
 
-            if (docResponse.ok) {
-              const pdfBuffer = await docResponse.arrayBuffer();
-              const uint8Array = new Uint8Array(pdfBuffer);
-              
-              // Get original document name
-              const { data: originalDoc } = await supabase
-                .from('documents')
-                .select('name')
-                .eq('id', signature.document_id)
-                .single();
-              
-              const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
-              const filePath = `${signature.deal_id}/${fileName}`;
-              
-              // Save to signed_document bucket (not auto-download)
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('signed_document')
-                .upload(filePath, uint8Array, {
-                  contentType: 'application/pdf',
-                  upsert: true
-                });
+          // Get JWT access token
+          const accessToken = await getJWTAccessToken(integrationKey, userId, privateKey, accountId);
+          
+          if (!accessToken) {
+            console.log('Failed to get JWT access token, document will be downloaded manually later');
+            return;
+          }
 
-              if (uploadError) {
-                console.error('Error uploading signed document:', uploadError);
-              } else {
-                console.log('✅ Signed document saved to storage:', filePath);
-                console.log('Document will be available for manual download via button');
-              }
-            } else {
-              console.error('Failed to download document from DocuSign:', await docResponse.text());
+          console.log('Successfully obtained JWT access token');
+          
+          // Download the signed document from DocuSign
+          const baseUri = 'https://demo.docusign.net'; // Use production URL: https://www.docusign.net
+          const docuSignUrl = `${baseUri}/restapi/v2.1/accounts/${accountId}/envelopes/${webhookEnvelopeId}/documents/combined`;
+          
+          const docResponse = await fetch(docuSignUrl, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/pdf'
             }
+          });
+
+          if (docResponse.ok) {
+            const pdfBuffer = await docResponse.arrayBuffer();
+            const uint8Array = new Uint8Array(pdfBuffer);
+            
+            // Get original document name
+            const { data: originalDoc } = await supabase
+              .from('documents')
+              .select('name')
+              .eq('id', signature.document_id)
+              .single();
+            
+            const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
+            const filePath = `${signature.deal_id}/${fileName}`;
+            
+            // Save to deal_documents bucket for proper access
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('deal_documents')
+              .upload(filePath, uint8Array, {
+                contentType: 'application/pdf',
+                upsert: true
+              });
+
+            if (uploadError) {
+              console.error('Error uploading signed document:', uploadError);
+            } else {
+              console.log('✅ Signed document saved to storage:', filePath);
+              
+              // Create a new document record for the signed version
+              const { data: newDoc, error: docError } = await supabase
+                .from('documents')
+                .insert({
+                  name: fileName,
+                  deal_id: signature.deal_id,
+                  storage_path: filePath,
+                  type: 'application/pdf',
+                  size: uint8Array.length,
+                  uploaded_by: signature.document_id, // Use original document ID as reference
+                  status: 'signed',
+                  category: 'signed_document'
+                })
+                .select()
+                .single();
+
+              if (docError) {
+                console.error('Error creating signed document record:', docError);
+              } else {
+                console.log('✅ Created signed document record in database');
+                
+                // Create a document version for the signed document
+                const { error: versionError } = await supabase
+                  .from('document_versions')
+                  .insert({
+                    document_id: newDoc.id,
+                    storage_path: filePath,
+                    type: 'application/pdf',
+                    size: uint8Array.length,
+                    uploaded_by: signature.document_id,
+                    version_number: 1,
+                    description: 'Signed version'
+                  });
+
+                if (versionError) {
+                  console.error('Error creating document version:', versionError);
+                } else {
+                  console.log('✅ Created document version for signed document');
+                }
+              }
+            }
+          } else {
+            const errorText = await docResponse.text();
+            console.error('Failed to download document from DocuSign:', errorText);
+            console.error('Response status:', docResponse.status);
           }
         } catch (downloadError) {
           console.error('Error downloading signed document:', downloadError);
