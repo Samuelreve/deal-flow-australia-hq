@@ -3,10 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+import { pdfToImg } from 'pdftoimg-js';
 
 interface SignaturePosition {
   x: number;
@@ -42,8 +39,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [pageCanvas, setPageCanvas] = useState<string | null>(null);
+  const [pdfImages, setPdfImages] = useState<string[]>([]);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
@@ -78,18 +74,26 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers]);
 
-  // Load PDF document
+  // Load PDF document and convert to images
   useEffect(() => {
     const loadPdf = async () => {
       if (!documentUrl) return;
       
       try {
         setIsLoadingPdf(true);
-        const loadingTask = pdfjsLib.getDocument(documentUrl);
-        const pdf = await loadingTask.promise;
-        setPdfDocument(pdf);
-        setTotalPages(pdf.numPages);
-        console.log('PDF loaded successfully, total pages:', pdf.numPages);
+        console.log('Loading PDF from URL:', documentUrl);
+        
+        // Convert PDF to images using pdftoimg-js
+        const images = await pdfToImg(documentUrl, {
+          pages: 'all',
+          imgType: 'png',
+          scale: 2,
+          background: 'white',
+        });
+        
+        console.log('PDF converted to images successfully, total pages:', images.length);
+        setPdfImages(images);
+        setTotalPages(images.length);
       } catch (error) {
         console.error('Error loading PDF:', error);
         toast({
@@ -106,52 +110,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       loadPdf();
     }
   }, [isOpen, documentUrl, toast]);
-
-  // Render current page
-  useEffect(() => {
-    const renderPage = async () => {
-      if (!pdfDocument) return;
-      
-      try {
-        console.log('Rendering page:', currentPage);
-        const page = await pdfDocument.getPage(currentPage);
-        
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
-        // Set up viewport
-        const viewport = page.getViewport({ scale: zoom });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        // Render page
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        await page.render(renderContext).promise;
-        
-        // Convert canvas to data URL
-        const imageDataUrl = canvas.toDataURL('image/png');
-        setPageCanvas(imageDataUrl);
-        console.log('Page rendered successfully');
-      } catch (error) {
-        console.error('Error rendering page:', error);
-        toast({
-          title: 'Error rendering page',
-          description: 'Failed to render the PDF page',
-          variant: 'destructive'
-        });
-      }
-    };
-
-    if (pdfDocument && currentPage) {
-      renderPage();
-    }
-  }, [pdfDocument, currentPage, zoom, toast]);
 
   // Global mouse event handlers for proper drag and drop
   useEffect(() => {
@@ -426,7 +384,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using PDF.js rendered canvas */}
+              {/* Document preview using converted PDF images */}
               {isLoadingPdf ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
@@ -434,10 +392,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                     <p className="text-gray-600">Loading PDF...</p>
                   </div>
                 </div>
-              ) : pageCanvas ? (
+              ) : pdfImages.length > 0 && pdfImages[currentPage - 1] ? (
                 <div className="relative w-full h-full flex justify-center bg-gray-100">
                   <img
-                    src={pageCanvas}
+                    src={pdfImages[currentPage - 1]}
                     alt={`PDF Page ${currentPage}`}
                     className="max-w-full max-h-full object-contain"
                     style={{
