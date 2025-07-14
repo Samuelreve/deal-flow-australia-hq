@@ -308,7 +308,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       throw new Error('No DocuSign account found for user');
     }
 
-    // Store token information
+    // Store token information in database and memory
     const expiresAt = Date.now() + (oAuthToken.expires_in * 1000);
     docusignTokenData = {
       access_token: oAuthToken.access_token,
@@ -318,8 +318,40 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       expires_at: expiresAt,
       user_info: userInfo
     };
+    
+    // Also store in database for persistence
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      const { error: dbError } = await supabase
+        .from('docusign_tokens')
+        .upsert({
+          user_id: 'system', // Since we don't have user context in edge functions
+          access_token: oAuthToken.access_token,
+          refresh_token: oAuthToken.refresh_token,
+          account_id: defaultAccount.account_id,
+          base_uri: defaultAccount.base_uri,
+          expires_at: new Date(expiresAt).toISOString(),
+          user_info: userInfo
+        }, {
+          onConflict: 'user_id'
+        });
 
-    console.log('✅ Successfully obtained DocuSign access token via OAuth');
+      if (dbError) {
+        console.error('Failed to store DocuSign token:', dbError);
+        // Don't fail the whole operation for this
+      } else {
+        console.log('✅ Token stored in database successfully');
+      }
+    } catch (dbError) {
+      console.error('Database storage error:', dbError);
+      // Don't fail the whole operation for this
+    }
+
+    console.log('✅ Successfully obtained and stored DocuSign access token via OAuth');
 
     return new Response(
       JSON.stringify({
@@ -511,7 +543,70 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
  * Handle status request - get current configuration and token status
  */
 async function handleStatusRequest(req: Request): Promise<Response> {
-  // Check OAuth token data first
+  console.log('🔍 Status request - checking for stored token data...');
+  
+  // Create Supabase client to retrieve token data
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  
+  // Try to get token data from database first
+  try {
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('docusign_tokens')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    console.log('🔍 Database token query result:', { tokenData, tokenError });
+    
+    if (!tokenError && tokenData) {
+      const now = new Date();
+      const expiresAt = new Date(tokenData.expires_at);
+      const expired = now >= expiresAt;
+      
+      console.log('🔍 Found token in database:', {
+        account_id: tokenData.account_id,
+        base_uri: tokenData.base_uri,
+        expires_at: tokenData.expires_at,
+        expired
+      });
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          authMethod: 'oauth',
+          isAuthenticated: true,
+          // For compatibility with retrieve function, include fields at top level
+          account_id: tokenData.account_id,
+          base_uri: tokenData.base_uri,
+          access_token: tokenData.access_token,
+          tokenData: {
+            account_id: tokenData.account_id,
+            base_uri: tokenData.base_uri,
+            expires_at: tokenData.expires_at,
+            user_info: tokenData.user_info
+          },
+          tokenStatus: {
+            isExpired: expired,
+            hasRefreshToken: !!tokenData.refresh_token,
+            expiresIn: Math.max(0, expiresAt.getTime() - now.getTime()) / 1000
+          },
+          message: expired ? 'OAuth token is expired' : 'OAuth token is valid'
+        }),
+        { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error retrieving token from database:', error);
+  }
+  
+  // Check OAuth token data in memory (fallback)
   if (docusignTokenData) {
     const expired = isTokenExpired();
     

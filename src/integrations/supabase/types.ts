@@ -1026,6 +1026,45 @@ export type Database = {
           },
         ]
       }
+      docusign_tokens: {
+        Row: {
+          access_token: string
+          account_id: string
+          base_uri: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+          user_info: Json | null
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          base_uri: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+          user_info?: Json | null
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          base_uri?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+          user_info?: Json | null
+        }
+        Relationships: []
+      }
       health_recovery_plans: {
         Row: {
           action_items: Json
