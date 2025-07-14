@@ -42,6 +42,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
+  const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
@@ -76,23 +77,37 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     
     setCheckingSignatures(true);
     try {
-      // Check if there are any completed signatures for this deal
-      const { data: signatures, error } = await supabase
+      // Check for all signatures for this deal (both completed and sent)
+      const { data: allSignatures, error } = await supabase
         .from('document_signatures')
         .select('*')
-        .eq('deal_id', dealId)
-        .eq('status', 'completed');
+        .eq('deal_id', dealId);
 
       if (error) {
         console.error('Error checking signatures:', error);
         return;
       }
 
-      // Check if we have signatures from both buyer and seller
-      const buyerSigned = signatures?.some(sig => sig.signer_role === 'buyer');
-      const sellerSigned = signatures?.some(sig => sig.signer_role === 'seller');
+      // Check completed signatures
+      const completedSignatures = allSignatures?.filter(sig => sig.status === 'completed') || [];
+      const buyerSigned = completedSignatures.some(sig => sig.signer_role === 'buyer');
+      const sellerSigned = completedSignatures.some(sig => sig.signer_role === 'seller');
       
-      setDocumentsAreSigned(buyerSigned && sellerSigned);
+      // Check if any signatures are sent (waiting for signature)
+      const sentSignatures = allSignatures?.filter(sig => sig.status === 'sent') || [];
+      
+      // Update signing status based on signatures
+      if (buyerSigned && sellerSigned) {
+        setSigningStatus('completed');
+        setDocumentsAreSigned(true);
+      } else if (completedSignatures.length > 0 || sentSignatures.length > 0) {
+        setSigningStatus('partially_signed');
+        setDocumentsAreSigned(false);
+      } else {
+        setSigningStatus('not_started');
+        setDocumentsAreSigned(false);
+      }
+      
     } catch (error) {
       console.error('Error checking document signatures:', error);
     } finally {
@@ -475,28 +490,61 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
 
-      {/* Sign Document Button - Show separately for better visibility */}
-      {showSignButton && (
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={handleSignDocument}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
-            disabled={signingInProgress}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            {signingInProgress ? 'Starting...' : 'Sign Document'}
-          </button>
-          
-          {/* Download Signed Document Button - Show when documents are signed */}
-          {documentsAreSigned && (
-            <button
-              onClick={handleDownloadSignedDocument}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300 animate-fade-in"
-              disabled={downloadingSignedDoc}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              {downloadingSignedDoc ? 'Downloading...' : 'Download Signed Document'}
-            </button>
+      {/* Document Signing Workflow - Show for Document Signing milestone when in progress */}
+      {isDocumentSigning && milestone.status === 'in_progress' && (
+        <div className="mt-3 flex flex-col gap-3">
+          {/* Sign Document Button - Show when not started or can start signing */}
+          {signingStatus === 'not_started' && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleSignDocument}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
+                disabled={signingInProgress}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {signingInProgress ? 'Starting...' : 'Sign Document'}
+              </button>
+            </div>
+          )}
+
+          {/* Partially Signed State */}
+          {signingStatus === 'partially_signed' && (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadSignedDocument}
+                  disabled={true}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Save and Download Signed Document
+                </button>
+              </div>
+              <div className="text-xs text-amber-600 font-medium">
+                Waiting for Recipient's Sign
+              </div>
+            </div>
+          )}
+
+          {/* Fully Signed State */}
+          {signingStatus === 'completed' && (
+            <div className="flex gap-2">
+              <button
+                disabled={true}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Signed
+              </button>
+              <button
+                onClick={handleDownloadSignedDocument}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300 animate-fade-in"
+                disabled={downloadingSignedDoc}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {downloadingSignedDoc ? 'Downloading...' : 'Save and Download Signed Document'}
+              </button>
+            </div>
           )}
         </div>
       )}
