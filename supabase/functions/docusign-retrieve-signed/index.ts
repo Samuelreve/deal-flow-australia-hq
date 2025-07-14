@@ -36,120 +36,137 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log('🔍 Looking for signed documents in signed_document bucket for deal:', dealId);
+    console.log('🔍 Looking for signed documents for deal:', dealId);
 
-    // List files in the signed_document bucket for this deal
-    const { data: files, error: listError } = await supabase.storage
-      .from('signed_document')
-      .list(dealId);
+    // Get completed document signatures for this deal
+    const { data: signatures, error: sigError } = await supabase
+      .from('document_signatures')
+      .select(`
+        *,
+        documents(id, name)
+      `)
+      .eq('deal_id', dealId)
+      .eq('status', 'completed');
 
-    if (listError) {
-      console.error('❌ Error listing signed documents:', listError);
-      throw new Error('Failed to list signed documents');
+    if (sigError) {
+      console.error('❌ Error fetching signatures:', sigError);
+      throw new Error('Failed to fetch signature records');
     }
 
-    if (!files || files.length === 0) {
-      console.log('📄 No signed documents found for deal:', dealId);
+    if (!signatures || signatures.length === 0) {
+      console.log('📄 No completed signatures found for deal:', dealId);
       return new Response(
         JSON.stringify({ message: 'No signed documents available yet' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('📄 Found signed documents:', files.map(f => f.name));
+    console.log('📄 Found completed signatures:', signatures.length);
+
+    // Get DocuSign access token
+    const { data: tokens, error: tokenError } = await supabase
+      .from('docusign_tokens')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (tokenError || !tokens) {
+      console.log('❌ No DocuSign tokens found');
+      throw new Error('DocuSign authentication required');
+    }
+
+    console.log('✅ Found DocuSign tokens');
 
     const processedDocuments = [];
 
-    // Process each signed document
-    for (const file of files) {
+    // Process each completed signature
+    for (const signature of signatures) {
       try {
-        const signedDocPath = `${dealId}/${file.name}`;
+        console.log('📥 Processing envelope:', signature.envelope_id);
         
-        // Download the file from signed_document bucket
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from('signed_document')
-          .download(signedDocPath);
+        // Get documents in the envelope
+        const envelopeDocsUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${signature.envelope_id}/documents`;
+        
+        const docsResponse = await fetch(envelopeDocsUrl, {
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+            'Accept': 'application/json'
+          }
+        });
 
-        if (downloadError || !fileData) {
-          console.error('❌ Error downloading file:', file.name, downloadError);
+        if (!docsResponse.ok) {
+          console.error('❌ Failed to get envelope documents:', await docsResponse.text());
           continue;
         }
 
-        const arrayBuffer = await fileData.arrayBuffer();
-        const documentBytes = new Uint8Array(arrayBuffer);
+        const docsData = await docsResponse.json();
+        console.log('📄 Documents in envelope:', docsData);
+        
+        // Find the actual document (not certificate)
+        const document = docsData.envelopeDocuments?.find((doc: any) => 
+          doc.type === 'content' && doc.documentId !== 'certificate'
+        );
+        
+        if (!document) {
+          console.log('❌ No valid document found in envelope');
+          continue;
+        }
 
-        // Create new path in deal_documents bucket
-        const newStoragePath = `${dealId}/${file.name}`;
+        // Download the specific document using the provided URL format
+        const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${signature.envelope_id}/documents/${document.documentId}`;
+        
+        console.log('📥 Downloading from:', docuSignUrl);
+        
+        const docResponse = await fetch(docuSignUrl, {
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+            'Accept': 'application/pdf'
+          }
+        });
 
-        // Upload to deal_documents bucket
+        if (!docResponse.ok) {
+          console.error('❌ Failed to download document:', await docResponse.text());
+          continue;
+        }
+
+        const pdfBuffer = await docResponse.arrayBuffer();
+        const uint8Array = new Uint8Array(pdfBuffer);
+        
+        // Generate signed document name
+        const originalDoc = signature.documents;
+        const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
+        const filePath = `${dealId}/${fileName}`;
+        
+        // Save to Signed Documents bucket
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('deal_documents')
-          .upload(newStoragePath, documentBytes, {
+          .from('Signed Documents')
+          .upload(filePath, uint8Array, {
             contentType: 'application/pdf',
             upsert: true
           });
 
         if (uploadError) {
-          console.error('❌ Error uploading to deal_documents:', uploadError);
+          console.error('❌ Error uploading signed document:', uploadError);
           continue;
         }
 
         // Get signed URL for download
         const { data: signedUrlData } = await supabase.storage
-          .from('deal_documents')
-          .createSignedUrl(newStoragePath, 60 * 60 * 24); // 24 hours
-
-        // Create document record
-        const { data: newDoc, error: createError } = await supabase
-          .from('documents')
-          .insert({
-            deal_id: dealId,
-            name: file.name,
-            storage_path: newStoragePath,
-            size: documentBytes.length,
-            type: 'application/pdf',
-            status: 'signed',
-            category: 'signed_contract',
-            uploaded_by: (await supabase.auth.getUser()).data.user?.id || '00000000-0000-0000-0000-000000000000',
-            version: 1
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('❌ Error creating document record:', createError);
-          continue;
-        }
-
-        // Create document version record
-        await supabase
-          .from('document_versions')
-          .insert({
-            document_id: newDoc.id,
-            version_number: 1,
-            storage_path: newStoragePath,
-            size: documentBytes.length,
-            type: 'application/pdf',
-            uploaded_by: newDoc.uploaded_by,
-            description: 'Signed document from DocuSign'
-          });
-
-        // Remove from signed_document bucket after successful processing
-        await supabase.storage
-          .from('signed_document')
-          .remove([signedDocPath]);
+          .from('Signed Documents')
+          .createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
 
         processedDocuments.push({
-          id: newDoc.id,
-          name: file.name,
+          envelope_id: signature.envelope_id,
+          name: fileName,
           url: signedUrlData?.signedUrl,
-          size: documentBytes.length
+          size: uint8Array.length
         });
 
-        console.log('✅ Successfully processed signed document:', file.name);
+        console.log('✅ Successfully downloaded signed document:', fileName);
 
       } catch (error) {
-        console.error('❌ Error processing file:', file.name, error);
+        console.error('❌ Error processing envelope:', signature.envelope_id, error);
         continue;
       }
     }
@@ -159,7 +176,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `${processedDocuments.length} signed document(s) processed and added to Documents tab`,
+        message: `${processedDocuments.length} signed document(s) downloaded and saved`,
         processedDocuments
       }),
       {
