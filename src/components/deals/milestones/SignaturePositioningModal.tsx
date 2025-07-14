@@ -36,7 +36,17 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [signaturePositions, setSignaturePositions] = useState<SignaturePosition[]>([]);
   const [currentSignerIndex, setCurrentSignerIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
+  const [dragState, setDragState] = useState<{
+    isDragging: boolean;
+    recipientId: string | null;
+    startX: number;
+    startY: number;
+  }>({
+    isDragging: false,
+    recipientId: null,
+    startX: 0,
+    startY: 0
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -55,8 +65,51 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers]);
 
+  // Global mouse event handlers for proper drag and drop
+  useEffect(() => {
+    const handleGlobalMouseMove = (event: MouseEvent) => {
+      if (dragState.isDragging && dragState.recipientId) {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const x = Math.round((event.clientX - rect.left) / zoom);
+        const y = Math.round((event.clientY - rect.top) / zoom);
+
+        setSignaturePositions(prev =>
+          prev.map(pos =>
+            pos.recipientId === dragState.recipientId
+              ? { ...pos, x, y }
+              : pos
+          )
+        );
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (dragState.isDragging) {
+        setDragState({
+          isDragging: false,
+          recipientId: null,
+          startX: 0,
+          startY: 0
+        });
+      }
+    };
+
+    if (dragState.isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [dragState, zoom]);
+
   const handleDocumentClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) return;
+    if (dragState.isDragging) return;
 
     const container = containerRef.current;
     if (!container) return;
@@ -99,23 +152,14 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     });
   };
 
-  const handleSignatureDrag = (recipientId: string, event: React.MouseEvent) => {
-    if (!isDragging) return;
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const x = Math.round((event.clientX - rect.left) / zoom);
-    const y = Math.round((event.clientY - rect.top) / zoom);
-
-    setSignaturePositions(prev =>
-      prev.map(pos =>
-        pos.recipientId === recipientId
-          ? { ...pos, x, y }
-          : pos
-      )
-    );
+  const handleSignatureMouseDown = (recipientId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setDragState({
+      isDragging: true,
+      recipientId,
+      startX: event.clientX,
+      startY: event.clientY
+    });
   };
 
   const handleZoomIn = () => {
@@ -303,15 +347,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                       justifyContent: 'center'
                     }}
                     onMouseDown={(e) => {
-                      setIsDragging(true);
-                      e.stopPropagation();
+                      handleSignatureMouseDown(position.recipientId, e);
                     }}
-                    onMouseMove={(e) => {
-                      if (isDragging) {
-                        handleSignatureDrag(position.recipientId, e);
-                      }
-                    }}
-                    onMouseUp={() => setIsDragging(false)}
                   >
                     {signer?.name || 'Unknown'} - Sign Here
                   </div>
