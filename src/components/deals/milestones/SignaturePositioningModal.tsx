@@ -250,17 +250,29 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document as background iframe or image */}
-              <iframe
-                src={documentUrl}
-                className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none'
-                }}
-                title="Document Preview"
-              />
+              {/* Document preview */}
+              {documentUrl ? (
+                <embed
+                  src={`${documentUrl}#view=FitH`}
+                  type="application/pdf"
+                  className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none'
+                  }}
+                  title="Document Preview"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-gray-200 p-8 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">📄</div>
+                      <p className="text-gray-600">Loading document...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Overlay for click handling */}
               <div 
