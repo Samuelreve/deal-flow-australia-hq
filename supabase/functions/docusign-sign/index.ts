@@ -842,33 +842,60 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   const arrayBuffer = await fileData.arrayBuffer();
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-  // Get DocuSign access token and full token data
-  const tokenData = await getDocuSignTokenData();
-  const accessToken = tokenData.access_token;
+  // Get DocuSign access token
+  const accessToken = await getDocuSignAccessToken();
+
+  // Get DocuSign configuration for saving to database
+  let tokenDataToSave = null;
+  
+  // Try to get OAuth token data first
+  if (docusignTokenData) {
+    tokenDataToSave = docusignTokenData;
+  } else if (docusignConfig) {
+    // Create token data from JWT configuration
+    tokenDataToSave = {
+      access_token: accessToken,
+      refresh_token: null,
+      account_id: docusignConfig.accountId,
+      base_uri: 'https://demo.docusign.net',
+      expires_at: Date.now() + (3600 * 1000), // 1 hour from now
+      user_info: { sub: docusignConfig.userId, name: 'JWT User', email: '', accounts: [] }
+    };
+  }
 
   // Save token to database
-  try {
-    const { error: dbError } = await supabase
-      .from('docusign_tokens')
-      .upsert({
-        user_id: '00000000-0000-0000-0000-000000000000', // System UUID for edge function tokens
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        account_id: tokenData.account_id,
-        base_uri: tokenData.base_uri,
-        expires_at: new Date(tokenData.expires_at).toISOString(),
-        user_info: tokenData.user_info
-      }, {
-        onConflict: 'user_id'
+  if (tokenDataToSave) {
+    try {
+      console.log('Saving DocuSign token to database...', {
+        account_id: tokenDataToSave.account_id,
+        base_uri: tokenDataToSave.base_uri,
+        has_access_token: !!tokenDataToSave.access_token
       });
+      
+      const { error: dbError } = await supabase
+        .from('docusign_tokens')
+        .upsert({
+          user_id: '00000000-0000-0000-0000-000000000000',
+          access_token: tokenDataToSave.access_token,
+          refresh_token: tokenDataToSave.refresh_token,
+          account_id: tokenDataToSave.account_id,
+          base_uri: tokenDataToSave.base_uri,
+          expires_at: new Date(tokenDataToSave.expires_at).toISOString(),
+          user_info: tokenDataToSave.user_info
+        }, {
+          onConflict: 'user_id'
+        });
 
-    if (dbError) {
-      console.error('Failed to save DocuSign token to database:', dbError);
-    } else {
-      console.log('✅ DocuSign token saved to database during signing process');
+      if (dbError) {
+        console.error('Failed to save DocuSign token to database:', dbError);
+      } else {
+        console.log('✅ DocuSign token saved to database successfully');
+      }
+    } catch (dbError) {
+      console.error('Database save error during signing:', dbError);
     }
-  } catch (dbError) {
-    console.error('Database save error during signing:', dbError);
+  } else {
+    console.log('⚠️ No DocuSign token data available to save');
   }
 
   // Create envelope for signing
@@ -910,49 +937,12 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   );
 }
 
-async function getDocuSignTokenData(): Promise<{
-  access_token: string;
-  refresh_token?: string;
-  account_id: string;
-  base_uri: string;
-  expires_at: number;
-  user_info: any;
-}> {
-  // First try getting data from database
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('docusign_tokens')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-      
-    if (!tokenError && tokenData) {
-      return {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        account_id: tokenData.account_id,
-        base_uri: tokenData.base_uri,
-        expires_at: new Date(tokenData.expires_at).getTime(),
-        user_info: tokenData.user_info
-      };
-    }
-  } catch (error) {
-    console.log('No token data found in database, checking memory/creating new one');
-  }
-
-  // Fall back to OAuth token in memory if available
-  if (docusignTokenData) {
-    const oauthToken = await getValidAccessToken();
-    if (oauthToken) {
-      console.log('Using OAuth token data from memory');
-      return docusignTokenData;
-    }
+async function getDocuSignAccessToken(): Promise<string> {
+  // First try OAuth token if available
+  const oauthToken = await getValidAccessToken();
+  if (oauthToken) {
+    console.log('Using OAuth access token');
+    return oauthToken;
   }
 
   // Fall back to JWT authentication using DocuSign SDK
@@ -960,7 +950,16 @@ async function getDocuSignTokenData(): Promise<{
     throw new Error('DocuSign not configured. Please use OAuth authentication or configure JWT credentials.');
   }
 
-  console.log('Creating new JWT token and full token data...');
+  // Check if we have a valid cached JWT token
+  if (docusignConfig.accessToken && 
+      docusignConfig.tokenExpiresAt && 
+      Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
+    console.log('Using cached JWT access token');
+    return docusignConfig.accessToken;
+  }
+
+  // Get new token using DocuSign SDK
+  console.log('Getting new JWT access token using DocuSign SDK...');
   const accessToken = await getJWTAccessTokenWithSDK(
     docusignConfig.integrationKey,
     docusignConfig.userId,
@@ -972,20 +971,7 @@ async function getDocuSignTokenData(): Promise<{
   docusignConfig.accessToken = accessToken;
   docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
 
-  // Return formatted token data for JWT
-  return {
-    access_token: accessToken,
-    refresh_token: undefined,
-    account_id: docusignConfig.accountId,
-    base_uri: 'https://demo.docusign.net',
-    expires_at: docusignConfig.tokenExpiresAt,
-    user_info: { sub: docusignConfig.userId, name: 'JWT User', email: '', accounts: [] }
-  };
-}
-
-async function getDocuSignAccessToken(): Promise<string> {
-  const tokenData = await getDocuSignTokenData();
-  return tokenData.access_token;
+  return accessToken;
 }
 
 async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string> {
