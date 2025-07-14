@@ -93,6 +93,8 @@ serve(async (req: Request) => {
     const redirectUrl = redirectDealId 
       ? `${baseUrl}/deals/${redirectDealId}?tab=documents&signed=true`
       : `${baseUrl}`;
+      
+    console.log('🔄 Redirecting to:', redirectUrl);
 
     // Redirect immediately to the documents tab
     return new Response(null, {
