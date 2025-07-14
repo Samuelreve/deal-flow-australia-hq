@@ -38,7 +38,12 @@ serve(async (req: Request) => {
 
     // Get DocuSign token data from the OAuth function
     console.log('🔍 Calling DocuSign status endpoint...');
-    const tokenResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-sign/status`, {
+    console.log('🔍 SUPABASE_URL:', Deno.env.get('SUPABASE_URL'));
+    
+    const statusUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-sign/status`;
+    console.log('🔍 Full status URL:', statusUrl);
+    
+    const tokenResponse = await fetch(statusUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
@@ -52,17 +57,29 @@ serve(async (req: Request) => {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('❌ Status response error:', errorText);
-      throw new Error('DocuSign not authenticated. Please authenticate first.');
+      throw new Error(`DocuSign not authenticated. Status: ${tokenResponse.status}, Error: ${errorText}`);
     }
 
-    const tokenData: DocuSignTokenData = await tokenResponse.json();
-    console.log('🔍 Raw token data received:', JSON.stringify(tokenData, null, 2));
+    const rawResponseText = await tokenResponse.text();
+    console.log('🔍 Raw status response text:', rawResponseText);
+    
+    let tokenData: DocuSignTokenData;
+    try {
+      tokenData = JSON.parse(rawResponseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse status response:', parseError);
+      throw new Error(`Failed to parse status response: ${parseError.message}`);
+    }
+    
+    console.log('🔍 Parsed token data:', JSON.stringify(tokenData, null, 2));
     console.log('🔍 Token data access_token:', tokenData.access_token ? 'Present' : 'Missing');
     console.log('🔍 Token data account_id:', tokenData.account_id);
     console.log('🔍 Token data base_uri:', tokenData.base_uri);
 
     if (!tokenData.account_id || !tokenData.base_uri || !tokenData.access_token) {
-      throw new Error(`Missing DocuSign credentials: account_id=${tokenData.account_id}, base_uri=${tokenData.base_uri}, access_token=${tokenData.access_token ? 'present' : 'missing'}`);
+      const errorMsg = `Missing DocuSign credentials: account_id=${tokenData.account_id}, base_uri=${tokenData.base_uri}, access_token=${tokenData.access_token ? 'present' : 'missing'}`;
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
     }
 
     // Download the signed document from DocuSign
