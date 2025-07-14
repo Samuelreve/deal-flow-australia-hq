@@ -3,13 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js to work without external worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+// Load PDF.js from window (following the Medium article approach)
+declare global {
+  interface Window {
+    pdfjsLib: any;
+  }
+}
 
 interface SignaturePosition {
   x: number;
@@ -45,8 +45,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [pageCanvas, setPageCanvas] = useState<string | null>(null);
+  const [pageImages, setPageImages] = useState<string[]>([]);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
@@ -81,82 +80,114 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers]);
 
-  // Load PDF document
+  // Load PDF.js library dynamically
   useEffect(() => {
-    const loadPdf = async () => {
-      if (!documentUrl) return;
-      
+    const loadPdfJs = async () => {
+      if (window.pdfjsLib) return;
+
       try {
-        setIsLoadingPdf(true);
-        console.log('Loading PDF from URL:', documentUrl);
+        // Dynamically import PDF.js
+        const pdfjs = await import('pdfjs-dist');
+        window.pdfjsLib = pdfjs;
         
-        const loadingTask = pdfjsLib.getDocument(documentUrl);
-        const pdf = await loadingTask.promise;
-        setPdfDocument(pdf);
-        setTotalPages(pdf.numPages);
-        console.log('PDF loaded successfully, total pages:', pdf.numPages);
+        // Set up worker
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.js',
+          import.meta.url
+        ).toString();
+        
+        console.log('PDF.js loaded successfully');
       } catch (error) {
-        console.error('Error loading PDF:', error);
+        console.error('Error loading PDF.js:', error);
         toast({
-          title: 'Error loading PDF',
-          description: 'Failed to load the PDF document',
+          title: 'Error loading PDF library',
+          description: 'Failed to load PDF processing library',
           variant: 'destructive'
         });
-      } finally {
-        setIsLoadingPdf(false);
       }
     };
 
-    if (isOpen && documentUrl) {
-      loadPdf();
+    loadPdfJs();
+  }, [toast]);
+
+  // Convert PDF to images using the Medium article approach
+  const convertPdfToImages = async (url: string) => {
+    if (!window.pdfjsLib) {
+      console.error('PDF.js not loaded');
+      return;
+    }
+
+    try {
+      setIsLoadingPdf(true);
+      console.log('Converting PDF to images:', url);
+      
+      // Fetch PDF and convert to base64 (following the article)
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      return new Promise<void>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const data = e.target?.result as string;
+            const base64Data = data.replace(/.*base64,/, '');
+            const binaryData = atob(base64Data);
+            
+            await renderAllPages(binaryData);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting PDF:', error);
+      toast({
+        title: 'Error converting PDF',
+        description: 'Failed to convert PDF to images',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
+
+  // Render all pages to images (following the article approach)
+  const renderAllPages = async (data: string) => {
+    const imagesList: string[] = [];
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('className', 'canv');
+    
+    const pdf = await window.pdfjsLib.getDocument({ data }).promise;
+    setTotalPages(pdf.numPages);
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: canvas.getContext('2d'),
+        viewport: viewport,
+      };
+      
+      await page.render(renderContext).promise;
+      const img = canvas.toDataURL('image/png');
+      imagesList.push(img);
+    }
+    
+    setPageImages(imagesList);
+    console.log('PDF converted to images successfully, total pages:', pdf.numPages);
+  };
+
+  // Load and convert PDF when modal opens
+  useEffect(() => {
+    if (isOpen && documentUrl && window.pdfjsLib) {
+      convertPdfToImages(documentUrl);
     }
   }, [isOpen, documentUrl, toast]);
-
-  // Render current page
-  useEffect(() => {
-    const renderPage = async () => {
-      if (!pdfDocument) return;
-      
-      try {
-        console.log('Rendering page:', currentPage);
-        const page = await pdfDocument.getPage(currentPage);
-        
-        // Create canvas
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) return;
-
-        // Set up viewport with higher scale for better quality
-        const viewport = page.getViewport({ scale: 2.0 });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        // Render page
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        await page.render(renderContext).promise;
-        
-        // Convert canvas to data URL
-        const imageDataUrl = canvas.toDataURL('image/png', 0.95);
-        setPageCanvas(imageDataUrl);
-        console.log('Page rendered successfully');
-      } catch (error) {
-        console.error('Error rendering page:', error);
-        toast({
-          title: 'Error rendering page',
-          description: 'Failed to render the PDF page',
-          variant: 'destructive'
-        });
-      }
-    };
-
-    if (pdfDocument && currentPage) {
-      renderPage();
-    }
-  }, [pdfDocument, currentPage, zoom, toast]);
 
   // Global mouse event handlers for proper drag and drop
   useEffect(() => {
@@ -431,18 +462,18 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using PDF.js rendered canvas */}
+              {/* Document preview using converted images */}
               {isLoadingPdf ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-gray-600">Loading PDF...</p>
+                    <p className="text-gray-600">Converting PDF to images...</p>
                   </div>
                 </div>
-              ) : pageCanvas ? (
+              ) : pageImages.length > 0 && pageImages[currentPage - 1] ? (
                 <div className="relative w-full h-full flex justify-center bg-gray-100">
                   <img
-                    src={pageCanvas}
+                    src={pageImages[currentPage - 1]}
                     alt={`PDF Page ${currentPage}`}
                     className="max-w-full max-h-full object-contain"
                     style={{
