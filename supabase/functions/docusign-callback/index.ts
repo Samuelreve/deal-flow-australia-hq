@@ -25,6 +25,41 @@ serve(async (req: Request) => {
     console.log('DocuSign callback:', { event, envelopeId });
 
     if (event === 'signing_complete' && envelopeId) {
+      // Get the signature record to retrieve document and deal info
+      const { data: signature, error: sigError } = await supabase
+        .from('document_signatures')
+        .select('document_id, deal_id')
+        .eq('envelope_id', envelopeId)
+        .single();
+
+      if (sigError || !signature) {
+        console.error('Error finding signature record:', sigError);
+      } else {
+        // Call the retrieve signed document function
+        try {
+          const retrieveResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-retrieve-signed`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              envelopeId: envelopeId,
+              documentId: signature.document_id,
+              dealId: signature.deal_id
+            })
+          });
+
+          if (retrieveResponse.ok) {
+            console.log('✅ Signed document retrieved and uploaded successfully');
+          } else {
+            console.error('Failed to retrieve signed document:', await retrieveResponse.text());
+          }
+        } catch (retrieveError) {
+          console.error('Error calling retrieve signed document function:', retrieveError);
+        }
+      }
+
       // Update signature status to completed
       const { error } = await supabase
         .from('document_signatures')

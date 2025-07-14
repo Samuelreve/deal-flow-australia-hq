@@ -60,6 +60,11 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
             <div className="flex-1 truncate">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium truncate">{document.name}</p>
+                {document.status === 'signed' && (
+                  <Badge variant="default" className="text-xs px-2 py-0.5 h-5 bg-green-600 hover:bg-green-700 text-white">
+                    Signed
+                  </Badge>
+                )}
                 {document.category && (
                   <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5">
                     {document.category}

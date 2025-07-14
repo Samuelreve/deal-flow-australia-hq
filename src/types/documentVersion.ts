@@ -38,6 +38,7 @@ export interface Document {
   name: string;
   category?: string;
   type?: string;
+  status?: 'draft' | 'final' | 'signed';
   uploadedBy?: string;
   latestVersionId?: string;
   latestVersion?: DocumentVersion;
