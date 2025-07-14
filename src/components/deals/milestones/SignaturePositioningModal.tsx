@@ -238,19 +238,36 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           </div>
 
           {/* Right Panel - Document Preview */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto bg-gray-100">
             <div 
               ref={containerRef}
-              className="relative cursor-crosshair border rounded-lg overflow-auto"
+              className="relative cursor-crosshair border rounded-lg min-h-[600px] bg-white"
               style={{ 
-                minHeight: '600px',
-                background: `url(${documentUrl}) no-repeat center top`,
-                backgroundSize: `${zoom * 100}%`,
                 transform: `scale(${zoom})`,
-                transformOrigin: 'top left'
+                transformOrigin: 'top left',
+                width: `${100/zoom}%`,
+                height: `${600/zoom}px`
               }}
               onClick={handleDocumentClick}
             >
+              {/* Document as background iframe or image */}
+              <iframe
+                src={documentUrl}
+                className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none'
+                }}
+                title="Document Preview"
+              />
+              
+              {/* Overlay for click handling */}
+              <div 
+                className="absolute inset-0 bg-transparent cursor-crosshair"
+                onClick={handleDocumentClick}
+              />
+
               {/* Render signature position indicators */}
               {signaturePositions.map((position) => {
                 const signer = signers.find(s => s.recipientId === position.recipientId);
@@ -259,7 +276,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                 return (
                   <div
                     key={position.recipientId}
-                    className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move ${
+                    className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
                       isCurrentSigner 
                         ? 'border-primary bg-primary/20 text-primary' 
                         : 'border-blue-500 bg-blue-500/20 text-blue-700'
@@ -273,24 +290,30 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}
-                    onMouseDown={() => setIsDragging(true)}
+                    onMouseDown={(e) => {
+                      setIsDragging(true);
+                      e.stopPropagation();
+                    }}
+                    onMouseMove={(e) => {
+                      if (isDragging) {
+                        handleSignatureDrag(position.recipientId, e);
+                      }
+                    }}
                     onMouseUp={() => setIsDragging(false)}
-                    onMouseMove={(e) => handleSignatureDrag(position.recipientId, e)}
                   >
                     {signer?.name || 'Unknown'} - Sign Here
                   </div>
                 );
               })}
 
-              {/* Overlay to show it's clickable */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="flex items-center justify-center h-full">
+              {/* Instruction overlay when no document is loaded */}
+              {!documentUrl && (
+                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
-                    <MousePointer className="inline h-4 w-4 mr-2" />
-                    Click to position {currentSigner?.name}'s signature
+                    Loading document...
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
