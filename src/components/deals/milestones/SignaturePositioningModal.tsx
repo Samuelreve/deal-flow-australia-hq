@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, MousePointer, Save, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, MousePointer, Save, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SignaturePosition {
   x: number;
@@ -35,6 +35,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
 }) => {
   const [signaturePositions, setSignaturePositions] = useState<SignaturePosition[]>([]);
   const [currentSignerIndex, setCurrentSignerIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
@@ -121,6 +123,16 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
 
   const handleDocumentClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (dragState.isDragging) return;
+    
+    // Only allow positioning if a signer is selected
+    if (currentSignerIndex === null || currentSignerIndex < 0) {
+      toast({
+        title: 'No signer selected',
+        description: 'Please select a signer from the left panel first',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const container = containerRef.current;
     if (!container) return;
@@ -142,13 +154,14 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
         newPositions[existingIndex] = {
           ...newPositions[existingIndex],
           x,
-          y
+          y,
+          page: currentPage
         };
       } else {
         newPositions.push({
           x,
           y,
-          page: 1,
+          page: currentPage,
           recipientId: currentSigner.recipientId,
           recipientName: currentSigner.name
         });
@@ -159,7 +172,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
 
     toast({
       title: 'Signature position set',
-      description: `Position set for ${currentSigner.name} at (${x}, ${y})`,
+      description: `Position set for ${currentSigner.name} at page ${currentPage} (${x}, ${y})`,
     });
   };
 
@@ -270,13 +283,43 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           </div>
 
           {/* Right Panel - Document Preview */}
-          <div className="flex-1 overflow-auto bg-gray-100">
+          <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
+            {/* Page Navigation */}
+            <div className="flex items-center justify-between p-3 border-b bg-white">
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous Page
+                </Button>
+                <span className="text-sm px-3 py-1 bg-muted rounded">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next Page
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {currentSigner ? `Positioning for: ${currentSigner.name}` : 'Select a signer to position'}
+              </div>
+            </div>
+
             <div 
               ref={containerRef}
-              className="relative cursor-crosshair border rounded-lg min-h-[800px] bg-white overflow-auto"
+              className="flex-1 relative cursor-crosshair border rounded-lg bg-white overflow-auto"
               style={{ 
                 width: '100%',
-                height: '800px'
+                minHeight: '600px'
               }}
               onClick={handleDocumentClick}
             >
@@ -310,36 +353,38 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                 onClick={handleDocumentClick}
               />
 
-              {/* Render signature position indicators */}
-              {signaturePositions.map((position) => {
-                const signer = signers.find(s => s.recipientId === position.recipientId);
-                const isCurrentSigner = currentSigner?.recipientId === position.recipientId;
-                
-                return (
-                  <div
-                    key={position.recipientId}
-                    className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
-                      isCurrentSigner 
-                        ? 'border-primary bg-primary/20 text-primary' 
-                        : 'border-blue-500 bg-blue-500/20 text-blue-700'
-                    }`}
-                    style={{
-                      left: position.x,
-                      top: position.y,
-                      width: '150px',
-                      height: '50px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    onMouseDown={(e) => {
-                      handleSignatureMouseDown(position.recipientId, e);
-                    }}
-                  >
-                    {signer?.name || 'Unknown'} - Sign Here
-                  </div>
-                );
-              })}
+              {/* Render signature position indicators for current page only */}
+              {signaturePositions
+                .filter(position => position.page === currentPage)
+                .map((position) => {
+                  const signer = signers.find(s => s.recipientId === position.recipientId);
+                  const isCurrentSigner = currentSigner?.recipientId === position.recipientId;
+                  
+                  return (
+                    <div
+                      key={position.recipientId}
+                      className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
+                        isCurrentSigner 
+                          ? 'border-primary bg-primary/20 text-primary' 
+                          : 'border-blue-500 bg-blue-500/20 text-blue-700'
+                      }`}
+                      style={{
+                        left: position.x,
+                        top: position.y,
+                        width: '150px',
+                        height: '50px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onMouseDown={(e) => {
+                        handleSignatureMouseDown(position.recipientId, e);
+                      }}
+                    >
+                      {signer?.name || 'Unknown'} - Sign Here
+                    </div>
+                  );
+                })}
 
               {/* Instruction overlay when no document is loaded */}
               {!documentUrl && (
