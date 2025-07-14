@@ -3,14 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
 
-// WebViewer will be loaded dynamically
-declare global {
-  interface Window {
-    Core: any;
-    PDFNet: any;
-  }
-}
+// Configure PDF.js to work without external worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 interface SignaturePosition {
   x: number;
@@ -46,9 +45,9 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [pageImages, setPageImages] = useState<string[]>([]);
+  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [pageCanvas, setPageCanvas] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
-  const [webViewerLoaded, setWebViewerLoaded] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -82,84 +81,25 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers]);
 
-  // Load WebViewer scripts
+  // Load PDF document
   useEffect(() => {
-    const loadWebViewer = async () => {
-      if (window.Core && window.PDFNet) {
-        setWebViewerLoaded(true);
-        return;
-      }
-
-      try {
-        // Load WebViewer core script
-        const script = document.createElement('script');
-        script.src = '/webviewer/core/webviewer-core.min.js';
-        script.onload = () => {
-          if (window.Core) {
-            window.Core.setWorkerPath('/webviewer/core');
-            window.Core.enableFullPDF();
-            setWebViewerLoaded(true);
-          }
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.error('Error loading WebViewer:', error);
-        toast({
-          title: 'Error loading WebViewer',
-          description: 'Failed to load WebViewer library',
-          variant: 'destructive'
-        });
-      }
-    };
-
-    loadWebViewer();
-  }, [toast]);
-
-  // Load and convert PDF to images using WebViewer
-  useEffect(() => {
-    const convertPdfToImages = async () => {
-      if (!documentUrl || !webViewerLoaded || !window.Core || !window.PDFNet) return;
+    const loadPdf = async () => {
+      if (!documentUrl) return;
       
       try {
         setIsLoadingPdf(true);
-        console.log('Converting PDF to images using WebViewer:', documentUrl);
+        console.log('Loading PDF from URL:', documentUrl);
         
-        // Initialize PDFNet
-        await window.PDFNet.initialize();
-        
-        // Load PDF document
-        const doc = await window.PDFNet.PDFDoc.createFromURL(documentUrl);
-        const pdfdraw = await window.PDFNet.PDFDraw.create(150); // 150 DPI for good quality
-        
-        // Get page count
-        const pageCount = await doc.getPageCount();
-        setTotalPages(pageCount);
-        
-        const images: string[] = [];
-        
-        // Convert each page to image
-        for (let i = 1; i <= pageCount; i++) {
-          const page = await doc.getPage(i);
-          const buffer = await pdfdraw.exportBuffer(page, 'PNG');
-          
-          // Convert buffer to blob URL
-          const blob = new Blob([buffer], { type: 'image/png' });
-          const imageUrl = URL.createObjectURL(blob);
-          images.push(imageUrl);
-        }
-        
-        setPageImages(images);
-        console.log('PDF converted to images successfully, total pages:', pageCount);
-        
-        // Clean up
-        await doc.destroy();
-        await pdfdraw.destroy();
-        
+        const loadingTask = pdfjsLib.getDocument(documentUrl);
+        const pdf = await loadingTask.promise;
+        setPdfDocument(pdf);
+        setTotalPages(pdf.numPages);
+        console.log('PDF loaded successfully, total pages:', pdf.numPages);
       } catch (error) {
-        console.error('Error converting PDF to images:', error);
+        console.error('Error loading PDF:', error);
         toast({
-          title: 'Error converting PDF',
-          description: 'Failed to convert PDF to images',
+          title: 'Error loading PDF',
+          description: 'Failed to load the PDF document',
           variant: 'destructive'
         });
       } finally {
@@ -167,10 +107,56 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       }
     };
 
-    if (isOpen && documentUrl && webViewerLoaded) {
-      convertPdfToImages();
+    if (isOpen && documentUrl) {
+      loadPdf();
     }
-  }, [isOpen, documentUrl, webViewerLoaded, toast]);
+  }, [isOpen, documentUrl, toast]);
+
+  // Render current page
+  useEffect(() => {
+    const renderPage = async () => {
+      if (!pdfDocument) return;
+      
+      try {
+        console.log('Rendering page:', currentPage);
+        const page = await pdfDocument.getPage(currentPage);
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        // Set up viewport with higher scale for better quality
+        const viewport = page.getViewport({ scale: 2.0 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render page
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        await page.render(renderContext).promise;
+        
+        // Convert canvas to data URL
+        const imageDataUrl = canvas.toDataURL('image/png', 0.95);
+        setPageCanvas(imageDataUrl);
+        console.log('Page rendered successfully');
+      } catch (error) {
+        console.error('Error rendering page:', error);
+        toast({
+          title: 'Error rendering page',
+          description: 'Failed to render the PDF page',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    if (pdfDocument && currentPage) {
+      renderPage();
+    }
+  }, [pdfDocument, currentPage, zoom, toast]);
 
   // Global mouse event handlers for proper drag and drop
   useEffect(() => {
@@ -445,18 +431,18 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using WebViewer converted images */}
+              {/* Document preview using PDF.js rendered canvas */}
               {isLoadingPdf ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-gray-600">Converting PDF to images...</p>
+                    <p className="text-gray-600">Loading PDF...</p>
                   </div>
                 </div>
-              ) : pageImages.length > 0 && pageImages[currentPage - 1] ? (
+              ) : pageCanvas ? (
                 <div className="relative w-full h-full flex justify-center bg-gray-100">
                   <img
-                    src={pageImages[currentPage - 1]}
+                    src={pageCanvas}
                     alt={`PDF Page ${currentPage}`}
                     className="max-w-full max-h-full object-contain"
                     style={{
