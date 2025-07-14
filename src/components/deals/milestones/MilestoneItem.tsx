@@ -100,10 +100,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       // Update signing status based on signatures
       // Admin can act as either buyer or seller, so if admin signed, consider it complete
       // Or if both buyer and seller signed, it's complete
-      if ((buyerSigned && sellerSigned) || adminSigned || completedSignatures.length > 0) {
+      if ((buyerSigned && sellerSigned) || adminSigned) {
         setSigningStatus('completed');
         setDocumentsAreSigned(true);
-      } else if (sentSignatures.length > 0) {
+      } else if (completedSignatures.length > 0 || sentSignatures.length > 0) {
         setSigningStatus('partially_signed');
         setDocumentsAreSigned(false);
       } else {
@@ -120,7 +120,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   
   // Prevent completing Document Signing if documents aren't signed
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
-    (!isDocumentSigning || documentsAreSigned);
+    (!isDocumentSigning || signingStatus === 'completed');
 
   const handleSignDocument = () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
@@ -405,19 +405,19 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           {milestone.status === 'in_progress' && (
             <button
               onClick={() => {
-                if (isDocumentSigning && !documentsAreSigned) {
-                  alert('Documents must be signed before completing the Document Signing milestone.');
+                if (isDocumentSigning && signingStatus !== 'completed') {
+                  alert('Documents must be signed by all parties before completing the Document Signing milestone.');
                   return;
                 }
                 onUpdateStatus(milestone.id, 'completed');
               }}
-              disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && !documentsAreSigned)}
+              disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
               className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                isDocumentSigning && !documentsAreSigned 
+                isDocumentSigning && signingStatus !== 'completed' 
                   ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                   : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
               } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isDocumentSigning && !documentsAreSigned ? 'Documents must be signed first' : ''}
+              title={isDocumentSigning && signingStatus !== 'completed' ? 'Documents must be signed by all parties first' : ''}
             >
               {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
             </button>
