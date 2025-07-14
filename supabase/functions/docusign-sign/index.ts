@@ -329,7 +329,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       const { error: dbError } = await supabase
         .from('docusign_tokens')
         .upsert({
-          user_id: 'system', // Since we don't have user context in edge functions
+          user_id: '00000000-0000-0000-0000-000000000000', // System UUID for edge function tokens
           access_token: oAuthToken.access_token,
           refresh_token: oAuthToken.refresh_token,
           account_id: defaultAccount.account_id,
