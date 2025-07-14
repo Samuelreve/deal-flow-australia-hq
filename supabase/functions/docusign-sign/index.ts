@@ -319,7 +319,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       user_info: userInfo
     };
     
-    // Also store in database for persistence
+    // Store tokens in database for persistence
     try {
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -342,13 +342,13 @@ async function handleTokenRequest(req: Request): Promise<Response> {
 
       if (dbError) {
         console.error('Failed to store DocuSign token:', dbError);
-        // Don't fail the whole operation for this
-      } else {
-        console.log('✅ Token stored in database successfully');
+        throw new Error('Failed to store DocuSign credentials');
       }
+      
+      console.log('✅ Token stored in database successfully');
     } catch (dbError) {
       console.error('Database storage error:', dbError);
-      // Don't fail the whole operation for this
+      throw new Error('Failed to store DocuSign credentials');
     }
 
     console.log('✅ Successfully obtained and stored DocuSign access token via OAuth');

@@ -41,6 +41,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
   const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
+  const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
 
   // Determine if the current user has permission to update milestone status
   const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
@@ -295,6 +296,73 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       setSigningInProgress(false);
     }
   };
+
+  const handleDownloadSignedDocument = async () => {
+    if (!user) return;
+
+    setDownloadingSignedDoc(true);
+    try {
+      // Get all completed signatures for this deal
+      const { data: signatures, error: sigError } = await supabase
+        .from('document_signatures')
+        .select('*')
+        .eq('deal_id', dealId)
+        .eq('status', 'completed');
+
+      if (sigError) {
+        throw new Error('Failed to get signature information');
+      }
+
+      if (!signatures || signatures.length === 0) {
+        toast({
+          title: 'No signed documents found',
+          description: 'No completed document signatures found for this deal.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Use the first completed signature for download
+      const signature = signatures[0];
+
+      // Call the retrieve signed document function
+      const { data, error } = await supabase.functions.invoke('docusign-retrieve-signed', {
+        body: {
+          envelopeId: signature.envelope_id,
+          documentId: signature.document_id,
+          dealId: dealId
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
+        toast({
+          title: 'Document downloaded successfully',
+          description: `Signed document "${data.signedDocument.name}" has been added to your documents.`,
+        });
+
+        // Refresh the document list by triggering a re-check
+        setTimeout(() => {
+          checkDocumentSignatures();
+        }, 1000);
+      } else {
+        throw new Error(data?.error || 'Failed to download signed document');
+      }
+
+    } catch (error: any) {
+      console.error('Error downloading signed document:', error);
+      toast({
+        title: 'Download failed',
+        description: error.message || 'Failed to download signed document',
+        variant: 'destructive'
+      });
+    } finally {
+      setDownloadingSignedDoc(false);
+    }
+  };
   
   return (
     <li className="mb-10 ms-6">
@@ -409,14 +477,27 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       {/* Sign Document Button - Show separately for better visibility */}
       {showSignButton && (
-        <div className="mt-3">
+        <div className="mt-3 flex gap-2">
           <button
             onClick={handleSignDocument}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
+            disabled={signingInProgress}
           >
             <FileText className="w-4 h-4 mr-2" />
-            Sign Document
+            {signingInProgress ? 'Starting...' : 'Sign Document'}
           </button>
+          
+          {/* Download Signed Document Button - Show when documents are signed */}
+          {documentsAreSigned && (
+            <button
+              onClick={handleDownloadSignedDocument}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300 animate-fade-in"
+              disabled={downloadingSignedDoc}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              {downloadingSignedDoc ? 'Downloading...' : 'Download Signed Document'}
+            </button>
+          )}
         </div>
       )}
 
