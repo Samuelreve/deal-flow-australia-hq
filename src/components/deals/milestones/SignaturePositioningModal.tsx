@@ -2,13 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, MousePointer, Save, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+import { ArrowLeft, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SignaturePosition {
   x: number;
@@ -44,7 +38,6 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
-  const [pageWidth, setPageWidth] = useState(595); // Default A4 width in points
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -351,42 +344,20 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using react-pdf */}
+              {/* Document preview using PDF viewer */}
               {documentUrl ? (
-                <Document
-                  file={documentUrl}
-                  onLoadSuccess={({ numPages }) => {
-                    setTotalPages(numPages);
-                  }}
-                  className="absolute inset-0"
-                  loading={
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-gray-600">Loading PDF...</p>
-                      </div>
-                    </div>
-                  }
-                  error={
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">❌</div>
-                        <p className="text-gray-600">Failed to load PDF</p>
-                      </div>
-                    </div>
-                  }
-                >
-                  <Page
-                    pageNumber={currentPage}
-                    scale={zoom}
-                    onLoadSuccess={(page) => {
-                      setPageWidth(page.width);
+                <div className="relative w-full h-full bg-white">
+                  <iframe
+                    src={`${documentUrl}#page=${currentPage}&toolbar=0`}
+                    className="w-full h-full border-0"
+                    style={{
+                      minHeight: '800px',
+                      transform: `scale(${zoom})`,
+                      transformOrigin: 'top left'
                     }}
-                    className="mx-auto"
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
+                    title="Document Preview"
                   />
-                </Document>
+                </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="bg-gray-200 p-8 rounded-lg">
