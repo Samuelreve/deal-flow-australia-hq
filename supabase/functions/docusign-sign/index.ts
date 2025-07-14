@@ -520,6 +520,10 @@ async function handleStatusRequest(req: Request): Promise<Response> {
         success: true,
         authMethod: 'oauth',
         isAuthenticated: true,
+        // For compatibility with retrieve function, include fields at top level
+        account_id: docusignTokenData.account_id,
+        base_uri: docusignTokenData.base_uri,
+        access_token: docusignTokenData.access_token,
         tokenData: {
           account_id: docusignTokenData.account_id,
           base_uri: docusignTokenData.base_uri,
