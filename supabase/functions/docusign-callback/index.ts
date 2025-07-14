@@ -6,16 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple function to get access token (fall back to manual download if JWT fails)
-async function getAccessToken(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string | null> {
-  console.log('Checking for existing access token in database...');
-  
-  // For now, we'll skip JWT and rely on existing OAuth tokens or manual download
-  // The JWT implementation requires proper key formatting that's complex in edge functions
-  console.log('JWT authentication skipped - will use manual download process');
-  return null;
-}
-
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -126,112 +116,59 @@ serve(async (req: Request) => {
       } else {
         console.log('Found signature record:', signature);
         
-        // Try to download the signed document using JWT authentication
+        // Try to download the signed document directly from DocuSign
         try {
-          console.log('Attempting to download signed document using JWT authentication');
-          
-          // Get DocuSign credentials from Supabase secrets
-          const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-          const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
-          const userId = Deno.env.get('DOCUSIGN_USER_ID');
-          const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
-          const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
+          // Get DocuSign tokens
+          const { data: tokens, error: tokenError } = await supabase
+            .from('docusign_tokens')
+            .select('*')
+            .single();
 
-          if (!integrationKey || !userId || !accountId || !privateKey) {
-            console.log('Missing DocuSign JWT credentials, document will be downloaded manually later');
+          if (tokenError || !tokens) {
+            console.log('No DocuSign tokens found, document will be downloaded manually later');
           } else {
-            // Get JWT access token
-            const accessToken = await getAccessToken(integrationKey, userId, privateKey, accountId);
+            console.log('Found DocuSign tokens, attempting to download signed document');
             
-            if (!accessToken) {
-              console.log('Failed to get JWT access token, document will be downloaded manually later');
-            } else {
-              console.log('Successfully obtained JWT access token');
-              
-              // Download the signed document from DocuSign
-              const baseUri = 'https://demo.docusign.net'; // Use production URL: https://www.docusign.net
-              const docuSignUrl = `${baseUri}/restapi/v2.1/accounts/${accountId}/envelopes/${webhookEnvelopeId}/documents/combined`;
-              
-              const docResponse = await fetch(docuSignUrl, {
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`,
-                  'Accept': 'application/pdf'
-                }
-              });
-
-              if (docResponse.ok) {
-                const pdfBuffer = await docResponse.arrayBuffer();
-                const uint8Array = new Uint8Array(pdfBuffer);
-                
-                // Get original document name
-                const { data: originalDoc } = await supabase
-                  .from('documents')
-                  .select('name')
-                  .eq('id', signature.document_id)
-                  .single();
-                
-                const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
-                const filePath = `${signature.deal_id}/${fileName}`;
-                
-                // Save to deal_documents bucket for proper access
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                  .from('deal_documents')
-                  .upload(filePath, uint8Array, {
-                    contentType: 'application/pdf',
-                    upsert: true
-                  });
-
-                if (uploadError) {
-                  console.error('Error uploading signed document:', uploadError);
-                } else {
-                  console.log('✅ Signed document saved to storage:', filePath);
-                  
-                  // Create a new document record for the signed version
-                  const { data: newDoc, error: docError } = await supabase
-                    .from('documents')
-                    .insert({
-                      name: fileName,
-                      deal_id: signature.deal_id,
-                      storage_path: filePath,
-                      type: 'application/pdf',
-                      size: uint8Array.length,
-                      uploaded_by: signature.document_id, // Use original document ID as reference
-                      status: 'signed',
-                      category: 'signed_document'
-                    })
-                    .select()
-                    .single();
-
-                  if (docError) {
-                    console.error('Error creating signed document record:', docError);
-                  } else {
-                    console.log('✅ Created signed document record in database');
-                    
-                    // Create a document version for the signed document
-                    const { error: versionError } = await supabase
-                      .from('document_versions')
-                      .insert({
-                        document_id: newDoc.id,
-                        storage_path: filePath,
-                        type: 'application/pdf',
-                        size: uint8Array.length,
-                        uploaded_by: signature.document_id,
-                        version_number: 1,
-                        description: 'Signed version'
-                      });
-
-                    if (versionError) {
-                      console.error('Error creating document version:', versionError);
-                    } else {
-                      console.log('✅ Created document version for signed document');
-                    }
-                  }
-                }
-              } else {
-                const errorText = await docResponse.text();
-                console.error('Failed to download document from DocuSign:', errorText);
-                console.error('Response status:', docResponse.status);
+            // Download the signed document from DocuSign
+            const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/combined`;
+            
+            const docResponse = await fetch(docuSignUrl, {
+              headers: {
+                'Authorization': `Bearer ${tokens.access_token}`,
+                'Accept': 'application/pdf'
               }
+            });
+
+            if (docResponse.ok) {
+              const pdfBuffer = await docResponse.arrayBuffer();
+              const uint8Array = new Uint8Array(pdfBuffer);
+              
+              // Get original document name
+              const { data: originalDoc } = await supabase
+                .from('documents')
+                .select('name')
+                .eq('id', signature.document_id)
+                .single();
+              
+              const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
+              const filePath = `${signature.deal_id}/${fileName}`;
+              
+              // Save to signed_document bucket (not auto-download)
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('signed_document')
+                .upload(filePath, uint8Array, {
+                  contentType: 'application/pdf',
+                  upsert: true
+                });
+
+              if (uploadError) {
+                console.error('Error uploading signed document:', uploadError);
+              } else {
+                console.log('✅ Signed document saved to storage:', filePath);
+                console.log('Document will be available for manual download via button');
+              }
+            } else {
+              console.error('Failed to download document from DocuSign:', await docResponse.text());
             }
           }
         } catch (downloadError) {
