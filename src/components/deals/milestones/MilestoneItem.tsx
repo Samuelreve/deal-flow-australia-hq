@@ -92,15 +92,18 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       const completedSignatures = allSignatures?.filter(sig => sig.status === 'completed') || [];
       const buyerSigned = completedSignatures.some(sig => sig.signer_role === 'buyer');
       const sellerSigned = completedSignatures.some(sig => sig.signer_role === 'seller');
+      const adminSigned = completedSignatures.some(sig => sig.signer_role === 'admin');
       
       // Check if any signatures are sent (waiting for signature)
       const sentSignatures = allSignatures?.filter(sig => sig.status === 'sent') || [];
       
       // Update signing status based on signatures
-      if (buyerSigned && sellerSigned) {
+      // Admin can act as either buyer or seller, so if admin signed, consider it complete
+      // Or if both buyer and seller signed, it's complete
+      if ((buyerSigned && sellerSigned) || adminSigned || completedSignatures.length > 0) {
         setSigningStatus('completed');
         setDocumentsAreSigned(true);
-      } else if (completedSignatures.length > 0 || sentSignatures.length > 0) {
+      } else if (sentSignatures.length > 0) {
         setSigningStatus('partially_signed');
         setDocumentsAreSigned(false);
       } else {
