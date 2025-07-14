@@ -80,7 +80,7 @@ serve(async (req: Request) => {
       let newStatus = 'pending'; // default
       
       if (webhookEvent === 'recipient-delivered' || webhookStatus === 'sent') {
-        newStatus = 'delivered';
+        newStatus = 'sent';
       } else if (webhookEvent === 'signing_complete' || webhookEvent === 'envelope-completed' || webhookStatus === 'completed') {
         newStatus = 'completed';
       }
