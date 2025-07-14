@@ -118,10 +118,23 @@ serve(async (req: Request) => {
         
         // Try to download the signed document directly from DocuSign
         try {
-          // Get DocuSign tokens
+          // Get DocuSign credentials from Supabase secrets
+          const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+          const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
+          const userId = Deno.env.get('DOCUSIGN_USER_ID');
+          const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
+
+          if (!integrationKey || !accountId || !userId || !privateKey) {
+            console.log('Missing DocuSign credentials, skipping automatic download');
+            return;
+          }
+
+          // Get access token from docusign_tokens table (should be valid from recent auth)
           const { data: tokens, error: tokenError } = await supabase
             .from('docusign_tokens')
             .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
             .single();
 
           if (tokenError || !tokens) {
@@ -129,46 +142,73 @@ serve(async (req: Request) => {
           } else {
             console.log('Found DocuSign tokens, attempting to download signed document');
             
-            // Download the signed document from DocuSign
-            const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/combined`;
+            // Download the signed document from DocuSign using the specific document ID endpoint
+            // First get the document info to find the document ID
+            const envelopeDocsUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents`;
             
-            const docResponse = await fetch(docuSignUrl, {
+            const docsResponse = await fetch(envelopeDocsUrl, {
               headers: {
                 'Authorization': `Bearer ${tokens.access_token}`,
-                'Accept': 'application/pdf'
+                'Accept': 'application/json'
               }
             });
 
-            if (docResponse.ok) {
-              const pdfBuffer = await docResponse.arrayBuffer();
-              const uint8Array = new Uint8Array(pdfBuffer);
+            if (docsResponse.ok) {
+              const docsData = await docsResponse.json();
+              console.log('Documents in envelope:', docsData);
               
-              // Get original document name
-              const { data: originalDoc } = await supabase
-                .from('documents')
-                .select('name')
-                .eq('id', signature.document_id)
-                .single();
+              // Find the actual document (not certificate)
+              const document = docsData.envelopeDocuments?.find((doc: any) => 
+                doc.type === 'content' && doc.documentId !== 'certificate'
+              );
               
-              const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
-              const filePath = `${signature.deal_id}/${fileName}`;
-              
-              // Save to signed_document bucket (not auto-download)
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('signed_document')
-                .upload(filePath, uint8Array, {
-                  contentType: 'application/pdf',
-                  upsert: true
+              if (document) {
+                // Download the specific document
+                const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/${document.documentId}`;
+                
+                const docResponse = await fetch(docuSignUrl, {
+                  headers: {
+                    'Authorization': `Bearer ${tokens.access_token}`,
+                    'Accept': 'application/pdf'
+                  }
                 });
 
-              if (uploadError) {
-                console.error('Error uploading signed document:', uploadError);
+                if (docResponse.ok) {
+                  const pdfBuffer = await docResponse.arrayBuffer();
+                  const uint8Array = new Uint8Array(pdfBuffer);
+                  
+                  // Get original document name
+                  const { data: originalDoc } = await supabase
+                    .from('documents')
+                    .select('name')
+                    .eq('id', signature.document_id)
+                    .single();
+                  
+                  const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
+                  const filePath = `${signature.deal_id}/${fileName}`;
+                  
+                  // Save to Signed Documents bucket
+                  const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('Signed Documents')
+                    .upload(filePath, uint8Array, {
+                      contentType: 'application/pdf',
+                      upsert: true
+                    });
+
+                  if (uploadError) {
+                    console.error('Error uploading signed document:', uploadError);
+                  } else {
+                    console.log('✅ Signed document saved to storage:', filePath);
+                    console.log('Document will be available for manual download via button');
+                  }
+                } else {
+                  console.error('Failed to download document from DocuSign:', await docResponse.text());
+                }
               } else {
-                console.log('✅ Signed document saved to storage:', filePath);
-                console.log('Document will be available for manual download via button');
+                console.log('No valid document found in envelope');
               }
             } else {
-              console.error('Failed to download document from DocuSign:', await docResponse.text());
+              console.error('Failed to get envelope documents:', await docsResponse.text());
             }
           }
         } catch (downloadError) {
