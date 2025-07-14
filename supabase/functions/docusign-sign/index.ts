@@ -861,25 +861,9 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       expires_at: Date.now() + (3600 * 1000), // 1 hour from now
       user_info: { sub: docusignConfig.userId, name: 'JWT User', email: '', accounts: [] }
     };
-  } else {
-    // Create minimal token data from environment variables if no configuration available
-    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
-    const userId = Deno.env.get('DOCUSIGN_USER_ID');
-    
-    if (integrationKey && accountId && userId) {
-      tokenDataToSave = {
-        access_token: accessToken,
-        refresh_token: null,
-        account_id: accountId,
-        base_uri: 'https://demo.docusign.net',
-        expires_at: Date.now() + (3600 * 1000), // 1 hour from now
-        user_info: { sub: userId, name: 'Environment User', email: '', accounts: [] }
-      };
-    }
   }
 
-  // Always save token to database
+  // Save token to database
   if (tokenDataToSave) {
     try {
       console.log('Saving DocuSign token to database...', {
@@ -904,17 +888,14 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
       if (dbError) {
         console.error('Failed to save DocuSign token to database:', dbError);
-        throw new Error(`Failed to save credentials: ${dbError.message}`);
       } else {
         console.log('✅ DocuSign token saved to database successfully');
       }
     } catch (dbError) {
       console.error('Database save error during signing:', dbError);
-      throw new Error(`Database save error: ${dbError.message}`);
     }
   } else {
-    console.error('⚠️ No DocuSign token data available to save - missing configuration');
-    throw new Error('No DocuSign configuration available to save credentials');
+    console.log('⚠️ No DocuSign token data available to save');
   }
 
   // Create envelope for signing
