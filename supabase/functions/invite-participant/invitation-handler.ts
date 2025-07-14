@@ -32,7 +32,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const APP_BASE_URL = Deno.env.get("APP_BASE_URL") || "https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com";
+    const APP_BASE_URL = "https://dbb615e3-5c6f-4cda-8adc-2b52f782b9f3.lovableproject.com";
     
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
