@@ -53,13 +53,17 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   // Initialize signature positions
   useEffect(() => {
     if (isOpen && signers.length > 0) {
-      const initialPositions = signers.map((signer, index) => ({
-        x: 100,
-        y: 200 + (index * 100),
-        page: 1,
-        recipientId: signer.recipientId,
-        recipientName: signer.name
-      }));
+      const initialPositions = signers.map((signer, index) => {
+        console.log(`Initializing signer ${index}:`, signer.name, 'ID:', signer.recipientId);
+        return {
+          x: 100 + (index * 200), // Spread them apart horizontally
+          y: 200 + (index * 100),
+          page: 1,
+          recipientId: signer.recipientId,
+          recipientName: signer.name
+        };
+      });
+      console.log('All initial positions:', initialPositions);
       setSignaturePositions(initialPositions);
       setCurrentSignerIndex(0);
     }
@@ -76,15 +80,20 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
         const x = Math.round((event.clientX - rect.left) / zoom);
         const y = Math.round((event.clientY - rect.top) / zoom);
 
-        setSignaturePositions(prev =>
-          prev.map(pos => {
+        setSignaturePositions(prev => {
+          console.log('Current dragState.recipientId:', dragState.recipientId);
+          console.log('All positions before update:', prev.map(p => ({ name: p.recipientName, id: p.recipientId })));
+          
+          return prev.map(pos => {
             if (pos.recipientId === dragState.recipientId) {
-              console.log(`Updating position for ${pos.recipientName} (${pos.recipientId}): x=${x}, y=${y}`);
+              console.log(`✅ Updating position for ${pos.recipientName} (${pos.recipientId}): x=${x}, y=${y}`);
               return { ...pos, x, y };
+            } else {
+              console.log(`❌ NOT updating ${pos.recipientName} (${pos.recipientId})`);
+              return pos;
             }
-            return pos;
-          })
-        );
+          });
+        });
       }
     };
 
@@ -258,42 +267,16 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               </div>
             )}
 
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm">Zoom Controls</h4>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleZoomOut}
-                  disabled={zoom <= 0.5}
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-sm px-2 py-1 bg-muted rounded">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleZoomIn}
-                  disabled={zoom >= 3}
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
           </div>
 
           {/* Right Panel - Document Preview */}
           <div className="flex-1 overflow-auto bg-gray-100">
             <div 
               ref={containerRef}
-              className="relative cursor-crosshair border rounded-lg min-h-[600px] bg-white"
+              className="relative cursor-crosshair border rounded-lg min-h-[800px] bg-white overflow-auto"
               style={{ 
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top left',
-                width: `${100/zoom}%`,
-                height: `${600/zoom}px`
+                width: '100%',
+                height: '800px'
               }}
               onClick={handleDocumentClick}
             >
