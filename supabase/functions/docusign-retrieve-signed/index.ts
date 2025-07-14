@@ -43,11 +43,16 @@ serve(async (req: Request) => {
       .from('docusign_tokens')
       .select('access_token, account_id, base_uri, expires_at')
       .eq('user_id', '00000000-0000-0000-0000-000000000000') // System tokens
-      .single();
+      .maybeSingle();
 
-    if (tokenError || !tokenData) {
-      console.error('❌ Failed to retrieve DocuSign credentials:', tokenError);
-      throw new Error('DocuSign credentials not found. Please authenticate first.');
+    if (tokenError) {
+      console.error('❌ Database error retrieving DocuSign credentials:', tokenError);
+      throw new Error('Database error retrieving DocuSign credentials.');
+    }
+
+    if (!tokenData) {
+      console.error('❌ No DocuSign credentials found in database');
+      throw new Error('DocuSign credentials not found. Please sign a document first to authenticate with DocuSign.');
     }
 
     // Check if token has expired
