@@ -3,6 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, MousePointer, Save, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface SignaturePosition {
   x: number;
@@ -38,6 +44,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
+  const [pageWidth, setPageWidth] = useState(595); // Default A4 width in points
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -182,6 +189,17 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       toast({
         title: 'No signer selected',
         description: 'Please select a signer from the left panel first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Only allow dragging if the signature belongs to the currently selected signer
+    const currentSigner = signers[currentSignerIndex];
+    if (currentSigner.recipientId !== recipientId) {
+      toast({
+        title: 'Wrong signer selected',
+        description: 'You can only move the signature for the currently selected signer',
         variant: 'destructive'
       });
       return;
@@ -333,19 +351,42 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using PDF viewer with page support */}
+              {/* Document preview using react-pdf */}
               {documentUrl ? (
-                <iframe
-                  src={`${documentUrl}#page=${currentPage}`}
-                  className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none'
+                <Document
+                  file={documentUrl}
+                  onLoadSuccess={({ numPages }) => {
+                    setTotalPages(numPages);
                   }}
-                  title="Document Preview"
-                  allow="fullscreen"
-                />
+                  className="absolute inset-0"
+                  loading={
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-gray-600">Loading PDF...</p>
+                      </div>
+                    </div>
+                  }
+                  error={
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">❌</div>
+                        <p className="text-gray-600">Failed to load PDF</p>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Page
+                    pageNumber={currentPage}
+                    scale={zoom}
+                    onLoadSuccess={(page) => {
+                      setPageWidth(page.width);
+                    }}
+                    className="mx-auto"
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                </Document>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="bg-gray-200 p-8 rounded-lg">
