@@ -320,14 +320,33 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     setDownloadingSignedDoc(true);
     try {
-      // Simply refresh the page to show the latest documents
-      // The signed document should already be downloaded by the callback
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error refreshing page:', error);
+      // Call the retrieve signed document function to download and add to documents
+      const { data, error } = await supabase.functions.invoke('docusign-retrieve-signed', {
+        body: {
+          dealId,
+          userRole
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
       toast({
-        title: 'Refresh failed',
-        description: 'Please manually refresh the page to see the latest documents',
+        title: 'Success',
+        description: 'Signed document has been downloaded and added to Documents tab',
+      });
+
+      // Refresh to show the new document
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Error downloading signed document:', error);
+      toast({
+        title: 'Download failed',
+        description: error.message || 'Failed to download signed document',
         variant: 'destructive'
       });
     } finally {

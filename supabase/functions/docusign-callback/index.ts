@@ -127,9 +127,9 @@ serve(async (req: Request) => {
               const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
               const filePath = `${signature.deal_id}/${fileName}`;
               
-              // Upload to Supabase storage
+              // Save to signed_document bucket (not auto-download)
               const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('deal_documents')
+                .from('signed_document')
                 .upload(filePath, uint8Array, {
                   contentType: 'application/pdf',
                   upsert: true
@@ -138,27 +138,8 @@ serve(async (req: Request) => {
               if (uploadError) {
                 console.error('Error uploading signed document:', uploadError);
               } else {
-                console.log('✅ Signed document uploaded successfully:', filePath);
-                
-                // Create new document record for signed version
-                const { error: docError } = await supabase
-                  .from('documents')
-                  .insert({
-                    deal_id: signature.deal_id,
-                    name: fileName,
-                    type: 'application/pdf',
-                    size: uint8Array.length,
-                    storage_path: filePath,
-                    status: 'signed',
-                    uploaded_by: tokens.user_id || 'system',
-                    category: 'signed_contract'
-                  });
-
-                if (docError) {
-                  console.error('Error creating signed document record:', docError);
-                } else {
-                  console.log('✅ Signed document record created successfully');
-                }
+                console.log('✅ Signed document saved to storage:', filePath);
+                console.log('Document will be available for manual download via button');
               }
             } else {
               console.error('Failed to download document from DocuSign:', await docResponse.text());

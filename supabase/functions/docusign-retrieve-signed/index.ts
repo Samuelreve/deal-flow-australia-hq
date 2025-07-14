@@ -27,177 +27,140 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { envelopeId, documentId, dealId } = await req.json();
+    const { dealId, userRole } = await req.json();
 
-    if (!envelopeId || !documentId || !dealId) {
+    if (!dealId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: envelopeId, documentId, dealId' }),
+        JSON.stringify({ error: 'Missing required parameter: dealId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get DocuSign token data from the database
-    console.log('🔍 Retrieving DocuSign credentials from database...');
-    
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('docusign_tokens')
-      .select('access_token, account_id, base_uri, expires_at')
-      .eq('user_id', '00000000-0000-0000-0000-000000000000') // System tokens
-      .maybeSingle();
+    console.log('🔍 Looking for signed documents in signed_document bucket for deal:', dealId);
 
-    if (tokenError) {
-      console.error('❌ Database error retrieving DocuSign credentials:', tokenError);
-      throw new Error('Database error retrieving DocuSign credentials.');
+    // List files in the signed_document bucket for this deal
+    const { data: files, error: listError } = await supabase.storage
+      .from('signed_document')
+      .list(dealId);
+
+    if (listError) {
+      console.error('❌ Error listing signed documents:', listError);
+      throw new Error('Failed to list signed documents');
     }
 
-    if (!tokenData) {
-      console.error('❌ No DocuSign credentials found in database');
-      throw new Error('DocuSign credentials not found. Please sign a document first to authenticate with DocuSign.');
+    if (!files || files.length === 0) {
+      console.log('📄 No signed documents found for deal:', dealId);
+      return new Response(
+        JSON.stringify({ message: 'No signed documents available yet' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Check if token has expired
-    const expiresAt = new Date(tokenData.expires_at);
-    const now = new Date();
-    if (expiresAt <= now) {
-      console.error('❌ DocuSign token has expired');
-      throw new Error('DocuSign token has expired. Please re-authenticate.');
-    }
-    
-    console.log('🔍 Token data retrieved successfully');
-    console.log('🔍 Token data access_token:', tokenData.access_token ? 'Present' : 'Missing');
-    console.log('🔍 Token data account_id:', tokenData.account_id);
-    console.log('🔍 Token data base_uri:', tokenData.base_uri);
+    console.log('📄 Found signed documents:', files.map(f => f.name));
 
-    if (!tokenData.account_id || !tokenData.base_uri || !tokenData.access_token) {
-      const errorMsg = `Missing DocuSign credentials: account_id=${tokenData.account_id}, base_uri=${tokenData.base_uri}, access_token=${tokenData.access_token ? 'present' : 'missing'}`;
-      console.error('❌', errorMsg);
-      throw new Error(errorMsg);
-    }
+    const processedDocuments = [];
 
-    // Download the signed document from DocuSign
-    const downloadUrl = `${tokenData.base_uri}/restapi/v2.1/accounts/${tokenData.account_id}/envelopes/${envelopeId}/documents/${documentId}`;
-    
-    console.log('📥 Downloading signed document from:', downloadUrl);
+    // Process each signed document
+    for (const file of files) {
+      try {
+        const signedDocPath = `${dealId}/${file.name}`;
+        
+        // Download the file from signed_document bucket
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('signed_document')
+          .download(signedDocPath);
 
-    const documentResponse = await fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'Accept': 'application/pdf'
+        if (downloadError || !fileData) {
+          console.error('❌ Error downloading file:', file.name, downloadError);
+          continue;
+        }
+
+        const arrayBuffer = await fileData.arrayBuffer();
+        const documentBytes = new Uint8Array(arrayBuffer);
+
+        // Create new path in deal_documents bucket
+        const newStoragePath = `${dealId}/${file.name}`;
+
+        // Upload to deal_documents bucket
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('deal_documents')
+          .upload(newStoragePath, documentBytes, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('❌ Error uploading to deal_documents:', uploadError);
+          continue;
+        }
+
+        // Get signed URL for download
+        const { data: signedUrlData } = await supabase.storage
+          .from('deal_documents')
+          .createSignedUrl(newStoragePath, 60 * 60 * 24); // 24 hours
+
+        // Create document record
+        const { data: newDoc, error: createError } = await supabase
+          .from('documents')
+          .insert({
+            deal_id: dealId,
+            name: file.name,
+            storage_path: newStoragePath,
+            size: documentBytes.length,
+            type: 'application/pdf',
+            status: 'signed',
+            category: 'signed_contract',
+            uploaded_by: (await supabase.auth.getUser()).data.user?.id || '00000000-0000-0000-0000-000000000000',
+            version: 1
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Error creating document record:', createError);
+          continue;
+        }
+
+        // Create document version record
+        await supabase
+          .from('document_versions')
+          .insert({
+            document_id: newDoc.id,
+            version_number: 1,
+            storage_path: newStoragePath,
+            size: documentBytes.length,
+            type: 'application/pdf',
+            uploaded_by: newDoc.uploaded_by,
+            description: 'Signed document from DocuSign'
+          });
+
+        // Remove from signed_document bucket after successful processing
+        await supabase.storage
+          .from('signed_document')
+          .remove([signedDocPath]);
+
+        processedDocuments.push({
+          id: newDoc.id,
+          name: file.name,
+          url: signedUrlData?.signedUrl,
+          size: documentBytes.length
+        });
+
+        console.log('✅ Successfully processed signed document:', file.name);
+
+      } catch (error) {
+        console.error('❌ Error processing file:', file.name, error);
+        continue;
       }
-    });
-
-    if (!documentResponse.ok) {
-      throw new Error(`Failed to download signed document: ${documentResponse.status}`);
     }
 
-    const documentBuffer = await documentResponse.arrayBuffer();
-    const documentBytes = new Uint8Array(documentBuffer);
-
-    // Get the original document info
-    const { data: originalDoc, error: docError } = await supabase
-      .from('documents')
-      .select('name, category')
-      .eq('id', documentId)
-      .single();
-
-    if (docError || !originalDoc) {
-      throw new Error('Original document not found');
-    }
-
-    // Create a unique filename for the signed document
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const signedFileName = `${originalDoc.name.replace('.pdf', '')}_signed_${timestamp}.pdf`;
-    const storagePath = `${dealId}/${signedFileName}`;
-
-    // Upload the signed document to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('deal_documents')
-      .upload(storagePath, documentBytes, {
-        contentType: 'application/pdf',
-        upsert: false
-      });
-
-    if (uploadError) {
-      throw new Error(`Failed to upload signed document: ${uploadError.message}`);
-    }
-
-    // Get signed URL for the uploaded document
-    const { data: signedUrlData } = await supabase.storage
-      .from('deal_documents')
-      .createSignedUrl(storagePath, 60 * 60 * 24 * 7); // 7 days
-
-    // Create a new document record for the signed document
-    const { data: newDoc, error: createError } = await supabase
-      .from('documents')
-      .insert({
-        deal_id: dealId,
-        name: signedFileName,
-        storage_path: storagePath,
-        size: documentBytes.length,
-        type: 'application/pdf',
-        status: 'signed',
-        category: originalDoc.category,
-        uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-        version: 1
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      // Clean up uploaded file if document creation fails
-      await supabase.storage
-        .from('deal_documents')
-        .remove([storagePath]);
-      throw new Error(`Failed to create document record: ${createError.message}`);
-    }
-
-    // Create a document version record
-    const { error: versionError } = await supabase
-      .from('document_versions')
-      .insert({
-        document_id: newDoc.id,
-        version_number: 1,
-        storage_path: storagePath,
-        size: documentBytes.length,
-        type: 'application/pdf',
-        uploaded_by: newDoc.uploaded_by,
-        description: 'Signed document from DocuSign'
-      });
-
-    if (versionError) {
-      console.error('Failed to create document version:', versionError);
-      // Don't fail the whole operation for this
-    }
-
-    // Update the original document's status to indicate it has been signed
-    await supabase
-      .from('documents')
-      .update({ status: 'signed' })
-      .eq('id', documentId);
-
-    // Update the signature record status
-    await supabase
-      .from('document_signatures')
-      .update({ 
-        status: 'completed',
-        signed_at: new Date().toISOString()
-      })
-      .eq('envelope_id', envelopeId);
-
-    console.log('✅ Successfully retrieved and uploaded signed document');
+    console.log('✅ Successfully processed signed documents');
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Signed document retrieved and uploaded successfully',
-        signedDocument: {
-          id: newDoc.id,
-          name: signedFileName,
-          url: signedUrlData?.signedUrl,
-          size: documentBytes.length,
-          status: 'signed'
-        }
+        message: `${processedDocuments.length} signed document(s) processed and added to Documents tab`,
+        processedDocuments
       }),
       {
         status: 200,
