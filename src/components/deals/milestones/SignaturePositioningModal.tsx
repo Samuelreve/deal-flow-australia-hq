@@ -34,7 +34,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   isLoading = false
 }) => {
   const [signaturePositions, setSignaturePositions] = useState<SignaturePosition[]>([]);
-  const [currentSignerIndex, setCurrentSignerIndex] = useState(0);
+  const [currentSignerIndex, setCurrentSignerIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -67,7 +67,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       });
       console.log('All initial positions:', initialPositions);
       setSignaturePositions(initialPositions);
-      setCurrentSignerIndex(0);
+      setCurrentSignerIndex(null);
     }
   }, [isOpen, signers]);
 
@@ -125,7 +125,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     if (dragState.isDragging) return;
     
     // Only allow positioning if a signer is selected
-    if (currentSignerIndex === null || currentSignerIndex < 0) {
+    if (currentSignerIndex === null) {
       toast({
         title: 'No signer selected',
         description: 'Please select a signer from the left panel first',
@@ -177,6 +177,16 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   };
 
   const handleSignatureMouseDown = (recipientId: string, event: React.MouseEvent) => {
+    // Only allow dragging if the current signer is selected
+    if (currentSignerIndex === null) {
+      toast({
+        title: 'No signer selected',
+        description: 'Please select a signer from the left panel first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     event.stopPropagation();
     console.log('Starting drag for recipientId:', recipientId);
     setDragState({
@@ -208,7 +218,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     onConfirm(signaturePositions);
   };
 
-  const currentSigner = signers[currentSignerIndex];
+  const currentSigner = currentSignerIndex !== null ? signers[currentSignerIndex] : null;
   const currentPosition = signaturePositions.find(
     p => p.recipientId === currentSigner?.recipientId
   );
@@ -323,10 +333,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
               }}
               onClick={handleDocumentClick}
             >
-              {/* Document preview using Google Docs viewer */}
+              {/* Document preview using PDF viewer with page support */}
               {documentUrl ? (
                 <iframe
-                  src={`https://docs.google.com/gview?url=${encodeURIComponent(documentUrl)}&embedded=true`}
+                  src={`${documentUrl}#page=${currentPage}`}
                   className="absolute inset-0 w-full h-full border-0 pointer-events-none"
                   style={{
                     width: '100%',
