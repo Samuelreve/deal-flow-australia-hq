@@ -1008,14 +1008,25 @@ async function createDocuSignEnvelope(params: {
         signer.clientUserId = signerInfo.recipientId; // Match the clientUserId to recipientId
       }
       
-      // Add signature tabs
+      // Add signature tabs using anchor positioning
       const signHere = new SignHere();
       signHere.documentId = params.document.documentId;
-      signHere.pageNumber = '1';
       signHere.recipientId = signerInfo.recipientId;
       signHere.tabLabel = `SignHere${index + 1}`;
-      signHere.xPosition = '100';
-      signHere.yPosition = `${200 + (index * 100)}`; // Offset signatures vertically
+      
+      // Use anchor text positioning instead of fixed coordinates
+      signHere.anchorString = 'Sign';
+      signHere.anchorUnits = 'pixels';
+      signHere.anchorXOffset = '10';  // Small offset from the anchor text
+      signHere.anchorYOffset = '0';
+      signHere.anchorMatchWholeWord = 'true';
+      signHere.anchorCaseSensitive = 'false';
+      
+      // Alternative anchor strings to try if "Sign" isn't found
+      if (index > 0) {
+        // For additional signers, try other anchor patterns
+        signHere.anchorString = `/sn${index + 1}/`;  // Pattern like /sn2/, /sn3/, etc.
+      }
       
       const tabs = new Tabs();
       tabs.signHereTabs = [signHere];
