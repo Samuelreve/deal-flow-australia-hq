@@ -94,53 +94,13 @@ serve(async (req: Request) => {
       ? `${baseUrl}/deals/${redirectDealId}?signed=true`
       : `${baseUrl}`;
 
-    // Return a simple success page with redirect
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Document Signing Complete</title>
-          <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            .success { color: #28a745; font-size: 24px; margin-bottom: 20px; }
-            .message { color: #6c757d; }
-            .redirect-info { color: #007bff; margin-top: 15px; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="success">✓ Document Signing Complete</div>
-          <div class="message">
-            Thank you for signing the document. Redirecting you back to the deal...
-          </div>
-          <div class="redirect-info">
-            If you're not redirected automatically, <a href="${redirectUrl}">click here</a>
-          </div>
-          <script>
-            // Redirect to deal page after 2 seconds
-            setTimeout(() => {
-              if (window.opener) {
-                // If opened in popup, notify parent and close
-                window.opener.postMessage({ 
-                  type: 'DOCUSIGN_SIGNING_COMPLETE', 
-                  dealId: '${redirectDealId}' 
-                }, '*');
-                window.close();
-              } else {
-                // If opened in new tab, redirect
-                window.location.href = '${redirectUrl}';
-              }
-            }, 2000);
-          </script>
-        </body>
-      </html>
-    `;
-
-    return new Response(html, {
-      headers: { 
-        ...corsHeaders, 
-        'Content-Type': 'text/html; charset=utf-8'
-      },
-      status: 200
+    // Immediate redirect with 302 status
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        'Location': redirectUrl
+      }
     });
 
   } catch (error: any) {
