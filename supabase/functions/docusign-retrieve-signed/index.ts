@@ -36,42 +36,29 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get DocuSign token data from the OAuth function
-    console.log('🔍 Calling DocuSign status endpoint...');
-    console.log('🔍 SUPABASE_URL:', Deno.env.get('SUPABASE_URL'));
+    // Get DocuSign token data from the database
+    console.log('🔍 Retrieving DocuSign credentials from database...');
     
-    const statusUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-sign/status`;
-    console.log('🔍 Full status URL:', statusUrl);
-    
-    const tokenResponse = await fetch(statusUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('docusign_tokens')
+      .select('access_token, account_id, base_uri, expires_at')
+      .eq('user_id', '00000000-0000-0000-0000-000000000000') // System tokens
+      .single();
 
-    console.log('📊 Status response status:', tokenResponse.status);
-    console.log('📊 Status response ok:', tokenResponse.ok);
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('❌ Status response error:', errorText);
-      throw new Error(`DocuSign not authenticated. Status: ${tokenResponse.status}, Error: ${errorText}`);
+    if (tokenError || !tokenData) {
+      console.error('❌ Failed to retrieve DocuSign credentials:', tokenError);
+      throw new Error('DocuSign credentials not found. Please authenticate first.');
     }
 
-    const rawResponseText = await tokenResponse.text();
-    console.log('🔍 Raw status response text:', rawResponseText);
-    
-    let tokenData: DocuSignTokenData;
-    try {
-      tokenData = JSON.parse(rawResponseText);
-    } catch (parseError) {
-      console.error('❌ Failed to parse status response:', parseError);
-      throw new Error(`Failed to parse status response: ${parseError.message}`);
+    // Check if token has expired
+    const expiresAt = new Date(tokenData.expires_at);
+    const now = new Date();
+    if (expiresAt <= now) {
+      console.error('❌ DocuSign token has expired');
+      throw new Error('DocuSign token has expired. Please re-authenticate.');
     }
     
-    console.log('🔍 Parsed token data:', JSON.stringify(tokenData, null, 2));
+    console.log('🔍 Token data retrieved successfully');
     console.log('🔍 Token data access_token:', tokenData.access_token ? 'Present' : 'Missing');
     console.log('🔍 Token data account_id:', tokenData.account_id);
     console.log('🔍 Token data base_uri:', tokenData.base_uri);
