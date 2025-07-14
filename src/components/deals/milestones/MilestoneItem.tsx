@@ -124,9 +124,32 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }
 
       // Get signed URL for document preview
-      const { data: urlData } = await supabase.storage
-        .from('deal_documents')
-        .createSignedUrl(document.storage_path, 3600); // 1 hour expiry
+      let signedUrl: string;
+      
+      // Try different path formats for the deal_documents bucket
+      const pathsToTry = [
+        document.storage_path,
+        `${dealId}/${document.storage_path}`,
+        document.storage_path.split('/').pop(), // Just the filename
+      ];
+      
+      let urlData: { signedUrl: string } | null = null;
+      
+      for (const path of pathsToTry) {
+        try {
+          const result = await supabase.storage
+            .from('deal_documents')
+            .createSignedUrl(path, 3600);
+          
+          if (result.data?.signedUrl && !result.error) {
+            urlData = result.data;
+            break;
+          }
+        } catch (error) {
+          console.log(`Failed to get signed URL for path: ${path}`, error);
+          continue;
+        }
+      }
 
       if (!urlData?.signedUrl) {
         throw new Error('Failed to generate document preview');
