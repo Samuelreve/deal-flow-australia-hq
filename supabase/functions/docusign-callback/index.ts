@@ -89,7 +89,7 @@ serve(async (req: Request) => {
     }
 
     // Determine redirect URL - redirect directly to documents tab
-    const baseUrl = Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovableproject.com') || 'https://your-app.com';
+    const baseUrl = 'https://preview--deal-flow-australia-hq.lovable.app';
     const redirectUrl = redirectDealId 
       ? `${baseUrl}/deals/${redirectDealId}?tab=documents&signed=true`
       : `${baseUrl}`;
