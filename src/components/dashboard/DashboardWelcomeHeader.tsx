@@ -20,7 +20,7 @@ const DashboardWelcomeHeader = ({ welcomeMessage, currentDate }: DashboardWelcom
           {currentDate} · Welcome to your personalized deal dashboard
         </p>
       </div>
-      <Button onClick={() => navigate('/create-deal')} variant="success">
+      <Button onClick={() => navigate('/create-deal')}>
         <Plus className="mr-2 h-4 w-4" />
         Create Deal
       </Button>

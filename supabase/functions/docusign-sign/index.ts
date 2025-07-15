@@ -938,40 +938,42 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 }
 
 async function getDocuSignAccessToken(): Promise<string> {
-  // First try OAuth token if available
+  // Prioritize JWT authentication (no user interaction required)
+  if (docusignConfig) {
+    console.log('Using JWT authentication for DocuSign');
+    
+    // Check if we have a valid cached JWT token
+    if (docusignConfig.accessToken && 
+        docusignConfig.tokenExpiresAt && 
+        Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
+      console.log('Using cached JWT access token');
+      return docusignConfig.accessToken;
+    }
+
+    // Get new token using DocuSign SDK
+    console.log('Getting new JWT access token using DocuSign SDK...');
+    const accessToken = await getJWTAccessTokenWithSDK(
+      docusignConfig.integrationKey,
+      docusignConfig.userId,
+      docusignConfig.privateKey,
+      docusignConfig.accountId
+    );
+
+    // Cache the token (expires in 1 hour)
+    docusignConfig.accessToken = accessToken;
+    docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
+
+    return accessToken;
+  }
+
+  // Fall back to OAuth token if JWT not configured
   const oauthToken = await getValidAccessToken();
   if (oauthToken) {
     console.log('Using OAuth access token');
     return oauthToken;
   }
 
-  // Fall back to JWT authentication using DocuSign SDK
-  if (!docusignConfig) {
-    throw new Error('DocuSign not configured. Please use OAuth authentication or configure JWT credentials.');
-  }
-
-  // Check if we have a valid cached JWT token
-  if (docusignConfig.accessToken && 
-      docusignConfig.tokenExpiresAt && 
-      Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
-    console.log('Using cached JWT access token');
-    return docusignConfig.accessToken;
-  }
-
-  // Get new token using DocuSign SDK
-  console.log('Getting new JWT access token using DocuSign SDK...');
-  const accessToken = await getJWTAccessTokenWithSDK(
-    docusignConfig.integrationKey,
-    docusignConfig.userId,
-    docusignConfig.privateKey,
-    docusignConfig.accountId
-  );
-
-  // Cache the token (expires in 1 hour)
-  docusignConfig.accessToken = accessToken;
-  docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
-
-  return accessToken;
+  throw new Error('DocuSign not configured. Please configure JWT credentials or complete OAuth authentication.');
 }
 
 async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string> {
