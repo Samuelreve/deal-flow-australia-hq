@@ -11,10 +11,21 @@ interface SummaryRendererProps {
 const SummaryRenderer: React.FC<SummaryRendererProps> = ({ content }) => {
   const { summary, keyPoints = [], documentType, wordCount, disclaimer } = content;
 
+  // Clean summary text by removing markdown formatting
+  const cleanSummary = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/#{1,6}\s+/g, '') // Remove # headers
+      .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove * formatting
+      .replace(/^\s*-\s+/gm, '') // Remove bullet points
+      .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
+      .trim();
+  };
+
   return (
     <div className="space-y-6">
-      {/* Only Key Points - Clean Summary */}
-      {keyPoints && keyPoints.length > 0 && (
+      {/* Clean Summary Display */}
+      {(summary || (keyPoints && keyPoints.length > 0)) && (
         <Card className="border-l-4 border-l-primary">
           <CardContent className="p-6">
             <div className="flex items-start gap-3">
@@ -32,14 +43,25 @@ const SummaryRenderer: React.FC<SummaryRendererProps> = ({ content }) => {
                     </Badge>
                   )}
                 </div>
-                <ul className="space-y-2">
-                  {keyPoints.map((point: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="h-1.5 w-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <span className="text-sm text-foreground">{point}</span>
-                    </li>
-                  ))}
-                </ul>
+                
+                {/* Display clean summary text */}
+                {summary && (
+                  <div className="text-sm text-foreground leading-relaxed whitespace-pre-line mb-4">
+                    {cleanSummary(summary)}
+                  </div>
+                )}
+                
+                {/* Display key points if no summary text */}
+                {!summary && keyPoints && keyPoints.length > 0 && (
+                  <ul className="space-y-2">
+                    {keyPoints.map((point: string, index: number) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="h-1.5 w-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                        <span className="text-sm text-foreground">{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </CardContent>
