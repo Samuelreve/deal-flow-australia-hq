@@ -7,7 +7,71 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Function to get stored DocuSign access token
+// Function to refresh DocuSign access token
+async function refreshAccessToken(refreshToken: string): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+  const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
+
+  if (!integrationKey || !clientSecret) {
+    throw new Error('Missing DocuSign OAuth configuration');
+  }
+
+  const response = await fetch('https://account-d.docusign.com/oauth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${btoa(`${integrationKey}:${clientSecret}`)}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('❌ Token refresh failed:', error);
+    throw new Error('Failed to refresh DocuSign token');
+  }
+
+  const tokenData = await response.json();
+  
+  // Update the stored token in database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000));
+  
+  await supabase
+    .from('docusign_tokens')
+    .update({
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || refreshToken,
+      expires_at: expiresAt.toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('user_id', '00000000-0000-0000-0000-000000000000');
+
+  // Get user info to get account details
+  const userInfoResponse = await fetch('https://account-d.docusign.com/oauth/userinfo', {
+    headers: {
+      'Authorization': `Bearer ${tokenData.access_token}`
+    }
+  });
+
+  const userInfo = await userInfoResponse.json();
+  const account = userInfo.accounts[0];
+
+  return {
+    access_token: tokenData.access_token,
+    base_uri: account.base_uri,
+    account_id: account.account_id
+  };
+}
+
+// Function to get stored DocuSign access token with refresh capability
 async function getStoredAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -19,6 +83,7 @@ async function getStoredAccessToken(): Promise<{ access_token: string; base_uri:
   const { data: tokenData, error: tokenError } = await supabase
     .from('docusign_tokens')
     .select('*')
+    .eq('user_id', '00000000-0000-0000-0000-000000000000')
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -29,7 +94,7 @@ async function getStoredAccessToken(): Promise<{ access_token: string; base_uri:
 
   if (!tokenData || tokenData.length === 0) {
     console.error('❌ No DocuSign tokens found in database');
-    throw new Error('No DocuSign tokens found. Please authenticate with DocuSign first.');
+    throw new Error('No DocuSign tokens found. Please authenticate with DocuSign first using the DocuSign sign function.');
   }
 
   const token = tokenData[0];
@@ -38,8 +103,18 @@ async function getStoredAccessToken(): Promise<{ access_token: string; base_uri:
   // Check if token is expired
   const isExpired = new Date(token.expires_at) <= new Date();
   if (isExpired) {
-    console.error('❌ Stored DocuSign token is expired');
-    throw new Error('DocuSign token is expired. Please re-authenticate.');
+    console.log('⏰ Token is expired, attempting to refresh...');
+    
+    if (!token.refresh_token) {
+      throw new Error('DocuSign token is expired and no refresh token available. Please re-authenticate.');
+    }
+
+    try {
+      return await refreshAccessToken(token.refresh_token);
+    } catch (refreshError) {
+      console.error('❌ Token refresh failed:', refreshError);
+      throw new Error('DocuSign token expired and refresh failed. Please re-authenticate.');
+    }
   }
 
   return {
