@@ -159,19 +159,6 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
 
          console.log('✅ Analysis result processed:', analysisResult);
 
-         // Save the analysis to the database
-         try {
-           await documentAnalysisService.saveAnalysis({
-             documentId: document.id,
-             documentVersionId: versionData.id,
-             analysisType: analysisType,
-             analysisContent: analysisResult
-           });
-           console.log('💾 Analysis saved to database');
-         } catch (saveError) {
-           console.error('Error saving analysis to database:', saveError);
-           // Don't fail the whole operation if saving fails
-         }
 
          setAnalysisResults(prev => ({
            ...prev,
@@ -321,83 +308,6 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     }
   }, [document, currentDocumentId]);
 
-  // Load existing analysis when modal opens
-  React.useEffect(() => {
-    const loadExistingAnalysis = async () => {
-      if (!isOpen || !document) {
-        console.log('❌ Skipping analysis load - modal closed or no document');
-        return;
-      }
-
-      console.log('🔍 Loading existing analysis for:', {
-        documentId: document.id,
-        analysisType,
-        currentResults: analysisResults,
-        hasCurrentResult: !!analysisResults[analysisType]
-      });
-
-      try {
-        // Get the latest document version
-        const { data: versionData, error: versionError } = await supabase
-          .from('document_versions')
-          .select('id')
-          .eq('document_id', document.id)
-          .order('version_number', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (versionError || !versionData?.id) {
-          console.log('📄 No document version found, will need to generate new analysis');
-          return;
-        }
-
-        // Check if we already have this analysis loaded - but only skip if we have a complete result
-        if (analysisResults[analysisType] && 
-            (analysisResults[analysisType].summary || 
-             analysisResults[analysisType].keyTerms?.length > 0 || 
-             analysisResults[analysisType].risks?.length > 0)) {
-          console.log('📄 Analysis already loaded in state, skipping');
-          return;
-        }
-
-        // Try to load existing analysis from database
-        console.log('🔍 Checking database for existing analysis...');
-        const existingAnalysis = await documentAnalysisService.getLatestAnalysis(
-          versionData.id,
-          analysisType
-        );
-
-        if (existingAnalysis) {
-          console.log('💾 Found existing analysis:', existingAnalysis);
-          
-          // Load the existing analysis into state
-          setAnalysisResults(prev => {
-            const newResults = {
-              ...prev,
-              [analysisType]: existingAnalysis.analysisContent
-            };
-            console.log('📝 Setting analysis results:', newResults);
-            return newResults;
-          });
-
-          toast({
-            title: "Analysis loaded",
-            description: `Existing ${analysisType.replace('_', ' ')} analysis loaded`,
-          });
-        } else {
-          console.log('🔄 No existing analysis found, generating new one...');
-          // No existing analysis, generate a new one
-          performAnalysis(analysisType);
-        }
-      } catch (error) {
-        console.error('Error loading existing analysis:', error);
-        // If loading fails, try to generate new analysis
-        performAnalysis(analysisType);
-      }
-    };
-
-    loadExistingAnalysis();
-  }, [isOpen, document, analysisType]); // Removed analysisResults dependency
 
   if (!document) return null;
 
