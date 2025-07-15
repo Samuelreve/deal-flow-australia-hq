@@ -58,9 +58,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       }
 
       // Create signed URL for the document
-      // The storage_path should be the relative path without dealId prefix
-      // Construct full storage path by adding dealId
-      const fullStoragePath = `${dealId}/${versionData.storage_path}`;
+      // Check if storage_path already includes dealId (for signed documents)
+      const fullStoragePath = versionData.storage_path.includes(`${dealId}/`) 
+        ? versionData.storage_path 
+        : `${dealId}/${versionData.storage_path}`;
       
       const { data: urlData, error: urlError } = await supabase.storage
         .from('deal_documents')
