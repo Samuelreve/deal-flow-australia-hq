@@ -7,80 +7,45 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Function to create JWT token for DocuSign authentication
-async function createDocuSignJWT(): Promise<string> {
-  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-  const userId = Deno.env.get('DOCUSIGN_USER_ID');
-  const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
-  
-  if (!integrationKey || !userId || !privateKey) {
-    throw new Error('Missing DocuSign configuration');
+// Function to get stored DocuSign access token
+async function getStoredAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Try to get stored OAuth token from database
+  console.log('🔍 Looking for stored DocuSign tokens...');
+  const { data: tokenData, error: tokenError } = await supabase
+    .from('docusign_tokens')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (tokenError) {
+    console.error('❌ Error fetching DocuSign tokens:', tokenError);
+    throw new Error('Failed to retrieve DocuSign tokens from database');
   }
 
-  // Create JWT header
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  };
-
-  // Create JWT payload
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: integrationKey,
-    sub: userId,
-    aud: 'account-d.docusign.com',
-    iat: now,
-    exp: now + 3600, // 1 hour
-    scope: 'signature'
-  };
-
-  // Encode header and payload
-  const encodedHeader = btoa(JSON.stringify(header));
-  const encodedPayload = btoa(JSON.stringify(payload));
-  
-  // Create signature (simplified - in production, use proper RSA signing)
-  const message = `${encodedHeader}.${encodedPayload}`;
-  
-  // For now, return a mock JWT - in production, implement proper RSA signing
-  const signature = btoa(message);
-  
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
-}
-
-// Function to get access token using JWT
-async function getAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  const jwt = await createDocuSignJWT();
-  
-  const response = await fetch('https://account-d.docusign.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('❌ DocuSign JWT authentication failed:', error);
-    throw new Error('DocuSign authentication failed');
+  if (!tokenData || tokenData.length === 0) {
+    console.error('❌ No DocuSign tokens found in database');
+    throw new Error('No DocuSign tokens found. Please authenticate with DocuSign first.');
   }
 
-  const tokenData = await response.json();
+  const token = tokenData[0];
+  console.log('✅ Found stored DocuSign token');
   
-  // Get user info to get account details
-  const userInfoResponse = await fetch('https://account-d.docusign.com/oauth/userinfo', {
-    headers: {
-      'Authorization': `Bearer ${tokenData.access_token}`
-    }
-  });
+  // Check if token is expired
+  const isExpired = new Date(token.expires_at) <= new Date();
+  if (isExpired) {
+    console.error('❌ Stored DocuSign token is expired');
+    throw new Error('DocuSign token is expired. Please re-authenticate.');
+  }
 
-  const userInfo = await userInfoResponse.json();
-  const account = userInfo.accounts[0]; // Use first account
-  
   return {
-    access_token: tokenData.access_token,
-    base_uri: account.base_uri,
-    account_id: account.account_id
+    access_token: token.access_token,
+    base_uri: token.base_uri,
+    account_id: token.account_id
   };
 }
 
@@ -178,10 +143,10 @@ serve(async (req: Request) => {
 
     console.log('🎯 Processing request for envelope:', envelopeId, 'deal:', dealId);
 
-    // Step 1: Get OAuth access token using JWT authentication
-    console.log('🔐 Step 1: Obtaining DocuSign access token via JWT...');
-    const { access_token, base_uri, account_id } = await getAccessToken();
-    console.log('✅ Successfully obtained access token');
+    // Step 1: Get stored OAuth access token from database
+    console.log('🔐 Step 1: Retrieving stored DocuSign access token...');
+    const { access_token, base_uri, account_id } = await getStoredAccessToken();
+    console.log('✅ Successfully retrieved access token from database');
 
     // Step 2: Download document from DocuSign
     console.log('📥 Step 2: Downloading document from DocuSign...');
