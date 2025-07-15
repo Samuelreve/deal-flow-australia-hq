@@ -6,23 +6,50 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Background function to download signed document immediately
+// Background function to download signed document immediately  
 async function downloadSignedDocumentImmediately(supabase: any, envelopeId: string, signature: any) {
   console.log('🚀 Starting immediate download for envelope:', envelopeId);
   
   try {
-    // Get DocuSign tokens
+    // Get DocuSign tokens with more verbose logging
     const { data: tokens, error: tokenError } = await supabase
       .from('docusign_tokens')
       .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (tokenError || !tokens) {
-      console.error('❌ No DocuSign tokens found for immediate download:', tokenError);
+    if (tokenError) {
+      console.error('❌ Database error fetching DocuSign tokens:', tokenError);
+      return;
+    }
+
+    if (!tokens) {
+      console.error('❌ No DocuSign tokens found for immediate download');
+      // Try to get count of tokens to debug
+      const { count } = await supabase
+        .from('docusign_tokens')
+        .select('*', { count: 'exact', head: true });
+      console.log('🔍 Total tokens in database:', count);
       return;
     }
 
     console.log('✅ Found DocuSign tokens for immediate download');
+    console.log('🔑 Token expires at:', tokens.expires_at);
+    console.log('🏢 Account ID:', tokens.account_id);
+    console.log('🌐 Base URI:', tokens.base_uri);
+    
+    // Check if token is expired
+    const expiresAt = new Date(tokens.expires_at);
+    const now = new Date();
+    if (expiresAt <= now) {
+      console.error('❌ DocuSign token has expired at', expiresAt);
+      return;
+    }
+    
+    // Wait a moment to ensure envelope is ready (per DocuSign best practices)
+    console.log('⏱️ Waiting 2 seconds for envelope to be ready...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Import DocuSign SDK
     const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
@@ -32,6 +59,16 @@ async function downloadSignedDocumentImmediately(supabase: any, envelopeId: stri
     dsApiClient.setBasePath(tokens.base_uri);
     dsApiClient.addDefaultHeader('Authorization', 'Bearer ' + tokens.access_token);
     let envelopesApi = new docusign.EnvelopesApi(dsApiClient);
+    
+    // First check envelope status
+    console.log('🔍 Checking envelope status before download...');
+    const envelopeInfo = await envelopesApi.getEnvelope(tokens.account_id, envelopeId);
+    console.log('📋 Envelope status:', envelopeInfo.status);
+    
+    if (envelopeInfo.status !== 'completed') {
+      console.log('⚠️ Envelope not completed yet, status:', envelopeInfo.status);
+      return;
+    }
     
     // Download combined PDF immediately
     console.log('⚡ Immediate download attempt - Account:', tokens.account_id, 'Envelope:', envelopeId);
@@ -74,9 +111,15 @@ async function downloadSignedDocumentImmediately(supabase: any, envelopeId: stri
   } catch (error: any) {
     console.error('❌ Immediate download failed:', error.message);
     
+    // More detailed error logging
+    if (error.response) {
+      console.error('📄 Error response status:', error.response.status);
+      console.error('📄 Error response data:', error.response.data);
+    }
+    
     // If immediate download fails, log but don't throw to avoid breaking the webhook response
     if (error.response?.status === 404) {
-      console.log('📄 Document not found during immediate download - may need retry');
+      console.log('📄 Document not found during immediate download - envelope may not be ready or may have expired');
     }
   }
 }
