@@ -149,8 +149,18 @@ serve(async (req: Request) => {
             
             // Download combined PDF with all signed documents
             console.log('📥 Downloading signed document - Account:', tokens.account_id, 'Envelope:', webhookEnvelopeId);
-            const results = await envelopesApi.getDocument(tokens.account_id, webhookEnvelopeId, 'combined', null);
-            console.log('📄 Document download result type:', typeof results, 'Length:', results?.length || 'undefined');
+            let results;
+            try {
+              results = await envelopesApi.getDocument(tokens.account_id, webhookEnvelopeId, 'combined', null);
+              console.log('📄 Document download result type:', typeof results, 'Length:', results?.length || 'undefined');
+            } catch (docError: any) {
+              console.error('❌ Error downloading document from DocuSign:', docError.message);
+              if (docError.response?.status === 404) {
+                console.log('📄 Document not found (404) - envelope may have expired or been deleted');
+                console.log('💡 This is normal if the envelope was temporary or has been processed already');
+              }
+              throw docError; // Re-throw to be caught by outer catch block
+            }
             
             if (results) {
               console.log('📥 Document download successful, processing...');
