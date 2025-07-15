@@ -6,123 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Background function to download signed document immediately  
-async function downloadSignedDocumentImmediately(supabase: any, envelopeId: string, signature: any) {
-  console.log('🚀 Starting immediate download for envelope:', envelopeId);
-  
-  try {
-    // Get DocuSign tokens with more verbose logging
-    const { data: tokens, error: tokenError } = await supabase
-      .from('docusign_tokens')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (tokenError) {
-      console.error('❌ Database error fetching DocuSign tokens:', tokenError);
-      return;
-    }
-
-    if (!tokens) {
-      console.error('❌ No DocuSign tokens found for immediate download');
-      // Try to get count of tokens to debug
-      const { count } = await supabase
-        .from('docusign_tokens')
-        .select('*', { count: 'exact', head: true });
-      console.log('🔍 Total tokens in database:', count);
-      return;
-    }
-
-    console.log('✅ Found DocuSign tokens for immediate download');
-    console.log('🔑 Token expires at:', tokens.expires_at);
-    console.log('🏢 Account ID:', tokens.account_id);
-    console.log('🌐 Base URI:', tokens.base_uri);
-    
-    // Check if token is expired
-    const expiresAt = new Date(tokens.expires_at);
-    const now = new Date();
-    if (expiresAt <= now) {
-      console.error('❌ DocuSign token has expired at', expiresAt);
-      return;
-    }
-    
-    // Wait a moment to ensure envelope is ready (per DocuSign best practices)
-    console.log('⏱️ Waiting 2 seconds for envelope to be ready...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Import DocuSign SDK
-    const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
-    
-    // Set up DocuSign API client
-    let dsApiClient = new docusign.ApiClient();
-    dsApiClient.setBasePath(tokens.base_uri);
-    dsApiClient.addDefaultHeader('Authorization', 'Bearer ' + tokens.access_token);
-    let envelopesApi = new docusign.EnvelopesApi(dsApiClient);
-    
-    // First check envelope status
-    console.log('🔍 Checking envelope status before download...');
-    const envelopeInfo = await envelopesApi.getEnvelope(tokens.account_id, envelopeId);
-    console.log('📋 Envelope status:', envelopeInfo.status);
-    
-    if (envelopeInfo.status !== 'completed') {
-      console.log('⚠️ Envelope not completed yet, status:', envelopeInfo.status);
-      return;
-    }
-    
-    // Download combined PDF immediately
-    console.log('⚡ Immediate download attempt - Account:', tokens.account_id, 'Envelope:', envelopeId);
-    
-    const results = await envelopesApi.getDocument(tokens.account_id, envelopeId, 'combined', null);
-    console.log('✅ Immediate download successful!');
-    
-    if (results) {
-      // Convert the result to Uint8Array for storage
-      const uint8Array = new Uint8Array(results);
-      console.log(`📊 Downloaded document size: ${uint8Array.length} bytes`);
-      
-      // Get original document name
-      const { data: originalDoc } = await supabase
-        .from('documents')
-        .select('name')
-        .eq('id', signature.document_id)
-        .single();
-      
-      const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
-      const filePath = `${signature.deal_id}/${fileName}`;
-      
-      console.log('💾 Immediate upload to storage - Path:', filePath);
-      
-      // Save to Signed Documents bucket immediately
-      const { error: uploadError } = await supabase.storage
-        .from('Signed Documents')
-        .upload(filePath, uint8Array, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('❌ Immediate upload failed:', uploadError);
-      } else {
-        console.log('✅ Immediate upload successful! Document ready for download.');
-      }
-    }
-    
-  } catch (error: any) {
-    console.error('❌ Immediate download failed:', error.message);
-    
-    // More detailed error logging
-    if (error.response) {
-      console.error('📄 Error response status:', error.response.status);
-      console.error('📄 Error response data:', error.response.data);
-    }
-    
-    // If immediate download fails, log but don't throw to avoid breaking the webhook response
-    if (error.response?.status === 404) {
-      console.log('📄 Document not found during immediate download - envelope may not be ready or may have expired');
-    }
-  }
-}
+// Background function removed - user can manually download signed documents
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -222,24 +106,7 @@ serve(async (req: Request) => {
     if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
       console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
       console.log('🔍 Webhook event:', webhookEvent, 'Status:', webhookStatus);
-      
-      // Get the signature record to retrieve document and deal info
-      const { data: signature, error: sigError } = await supabase
-        .from('document_signatures')
-        .select('document_id, deal_id')
-        .eq('envelope_id', webhookEnvelopeId)
-        .single();
-
-      if (sigError || !signature) {
-        console.error('Error finding signature record:', sigError);
-      } else {
-        console.log('Found signature record:', signature);
-        
-        // Start background task for immediate download
-        EdgeRuntime.waitUntil(downloadSignedDocumentImmediately(supabase, webhookEnvelopeId, signature));
-      }
-
-      // Status was already updated above, no need to update again
+      console.log('✅ Document signing completed. User can now manually download the signed document.');
     }
 
     // Get the deal ID for redirect (from signature record or URL param)
