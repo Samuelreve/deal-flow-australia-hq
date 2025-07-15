@@ -123,11 +123,13 @@ serve(async (req: Request) => {
           const { data: tokens, error: tokenError } = await supabase
             .from('docusign_tokens')
             .select('*')
-            .single();
+            .maybeSingle();
 
           if (tokenError || !tokens) {
             console.error('❌ No DocuSign tokens found:', tokenError);
-            console.log('Document will be downloaded manually later');
+            console.log('📝 Document signing completed but automatic download requires DocuSign authentication');
+            console.log('💡 User can manually download the signed document using the download button');
+            console.log('🔗 Or authenticate with DocuSign for automatic downloads in the future');
           } else {
             console.log('✅ Found DocuSign tokens, attempting to download signed document using SDK');
             console.log('🔑 Token details - Account ID:', tokens.account_id, 'Base URI:', tokens.base_uri);
