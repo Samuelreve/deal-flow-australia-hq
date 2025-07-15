@@ -78,14 +78,13 @@ export const documentStorageService = {
   /**
    * Create a signed URL for a file with error handling
    */
-  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600, isSignedDocument: boolean = false): Promise<string | null> {
+  async createSignedUrl(dealId: string, filePath: string, expiresIn: number = 3600): Promise<string | null> {
     try {
       const fullPath = `${dealId}/${filePath}`;
-      const bucketName = isSignedDocument ? 'signed_document' : 'deal_documents';
-      console.log('Creating signed URL for:', fullPath, 'in bucket:', bucketName);
+      console.log('Creating signed URL for:', fullPath);
       
       const { data: urlData, error } = await supabase.storage
-        .from(bucketName)
+        .from('deal_documents')
         .createSignedUrl(fullPath, expiresIn);
       
       if (error) {
@@ -113,16 +112,10 @@ export const documentStorageService = {
     try {
       console.log('Getting signed URL for version:', versionId);
       
-      // First, get the version details from the database, and check document status
+      // First, get the version details from the database
       const { data: version, error: versionError } = await supabase
         .from('document_versions')
-        .select(`
-          *,
-          documents:document_id (
-            status,
-            category
-          )
-        `)
+        .select('*')
         .eq('id', versionId)
         .eq('document_id', documentId)
         .single();
@@ -132,11 +125,8 @@ export const documentStorageService = {
         return { error: versionError, data: null };
       }
       
-      // Check if this is a signed document to determine the correct bucket
-      const isSignedDocument = version.documents?.status === 'signed' || version.documents?.category === 'signed_contract';
-      
       // Create a signed URL for the version's file
-      const signedUrl = await this.createSignedUrl(dealId, version.storage_path, expiresIn, isSignedDocument);
+      const signedUrl = await this.createSignedUrl(dealId, version.storage_path, expiresIn);
       
       if (!signedUrl) {
         return { 
