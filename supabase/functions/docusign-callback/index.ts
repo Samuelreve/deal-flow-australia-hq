@@ -120,10 +120,10 @@ serve(async (req: Request) => {
       redirectDealId = signature?.deal_id;
     }
 
-    // Determine redirect URL - redirect directly to documents tab
+    // Determine redirect URL - redirect to deal details page
     const baseUrl = 'https://preview--deal-flow-australia-hq.lovable.app';
     const redirectUrl = redirectDealId 
-      ? `${baseUrl}/deals/${redirectDealId}?tab=documents&signed=true`
+      ? `${baseUrl}/deals/${redirectDealId}`
       : `${baseUrl}`;
       
     console.log('🔄 Redirecting to:', redirectUrl);
