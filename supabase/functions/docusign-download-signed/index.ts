@@ -85,7 +85,7 @@ async function getDocuSignAccessToken(): Promise<{ access_token: string; base_ur
     console.log('✅ Using cached JWT access token');
     return {
       access_token: docusignConfig.accessToken,
-      base_uri: 'https://demo.docusign.net',
+      base_uri: 'https://demo.docusign.net/restapi',
       account_id: docusignConfig.accountId
     };
   }
@@ -105,7 +105,7 @@ async function getDocuSignAccessToken(): Promise<{ access_token: string; base_ur
 
   return {
     access_token: accessToken,
-    base_uri: 'https://demo.docusign.net',
+    base_uri: 'https://demo.docusign.net/restapi',
     account_id: docusignConfig.accountId
   };
 }
