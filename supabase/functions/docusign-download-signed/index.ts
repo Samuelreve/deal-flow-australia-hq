@@ -355,7 +355,7 @@ async function getUserInfo(accessToken: string): Promise<DocuSignUserInfo> {
   return await response.json();
 }
 
-// Function to download document from DocuSign following the tutorial
+// Function to download document from DocuSign using SDK
 async function downloadDocumentFromDocuSign(
   accessToken: string, 
   baseUri: string, 
@@ -364,64 +364,74 @@ async function downloadDocumentFromDocuSign(
   documentId: string = 'combined'
 ): Promise<Uint8Array> {
   
-  console.log('📥 Downloading document from DocuSign...');
+  console.log('📥 Downloading document from DocuSign using SDK...');
   console.log('🔗 Base URI:', baseUri);
   console.log('🏢 Account ID:', accountId);
   console.log('📋 Envelope ID:', envelopeId);
   console.log('📄 Document ID:', documentId);
 
-  // Step 1: Check envelope status first (as per tutorial best practice)
-  const envelopeStatusUrl = `${baseUri}/v2.1/accounts/${accountId}/envelopes/${envelopeId}`;
-  
-  console.log('🔍 Checking envelope status at:', envelopeStatusUrl);
-  
-  const statusResponse = await fetch(envelopeStatusUrl, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
+  try {
+    // Initialize DocuSign API client
+    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
+    const EnvelopesApi = docusign.EnvelopesApi || docusign.default?.EnvelopesApi;
+    
+    const apiClient = new ApiClient();
+    apiClient.setBasePath(baseUri);
+    
+    // Set authentication
+    apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
+    
+    // Create EnvelopesApi instance
+    const envelopesApi = new EnvelopesApi(apiClient);
+    
+    console.log('🔍 Checking envelope status first...');
+    
+    // Step 1: Check envelope status first (best practice)
+    const envelopeInfo = await envelopesApi.getEnvelope(accountId, envelopeId);
+    console.log('📋 Envelope status:', envelopeInfo.status);
+    
+    if (envelopeInfo.status !== 'completed') {
+      throw new Error(`Envelope is not completed. Current status: ${envelopeInfo.status}`);
     }
-  });
-
-  if (!statusResponse.ok) {
-    const error = await statusResponse.text();
-    console.error('❌ Failed to get envelope status:', error);
-    throw new Error(`Failed to get envelope status: ${statusResponse.status} ${statusResponse.statusText}`);
-  }
-
-  const envelopeStatus = await statusResponse.json();
-  console.log('📋 Envelope status:', envelopeStatus.status);
-  
-  if (envelopeStatus.status !== 'completed') {
-    throw new Error(`Envelope is not completed. Current status: ${envelopeStatus.status}`);
-  }
-
-  // Step 2: Download the document (following tutorial API structure)
-  const downloadUrl = `${baseUri}/v2.1/accounts/${accountId}/envelopes/${envelopeId}/documents/${documentId}`;
-  
-  console.log('📥 Downloading from:', downloadUrl);
-  
-  const downloadResponse = await fetch(downloadUrl, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Accept': 'application/pdf', // Specify PDF format
-      'Content-Type': 'application/json'
+    
+    console.log('📥 Downloading document using EnvelopesApi.getDocument...');
+    
+    // Step 2: Download the document using SDK
+    const documentResult = await envelopesApi.getDocument(accountId, envelopeId, documentId);
+    
+    if (!documentResult) {
+      throw new Error('No document data received from DocuSign');
     }
-  });
-
-  if (!downloadResponse.ok) {
-    const error = await downloadResponse.text();
-    console.error('❌ Failed to download document:', error);
-    throw new Error(`Failed to download document: ${downloadResponse.status} ${downloadResponse.statusText}`);
+    
+    console.log('✅ Document downloaded successfully using SDK');
+    
+    // Convert the result to Uint8Array
+    let documentBytes: Uint8Array;
+    
+    if (documentResult instanceof ArrayBuffer) {
+      documentBytes = new Uint8Array(documentResult);
+    } else if (documentResult instanceof Uint8Array) {
+      documentBytes = documentResult;
+    } else if (typeof documentResult === 'string') {
+      // If it's a base64 string, decode it
+      const binaryString = atob(documentResult);
+      documentBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        documentBytes[i] = binaryString.charCodeAt(i);
+      }
+    } else {
+      // Try to convert buffer-like objects
+      documentBytes = new Uint8Array(documentResult);
+    }
+    
+    console.log(`📊 Document size: ${documentBytes.length} bytes`);
+    return documentBytes;
+    
+  } catch (error: any) {
+    console.error('❌ Failed to download document using SDK:', error);
+    console.error('Error details:', error.message);
+    throw new Error(`Failed to download document: ${error.message}`);
   }
-
-  console.log('✅ Document downloaded successfully');
-  
-  // Convert response to Uint8Array
-  const arrayBuffer = await downloadResponse.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
 }
 
 serve(async (req: Request) => {
