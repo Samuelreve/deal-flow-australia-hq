@@ -346,37 +346,27 @@ Please provide a detailed answer based on the contract content.`;
         console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
         console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
-        // Create summarization prompt for structured response
-        const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Provide a comprehensive but accessible summary of contract terms and key provisions.
+        // Create summarization prompt
+        const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Your task is to provide a comprehensive but accessible summary of contract terms and key provisions.
 
-Respond with a JSON object containing:
-1. summary: A 3-4 sentence concise summary of the contract
-2. keyPoints: Array of 5-8 key points about the contract
-3. documentType: Type of document (e.g., "Professional Services Agreement", "Employment Contract", etc.)
-4. wordCount: Approximate word count of the contract
+When summarizing contracts, focus on:
+1. Parties involved and their roles
+2. Key obligations and responsibilities
+3. Financial terms and payment structures
+4. Important dates and timelines
+5. Termination conditions and clauses
+6. Risk factors and liability provisions
+7. Intellectual property considerations
+8. Dispute resolution mechanisms
 
-Focus on: parties involved, key obligations, financial terms, important dates, termination conditions, and risk factors.
+Provide your summary in clear, professional language that both legal professionals and business stakeholders can understand. Use bullet points and structured formatting where appropriate to enhance readability.`;
 
-Example response format:
-{
-  "summary": "This is a professional services agreement between Company A and Company B for software development services. The contract establishes the scope of work, payment terms, and delivery timeline. Both parties have specific obligations regarding project completion and intellectual property rights. The agreement includes standard termination clauses and dispute resolution procedures.",
-  "keyPoints": [
-    "Parties: Company A (client) and Company B (service provider)",
-    "Services: Software development and implementation",
-    "Duration: 12-month project timeline",
-    "Payment: $50,000 total, payable in monthly installments",
-    "Deliverables: Custom software application and documentation"
-  ],
-  "documentType": "Professional Services Agreement",
-  "wordCount": 2500
-}`
-
-        const userPrompt = `Please analyze the following contract document and provide a structured JSON response:
+        const userPrompt = `Please provide a comprehensive summary of the following contract document. Focus on the key terms, obligations, financial aspects, and any notable provisions that parties should be aware of:
 
 CONTRACT DOCUMENT:
 ${contractText}
 
-Analyze this contract and provide the response in the exact JSON format specified.`;
+Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
 
         console.log('🤖 Calling OpenAI API...');
 
@@ -387,53 +377,23 @@ Analyze this contract and provide the response in the exact JSON format specifie
             { role: "user", content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 2000,
-          response_format: { type: "json_object" }
+          max_tokens: 2000
         });
 
-        const aiResponse = completion.choices[0]?.message?.content || "{}";
-        
-        console.log('✅ Summary generated successfully, length:', aiResponse.length);
+        const summary = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
 
-        try {
-          const structuredResult = JSON.parse(aiResponse);
-          
-          // Add disclaimer and ensure all fields are present
-          const finalResult = {
-            summary: structuredResult.summary || "Contract analysis completed successfully.",
-            keyPoints: structuredResult.keyPoints || [],
-            documentType: structuredResult.documentType || "Contract",
-            wordCount: structuredResult.wordCount || Math.round(contractText.length / 5),
-            disclaimer: "This AI analysis is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.",
+        console.log('✅ Summary generated successfully, length:', summary.length);
+
+        return new Response(
+          JSON.stringify({
+            analysis: summary,
             timestamp: new Date().toISOString()
-          };
-
-          return new Response(
-            JSON.stringify(finalResult),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
-          );
-        } catch (parseError) {
-          console.error('❌ Failed to parse AI response as JSON:', parseError);
-          
-          // Fallback to simple response
-          return new Response(
-            JSON.stringify({
-              summary: aiResponse,
-              keyPoints: [],
-              documentType: "Contract",
-              wordCount: Math.round(contractText.length / 5),
-              disclaimer: "This AI analysis is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.",
-              timestamp: new Date().toISOString()
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
-          );
-        }
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
       }
 
       // For real deals, check participant access (existing code for production deals)

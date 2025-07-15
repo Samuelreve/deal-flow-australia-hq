@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import ContractSummaryRenderer from '@/components/contract-analysis/renderers/ContractSummaryRenderer';
 
 interface SummaryTabProps {
   summaryResult: any;
@@ -13,7 +12,7 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ summaryResult, isAnalyzing }) =
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Analyzing contract with AI...</p>
+        <p className="text-muted-foreground">Analyzing contract...</p>
       </div>
     );
   }
@@ -22,22 +21,22 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ summaryResult, isAnalyzing }) =
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">
-          No contract analysis available. Please wait while the AI analyzes the contract.
+          No contract summary available. Please wait while the contract is being analyzed.
         </p>
       </div>
     );
   }
-
-  // Transform summary result to match renderer format
-  const transformedContent = {
-    summary: summaryResult.summary || summaryResult.summaryText,
-    keyPoints: summaryResult.keyPoints || [],
-    documentType: summaryResult.documentType || "Contract",
-    wordCount: summaryResult.wordCount,
-    disclaimer: summaryResult.disclaimer
-  };
   
-  return <ContractSummaryRenderer content={transformedContent} />;
+  return (
+    <div className="space-y-4">
+      <div className="prose prose-sm max-w-none">
+        <h3 className="text-lg font-medium">Contract Summary</h3>
+        <div className="whitespace-pre-wrap">
+          {summaryResult.summary}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default SummaryTab;
