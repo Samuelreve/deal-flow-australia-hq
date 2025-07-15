@@ -56,19 +56,8 @@ interface DocuSignUserInfo {
 async function getDocuSignAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
   console.log('🔐 Getting DocuSign access token...');
   
-  // First try OAuth token if available
-  const oauthToken = await getValidAccessToken();
-  if (oauthToken && docusignTokenData) {
-    console.log('✅ Using OAuth access token');
-    return {
-      access_token: oauthToken,
-      base_uri: docusignTokenData.base_uri,
-      account_id: docusignTokenData.account_id
-    };
-  }
-
-  // Fall back to JWT authentication using DocuSign SDK
-  console.log('🔐 Falling back to JWT authentication...');
+  // Skip OAuth token check - get fresh JWT token directly
+  console.log('🔐 Getting fresh JWT access token...');
   
   // Auto-configure from environment variables
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
