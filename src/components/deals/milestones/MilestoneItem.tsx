@@ -73,6 +73,21 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     }
   }, [dealId, isDocumentSigning]);
 
+  // Re-check signatures when window regains focus (user returns from DocuSign)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isDocumentSigning) {
+        // Add a small delay to ensure callback has processed
+        setTimeout(() => {
+          checkDocumentSignatures();
+        }, 1000);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isDocumentSigning]);
+
   const checkDocumentSignatures = async () => {
     if (!dealId) return;
     
