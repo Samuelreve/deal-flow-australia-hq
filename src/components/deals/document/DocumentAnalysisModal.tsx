@@ -201,6 +201,14 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     const result = analysisResults[analysisType];
     const isLoading = loadingAnalysis[analysisType];
 
+    console.log('🔍 renderAnalysisContent debug:', {
+      analysisType,
+      hasResult: !!result,
+      isLoading,
+      result: result,
+      allResults: analysisResults
+    });
+
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-8">
@@ -316,11 +324,16 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
   // Load existing analysis when modal opens
   React.useEffect(() => {
     const loadExistingAnalysis = async () => {
-      if (!isOpen || !document) return;
+      if (!isOpen || !document) {
+        console.log('❌ Skipping analysis load - modal closed or no document');
+        return;
+      }
 
       console.log('🔍 Loading existing analysis for:', {
         documentId: document.id,
-        analysisType
+        analysisType,
+        currentResults: analysisResults,
+        hasCurrentResult: !!analysisResults[analysisType]
       });
 
       try {
@@ -338,13 +351,17 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
           return;
         }
 
-        // Check if we already have this analysis loaded
-        if (analysisResults[analysisType]) {
-          console.log('📄 Analysis already loaded in state');
+        // Check if we already have this analysis loaded - but only skip if we have a complete result
+        if (analysisResults[analysisType] && 
+            (analysisResults[analysisType].summary || 
+             analysisResults[analysisType].keyTerms?.length > 0 || 
+             analysisResults[analysisType].risks?.length > 0)) {
+          console.log('📄 Analysis already loaded in state, skipping');
           return;
         }
 
         // Try to load existing analysis from database
+        console.log('🔍 Checking database for existing analysis...');
         const existingAnalysis = await documentAnalysisService.getLatestAnalysis(
           versionData.id,
           analysisType
@@ -354,10 +371,14 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
           console.log('💾 Found existing analysis:', existingAnalysis);
           
           // Load the existing analysis into state
-          setAnalysisResults(prev => ({
-            ...prev,
-            [analysisType]: existingAnalysis.analysisContent
-          }));
+          setAnalysisResults(prev => {
+            const newResults = {
+              ...prev,
+              [analysisType]: existingAnalysis.analysisContent
+            };
+            console.log('📝 Setting analysis results:', newResults);
+            return newResults;
+          });
 
           toast({
             title: "Analysis loaded",
@@ -376,7 +397,7 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     };
 
     loadExistingAnalysis();
-  }, [isOpen, document, analysisType]);
+  }, [isOpen, document, analysisType]); // Removed analysisResults dependency
 
   if (!document) return null;
 
