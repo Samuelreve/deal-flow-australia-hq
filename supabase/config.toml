@@ -1,256 +1,121 @@
 project_id = "wntmgfuclbdrezxcvzmw"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
-
-[db]
-port = 54322
-shadow_port = 54320
-major_version = 15
-
-[db.pooler]
-enabled = false
-port = 54329
-pool_mode = "transaction"
-default_pool_size = 20
-max_client_conn = 100
-
-[realtime]
-enabled = true
-
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost"
-
-[inbucket]
-enabled = true
-port = 54324
-
-[storage]
-enabled = true
-file_size_limit = "50MiB"
-
-[auth]
-enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["https://localhost:5173"]
-jwt_expiry = 3600
-enable_refresh_token_rotation = true
-refresh_token_reuse_interval = 10
-enable_signup = true
-
-[auth.email]
-enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
-
-[auth.sms]
-enable_signup = true
-enable_confirmations = true
-
-[auth.external.apple]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.azure]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.bitbucket]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.discord]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.facebook]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.github]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.gitlab]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.google]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.keycloak]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.linkedin]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.notion]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.spotify]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.twitch]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.twitter]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.workos]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[analytics]
-enabled = false
-port = 54327
-vector_port = 54328
-backend = "postgres"
-
-# Enable the Edge Functions API
 [functions.accept-invitation]
-verify_jwt = true
-
-[functions.decline-invitation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.add-deal-participant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.contract-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-share-link]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-temp-deal]
-verify_jwt = true
+verify_jwt = false
+
+[functions.decline-invitation]
+verify_jwt = false
 
 [functions.delete-comment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-document-version]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-document]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-milestone]
-verify_jwt = true
+verify_jwt = false
 
-[functions.docusign-sign]
-verify_jwt = true
+[functions.document-ai-assistant]
+verify_jwt = false
 
-[functions.docusign-oauth-callback]
+[functions.document-comments]
+verify_jwt = false
+
+[functions.document-content-retrieval]
+verify_jwt = false
+
+[functions.document-upload]
+verify_jwt = false
+
+[functions.document-version-operations]
 verify_jwt = false
 
 [functions.docusign-callback]
 verify_jwt = false
 
-[functions.document-ai-assistant]
-verify_jwt = true
+[functions.docusign-oauth-callback]
+verify_jwt = false
 
-[functions.document-analysis]
-verify_jwt = true
+[functions.docusign-oauth]
+verify_jwt = false
 
-[functions.document-comments]
-verify_jwt = true
+[functions.docusign-retrieve-signed]
+verify_jwt = false
 
-[functions.document-content-retrieval]
-verify_jwt = true
-
-[functions.document-upload]
-verify_jwt = true
-
-[functions.document-version-operations]
-verify_jwt = true
+[functions.docusign-sign]
+verify_jwt = false
 
 [functions.enhanced-contract-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.explain-contract-clause]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-shared-document]
 verify_jwt = false
 
 [functions.invite-participant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.manage-share-links]
-verify_jwt = true
+verify_jwt = false
 
 [functions.migrate-temp-documents]
-verify_jwt = true
+verify_jwt = false
+
+[functions.pdf-diagnostic]
+verify_jwt = false
+
+[functions.pdf-to-images]
+verify_jwt = false
 
 [functions.progress-nudging]
-verify_jwt = true
+verify_jwt = false
 
 [functions.public-ai-analyzer]
 verify_jwt = false
 
 [functions.remove-participant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.restore-document-version]
-verify_jwt = true
+verify_jwt = false
 
 [functions.summarize-contract]
-verify_jwt = true
+verify_jwt = false
+
+[functions.test-pdf-extraction]
+verify_jwt = false
 
 [functions.text-extraction]
-verify_jwt = true
+verify_jwt = false
+
+[functions.text-extractor-ocr]
+verify_jwt = false
 
 [functions.text-extractor]
-verify_jwt = true
+verify_jwt = false
 
 [functions.update-milestone-status]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-invitation-token]
-verify_jwt = true
+verify_jwt = false
