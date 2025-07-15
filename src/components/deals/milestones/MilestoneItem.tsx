@@ -335,15 +335,28 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         throw error;
       }
 
+      // Download each processed document
+      if (data?.processedDocuments && data.processedDocuments.length > 0) {
+        for (const doc of data.processedDocuments) {
+          if (doc.downloadUrl) {
+            // Create a temporary link to trigger download
+            const link = document.createElement('a');
+            link.href = doc.downloadUrl;
+            link.download = doc.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+        }
+      }
+
       toast({
         title: 'Success',
         description: 'Signed document has been downloaded and added to Documents tab',
       });
 
-      // Refresh to show the new document
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Trigger refresh of documents list without full page reload
+      window.dispatchEvent(new CustomEvent('documentsUpdated'));
 
     } catch (error: any) {
       console.error('Error downloading signed document:', error);

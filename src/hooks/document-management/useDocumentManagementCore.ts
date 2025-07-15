@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -85,6 +85,18 @@ export const useDocumentManagementCore = ({
   const handleDocumentsUpdated = useCallback(() => {
     refreshDocuments();
   }, [refreshDocuments]);
+
+  // Listen for external document updates (e.g., from signed document downloads)
+  useEffect(() => {
+    const handleExternalUpdate = () => {
+      handleDocumentsUpdated();
+    };
+
+    window.addEventListener('documentsUpdated', handleExternalUpdate);
+    return () => {
+      window.removeEventListener('documentsUpdated', handleExternalUpdate);
+    };
+  }, [handleDocumentsUpdated]);
 
   return {
     // Document list state

@@ -142,7 +142,7 @@ serve(async (req: Request) => {
         processedDocuments.push({
           id: newDoc.id,
           name: file.name,
-          url: signedUrlData?.signedUrl,
+          downloadUrl: signedUrlData?.signedUrl,
           size: documentBytes.length
         });
 
