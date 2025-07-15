@@ -103,6 +103,7 @@ serve(async (req: Request) => {
 
     if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
       console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
+      console.log('🔍 Webhook event:', webhookEvent, 'Status:', webhookStatus);
       
       // Get the signature record to retrieve document and deal info
       const { data: signature, error: sigError } = await supabase
@@ -125,35 +126,59 @@ serve(async (req: Request) => {
             .single();
 
           if (tokenError || !tokens) {
-            console.log('No DocuSign tokens found, document will be downloaded manually later');
+            console.error('❌ No DocuSign tokens found:', tokenError);
+            console.log('Document will be downloaded manually later');
           } else {
-            console.log('Found DocuSign tokens, attempting to download signed document using SDK');
+            console.log('✅ Found DocuSign tokens, attempting to download signed document using SDK');
+            console.log('🔑 Token details - Account ID:', tokens.account_id, 'Base URI:', tokens.base_uri);
             
             // Import DocuSign SDK
+            console.log('📦 Importing DocuSign SDK...');
             const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
+            console.log('✅ DocuSign SDK imported successfully');
             
             // Set up DocuSign API client
+            console.log('🔧 Setting up DocuSign API client...');
             let dsApiClient = new docusign.ApiClient();
             dsApiClient.setBasePath(tokens.base_uri);
             dsApiClient.addDefaultHeader('Authorization', 'Bearer ' + tokens.access_token);
             let envelopesApi = new docusign.EnvelopesApi(dsApiClient);
+            console.log('✅ DocuSign API client configured');
             
             // Download combined PDF with all signed documents
+            console.log('📥 Downloading signed document - Account:', tokens.account_id, 'Envelope:', webhookEnvelopeId);
             const results = await envelopesApi.getDocument(tokens.account_id, webhookEnvelopeId, 'combined', null);
+            console.log('📄 Document download result type:', typeof results, 'Length:', results?.length || 'undefined');
             
             if (results) {
+              console.log('📥 Document download successful, processing...');
+              
               // Convert the result to Uint8Array for storage
+              console.log('🔄 Converting results to Uint8Array...');
               const uint8Array = new Uint8Array(results);
+              console.log(`📊 Document size: ${uint8Array.length} bytes`);
               
               // Get original document name
-              const { data: originalDoc } = await supabase
+              console.log('📋 Getting original document name...');
+              const { data: originalDoc, error: docError } = await supabase
                 .from('documents')
                 .select('name')
                 .eq('id', signature.document_id)
                 .single();
               
+              if (docError) {
+                console.error('❌ Error getting original document:', docError);
+              } else {
+                console.log('✅ Original document found:', originalDoc?.name);
+              }
+              
               const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
               const filePath = `${signature.deal_id}/${fileName}`;
+              
+              console.log('💾 Uploading to storage...');
+              console.log('📁 Bucket: signed_document');
+              console.log('📄 File path:', filePath);
+              console.log('📊 File size:', uint8Array.length, 'bytes');
               
               // Save to signed_document bucket
               const { data: uploadData, error: uploadError } = await supabase.storage
@@ -164,13 +189,17 @@ serve(async (req: Request) => {
                 });
 
               if (uploadError) {
-                console.error('Error uploading signed document:', uploadError);
+                console.error('❌ Error uploading signed document:', uploadError);
+                console.error('❌ Upload error details:', JSON.stringify(uploadError, null, 2));
               } else {
-                console.log('✅ Signed document saved to storage using SDK:', filePath);
-                console.log('Document will be available for manual download via button');
+                console.log('✅ Signed document saved to storage successfully!');
+                console.log('📁 Storage path:', filePath);
+                console.log('📋 Upload data:', uploadData);
+                console.log('🎯 Document will be available for manual download via button');
               }
             } else {
-              console.error('No document data received from DocuSign SDK');
+              console.error('❌ No document data received from DocuSign SDK');
+              console.error('❌ Results value:', results);
             }
           }
         } catch (downloadError) {
