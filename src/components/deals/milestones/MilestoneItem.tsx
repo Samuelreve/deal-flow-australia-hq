@@ -42,6 +42,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
+  const [documentSaved, setDocumentSaved] = useState(false);
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
 
   // Determine if the current user has permission to update milestone status
@@ -358,8 +359,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       toast({
         title: 'Success',
-        description: 'Signed document has been downloaded and added to Documents tab',
+        description: 'Signed document has been saved to Documents tab',
       });
+
+      // Mark document as saved
+      setDocumentSaved(true);
 
       // Trigger refresh of documents list without full page reload
       window.dispatchEvent(new CustomEvent('documentsUpdated'));
@@ -514,7 +518,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  Save and Download Signed Document
+                  Save Signed Document
                 </button>
               </div>
               <div className="text-xs text-amber-600 font-medium">
@@ -536,10 +540,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <button
                 onClick={handleDownloadSignedDocument}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300 animate-fade-in"
-                disabled={downloadingSignedDoc}
+                disabled={downloadingSignedDoc || documentSaved}
               >
                 <FileText className="w-4 h-4 mr-2" />
-                {downloadingSignedDoc ? 'Downloading...' : 'Save and Download Signed Document'}
+                {downloadingSignedDoc ? 'Saving...' : documentSaved ? 'Document Saved' : 'Save Signed Document'}
               </button>
             </div>
           )}
