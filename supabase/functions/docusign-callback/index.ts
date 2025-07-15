@@ -176,13 +176,13 @@ serve(async (req: Request) => {
               const filePath = `${signature.deal_id}/${fileName}`;
               
               console.log('💾 Uploading to storage...');
-              console.log('📁 Bucket: signed_document');
+              console.log('📁 Bucket: Signed Documents');
               console.log('📄 File path:', filePath);
               console.log('📊 File size:', uint8Array.length, 'bytes');
               
-              // Save to signed_document bucket
+              // Save to Signed Documents bucket
               const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('signed_document')
+                .from('Signed Documents')
                 .upload(filePath, uint8Array, {
                   contentType: 'application/pdf',
                   upsert: true

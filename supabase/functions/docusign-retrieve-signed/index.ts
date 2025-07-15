@@ -36,11 +36,11 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log('🔍 Looking for signed documents in signed_document bucket for deal:', dealId);
+    console.log('🔍 Looking for signed documents in Signed Documents bucket for deal:', dealId);
 
-    // List files in the signed_document bucket for this deal
+    // List files in the Signed Documents bucket for this deal
     const { data: files, error: listError } = await supabase.storage
-      .from('signed_document')
+      .from('Signed Documents')
       .list(dealId);
 
     if (listError) {
@@ -65,9 +65,9 @@ serve(async (req: Request) => {
       try {
         const signedDocPath = `${dealId}/${file.name}`;
         
-        // Download the file from signed_document bucket
+        // Download the file from Signed Documents bucket
         const { data: fileData, error: downloadError } = await supabase.storage
-          .from('signed_document')
+          .from('Signed Documents')
           .download(signedDocPath);
 
         if (downloadError || !fileData) {
@@ -134,9 +134,9 @@ serve(async (req: Request) => {
             description: 'Signed document from DocuSign'
           });
 
-        // Remove from signed_document bucket after successful processing
+        // Remove from Signed Documents bucket after successful processing
         await supabase.storage
-          .from('signed_document')
+          .from('Signed Documents')
           .remove([signedDocPath]);
 
         processedDocuments.push({
