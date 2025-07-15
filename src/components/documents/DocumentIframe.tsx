@@ -1,5 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DocumentIframeProps {
   documentVersionUrl: string;
@@ -12,6 +14,13 @@ const DocumentIframe: React.FC<DocumentIframeProps> = ({
   onLoad,
   onError
 }) => {
+  const [useDirectView, setUseDirectView] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const isSupabaseSignedUrl = (url: string): boolean => {
+    return url.includes('supabase') && url.includes('token=');
+  };
+
   const getDocumentType = (url: string): string => {
     const extension = url.split('.').pop()?.toLowerCase() || '';
     if (['pdf'].includes(extension)) return 'pdf';
@@ -22,6 +31,11 @@ const DocumentIframe: React.FC<DocumentIframeProps> = ({
   };
 
   const getViewerUrl = useMemo(() => {
+    // If it's a Supabase signed URL, external viewers won't work due to CORS
+    if (isSupabaseSignedUrl(documentVersionUrl)) {
+      return documentVersionUrl; // Use direct URL for signed documents
+    }
+
     const docType = getDocumentType(documentVersionUrl);
     const encodedUrl = encodeURIComponent(documentVersionUrl);
     
@@ -42,14 +56,51 @@ const DocumentIframe: React.FC<DocumentIframeProps> = ({
     }
   }, [documentVersionUrl]);
 
+  const handleIframeError = () => {
+    setHasError(true);
+    if (onError) onError();
+    
+    // If external viewer fails and it's not already using direct view, try direct view
+    if (!useDirectView && !isSupabaseSignedUrl(documentVersionUrl)) {
+      setUseDirectView(true);
+      setHasError(false);
+    }
+  };
+
+  const handleIframeLoad = () => {
+    setHasError(false);
+    if (onLoad) onLoad();
+  };
+
+  // Reset error state when URL changes
+  useEffect(() => {
+    setHasError(false);
+    setUseDirectView(false);
+  }, [documentVersionUrl]);
+
+  if (hasError && useDirectView) {
+    return (
+      <div className="h-full flex items-center justify-center p-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to display document preview. The document format may not be compatible with inline viewing.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const finalUrl = useDirectView ? documentVersionUrl : getViewerUrl;
+
   return (
     <div className="h-full">
       <iframe 
-        src={getViewerUrl}
+        src={finalUrl}
         className="w-full h-full border-0" 
         title="Document Viewer"
-        onLoad={onLoad}
-        onError={onError}
+        onLoad={handleIframeLoad}
+        onError={handleIframeError}
         allow="fullscreen"
       />
     </div>
