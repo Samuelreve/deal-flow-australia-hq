@@ -529,15 +529,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadSignedDocument}
-                  disabled={true}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
+                  disabled={downloadingSignedDoc}
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  Save Signed Document
+                  {downloadingSignedDoc ? 'Downloading...' : 'Download Signed Document'}
                 </button>
               </div>
               <div className="text-xs text-amber-600 font-medium">
-                Waiting for Recipient's Sign
+                Waiting for your sign
               </div>
             </div>
           )}
