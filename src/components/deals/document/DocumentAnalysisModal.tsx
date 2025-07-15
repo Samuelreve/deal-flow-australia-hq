@@ -36,6 +36,7 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
 }) => {
   const [analysisResults, setAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -300,6 +301,17 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         return <p className="text-muted-foreground">Analysis type not supported</p>;
     }
   };
+
+  
+  // Clear analysis results when document changes
+  React.useEffect(() => {
+    if (document && document.id !== currentDocumentId) {
+      console.log('📄 Document changed, clearing analysis results');
+      setAnalysisResults({});
+      setLoadingAnalysis({});
+      setCurrentDocumentId(document.id);
+    }
+  }, [document, currentDocumentId]);
 
   // Load existing analysis when modal opens
   React.useEffect(() => {
