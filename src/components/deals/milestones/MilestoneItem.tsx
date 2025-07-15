@@ -323,31 +323,37 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     setDownloadingSignedDoc(true);
     try {
-      // Call the retrieve signed document function to download and add to documents
-      const { data, error } = await supabase.functions.invoke('docusign-retrieve-signed', {
-        body: {
-          dealId,
-          userRole
-        }
-      });
+      // Get signature records for this deal to find envelope IDs
+      const { data: signatures, error: sigError } = await supabase
+        .from('document_signatures')
+        .select('envelope_id, status')
+        .eq('deal_id', dealId)
+        .eq('status', 'completed');
 
-      if (error) {
-        throw error;
+      if (sigError) {
+        throw new Error('Failed to fetch signature records');
       }
 
-      // Download each processed document
-      if (data?.processedDocuments && data.processedDocuments.length > 0) {
-        for (const doc of data.processedDocuments) {
-          if (doc.downloadUrl) {
-            // Create a temporary link to trigger download
-            const link = document.createElement('a');
-            link.href = doc.downloadUrl;
-            link.download = doc.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+      if (!signatures || signatures.length === 0) {
+        throw new Error('No completed signatures found for this deal');
+      }
+
+      // Download signed documents for each completed envelope
+      for (const signature of signatures) {
+        const { data, error } = await supabase.functions.invoke('docusign-download-signed', {
+          body: {
+            envelopeId: signature.envelope_id,
+            dealId,
+            documentId: 'combined' // Download combined document
           }
+        });
+
+        if (error) {
+          console.error('Error downloading envelope:', signature.envelope_id, error);
+          continue;
         }
+
+        console.log('Successfully downloaded signed document:', data);
       }
 
       toast({
