@@ -520,7 +520,7 @@ serve(async (req: Request) => {
     const storagePath = `${dealId}/${fileName}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('deal_documents')
+      .from('signed_document')
       .upload(storagePath, documentBytes, {
         contentType: 'application/pdf',
         upsert: true
