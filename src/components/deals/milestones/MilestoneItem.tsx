@@ -542,24 +542,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             </div>
           )}
 
-          {/* Fully Signed State */}
+          {/* Fully Signed State - Hide buttons when both parties have signed */}
           {signingStatus === 'completed' && (
-            <div className="flex gap-2">
-              <button
-                disabled={true}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Signed
-              </button>
-              <button
-                onClick={handleDownloadSignedDocument}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300 animate-fade-in"
-                disabled={downloadingSignedDoc || documentSaved}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                {downloadingSignedDoc ? 'Saving...' : documentSaved ? 'Document Saved' : 'Save Signed Document'}
-              </button>
+            <div className="text-sm text-emerald-600 font-medium">
+              ✓ Document signed by all parties
             </div>
           )}
         </div>
