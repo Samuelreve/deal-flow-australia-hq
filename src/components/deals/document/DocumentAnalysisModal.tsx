@@ -8,6 +8,7 @@ import { Loader2, FileText, AlertTriangle, Key } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { documentAnalysisService } from "@/services/documentAnalysisService";
 
 import { Document } from "@/types/deal";
 
@@ -145,30 +146,44 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
         throw new Error('Failed to analyze document');
       }
 
-      // The response from document-ai-assistant comes directly with summary, keyTerms, etc.
-      // No nested 'success' property based on network logs
-      if (result && !error) {
-        const analysisResult: AnalysisResult = {
-          analysisType,
-          summary: result.summary,
-          keyTerms: result.keyTerms || result.keyPoints || [],
-          risks: result.risks || []
-        };
+       // The response from document-ai-assistant comes directly with summary, keyTerms, etc.
+       // No nested 'success' property based on network logs
+       if (result && !error) {
+         const analysisResult: AnalysisResult = {
+           analysisType,
+           summary: result.summary,
+           keyTerms: result.keyTerms || result.keyPoints || [],
+           risks: result.risks || []
+         };
 
-        console.log('✅ Analysis result processed:', analysisResult);
+         console.log('✅ Analysis result processed:', analysisResult);
 
-        setAnalysisResults(prev => ({
-          ...prev,
-          [analysisType]: analysisResult
-        }));
+         // Save the analysis to the database
+         try {
+           await documentAnalysisService.saveAnalysis({
+             documentId: document.id,
+             documentVersionId: versionData.id,
+             analysisType: analysisType,
+             analysisContent: analysisResult
+           });
+           console.log('💾 Analysis saved to database');
+         } catch (saveError) {
+           console.error('Error saving analysis to database:', saveError);
+           // Don't fail the whole operation if saving fails
+         }
 
-        toast({
-          title: "Analysis completed",
-          description: `${analysisType.replace('_', ' ')} analysis has been generated`,
-        });
-      } else {
-        throw new Error('No analysis result received');
-      }
+         setAnalysisResults(prev => ({
+           ...prev,
+           [analysisType]: analysisResult
+         }));
+
+         toast({
+           title: "Analysis completed",
+           description: `${analysisType.replace('_', ' ')} analysis has been generated`,
+         });
+       } else {
+         throw new Error('No analysis result received');
+       }
     } catch (error: any) {
       console.error("Error performing analysis:", error);
       toast({
@@ -286,11 +301,69 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     }
   };
 
-  // Auto-trigger analysis when modal opens
+  // Load existing analysis when modal opens
   React.useEffect(() => {
-    if (isOpen && document && !analysisResults[analysisType]) {
-      performAnalysis(analysisType);
-    }
+    const loadExistingAnalysis = async () => {
+      if (!isOpen || !document) return;
+
+      console.log('🔍 Loading existing analysis for:', {
+        documentId: document.id,
+        analysisType
+      });
+
+      try {
+        // Get the latest document version
+        const { data: versionData, error: versionError } = await supabase
+          .from('document_versions')
+          .select('id')
+          .eq('document_id', document.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (versionError || !versionData?.id) {
+          console.log('📄 No document version found, will need to generate new analysis');
+          return;
+        }
+
+        // Check if we already have this analysis loaded
+        if (analysisResults[analysisType]) {
+          console.log('📄 Analysis already loaded in state');
+          return;
+        }
+
+        // Try to load existing analysis from database
+        const existingAnalysis = await documentAnalysisService.getLatestAnalysis(
+          versionData.id,
+          analysisType
+        );
+
+        if (existingAnalysis) {
+          console.log('💾 Found existing analysis:', existingAnalysis);
+          
+          // Load the existing analysis into state
+          setAnalysisResults(prev => ({
+            ...prev,
+            [analysisType]: existingAnalysis.analysisContent
+          }));
+
+          toast({
+            title: "Analysis loaded",
+            description: `Existing ${analysisType.replace('_', ' ')} analysis loaded`,
+          });
+        } else {
+          console.log('🔄 No existing analysis found, generating new one...');
+          // No existing analysis, generate a new one
+          performAnalysis(analysisType);
+        }
+      } catch (error) {
+        console.error('Error loading existing analysis:', error);
+        // If loading fails, try to generate new analysis
+        performAnalysis(analysisType);
+      }
+    };
+
+    loadExistingAnalysis();
   }, [isOpen, document, analysisType]);
 
   if (!document) return null;

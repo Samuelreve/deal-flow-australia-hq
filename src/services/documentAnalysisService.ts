@@ -83,6 +83,27 @@ export const documentAnalysisService = {
   },
 
   /**
+   * Get the most recent analysis for a specific document version and analysis type
+   */
+  async getLatestAnalysis(documentVersionId: string, analysisType: string): Promise<DocumentAnalysis | null> {
+    const { data, error } = await supabase
+      .from('document_analyses')
+      .select('*')
+      .eq('document_version_id', documentVersionId)
+      .eq('analysis_type', analysisType)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching latest document analysis:", error);
+      throw error;
+    }
+
+    return data ? mapFromDb(data) : null;
+  },
+
+  /**
    * Get specific analysis by ID
    */
   async getAnalysisById(analysisId: string): Promise<DocumentAnalysis | null> {
