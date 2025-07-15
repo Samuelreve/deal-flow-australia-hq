@@ -116,7 +116,7 @@ serve(async (req: Request) => {
       } else {
         console.log('Found signature record:', signature);
         
-        // Try to download the signed document directly from DocuSign
+        // Try to download the signed document using DocuSign SDK
         try {
           // Get DocuSign tokens
           const { data: tokens, error: tokenError } = await supabase
@@ -127,21 +127,23 @@ serve(async (req: Request) => {
           if (tokenError || !tokens) {
             console.log('No DocuSign tokens found, document will be downloaded manually later');
           } else {
-            console.log('Found DocuSign tokens, attempting to download signed document');
+            console.log('Found DocuSign tokens, attempting to download signed document using SDK');
             
-            // Download the signed document from DocuSign
-            const docuSignUrl = `${tokens.base_uri}/restapi/v2.1/accounts/${tokens.account_id}/envelopes/${webhookEnvelopeId}/documents/combined`;
+            // Import DocuSign SDK
+            const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
             
-            const docResponse = await fetch(docuSignUrl, {
-              headers: {
-                'Authorization': `Bearer ${tokens.access_token}`,
-                'Accept': 'application/pdf'
-              }
-            });
-
-            if (docResponse.ok) {
-              const pdfBuffer = await docResponse.arrayBuffer();
-              const uint8Array = new Uint8Array(pdfBuffer);
+            // Set up DocuSign API client
+            let dsApiClient = new docusign.ApiClient();
+            dsApiClient.setBasePath(tokens.base_uri);
+            dsApiClient.addDefaultHeader('Authorization', 'Bearer ' + tokens.access_token);
+            let envelopesApi = new docusign.EnvelopesApi(dsApiClient);
+            
+            // Download combined PDF with all signed documents
+            const results = await envelopesApi.getDocument(tokens.account_id, webhookEnvelopeId, 'combined', null);
+            
+            if (results) {
+              // Convert the result to Uint8Array for storage
+              const uint8Array = new Uint8Array(results);
               
               // Get original document name
               const { data: originalDoc } = await supabase
@@ -153,7 +155,7 @@ serve(async (req: Request) => {
               const fileName = `SIGNED_${originalDoc?.name || 'document.pdf'}`;
               const filePath = `${signature.deal_id}/${fileName}`;
               
-              // Save to signed_document bucket (not auto-download)
+              // Save to signed_document bucket
               const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('signed_document')
                 .upload(filePath, uint8Array, {
@@ -164,15 +166,15 @@ serve(async (req: Request) => {
               if (uploadError) {
                 console.error('Error uploading signed document:', uploadError);
               } else {
-                console.log('✅ Signed document saved to storage:', filePath);
+                console.log('✅ Signed document saved to storage using SDK:', filePath);
                 console.log('Document will be available for manual download via button');
               }
             } else {
-              console.error('Failed to download document from DocuSign:', await docResponse.text());
+              console.error('No document data received from DocuSign SDK');
             }
           }
         } catch (downloadError) {
-          console.error('Error downloading signed document:', downloadError);
+          console.error('Error downloading signed document with SDK:', downloadError);
         }
       }
 
