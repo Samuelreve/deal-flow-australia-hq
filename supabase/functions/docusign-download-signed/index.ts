@@ -443,10 +443,28 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Get user from authorization header
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Get user from token
+    let currentUserId = '00000000-0000-0000-0000-000000000000'; // fallback
+    if (token) {
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: { user } } = await userClient.auth.getUser();
+      if (user?.id) {
+        currentUserId = user.id;
+      }
+    }
 
     const { envelopeId, dealId, documentId = 'combined' } = await req.json();
 
@@ -526,7 +544,7 @@ serve(async (req: Request) => {
         type: 'application/pdf',
         status: 'signed',
         category: 'signed_contract',
-        uploaded_by: '00000000-0000-0000-0000-000000000000', // System user
+        uploaded_by: currentUserId,
         version: 1
       })
       .select()
