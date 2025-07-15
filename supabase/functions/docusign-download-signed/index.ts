@@ -7,65 +7,56 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Function to get fresh DocuSign access token using OAuth
-async function getFreshAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-  const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
+// Function to get stored DocuSign access token (working approach)
+async function getStoredAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 
-  if (!integrationKey || !clientSecret) {
-    throw new Error('Missing DocuSign OAuth configuration');
+  console.log('🔍 Looking for stored DocuSign tokens...');
+  
+  // Get stored OAuth token from database (system user)
+  const { data: tokenData, error: tokenError } = await supabase
+    .from('docusign_tokens')
+    .select('*')
+    .eq('user_id', '00000000-0000-0000-0000-000000000000')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (tokenError) {
+    console.error('❌ Database error fetching DocuSign tokens:', tokenError);
+    throw new Error('Failed to retrieve DocuSign tokens from database');
   }
 
-  console.log('🔐 Getting fresh DocuSign access token...');
-
-  // Use client credentials flow for server-to-server authentication
-  const response = await fetch('https://account-d.docusign.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${btoa(`${integrationKey}:${clientSecret}`)}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      scope: 'signature'
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('❌ OAuth token request failed:', error);
-    throw new Error(`DocuSign OAuth authentication failed: ${error}`);
+  if (!tokenData || tokenData.length === 0) {
+    console.error('❌ No DocuSign tokens found in database');
+    throw new Error('No DocuSign tokens found. Please authenticate first by going to DocuSign -> Sign Document to set up OAuth authentication.');
   }
 
-  const tokenData = await response.json();
-  console.log('✅ Successfully obtained fresh access token');
-
-  // Get user info to get account details
-  const userInfoResponse = await fetch('https://account-d.docusign.com/oauth/userinfo', {
-    headers: {
-      'Authorization': `Bearer ${tokenData.access_token}`
-    }
-  });
-
-  if (!userInfoResponse.ok) {
-    const error = await userInfoResponse.text();
-    console.error('❌ Failed to get user info:', error);
-    throw new Error(`Failed to get DocuSign user info: ${error}`);
+  const token = tokenData[0];
+  console.log('✅ Found stored DocuSign token');
+  console.log('🔍 Token expires at:', token.expires_at);
+  console.log('🔍 Current time:', new Date().toISOString());
+  
+  // Check if token is expired
+  const expiresAt = new Date(token.expires_at);
+  const now = new Date();
+  const isExpired = expiresAt <= now;
+  
+  if (isExpired) {
+    console.error('❌ Stored DocuSign token is expired');
+    const hoursExpired = Math.round((now.getTime() - expiresAt.getTime()) / (1000 * 60 * 60));
+    throw new Error(`DocuSign token expired ${hoursExpired} hours ago. Please re-authenticate by going to DocuSign -> Sign Document.`);
   }
 
-  const userInfo = await userInfoResponse.json();
-  const account = userInfo.accounts?.[0];
-
-  if (!account) {
-    throw new Error('No DocuSign account found');
-  }
-
-  console.log('✅ Retrieved account information');
+  const hoursUntilExpiry = Math.round((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60));
+  console.log(`✅ Token valid for ${hoursUntilExpiry} more hours`);
 
   return {
-    access_token: tokenData.access_token,
-    base_uri: account.base_uri,
-    account_id: account.account_id
+    access_token: token.access_token,
+    base_uri: token.base_uri,
+    account_id: token.account_id
   };
 }
 
@@ -163,10 +154,10 @@ serve(async (req: Request) => {
 
     console.log('🎯 Processing request for envelope:', envelopeId, 'deal:', dealId);
 
-    // Step 1: Get fresh DocuSign access token
-    console.log('🔐 Step 1: Getting fresh DocuSign access token...');
-    const { access_token, base_uri, account_id } = await getFreshAccessToken();
-    console.log('✅ Successfully obtained fresh access token');
+    // Step 1: Get stored DocuSign access token (working approach)
+    console.log('🔐 Step 1: Retrieving stored DocuSign access token...');
+    const { access_token, base_uri, account_id } = await getStoredAccessToken();
+    console.log('✅ Successfully retrieved valid access token');
 
     // Step 2: Download document from DocuSign
     console.log('📥 Step 2: Downloading document from DocuSign...');
