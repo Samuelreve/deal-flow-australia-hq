@@ -207,13 +207,9 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
 
     if (!result) {
       return (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">
-            Click the button below to analyze this document
-          </p>
-          <Button onClick={() => performAnalysis(analysisType)}>
-            Analyze Document
-          </Button>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          Starting analysis...
         </div>
       );
     }
@@ -308,7 +304,21 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
     }
   }, [document, currentDocumentId]);
 
-
+  // Auto-start analysis when modal opens
+  React.useEffect(() => {
+    if (!isOpen || !document || !analysisType) return;
+    
+    console.log('📄 Modal opened for analysis type:', analysisType);
+    
+    // Check if we already have this analysis or if it's already loading
+    if (analysisResults[analysisType] || loadingAnalysis[analysisType]) {
+      console.log('📄 Analysis already exists or loading, skipping auto-start');
+      return;
+    }
+    
+    console.log('🚀 Auto-starting analysis for:', analysisType);
+    performAnalysis(analysisType);
+  }, [isOpen, document, analysisType]);
   if (!document) return null;
 
   const Icon = getAnalysisIcon(analysisType);
