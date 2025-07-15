@@ -7,6 +7,7 @@ import DealTimeline from "./DealTimeline";
 import DealParticipants from "./DealParticipants";
 import MilestoneTracker from "./milestones/MilestoneTracker";
 import DealHealthPredictionPanel from "./health/DealHealthPredictionPanel";
+import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
 
 interface DealTabsProps {
   deal: Deal;
@@ -23,6 +24,9 @@ const DealTabs = ({
   effectiveUserRole,
   isParticipant
 }: DealTabsProps) => {
+  // Get unread message counts for real-time indicators
+  const { unreadCounts } = useUnreadMessageCounts(deal.id);
+  
   // Define tabs available to all users
   const commonTabs = [
     { id: "overview", label: "Overview" },
@@ -51,7 +55,7 @@ const DealTabs = ({
               key={tab.id}
               to={tab.id === "documents" ? `/deals/${deal.id}/documents` : "#"}
               className={`
-                whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
                 ${activeTab === tab.id
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}
@@ -64,6 +68,13 @@ const DealTabs = ({
               }}
             >
               {tab.label}
+              {/* Red dot indicator for unread messages */}
+              {tab.id === "messages" && unreadCounts.total > 0 && (
+                <span className="absolute top-2 right-0 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+              )}
             </Link>
           ))}
         </nav>
