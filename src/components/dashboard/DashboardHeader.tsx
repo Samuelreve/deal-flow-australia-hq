@@ -35,7 +35,7 @@ const DashboardHeader = ({
       {showButton && (
         <Button 
           onClick={() => navigate(buttonRoute)}
-          className="shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-primary to-primary/90"
+          variant="success"
         >
           <Plus className="h-4 w-4 mr-2" />
           {buttonLabel}
