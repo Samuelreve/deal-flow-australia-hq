@@ -30,14 +30,10 @@ export const useSignUp = (inviteToken?: string | null) => {
       
       if (success) {
         setShowSuccess(true);
+        toast.success("Account created successfully!");
         
-        // If invitation token exists, navigate to accept-invite page
-        if (inviteToken) {
-          navigate(`/accept-invite?token=${inviteToken}`);
-        } else {
-          // Otherwise just show success message
-          toast.success("Account created successfully!");
-        }
+        // Navigation will be handled by the SignUp page component
+        // based on authentication state and invitation token
       } else {
         setError("Failed to create account. Please try again.");
       }
