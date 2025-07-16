@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Send, Sparkles, TrendingUp, AlertTriangle, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDocumentAI } from "@/hooks/useDocumentAI";
+import { toast } from "sonner";
 
 interface Deal {
   id: string;
@@ -35,6 +37,12 @@ const DealAIAssistantTab: React.FC<DealAIAssistantTabProps> = ({ dealId, deal })
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
+  
+  // Initialize AI operations
+  const { dealChatQuery, loading } = useDocumentAI({ 
+    dealId, 
+    documentId: undefined 
+  });
 
   // Initialize with a welcome message
   useEffect(() => {
@@ -62,138 +70,6 @@ What would you like to know about this deal?`,
     setMessages([welcomeMessage]);
   }, [deal.title]);
 
-  const simulateAIResponse = (userMessage: string): AIMessage => {
-    let content = '';
-    let suggestions: string[] = [];
-
-    // Simple response simulation based on keywords
-    const message = userMessage.toLowerCase();
-    
-    if (message.includes('health') || message.includes('score')) {
-      content = `Based on your deal's current health score of ${deal.health_score}/100, here's my analysis:
-
-${deal.health_score >= 80 ? '✅ **Excellent Progress**' : 
-  deal.health_score >= 60 ? '⚠️ **Good Progress with Room for Improvement**' : 
-  '🚨 **Requires Attention**'}
-
-Key factors affecting your score:
-• Deal status: ${deal.status}
-• Documentation completeness
-• Milestone progress
-• Participant engagement
-
-${deal.health_score < 80 ? 'Recommended actions to improve your score:' : 'Keep up the great work! Consider:'}
-• Complete pending milestones
-• Upload missing documentation
-• Engage with all participants
-• Schedule regular check-ins`;
-
-      suggestions = [
-        'Show improvement recommendations',
-        'Compare to similar deals',
-        'Set health alerts'
-      ];
-    } else if (message.includes('next') || message.includes('action')) {
-      content = `Based on your deal's current status (${deal.status}) and progress, here are my recommended next actions:
-
-**Immediate Actions:**
-1. 📋 Review and complete any pending milestones
-2. 📄 Ensure all required documents are uploaded and reviewed
-3. 👥 Check that all key participants are engaged
-4. 💬 Send status updates to stakeholders
-
-**Strategic Actions:**
-1. 🎯 Set realistic completion timeline
-2. 🔍 Conduct thorough due diligence review
-3. 💰 Finalize pricing and terms
-4. ⚖️ Engage legal counsel for contract review
-
-Would you like me to elaborate on any of these actions?`;
-
-      suggestions = [
-        'Show milestone details',
-        'Review document requirements',
-        'Contact participants'
-      ];
-    } else if (message.includes('document') || message.includes('contract')) {
-      content = `I can help you with document analysis and management:
-
-**Current Document Status:**
-• Documents uploaded and ready for review
-• AI-powered analysis available for contracts
-• Version control and comparison features
-
-**Document Recommendations:**
-1. 📊 **Financial Documents**: P&L statements, balance sheets, tax returns
-2. 📋 **Legal Documents**: Articles of incorporation, contracts, leases
-3. 🏢 **Operational Documents**: Employee agreements, vendor contracts
-4. 🔍 **Due Diligence**: Insurance policies, compliance certificates
-
-I can analyze uploaded documents for:
-• Key terms and clauses
-• Potential risks and red flags
-• Compliance requirements
-• Missing information`;
-
-      suggestions = [
-        'Analyze uploaded documents',
-        'Check document completeness',
-        'Review contract terms'
-      ];
-    } else if (message.includes('industry') || message.includes('benchmark')) {
-      content = `Here's how your ${deal.business_industry || 'business'} deal compares to industry standards:
-
-**Industry Insights:**
-• Average deal completion time: 3-6 months
-• Typical due diligence period: 30-45 days
-• Common valuation multiples vary by sector
-• Standard contingencies and warranties
-
-**Your Deal vs. Industry:**
-${deal.asking_price ? `• Asking price: ${new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(deal.asking_price)}` : '• Pricing: Under evaluation'}
-• Health score: ${deal.health_score}/100 (Industry avg: 65-75)
-• Current status: ${deal.status}
-
-**Recommendations:**
-• Ensure competitive positioning
-• Address any gaps in documentation
-• Consider market timing factors`;
-
-      suggestions = [
-        'Get market analysis',
-        'Review pricing strategy',
-        'Check competition'
-      ];
-    } else {
-      // Default response
-      content = `I understand you're asking about "${userMessage}". Let me help you with that.
-
-As your AI assistant for the "${deal.title}" deal, I have access to:
-• Deal structure and terms
-• Progress tracking and milestones
-• Document analysis capabilities
-• Industry benchmarking data
-• Risk assessment tools
-
-Could you be more specific about what you'd like to know? I can provide detailed insights on deal progress, document analysis, next steps, or industry comparisons.`;
-
-      suggestions = [
-        'Analyze deal health',
-        'Review next actions',
-        'Check document status',
-        'Get industry insights'
-      ];
-    }
-
-    return {
-      id: `ai-${Date.now()}`,
-      role: 'assistant',
-      content,
-      timestamp: new Date(),
-      suggestions
-    };
-  };
-
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -206,15 +82,56 @@ Could you be more specific about what you'd like to know? I can provide detailed
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = newMessage.trim();
     setNewMessage('');
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    setTimeout(() => {
-      const aiResponse = simulateAIResponse(userMessage.content);
-      setMessages(prev => [...prev, aiResponse]);
+    try {
+      // Use real AI response
+      const aiResponse = await dealChatQuery(dealId, currentMessage);
+      
+      if (aiResponse) {
+        const aiMessage: AIMessage = {
+          id: `ai-${Date.now()}`,
+          role: 'assistant',
+          content: aiResponse.explanation || aiResponse.summary || 'I apologize, but I encountered an issue processing your request.',
+          timestamp: new Date(),
+          suggestions: [
+            'What should be my next action?',
+            'Analyze the deal health score',
+            'Review deal documents',
+            'Compare to industry standards'
+          ]
+        };
+        
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Fallback message if AI response fails
+        const fallbackMessage: AIMessage = {
+          id: `ai-${Date.now()}`,
+          role: 'assistant',
+          content: 'I apologize, but I\'m currently unable to process your request. Please try again later.',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, fallbackMessage]);
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+      toast.error('Failed to get AI response. Please try again.');
+      
+      // Add error message to chat
+      const errorMessage: AIMessage = {
+        id: `ai-${Date.now()}`,
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
