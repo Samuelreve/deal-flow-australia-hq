@@ -227,7 +227,7 @@ const AcceptInvitePage = () => {
                 <div className="space-y-2">
                   {userExists !== false && (
                     <Button 
-                      onClick={() => navigate(`/login?inviteToken=${token}`)}
+                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
                       className="w-full"
                     >
                       Log In
@@ -235,7 +235,7 @@ const AcceptInvitePage = () => {
                   )}
                   {userExists !== true && (
                     <Button 
-                      onClick={() => navigate(`/signup?inviteToken=${token}`)}
+                      onClick={() => navigate(`/signup?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
                       variant={userExists === false ? "default" : "outline"} 
                       className="w-full"
                     >
