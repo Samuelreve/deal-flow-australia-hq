@@ -94,7 +94,7 @@ What would you like to know about this deal?`,
         const aiMessage: AIMessage = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
-          content: aiResponse.explanation || aiResponse.summary || 'I apologize, but I encountered an issue processing your request.',
+          content: aiResponse.answer || aiResponse.chatResponse || aiResponse.explanation || aiResponse.summary || 'I apologize, but I encountered an issue processing your request.',
           timestamp: new Date(),
           suggestions: [
             'What should be my next action?',

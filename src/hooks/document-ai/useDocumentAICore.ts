@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-export type AIOperation = 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes';
+export type AIOperation = 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'deal_chat_query';
 
 export interface AIRequestOptions {
   content: string;
@@ -20,6 +20,8 @@ export interface AIResponse {
   template?: string;
   summary?: string;
   suggestion?: string;
+  answer?: string;
+  chatResponse?: string;
   milestone?: {
     title: string;
     status: string;
@@ -38,6 +40,7 @@ export interface AIResponse {
   error?: string;
   isAmbiguous?: boolean;
   ambiguityExplanation?: string;
+  sources?: any[];
 }
 
 export interface UseDocumentAICoreProps {

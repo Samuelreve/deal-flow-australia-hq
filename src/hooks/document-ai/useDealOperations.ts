@@ -38,7 +38,7 @@ export const useDealOperations = (props: UseDocumentAICoreProps) => {
   };
 
   const dealChatQuery = async (dealId: string, query: string) => {
-    return await processAIRequest('explain_clause', {
+    return await processAIRequest('deal_chat_query', {
       content: query,
       context: { 
         dealId,
