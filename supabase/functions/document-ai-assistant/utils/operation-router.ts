@@ -100,7 +100,8 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
         payload.userId!,
         payload.content!,
         payload.chatHistory || [],
-        openai
+        openai,
+        payload.context?.dealContext
       );
     
     default:

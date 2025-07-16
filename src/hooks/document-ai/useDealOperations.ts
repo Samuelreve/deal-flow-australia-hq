@@ -37,12 +37,13 @@ export const useDealOperations = (props: UseDocumentAICoreProps) => {
     });
   };
 
-  const dealChatQuery = async (dealId: string, query: string) => {
+  const dealChatQuery = async (dealId: string, query: string, dealContext?: any) => {
     return await processAIRequest('deal_chat_query', {
       content: query,
       context: { 
         dealId,
-        operationType: 'deal_chat'
+        operationType: 'deal_chat',
+        dealContext: dealContext || {}
       }
     });
   };

@@ -8,6 +8,7 @@ import { Bot, Send, Sparkles, TrendingUp, AlertTriangle, FileText } from "lucide
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { toast } from "sonner";
+import { useDealContext } from "@/hooks/deals/useDealContext";
 
 interface Deal {
   id: string;
@@ -38,6 +39,9 @@ const DealAIAssistantTab: React.FC<DealAIAssistantTabProps> = ({ dealId, deal })
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
   
+  // Fetch comprehensive deal context
+  const dealContext = useDealContext(dealId);
+  
   // Initialize AI operations
   const { dealChatQuery, loading } = useDocumentAI({ 
     dealId, 
@@ -49,13 +53,16 @@ const DealAIAssistantTab: React.FC<DealAIAssistantTabProps> = ({ dealId, deal })
     const welcomeMessage: AIMessage = {
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm your AI assistant for the "${deal.title}" deal. I can help you with:
-      
-• Analyzing deal progress and health score
-• Suggesting next actions and milestones
-• Reviewing documents and contracts
-• Providing industry insights
-• Answering questions about deal structure
+      content: `Hello! I'm your AI assistant for the "${deal.title}" deal. I have access to your deal's complete information including:
+
+• Deal details, status, and health score (${deal.health_score}/100)
+• All milestones and their current progress
+• Uploaded documents and their status  
+• Participant information and roles
+• Recent activity and comments
+• Health score history and trends
+
+I can provide insights on deal progress, suggest next actions, analyze documents, assess risks, and answer specific questions about your deal. 
 
 What would you like to know about this deal?`,
       timestamp: new Date(),
@@ -63,12 +70,12 @@ What would you like to know about this deal?`,
         'What should be my next action?',
         'Analyze the deal health score',
         'Review deal documents',
-        'Compare to industry standards'
+        'Check milestone progress'
       ]
     };
     
     setMessages([welcomeMessage]);
-  }, [deal.title]);
+  }, [deal.title, deal.health_score]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -87,8 +94,8 @@ What would you like to know about this deal?`,
     setIsTyping(true);
 
     try {
-      // Use real AI response
-      const aiResponse = await dealChatQuery(dealId, currentMessage);
+      // Use real AI response with comprehensive deal context
+      const aiResponse = await dealChatQuery(dealId, currentMessage, dealContext);
       
       if (aiResponse) {
         const aiMessage: AIMessage = {
