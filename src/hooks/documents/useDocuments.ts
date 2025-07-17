@@ -29,7 +29,11 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
         .from('documents')
         .select(`
           *,
-          latest_version:document_versions!latest_version_id (*)
+          latest_version:document_versions!latest_version_id (*),
+          uploader:profiles!uploaded_by (
+            name,
+            email
+          )
         `)
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
@@ -41,7 +45,9 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
         name: doc.name,
         category: doc.category,
         type: doc.type,
+        status: doc.status,
         uploadedBy: doc.uploaded_by,
+        uploaderName: doc.uploader?.name,
         latestVersionId: doc.latest_version_id,
         createdAt: new Date(doc.created_at),
         updatedAt: new Date(doc.updated_at),

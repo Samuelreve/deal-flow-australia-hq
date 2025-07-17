@@ -130,6 +130,12 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
                 <span>by {document.uploaderName}</span>
               </>
             )}
+            {!document.uploaderName && document.uploadedBy && (
+              <>
+                <span className="mx-1">•</span>
+                <span>by {document.uploadedBy.substring(0, 8)}...</span>
+              </>
+            )}
           </div>
         </div>
         
