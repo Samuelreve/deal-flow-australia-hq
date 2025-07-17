@@ -40,6 +40,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
 
       if (error) throw error;
 
+      console.log('Raw document data:', data);
+
       const mappedDocuments: Document[] = data.map(doc => ({
         id: doc.id,
         name: doc.name,
@@ -63,6 +65,8 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
           description: doc.latest_version.description
         } : undefined
       }));
+
+      console.log('Mapped documents:', mappedDocuments);
 
       setDocuments(mappedDocuments);
     } catch (error) {
