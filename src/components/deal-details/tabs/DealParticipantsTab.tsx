@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
+import { formatParticipantDate } from "@/utils/dateUtils";
 
 interface Participant {
   id: string;
@@ -63,7 +64,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         .order('joined_at', { ascending: false });
 
       if (participantsError) {
-        console.error('Error fetching participants:', participantsError);
         toast({
           title: "Error",
           description: "Failed to load participants",
@@ -81,7 +81,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         .order('created_at', { ascending: false });
 
       if (invitationsError) {
-        console.error('Error fetching pending invitations:', invitationsError);
         toast({
           title: "Error",
           description: "Failed to load pending invitations",
@@ -93,7 +92,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
       setParticipants(participantsData || []);
       setPendingInvitations(invitationsData || []);
     } catch (error) {
-      console.error('Error fetching participants:', error);
+      // Error already handled above
     } finally {
       setLoading(false);
     }
@@ -117,13 +116,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     return null;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  // Import formatParticipantDate from utils instead of defining locally
 
   const handleOpenInviteDialog = () => setIsInviteDialogOpen(true);
   const handleCloseInviteDialog = () => setIsInviteDialogOpen(false);
@@ -285,7 +278,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                       </Badge>
                       
                       <p className="text-xs text-muted-foreground">
-                        Invited {formatDate(invitation.created_at)}
+                        Invited {formatParticipantDate(invitation.created_at)}
                       </p>
                     </div>
                   </div>

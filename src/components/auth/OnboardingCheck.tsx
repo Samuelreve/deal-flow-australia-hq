@@ -7,13 +7,7 @@ import { Loader2 } from 'lucide-react';
 const OnboardingCheck: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
 
-  console.log('OnboardingCheck state:', {
-    authLoading,
-    hasUser: !!user,
-    hasProfile: !!user?.profile,
-    onboardingComplete: user?.profile?.onboarding_complete,
-    userRole: user?.profile?.role
-  });
+  // Onboarding state logging removed for production
 
   // If auth state is still loading, show loading indicator
   if (authLoading) {
@@ -37,12 +31,7 @@ const OnboardingCheck: React.FC = () => {
   const onboardingComplete = user.profile?.onboarding_complete;
   const isProfessional = user.profile?.role === 'lawyer' || user.profile?.role === 'admin';
   
-  console.log('OnboardingCheck decision factors:', {
-    hasProfile,
-    onboardingComplete,
-    isProfessional,
-    professionalHeadline: user.profile?.professional_headline
-  });
+  // Onboarding decision logging removed for production
 
   // --- Onboarding Logic ---
   if (!hasProfile || !onboardingComplete) {
@@ -50,17 +39,17 @@ const OnboardingCheck: React.FC = () => {
     // And if they are a professional who needs to complete their professional profile
     if (isProfessional && hasProfile && !user.profile?.professional_headline) {
       // Redirect to professional setup page
-      console.log('OnboardingCheck: Redirecting to professional setup');
+      // Redirecting to professional setup
       return <Navigate to="/profile/professional-setup" replace />;
     } else {
       // Redirect to general intent capture page
-      console.log('OnboardingCheck: Redirecting to intent capture');
+      // Redirecting to intent capture
       return <Navigate to="/onboarding/intent" replace />;
     }
   }
 
   // If onboarding is complete, allow access to the nested route
-  console.log('OnboardingCheck: Onboarding complete, allowing access');
+  // Onboarding complete, allowing access
   return <Outlet />;
 };
 

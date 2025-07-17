@@ -20,15 +20,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute check:', {
-    isAuthenticated,
-    loading,
-    hasUser: !!user,
-    hasProfile: !!user?.profile,
-    onboardingComplete: user?.profile?.onboarding_complete,
-    currentPath: location.pathname,
-    requireAuth
-  });
+  // Authentication state logging removed for production
 
   // Show loading only when actually loading, with timeout
   if (loading) {
@@ -46,7 +38,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If authentication is required but user is not authenticated
   if (requireAuth && !isAuthenticated) {
-    console.log('ProtectedRoute: Redirecting to login - not authenticated');
+    // Redirecting to login - not authenticated
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 

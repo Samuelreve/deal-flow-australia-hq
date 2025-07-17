@@ -1,5 +1,5 @@
 
-import { DocumentComment } from "@/services/documentCommentService";
+import { DocumentComment } from "@/services/documentComment";
 import DocumentCommentItem from "./DocumentCommentItem";
 import DocumentCommentForm from "./DocumentCommentForm";
 import { MessageSquare, Loader2 } from "lucide-react";

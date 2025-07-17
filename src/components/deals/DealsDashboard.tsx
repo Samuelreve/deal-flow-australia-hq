@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DealSummary } from "@/types/deal";
 import { ArrowRight, Clock } from "lucide-react";
-import { formatDate } from "@/utils/formatDate";
+import { formatDate } from "@/utils/dateUtils";
 
 interface DealsDashboardProps {
   deals: DealSummary[];

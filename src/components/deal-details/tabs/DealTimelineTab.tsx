@@ -13,6 +13,7 @@ import {
   Edit
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateWithTime } from "@/utils/dateUtils";
 
 interface TimelineEvent {
   id: string;

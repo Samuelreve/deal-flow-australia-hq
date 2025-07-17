@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building, MapPin, Calendar, DollarSign, User, FileText } from "lucide-react";
+import { formatDate } from "@/utils/dateUtils";
 
 interface Deal {
   id: string;
@@ -43,14 +44,7 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
     }).format(price);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Not specified';
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  // Use centralized formatDate from utils
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

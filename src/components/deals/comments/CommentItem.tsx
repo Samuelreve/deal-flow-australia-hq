@@ -2,7 +2,7 @@
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Comment } from "./types";
-import { formatDate } from "./commentUtils";
+import { formatCommentDate } from "@/utils/commentUtils";
 
 interface CommentItemProps {
   comment: Comment;
@@ -26,7 +26,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onDelete, canDelete 
             {comment.profiles?.name || 'Unknown User'}
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatDate(comment.created_at)}
+            {formatCommentDate(comment.created_at)}
           </span>
         </div>
         <p className="mt-1 text-sm">{comment.content}</p>

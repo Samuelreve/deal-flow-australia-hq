@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Check, X, Trash2, Edit, CornerDownRight, CheckSquare } from "lucide-react";
-import { DocumentComment } from "@/services/documentCommentService";
+import { DocumentComment } from "@/services/documentComment";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";

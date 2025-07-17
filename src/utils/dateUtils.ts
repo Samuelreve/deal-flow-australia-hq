@@ -1,3 +1,6 @@
+/**
+ * Centralized date utility functions for consistent date formatting across the application
+ */
 
 /**
  * Format date in a user-friendly format
@@ -85,6 +88,56 @@ export function formatDayAndMonth(dateString: string | Date | null | undefined):
   
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+/**
+ * Format date for comment display (used in comments)
+ */
+export function formatCommentDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+/**
+ * Format date for milestone display
+ */
+export function formatMilestoneDate(dateString?: Date | string): string {
+  if (!dateString) return '';
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+}
+
+/**
+ * Format date for participant display (Australian format)
+ */
+export function formatParticipantDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-AU', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+/**
+ * Format date for profile display (US format)
+ */
+export function formatProfileDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
