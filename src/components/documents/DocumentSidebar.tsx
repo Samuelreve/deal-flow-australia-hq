@@ -18,6 +18,10 @@ interface Document {
   created_at: string;
   uploaded_by: string;
   storage_path: string;
+  uploader?: {
+    name: string;
+    email: string;
+  };
 }
 
 interface DocumentSidebarProps {
@@ -49,7 +53,13 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select(`
+          *,
+          uploader:profiles!uploaded_by (
+            name,
+            email
+          )
+        `)
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
 
@@ -189,6 +199,9 @@ const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
                         <div className="text-xs text-muted-foreground">
                           <p>v{doc.version} • {formatFileSize(doc.size)}</p>
                           <p>{new Date(doc.created_at).toLocaleDateString()}</p>
+                          {doc.uploader?.name && (
+                            <p>by {doc.uploader.name}</p>
+                          )}
                         </div>
                       </div>
                     </div>
