@@ -22,6 +22,10 @@ interface DatabaseDocument {
   created_at: string;
   uploaded_by: string;
   storage_path: string;
+  uploader?: {
+    name: string;
+    email: string;
+  };
 }
 
 interface DealDocumentsTabProps {
@@ -53,6 +57,7 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     name: dbDoc.name,
     url: '', // Will be populated when needed
     uploadedBy: dbDoc.uploaded_by,
+    uploaderName: dbDoc.uploader?.name,
     uploadedAt: new Date(dbDoc.created_at),
     size: dbDoc.size,
     type: dbDoc.type,
@@ -95,7 +100,13 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select(`
+          *,
+          uploader:profiles!uploaded_by (
+            name,
+            email
+          )
+        `)
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
 

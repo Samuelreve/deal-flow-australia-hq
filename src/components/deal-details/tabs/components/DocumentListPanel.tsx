@@ -140,6 +140,9 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
                         <div className="text-xs text-muted-foreground">
                           <p>v{doc.version} • {formatFileSize(doc.size)}</p>
                           <p>{doc.uploadedAt.toLocaleDateString()}</p>
+                          {doc.uploaderName && (
+                            <p>by {doc.uploaderName}</p>
+                          )}
                         </div>
                       </div>
                     </div>

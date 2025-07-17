@@ -45,15 +45,6 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
   const Icon = getFileIconByType(document.type || "");
   const [signatureInfo, setSignatureInfo] = useState<{signer_email: string, signed_at: string} | null>(null);
 
-  // Debug log to see the document data
-  console.log('DocumentListItem - document:', {
-    id: document.id,
-    name: document.name,
-    uploadedBy: document.uploadedBy,
-    uploaderName: document.uploaderName,
-    hasUploaderName: !!document.uploaderName
-  });
-
   // Fetch signature information for signed documents
   useEffect(() => {
     if (document.status === 'signed') {
