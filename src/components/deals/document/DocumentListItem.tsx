@@ -124,6 +124,12 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
               </>
             )}
             <span>{new Date(document.createdAt || Date.now()).toLocaleDateString()}</span>
+            {document.uploaderName && (
+              <>
+                <span className="mx-1">•</span>
+                <span>by {document.uploaderName}</span>
+              </>
+            )}
           </div>
         </div>
         

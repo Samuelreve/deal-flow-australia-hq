@@ -12,7 +12,13 @@ export const documentRetrievalDbService = {
   async fetchDocuments(dealId: string): Promise<DocumentMetadata[]> {
     const { data, error } = await supabase
       .from('documents')
-      .select('*')
+      .select(`
+        *,
+        profiles:uploaded_by (
+          name,
+          email
+        )
+      `)
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false });
     

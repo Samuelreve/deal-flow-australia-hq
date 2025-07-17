@@ -40,6 +40,7 @@ export const documentMapperService = {
       name: metadata.name,
       url: signedUrl,
       uploadedBy: metadata.uploaded_by,
+      uploaderName: metadata.profiles?.name || undefined,
       uploadedAt: new Date(metadata.created_at),
       size: metadata.size,
       type: metadata.type,

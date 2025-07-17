@@ -15,6 +15,10 @@ export interface DocumentMetadata {
   milestone_id: string | null;
   category: string | null;
   latest_version_id: string | null;
+  profiles?: {
+    name: string;
+    email: string;
+  };
 }
 
 export interface DocumentVersionMetadata {

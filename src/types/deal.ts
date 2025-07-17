@@ -36,6 +36,7 @@ export interface Document {
   name: string;
   url: string;
   uploadedBy: string;
+  uploaderName?: string;
   uploadedAt: Date;
   size: number;
   type: string;

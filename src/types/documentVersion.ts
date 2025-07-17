@@ -40,6 +40,7 @@ export interface Document {
   type?: string;
   status?: 'draft' | 'final' | 'signed';
   uploadedBy?: string;
+  uploaderName?: string;
   latestVersionId?: string;
   latestVersion?: DocumentVersion;
   createdAt?: Date;
