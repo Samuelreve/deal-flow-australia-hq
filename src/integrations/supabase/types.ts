@@ -1379,6 +1379,7 @@ export type Database = {
       }
       milestones: {
         Row: {
+          assigned_to: string | null
           completed_at: string | null
           created_at: string
           deal_id: string
@@ -1391,6 +1392,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
           deal_id: string
@@ -1403,6 +1405,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
           deal_id?: string

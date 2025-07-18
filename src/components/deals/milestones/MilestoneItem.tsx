@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
@@ -6,10 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
 import DocumentSelectionModal from './DocumentSelectionModal';
 import SignaturePositioningModal from './SignaturePositioningModal';
-import { FileText, UserCheck } from 'lucide-react';
+import MilestoneAssignmentModal from './MilestoneAssignmentModal';
+import { FileText, UserCheck, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import MilestoneAssignModal from './MilestoneAssignModal';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -20,6 +19,7 @@ interface MilestoneItemProps {
   dealId: string;
   canStart?: boolean;
   previousMilestone?: Milestone | null;
+  onMilestoneUpdated?: () => void;
 }
 
 const MilestoneItem: React.FC<MilestoneItemProps> = ({ 
@@ -30,7 +30,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   isParticipant = true,
   dealId,
   canStart = true,
-  previousMilestone
+  previousMilestone,
+  onMilestoneUpdated
 }) => {
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
@@ -45,27 +46,18 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
   const [documentSaved, setDocumentSaved] = useState(false);
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignedUser, setAssignedUser] = useState<{id: string, name: string} | null>(null);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
 
   // Determine if the current user has permission to update milestone status
+  // Admin can always update, assigned user can update, or seller can update unassigned milestones
   const canUpdateMilestone = isParticipant && (
-    ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()) ||
-    (assignedUser && assignedUser.id === user?.id)
+    ['admin'].includes(userRole.toLowerCase()) || 
+    (milestone.assigned_to === user?.id) ||
+    (!milestone.assigned_to && ['seller'].includes(userRole.toLowerCase()))
   );
   
-  // Determine if the current user can assign milestones (admin only)
-  const canAssignMilestone = isParticipant && userRole.toLowerCase() === 'admin';
-  
-  // Debug logging to understand what we're working with
-  console.log('Milestone data:', {
-    id: milestone.id,
-    title: milestone.title,
-    status: milestone.status,
-    documents: milestone.documents,
-    userRole: userRole,
-    isParticipant: isParticipant
-  });
+  // Permission to assign/unassign milestones (sellers and admins only)
+  const canAssignMilestone = isParticipant && ['admin', 'seller'].includes(userRole.toLowerCase());
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -80,9 +72,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     if (isDocumentSigning) {
       checkDocumentSignatures();
     }
-    // Fetch assignment info
-    fetchAssignment();
-  }, [dealId, isDocumentSigning, milestone.id]);
+  }, [dealId, isDocumentSigning]);
 
   // Re-check signatures when window regains focus (user returns from DocuSign)
   useEffect(() => {
@@ -98,42 +88,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [isDocumentSigning]);
-
-  const fetchAssignment = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('milestone_assignments')
-        .select(`
-          user_id,
-          profiles (
-            id,
-            name
-          )
-        `)
-        .eq('milestone_id', milestone.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // Ignore "no rows returned" error
-        console.error('Error fetching assignment:', error);
-        return;
-      }
-
-      if (data?.profiles) {
-        setAssignedUser({
-          id: data.user_id,
-          name: data.profiles.name || 'Unknown user'
-        });
-      } else {
-        setAssignedUser(null);
-      }
-    } catch (error) {
-      console.error('Error fetching assignment:', error);
-    }
-  };
-
-  const handleAssignmentUpdate = () => {
-    fetchAssignment();
-  };
 
   const checkDocumentSignatures = async () => {
     if (!dealId) return;
@@ -453,6 +407,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           {formatStatus(milestone.status)}
         </span>
         
+        {/* Assignment indicator */}
+        {milestone.assignedUser && (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ms-2">
+            <User className="h-3 w-3 mr-1" />
+            {milestone.assignedUser.name}
+          </span>
+        )}
+        
         {/* Add the explain button */}
         {isParticipant && (
           <div className="ms-2">
@@ -477,28 +439,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <p className="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{milestone.description}</p>
       )}
 
-      {/* Assignment info */}
-      {assignedUser && (
-        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <span className="font-medium">Assigned to:</span> {assignedUser.name}
-          </p>
-        </div>
-      )}
-
-      {/* Assign Button - Only show for admins and not for document signing milestones */}
-      {canAssignMilestone && !isDocumentSigning && (
-        <div className="mb-3">
-          <button
-            onClick={() => setIsAssignModalOpen(true)}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
-          >
-            <UserCheck className="w-4 h-4 mr-1" />
-            {assignedUser ? 'Reassign' : 'Assign'}
-          </button>
-        </div>
-      )}
-
       {/* Sequential milestone warning */}
       {milestone.status === 'not_started' && !canStart && previousMilestone && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -508,72 +448,86 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
 
-      {/* Action Buttons - Only show if user has permission */}
-      {canUpdateMilestone && (
-        <div className="flex flex-wrap gap-2">
-          {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Document Signing */}
-          {milestone.status === 'in_progress' && (
-            <button
-              onClick={() => {
-                if (isDocumentSigning && signingStatus !== 'completed') {
-                  alert('Documents must be signed by all parties before completing the Document Signing milestone.');
-                  return;
-                }
-                onUpdateStatus(milestone.id, 'completed');
-              }}
-              disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
-              className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                isDocumentSigning && signingStatus !== 'completed' 
-                  ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                  : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
-              } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isDocumentSigning && signingStatus !== 'completed' ? 'Documents must be signed by all parties first' : ''}
-            >
-              {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
-            </button>
-          )}
-          
-          {/* "Start Milestone" button - only for not_started milestones if previous milestone is completed */}
-          {milestone.status === 'not_started' && (
-            <button
-              onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
-              disabled={updatingMilestoneId === milestone.id || !canStart}
-              className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                !canStart 
-                  ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                  : 'text-white bg-blue-600 hover:bg-blue-700'
-              } rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
-                !canStart ? 'focus:ring-gray-100' : 'focus:ring-blue-300'
-              }`}
-              title={!canStart ? `Previous milestone "${previousMilestone?.title}" must be completed first` : ''}
-            >
-              {updatingMilestoneId === milestone.id ? 'Updating...' : 'Start Milestone'}
-            </button>
-          )}
-          
-          {/* "Mark as Blocked" button - for in_progress and not_started milestones */}
-          {['in_progress', 'not_started'].includes(milestone.status) && (
-            <button
-              onClick={() => onUpdateStatus(milestone.id, 'blocked')}
-              disabled={updatingMilestoneId === milestone.id}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-red-300"
-            >
-              {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Blocked'}
-            </button>
-          )}
-          
-          {/* "Resume Milestone" button - only for blocked milestones */}
-          {milestone.status === 'blocked' && (
-            <button
-              onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
-              disabled={updatingMilestoneId === milestone.id}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
-            >
-              {updatingMilestoneId === milestone.id ? 'Updating...' : 'Resume Milestone'}
-            </button>
-          )}
-        </div>
-      )}
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-2">
+        {/* Assignment Button - Show for sellers/admins */}
+        {canAssignMilestone && (
+          <button
+            onClick={() => setIsAssignmentModalOpen(true)}
+            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-2 focus:outline-none focus:ring-blue-500"
+          >
+            <UserCheck className="h-3 w-3 mr-1" />
+            {milestone.assignedUser ? 'Reassign' : 'Assign'}
+          </button>
+        )}
+
+        {/* Status Update Buttons - Only show if user has permission */}
+        {canUpdateMilestone && (
+          <>
+            {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Document Signing */}
+            {milestone.status === 'in_progress' && (
+              <button
+                onClick={() => {
+                  if (isDocumentSigning && signingStatus !== 'completed') {
+                    alert('Documents must be signed by all parties before completing the Document Signing milestone.');
+                    return;
+                  }
+                  onUpdateStatus(milestone.id, 'completed');
+                }}
+                disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                  isDocumentSigning && signingStatus !== 'completed' 
+                    ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                    : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
+                } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={isDocumentSigning && signingStatus !== 'completed' ? 'Documents must be signed by all parties first' : ''}
+              >
+                {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
+              </button>
+            )}
+            
+            {/* "Start Milestone" button - only for not_started milestones if previous milestone is completed */}
+            {milestone.status === 'not_started' && (
+              <button
+                onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
+                disabled={updatingMilestoneId === milestone.id || !canStart}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                  !canStart 
+                    ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                    : 'text-white bg-blue-600 hover:bg-blue-700'
+                } rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
+                  !canStart ? 'focus:ring-gray-100' : 'focus:ring-blue-300'
+                }`}
+                title={!canStart ? `Previous milestone "${previousMilestone?.title}" must be completed first` : ''}
+              >
+                {updatingMilestoneId === milestone.id ? 'Updating...' : 'Start Milestone'}
+              </button>
+            )}
+            
+            {/* "Mark as Blocked" button - for in_progress and not_started milestones */}
+            {['in_progress', 'not_started'].includes(milestone.status) && (
+              <button
+                onClick={() => onUpdateStatus(milestone.id, 'blocked')}
+                disabled={updatingMilestoneId === milestone.id}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-red-300"
+              >
+                {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Blocked'}
+              </button>
+            )}
+            
+            {/* "Resume Milestone" button - only for blocked milestones */}
+            {milestone.status === 'blocked' && (
+              <button
+                onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
+                disabled={updatingMilestoneId === milestone.id}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
+              >
+                {updatingMilestoneId === milestone.id ? 'Updating...' : 'Resume Milestone'}
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Document Signing Workflow - Show for Document Signing milestone when in progress */}
       {isDocumentSigning && milestone.status === 'in_progress' && (
@@ -663,13 +617,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       )}
 
       {/* Assignment Modal */}
-      <MilestoneAssignModal
-        isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
+      <MilestoneAssignmentModal
+        isOpen={isAssignmentModalOpen}
+        onClose={() => setIsAssignmentModalOpen(false)}
         milestoneId={milestone.id}
         dealId={dealId}
-        currentAssignedTo={assignedUser?.id}
-        onAssignmentUpdate={handleAssignmentUpdate}
+        currentAssignedTo={milestone.assigned_to}
+        onAssignmentUpdated={() => {
+          onMilestoneUpdated?.();
+        }}
       />
     </li>
   );

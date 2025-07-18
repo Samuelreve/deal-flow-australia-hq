@@ -84,6 +84,7 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
             onUpdateStatus={handleUpdateMilestoneStatus}
             isParticipant={isParticipant}
             dealId={dealId}
+            onMilestoneUpdated={fetchMilestones}
           />
         )}
       </div>

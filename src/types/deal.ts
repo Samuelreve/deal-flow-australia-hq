@@ -4,6 +4,13 @@ import { User, UserRole } from "@/types/auth";
 // Define milestone status
 export type MilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
 
+// Define milestone assigned user type
+export interface MilestoneAssignedUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 // Define milestone type
 export interface Milestone {
   id: string;
@@ -11,7 +18,9 @@ export interface Milestone {
   description: string;
   status: MilestoneStatus;
   dueDate?: Date;
-  assignedTo?: string[];
+  assignedTo?: string[]; // Keeping for backward compatibility
+  assigned_to?: string; // New single assignment field
+  assignedUser?: MilestoneAssignedUser; // User object for the assigned user
   completedAt?: Date;
   documents?: Document[];
   order_index?: number; // Added order_index for sequential milestone logic (optional for backward compatibility)

@@ -19,7 +19,14 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
       
       const { data, error } = await supabase
         .from('milestones')
-        .select('*')
+        .select(`
+          *,
+          assignedUser:assigned_to (
+            id,
+            name,
+            email
+          )
+        `)
         .eq('deal_id', dealId)
         .order('order_index', { ascending: true });
         
@@ -31,7 +38,14 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
         description: m.description || '',
         status: m.status,
         dueDate: m.due_date ? new Date(m.due_date) : undefined,
-        completedAt: m.completed_at ? new Date(m.completed_at) : undefined
+        completedAt: m.completed_at ? new Date(m.completed_at) : undefined,
+        assigned_to: m.assigned_to,
+        assignedUser: m.assignedUser ? {
+          id: m.assignedUser.id,
+          name: m.assignedUser.name,
+          email: m.assignedUser.email
+        } : undefined,
+        order_index: m.order_index
       }));
       
       setMilestones(formattedMilestones);
