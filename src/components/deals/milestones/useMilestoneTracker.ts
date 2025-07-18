@@ -21,7 +21,7 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
         .from('milestones')
         .select(`
           *,
-          assignedUser:assigned_to (
+          profiles!milestones_assigned_to_fkey (
             id,
             name,
             email
@@ -40,10 +40,10 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
         dueDate: m.due_date ? new Date(m.due_date) : undefined,
         completedAt: m.completed_at ? new Date(m.completed_at) : undefined,
         assigned_to: m.assigned_to,
-        assignedUser: m.assignedUser ? {
-          id: m.assignedUser.id,
-          name: m.assignedUser.name,
-          email: m.assignedUser.email
+        assignedUser: m.profiles ? {
+          id: m.profiles.id,
+          name: m.profiles.name,
+          email: m.profiles.email
         } : undefined,
         order_index: m.order_index
       }));
