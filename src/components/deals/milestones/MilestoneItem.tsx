@@ -6,9 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
 import DocumentSelectionModal from './DocumentSelectionModal';
 import SignaturePositioningModal from './SignaturePositioningModal';
-import { FileText } from 'lucide-react';
+import { FileText, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import MilestoneAssignModal from './MilestoneAssignModal';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -44,9 +45,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
   const [documentSaved, setDocumentSaved] = useState(false);
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignedUser, setAssignedUser] = useState<{id: string, name: string} | null>(null);
 
   // Determine if the current user has permission to update milestone status
-  const canUpdateMilestone = isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase());
+  const canUpdateMilestone = isParticipant && (
+    ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()) ||
+    (assignedUser && assignedUser.id === user?.id)
+  );
+  
+  // Determine if the current user can assign milestones (admin only)
+  const canAssignMilestone = isParticipant && userRole.toLowerCase() === 'admin';
   
   // Debug logging to understand what we're working with
   console.log('Milestone data:', {
@@ -71,7 +80,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     if (isDocumentSigning) {
       checkDocumentSignatures();
     }
-  }, [dealId, isDocumentSigning]);
+    // Fetch assignment info
+    fetchAssignment();
+  }, [dealId, isDocumentSigning, milestone.id]);
 
   // Re-check signatures when window regains focus (user returns from DocuSign)
   useEffect(() => {
@@ -87,6 +98,42 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [isDocumentSigning]);
+
+  const fetchAssignment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('milestone_assignments')
+        .select(`
+          user_id,
+          profiles (
+            id,
+            name
+          )
+        `)
+        .eq('milestone_id', milestone.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Ignore "no rows returned" error
+        console.error('Error fetching assignment:', error);
+        return;
+      }
+
+      if (data?.profiles) {
+        setAssignedUser({
+          id: data.user_id,
+          name: data.profiles.name || 'Unknown user'
+        });
+      } else {
+        setAssignedUser(null);
+      }
+    } catch (error) {
+      console.error('Error fetching assignment:', error);
+    }
+  };
+
+  const handleAssignmentUpdate = () => {
+    fetchAssignment();
+  };
 
   const checkDocumentSignatures = async () => {
     if (!dealId) return;
@@ -430,6 +477,28 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <p className="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{milestone.description}</p>
       )}
 
+      {/* Assignment info */}
+      {assignedUser && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <span className="font-medium">Assigned to:</span> {assignedUser.name}
+          </p>
+        </div>
+      )}
+
+      {/* Assign Button - Only show for admins and not for document signing milestones */}
+      {canAssignMilestone && !isDocumentSigning && (
+        <div className="mb-3">
+          <button
+            onClick={() => setIsAssignModalOpen(true)}
+            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
+          >
+            <UserCheck className="w-4 h-4 mr-1" />
+            {assignedUser ? 'Reassign' : 'Assign'}
+          </button>
+        </div>
+      )}
+
       {/* Sequential milestone warning */}
       {milestone.status === 'not_started' && !canStart && previousMilestone && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -592,6 +661,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           isLoading={signingInProgress}
         />
       )}
+
+      {/* Assignment Modal */}
+      <MilestoneAssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        milestoneId={milestone.id}
+        dealId={dealId}
+        currentAssignedTo={assignedUser?.id}
+        onAssignmentUpdate={handleAssignmentUpdate}
+      />
     </li>
   );
 };
