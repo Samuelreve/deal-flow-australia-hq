@@ -86,11 +86,26 @@ serve(async (req) => {
       );
     }
 
-    // 4. Check if user role can update milestones
+    // 4. Check permissions - either user has admin/seller role OR user is assigned to this milestone
     const allowedRoles = ['admin', 'seller', 'lawyer'];
-    if (!allowedRoles.includes(participant.role.toLowerCase())) {
+    const hasRolePermission = allowedRoles.includes(participant.role.toLowerCase());
+    
+    // Check if user is assigned to this milestone
+    const { data: assignment } = await supabaseAdmin
+      .from("milestone_assignments")
+      .select("user_id")
+      .eq("milestone_id", milestoneId)
+      .eq("user_id", userId)
+      .single();
+    
+    const isAssignedToMilestone = !!assignment;
+    
+    // User must either have role permission OR be assigned to the milestone
+    if (!hasRolePermission && !isAssignedToMilestone) {
       return new Response(
-        JSON.stringify({ error: `Permission denied: Role '${participant.role}' cannot update milestones` }),
+        JSON.stringify({ 
+          error: `Permission denied: Role '${participant.role}' cannot update milestones and user is not assigned to this milestone` 
+        }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
