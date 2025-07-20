@@ -432,7 +432,21 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
           {milestone.status !== 'completed' 
             ? milestone.dueDate ? `Due by: ${formatDate(milestone.dueDate)}` : '' 
-            : `Completed on: ${formatDate(milestone.completedAt)}`}
+            : (
+              <>
+                {milestone.assignedUser && (
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    {milestone.assignedUser.name} completed the milestone
+                  </span>
+                )}
+                {milestone.completedAt && (
+                  <span className={milestone.assignedUser ? " • " : ""}>
+                    Completed on: {formatDate(milestone.completedAt)}
+                  </span>
+                )}
+              </>
+            )
+          }
         </time>
       )}
       {milestone.description && (
