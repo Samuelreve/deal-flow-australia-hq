@@ -31,19 +31,15 @@ const OnboardingCheck: React.FC = () => {
   const onboardingComplete = user.profile?.onboarding_complete;
   const isProfessional = user.profile?.role === 'lawyer' || user.profile?.role === 'admin';
   
-  // Onboarding decision logging removed for production
-
   // --- Onboarding Logic ---
-  if (!hasProfile || !onboardingComplete) {
-    // If profile doesn't exist OR onboarding_complete is false
-    // And if they are a professional who needs to complete their professional profile
-    if (isProfessional && hasProfile && !user.profile?.professional_headline) {
+  // Skip onboarding if user has completed it OR if they have a valid session but database issues prevent profile loading
+  if (!onboardingComplete && hasProfile) {
+    // If they are a professional who needs to complete their professional profile
+    if (isProfessional && !user.profile?.professional_headline) {
       // Redirect to professional setup page
-      // Redirecting to professional setup
       return <Navigate to="/profile/professional-setup" replace />;
     } else {
       // Redirect to general intent capture page
-      // Redirecting to intent capture
       return <Navigate to="/onboarding/intent" replace />;
     }
   }
