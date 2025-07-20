@@ -71,9 +71,12 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
   
   // Update milestone status
   const handleUpdateMilestoneStatus = async (milestoneId: string, newStatus: MilestoneStatus) => {
+    console.log('🔄 Starting milestone status update:', { milestoneId, newStatus });
     setUpdatingMilestoneId(milestoneId);
     
     try {
+      console.log('📡 Calling update-milestone-status edge function...');
+      
       // Call the update-milestone-status edge function
       const { data, error } = await supabase.functions
         .invoke('update-milestone-status', {
@@ -83,20 +86,27 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
           }
         });
         
+      console.log('📡 Edge function response:', { data, error });
+        
       if (error) throw error;
       
-      // Update local state
-      setMilestones(prevMilestones => 
-        prevMilestones.map(m => 
-          m.id === milestoneId 
-            ? { ...m, status: newStatus }
-            : m
-        )
-      );
+      console.log('✅ Edge function succeeded, updating local state...');
       
+      // Update local state
+      setMilestones(prevMilestones => {
+        const updated = prevMilestones.map(m => 
+          m.id === milestoneId 
+            ? { ...m, status: newStatus, completedAt: newStatus === 'completed' ? new Date() : m.completedAt }
+            : m
+        );
+        console.log('📝 Updated milestones state:', updated);
+        return updated;
+      });
+      
+      console.log('✅ Milestone status update completed successfully');
       return true;
     } catch (err: any) {
-      console.error('Error updating milestone status:', err);
+      console.error('❌ Error updating milestone status:', err);
       return false;
     } finally {
       setUpdatingMilestoneId(null);

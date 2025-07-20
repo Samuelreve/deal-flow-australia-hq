@@ -488,10 +488,24 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             {milestone.status === 'in_progress' && (
               <button
                 onClick={() => {
+                  console.log('🖱️ Mark as completed clicked:', { 
+                    milestoneId: milestone.id, 
+                    milestoneTitle: milestone.title,
+                    isDocumentSigning,
+                    signingStatus,
+                    canUpdateMilestone,
+                    userRole,
+                    assignedTo: milestone.assigned_to,
+                    currentUserId: user?.id
+                  });
+                  
                   if (isDocumentSigning && signingStatus !== 'completed') {
+                    console.log('❌ Blocking completion - documents not signed');
                     alert('Documents must be signed by all parties before completing the Document Signing milestone.');
                     return;
                   }
+                  
+                  console.log('✅ Proceeding with milestone completion');
                   onUpdateStatus(milestone.id, 'completed');
                 }}
                 disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
