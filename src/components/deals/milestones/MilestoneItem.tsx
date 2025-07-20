@@ -429,25 +429,31 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         )}
       </h4>
       {(milestone.dueDate || milestone.completedAt) && (
-        <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
+        <div className="block mb-2 text-sm font-normal leading-none">
           {milestone.status !== 'completed' 
-            ? milestone.dueDate ? `Due by: ${formatDate(milestone.dueDate)}` : '' 
+            ? milestone.dueDate ? (
+                <span className="text-gray-400 dark:text-gray-500">
+                  Due by: {formatDate(milestone.dueDate)}
+                </span>
+              ) : null
             : (
-              <>
+              <div className="flex items-center gap-2 flex-wrap">
                 {milestone.assignedUser && (
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    {milestone.assignedUser.name} completed the milestone
-                  </span>
+                  <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300">
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    <span className="font-semibold">{milestone.assignedUser.name}</span>
+                    <span className="ml-1">completed this milestone</span>
+                  </div>
                 )}
                 {milestone.completedAt && (
-                  <span className={milestone.assignedUser ? " • " : ""}>
-                    Completed on: {formatDate(milestone.completedAt)}
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">
+                    {formatDate(milestone.completedAt)}
                   </span>
                 )}
-              </>
+              </div>
             )
           }
-        </time>
+        </div>
       )}
       {milestone.description && (
         <p className="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{milestone.description}</p>
