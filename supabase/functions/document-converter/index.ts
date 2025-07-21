@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { parse } from "npm:@baiq/document-parser@latest"
+import mammoth from "npm:mammoth@1.6.0"
+import { jsPDF } from "npm:jspdf@2.5.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,25 +41,61 @@ serve(async (req) => {
     const binaryData = Uint8Array.from(atob(fileData), c => c.charCodeAt(0))
 
     try {
-      // Use @baiq/document-parser to convert document to PDF
-      const pdfBuffer = await parse(binaryData, {
-        format: 'pdf',
-        input: getInputFormat(filename)
-      })
+      const extension = getInputFormat(filename)
       
-      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          pdfData: pdfBase64,
-          originalFilename: filename
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      if (extension === 'docx') {
+        // Convert DOCX to HTML first, then to PDF
+        const result = await mammoth.convertToHtml({ buffer: binaryData })
+        const html = result.value
+        
+        // Create PDF from HTML using jsPDF
+        const doc = new jsPDF()
+        
+        // Simple text extraction and PDF generation
+        // This is a basic implementation - for better formatting, you might need html2canvas
+        const textContent = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+        
+        // Split text into lines that fit the page
+        const lines = doc.splitTextToSize(textContent, 180)
+        let yPosition = 20
+        
+        lines.forEach((line: string) => {
+          if (yPosition > 280) { // Add new page if needed
+            doc.addPage()
+            yPosition = 20
+          }
+          doc.text(line, 10, yPosition)
+          yPosition += 7
+        })
+        
+        const pdfArrayBuffer = doc.output('arraybuffer')
+        const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)))
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            pdfData: pdfBase64,
+            originalFilename: filename
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      } else {
+        // For RTF and other formats, return fallback for now
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'RTF conversion not yet implemented, PDF positioning not available',
+            fallback: true
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
 
     } catch (parseError) {
       console.error('Document parsing failed:', parseError)
