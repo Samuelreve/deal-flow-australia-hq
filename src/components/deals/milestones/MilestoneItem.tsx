@@ -67,8 +67,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
-  // Permission to sign milestone documents (assigned users only)
-  const canSignMilestoneDocuments = isParticipant && milestone.assigned_to === user?.id && milestoneDocuments.length > 0;
+  // Permission to sign milestone documents (assigned users and admins)
+  const canSignMilestoneDocuments = isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && milestoneDocuments.length > 0;
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
