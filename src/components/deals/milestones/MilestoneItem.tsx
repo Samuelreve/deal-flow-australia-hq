@@ -123,6 +123,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       if (error) throw error;
       setMilestoneDocuments(data || []);
+      
+      // Debug logging
+      console.log('Milestone documents for', milestone.title, ':', data?.length || 0);
+      console.log('User ID:', user?.id);
+      console.log('Milestone assigned to:', milestone.assigned_to);
+      console.log('Is participant:', isParticipant);
+      console.log('Can sign milestone documents:', isParticipant && milestone.assigned_to === user?.id && (data?.length || 0) > 0);
     } catch (error) {
       console.error('Error fetching milestone documents:', error);
     }
