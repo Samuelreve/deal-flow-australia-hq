@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import mammoth from "npm:mammoth@1.6.0"
-import puppeteer from "npm:puppeteer@21.7.0"
+import puppeteer from "npm:puppeteer@19.11.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
