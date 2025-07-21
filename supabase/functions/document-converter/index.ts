@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { parse } from "npm:@baiq/document-parser@latest"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,50 +39,14 @@ serve(async (req) => {
     // Convert base64 to Uint8Array
     const binaryData = Uint8Array.from(atob(fileData), c => c.charCodeAt(0))
 
-    // Use LibreOffice headless for conversion
-    const tempDir = await Deno.makeTempDir()
-    const inputPath = `${tempDir}/input${getExtension(filename)}`
-    const outputPath = `${tempDir}/output.pdf`
-
     try {
-      // Write input file
-      await Deno.writeFile(inputPath, binaryData)
-
-      // Convert to PDF using LibreOffice
-      const process = new Deno.Command("libreoffice", {
-        args: [
-          "--headless",
-          "--convert-to", "pdf",
-          "--outdir", tempDir,
-          inputPath
-        ],
-        stdout: "piped",
-        stderr: "piped"
+      // Use @baiq/document-parser to convert document to PDF
+      const pdfBuffer = await parse(binaryData, {
+        format: 'pdf',
+        input: getInputFormat(filename)
       })
-
-      const { code, stdout, stderr } = await process.output()
-
-      if (code !== 0) {
-        const errorText = new TextDecoder().decode(stderr)
-        console.error('LibreOffice conversion failed:', errorText)
-        
-        // Fallback: return original file if conversion fails
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: 'Document conversion failed, PDF positioning not available',
-            fallback: true
-          }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
-
-      // Read converted PDF
-      const pdfData = await Deno.readFile(outputPath)
-      const pdfBase64 = btoa(String.fromCharCode(...pdfData))
+      
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 
       return new Response(
         JSON.stringify({ 
@@ -95,13 +60,21 @@ serve(async (req) => {
         }
       )
 
-    } finally {
-      // Clean up temp files
-      try {
-        await Deno.remove(tempDir, { recursive: true })
-      } catch (e) {
-        console.warn('Failed to clean up temp directory:', e)
-      }
+    } catch (parseError) {
+      console.error('Document parsing failed:', parseError)
+      
+      // Fallback: return original file if conversion fails
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Document conversion failed, PDF positioning not available',
+          fallback: true
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
   } catch (error) {
@@ -120,15 +93,16 @@ serve(async (req) => {
   }
 })
 
-function getExtension(filename: string): string {
+function getInputFormat(filename: string): string {
   const ext = filename.toLowerCase().split('.').pop()
   switch (ext) {
     case 'docx':
+      return 'docx'
     case 'doc':
-      return '.docx'
+      return 'doc'
     case 'rtf':
-      return '.rtf'
+      return 'rtf'
     default:
-      return '.txt'
+      return 'txt'
   }
 }
