@@ -8,6 +8,7 @@ import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
 import DocumentUpload from '../document/DocumentUpload';
 import { FileText, UserCheck, User, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -49,6 +50,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+  const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
+  const [milestoneMessages, setMilestoneMessages] = useState<string[]>([]);
 
   // Determine if the current user has permission to update milestone status
   // Admin can always update, assigned user can update, or seller can update unassigned milestones
@@ -64,6 +67,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
+  // Permission to sign milestone documents (assigned users only)
+  const canSignMilestoneDocuments = isParticipant && milestone.assigned_to === user?.id && milestoneDocuments.length > 0;
+  
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
   
@@ -72,6 +78,12 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
     milestone.status === 'in_progress';
   
+  // Fetch milestone-specific documents and messages
+  useEffect(() => {
+    fetchMilestoneDocuments();
+    fetchMilestoneMessages();
+  }, [milestone.id]);
+
   // Check if documents are signed for this deal
   useEffect(() => {
     if (isDocumentSigning) {
@@ -93,6 +105,66 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [isDocumentSigning]);
+
+  const fetchMilestoneDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select(`
+          id,
+          name,
+          storage_path,
+          created_at,
+          uploaded_by,
+          profiles!documents_uploaded_by_fkey(name)
+        `)
+        .eq('milestone_id', milestone.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMilestoneDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching milestone documents:', error);
+    }
+  };
+
+  const fetchMilestoneMessages = async () => {
+    try {
+      const messages: string[] = [];
+      
+      // Get documents uploaded for this milestone with uploader info
+      const { data: docs, error } = await supabase
+        .from('documents')
+        .select(`
+          name,
+          created_at,
+          uploaded_by,
+          profiles!documents_uploaded_by_fkey(name, role)
+        `)
+        .eq('milestone_id', milestone.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      docs?.forEach(doc => {
+        const uploaderName = doc.profiles?.name || 'Unknown User';
+        const uploaderRole = doc.profiles?.role || '';
+        const roleText = uploaderRole === 'admin' ? ' (Admin)' : '';
+        
+        messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
+      });
+
+      setMilestoneMessages(messages);
+    } catch (error) {
+      console.error('Error fetching milestone messages:', error);
+    }
+  };
+
+  const handleSignMilestoneDocument = (documentId: string) => {
+    // Set up the document for signing
+    setSelectedDocument({ id: documentId, url: '' });
+    setIsDocumentModalOpen(true);
+  };
 
   const checkDocumentSignatures = async () => {
     if (!dealId) return;
@@ -657,9 +729,51 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             milestoneTitle={milestone.title}
             onUpload={() => {
               setShowDocumentUpload(false);
+              fetchMilestoneDocuments();
+              fetchMilestoneMessages();
               onMilestoneUpdated?.();
             }}
           />
+        </div>
+      )}
+
+      {/* Milestone Messages */}
+      {milestoneMessages.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {milestoneMessages.map((message, index) => (
+            <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">{message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Milestone Documents with Sign Button */}
+      {milestoneDocuments.length > 0 && (
+        <div className="mt-4">
+          <h5 className="text-sm font-medium text-gray-900 mb-2">Documents for this milestone:</h5>
+          <div className="space-y-2">
+            {milestoneDocuments.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                  <p className="text-xs text-gray-500">
+                    Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                {canSignMilestoneDocuments && (
+                  <Button
+                    onClick={() => handleSignMilestoneDocument(doc.id)}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Sign Document
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
