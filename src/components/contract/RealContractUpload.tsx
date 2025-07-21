@@ -114,7 +114,7 @@ const RealContractUpload: React.FC<RealContractUploadProps> = ({
             ref={fileInputRef}
             type="file"
             onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.txt,.rtf"
+            accept=".pdf,.doc,.docx"
             className="hidden"
             disabled={isProcessing}
           />

@@ -247,7 +247,7 @@ This is a comprehensive test contract for debugging AI analysis capabilities.`;
               <h3 className="font-semibold">Step 2: Test Real PDF/DOCX Files</h3>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx,.txt,.rtf"
+                accept=".pdf,.doc,.docx"
                 onChange={handleFileUpload}
                 className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 disabled={uploading || loading}

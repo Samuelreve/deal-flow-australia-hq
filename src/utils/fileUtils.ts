@@ -42,7 +42,7 @@ export function isPdfFile(filename: string): boolean {
  * Check if file is a document (Word, Excel, PowerPoint)
  */
 export function isDocumentFile(filename: string): boolean {
-  const documentExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf'];
+  const documentExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
   const extension = getFileExtension(filename).toLowerCase();
   return documentExtensions.includes(extension);
 }
@@ -58,7 +58,7 @@ export function isTextFile(filename: string): boolean {
  * Check if file requires conversion for signature positioning
  */
 export function requiresConversionForSigning(filename: string): boolean {
-  const conversionExtensions = ['docx', 'rtf', 'doc'];
+  const conversionExtensions = ['docx', 'doc'];
   const extension = getFileExtension(filename).toLowerCase();
   return conversionExtensions.includes(extension);
 }
@@ -66,10 +66,9 @@ export function requiresConversionForSigning(filename: string): boolean {
 /**
  * Get document type for signature positioning
  */
-export function getDocumentTypeForSigning(filename: string): 'pdf' | 'text' | 'convertible' {
+export function getDocumentTypeForSigning(filename: string): 'pdf' | 'convertible' {
   const extension = getFileExtension(filename).toLowerCase();
   if (extension === 'pdf') return 'pdf';
-  if (extension === 'txt') return 'text';
-  if (['docx', 'rtf', 'doc'].includes(extension)) return 'convertible';
+  if (['docx', 'doc'].includes(extension)) return 'convertible';
   return 'pdf'; // fallback
 }

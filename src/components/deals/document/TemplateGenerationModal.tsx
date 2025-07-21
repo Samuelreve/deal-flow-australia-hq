@@ -281,8 +281,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
                       <SelectValue placeholder="Select file type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="txt">Text File (.txt)</SelectItem>
-                      <SelectItem value="rtf">Rich Text Format (.rtf)</SelectItem>
+                      <SelectItem value="docx">Word Document (.docx)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

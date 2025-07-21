@@ -275,10 +275,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       
       let signedUrl: string;
       
-      if (documentType === 'text') {
-        // For TXT files, we need to get signed URL for content reading in the modal
-        // The modal will handle reading the content differently
-      }
+      // Only handle PDF and convertible documents now (TXT support removed)
       
       // Try different path formats for the deal_documents bucket
       const pathsToTry = [
