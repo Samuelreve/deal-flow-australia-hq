@@ -149,9 +149,20 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       docs?.forEach(doc => {
         const uploaderName = doc.profiles?.name || 'Unknown User';
         const uploaderRole = doc.profiles?.role || '';
-        const roleText = uploaderRole === 'admin' ? ' (Admin)' : '';
+        const isAdmin = uploaderRole === 'admin';
+        const isCurrentUser = doc.uploaded_by === user?.id;
         
-        messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
+        // Show message for assigned users or admin (current user)
+        if (milestone.assigned_to === user?.id || (isCurrentUser && isAdmin)) {
+          if (isCurrentUser && isAdmin) {
+            // Admin who uploaded sees different message
+            messages.push(`You uploaded document "${doc.name}" for this milestone`);
+          } else {
+            // Assigned user sees the original message
+            const roleText = isAdmin ? ' (Admin)' : '';
+            messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
+          }
+        }
       });
 
       setMilestoneMessages(messages);
