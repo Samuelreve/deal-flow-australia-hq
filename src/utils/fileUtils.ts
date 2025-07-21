@@ -46,3 +46,30 @@ export function isDocumentFile(filename: string): boolean {
   const extension = getFileExtension(filename).toLowerCase();
   return documentExtensions.includes(extension);
 }
+
+/**
+ * Check if file is a text file
+ */
+export function isTextFile(filename: string): boolean {
+  return getFileExtension(filename).toLowerCase() === 'txt';
+}
+
+/**
+ * Check if file requires conversion for signature positioning
+ */
+export function requiresConversionForSigning(filename: string): boolean {
+  const conversionExtensions = ['docx', 'rtf', 'doc'];
+  const extension = getFileExtension(filename).toLowerCase();
+  return conversionExtensions.includes(extension);
+}
+
+/**
+ * Get document type for signature positioning
+ */
+export function getDocumentTypeForSigning(filename: string): 'pdf' | 'text' | 'convertible' {
+  const extension = getFileExtension(filename).toLowerCase();
+  if (extension === 'pdf') return 'pdf';
+  if (extension === 'txt') return 'text';
+  if (['docx', 'rtf', 'doc'].includes(extension)) return 'convertible';
+  return 'pdf'; // fallback
+}

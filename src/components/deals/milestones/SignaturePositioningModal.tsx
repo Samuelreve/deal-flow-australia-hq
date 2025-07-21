@@ -8,6 +8,9 @@ import type {
   PDFDocumentProxy,
   RenderParameters,
 } from 'pdfjs-dist/types/src/display/api';
+import { getDocumentTypeForSigning } from '@/utils/fileUtils';
+import { supabase } from '@/integrations/supabase/client';
+import TextSignaturePositioning from './TextSignaturePositioning';
 
 // Configure PDF.js worker - use local worker file with matching version
 PDFJS.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -20,11 +23,19 @@ interface SignaturePosition {
   recipientName: string;
 }
 
+interface TextSignaturePosition {
+  line: number;
+  column: number;
+  recipientId: string;
+  recipientName: string;
+}
+
 interface SignaturePositioningModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (positions: SignaturePosition[]) => void;
+  onConfirm: (positions: SignaturePosition[] | TextSignaturePosition[]) => void;
   documentUrl: string;
+  documentFilename?: string;
   signers: Array<{
     email: string;
     name: string;
@@ -38,10 +49,12 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   onClose,
   onConfirm,
   documentUrl,
+  documentFilename,
   signers,
   isLoading = false
 }) => {
   const [signaturePositions, setSignaturePositions] = useState<SignaturePosition[]>([]);
+  const [textSignaturePositions, setTextSignaturePositions] = useState<TextSignaturePosition[]>([]);
   const [currentSignerIndex, setCurrentSignerIndex] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,6 +62,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [documentType, setDocumentType] = useState<'pdf' | 'text' | 'convertible'>('pdf');
+  const [documentContent, setDocumentContent] = useState<string>('');
+  const [convertedPdfUrl, setConvertedPdfUrl] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -69,59 +86,156 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const isRenderingRef = useRef(false);
   const loadedDocumentUrlRef = useRef<string | null>(null);
 
+  // Determine document type
+  useEffect(() => {
+    if (documentFilename) {
+      const type = getDocumentTypeForSigning(documentFilename);
+      setDocumentType(type);
+    }
+  }, [documentFilename]);
+
   // Initialize signature positions
   useEffect(() => {
     if (isOpen && signers.length > 0) {
-      const initialPositions = signers.map((signer, index) => {
-        return {
-          x: 100 + (index * 200),
-          y: 200 + (index * 100),
-          page: 1,
-          recipientId: signer.recipientId,
-          recipientName: signer.name
-        };
-      });
-      setSignaturePositions(initialPositions);
+      if (documentType === 'text') {
+        // Text positions will be initialized in TextSignaturePositioning component
+        setTextSignaturePositions([]);
+      } else {
+        const initialPositions = signers.map((signer, index) => {
+          return {
+            x: 100 + (index * 200),
+            y: 200 + (index * 100),
+            page: 1,
+            recipientId: signer.recipientId,
+            recipientName: signer.name
+          };
+        });
+        setSignaturePositions(initialPositions);
+      }
       setCurrentSignerIndex(null);
     }
-  }, [isOpen, signers]);
+  }, [isOpen, signers, documentType]);
 
-    // Load PDF document (metadata only, not pages) - prevent multiple loads
+  // Convert document to PDF
+  const convertDocumentToPdf = async () => {
+    if (!documentUrl || !documentFilename) return;
+
+    setIsConverting(true);
+    setIsLoadingPdf(true);
+    setError(null);
+
+    try {
+      // Fetch the document
+      const response = await fetch(documentUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      // Convert to PDF
+      const { data, error } = await supabase.functions.invoke('document-converter', {
+        body: {
+          fileData: base64Data,
+          mimeType: response.headers.get('content-type') || 'application/octet-stream',
+          filename: documentFilename
+        }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || 'Conversion failed');
+      }
+
+      // Create blob URL for the converted PDF
+      const pdfBlob = new Blob([Uint8Array.from(atob(data.pdfData), c => c.charCodeAt(0))], {
+        type: 'application/pdf'
+      });
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      setConvertedPdfUrl(pdfUrl);
+
+      // Load the converted PDF
+      const loadingTask = PDFJS.getDocument(pdfUrl);
+      const loadedDoc = await loadingTask.promise;
+      setPdfDocument(loadedDoc);
+      setTotalPages(loadedDoc.numPages);
+      setCurrentPage(1);
+      setIsLoadingPdf(false);
+      setIsConverting(false);
+
+      toast({
+        title: 'Document converted',
+        description: 'Document has been converted to PDF for signature positioning',
+      });
+
+    } catch (error) {
+      console.error('Document conversion error:', error);
+      setError('Failed to convert document to PDF');
+      setIsLoadingPdf(false);
+      setIsConverting(false);
+      loadedDocumentUrlRef.current = null;
+      toast({
+        title: 'Conversion failed',
+        description: 'Could not convert document to PDF. Please try with a PDF file.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Load document based on type
   useEffect(() => {
     if (!documentUrl || !isOpen) return;
     if (loadedDocumentUrlRef.current === documentUrl) return; // Already loaded
 
-    console.log(`Loading PDF document: ${documentUrl}`);
     loadedDocumentUrlRef.current = documentUrl;
-    setIsLoadingPdf(true);
     setError(null);
-    
-    const loadingTask = PDFJS.getDocument(documentUrl);
-    loadingTask.promise.then(
-      (loadedDoc) => {
-        setPdfDocument(loadedDoc);
-        setTotalPages(loadedDoc.numPages);
-        setCurrentPage(1); // This will trigger first page render
-        setIsLoadingPdf(false);
-        console.log(`✅ PDF metadata loaded - ${loadedDoc.numPages} pages available`);
-      },
-      (error) => {
-        console.error('PDF loading error:', error);
-        setError('Failed to load PDF document');
-        setIsLoadingPdf(false);
-        loadedDocumentUrlRef.current = null; // Reset on error
-        toast({
-          title: 'Error loading PDF',
-          description: 'Failed to load PDF document',
-          variant: 'destructive'
+
+    if (documentType === 'text') {
+      // Load text content
+      setIsLoadingPdf(true);
+      fetch(documentUrl)
+        .then(response => response.text())
+        .then(text => {
+          setDocumentContent(text);
+          setIsLoadingPdf(false);
+        })
+        .catch(error => {
+          console.error('Text loading error:', error);
+          setError('Failed to load text document');
+          setIsLoadingPdf(false);
+          loadedDocumentUrlRef.current = null;
         });
-      }
-    );
-  }, [documentUrl, isOpen, toast]);
+    } else if (documentType === 'convertible') {
+      // Convert document to PDF
+      convertDocumentToPdf();
+    } else {
+      // Load PDF document (metadata only, not pages)
+      console.log(`Loading PDF document: ${documentUrl}`);
+      setIsLoadingPdf(true);
+      
+      const loadingTask = PDFJS.getDocument(documentUrl);
+      loadingTask.promise.then(
+        (loadedDoc) => {
+          setPdfDocument(loadedDoc);
+          setTotalPages(loadedDoc.numPages);
+          setCurrentPage(1); // This will trigger first page render
+          setIsLoadingPdf(false);
+          console.log(`✅ PDF metadata loaded - ${loadedDoc.numPages} pages available`);
+        },
+        (error) => {
+          console.error('PDF loading error:', error);
+          setError('Failed to load PDF document');
+          setIsLoadingPdf(false);
+          loadedDocumentUrlRef.current = null; // Reset on error
+          toast({
+            title: 'Error loading PDF',
+            description: 'Failed to load PDF document',
+            variant: 'destructive'
+          });
+        }
+      );
+    }
+  }, [documentUrl, isOpen, documentType, toast]);
 
   // Render ONLY the current page when page changes - with proper synchronization
   useEffect(() => {
-    if (!pdfDocument || !currentPage) return;
+    if (!pdfDocument || !currentPage || documentType === 'text') return;
 
     const renderCurrentPage = async () => {
       // Immediate check using ref to prevent race conditions
@@ -343,16 +457,31 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   };
 
   const handleConfirm = () => {
-    if (signaturePositions.length !== signers.length) {
-      toast({
-        title: 'Missing signature positions',
-        description: 'Please set signature positions for all signers',
-        variant: 'destructive'
-      });
-      return;
+    if (documentType === 'text') {
+      if (textSignaturePositions.length !== signers.length) {
+        toast({
+          title: 'Missing signature positions',
+          description: 'Please set signature positions for all signers',
+          variant: 'destructive'
+        });
+        return;
+      }
+      onConfirm(textSignaturePositions);
+    } else {
+      if (signaturePositions.length !== signers.length) {
+        toast({
+          title: 'Missing signature positions',
+          description: 'Please set signature positions for all signers',
+          variant: 'destructive'
+        });
+        return;
+      }
+      onConfirm(signaturePositions);
     }
+  };
 
-    onConfirm(signaturePositions);
+  const handleTextPositionsChange = (positions: TextSignaturePosition[]) => {
+    setTextSignaturePositions(positions);
   };
 
   const currentSigner = currentSignerIndex !== null ? signers[currentSignerIndex] : null;
@@ -365,236 +494,204 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
             Position Signature Fields
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Click on the document to position signature fields for each signer
+            {documentType === 'text' 
+              ? 'Click on text lines to position signature fields for each signer'
+              : documentType === 'convertible' && isConverting
+              ? 'Converting document to PDF for signature positioning...'
+              : 'Click on the document to position signature fields for each signer'
+            }
           </p>
         </DialogHeader>
 
         <div className="flex gap-4 flex-1 overflow-hidden">
-          {/* Left Panel - Signer List */}
-          <div className="w-72 border-r pr-4 space-y-4">
-            <div>
-              <h3 className="font-medium mb-2">Signers</h3>
-              <div className="space-y-2">
-                {signers.map((signer, index) => {
-                  const position = signaturePositions.find(p => p.recipientId === signer.recipientId);
-                  const isActive = currentSignerIndex === index;
-                  
-                  return (
-                    <div
-                      key={signer.recipientId}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                        isActive 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:bg-muted/50'
-                      }`}
-                      onClick={() => setCurrentSignerIndex(index)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{signer.name}</p>
-                          <p className="text-xs text-muted-foreground">{signer.email}</p>
-                        </div>
-                        <div className="text-xs">
-                          {position ? (
-                            <span className="text-green-600">✓ Set</span>
-                          ) : (
-                            <span className="text-muted-foreground">Click to position</span>
-                          )}
-                        </div>
-                      </div>
-                      {position && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Position: ({position.x}, {position.y})
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {currentSigner && (
-              <div className="p-3 bg-muted/30 rounded-lg">
-                <h4 className="font-medium text-sm mb-2">
-                  Currently positioning: {currentSigner.name}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Click anywhere on the document to set the signature position
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Panel - Document Preview */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
-            {/* Page Navigation */}
-            <div className="flex items-center justify-between p-3 border-b bg-white">
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage <= 1 || isRendering}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous Page
-                </Button>
-                <span className="text-sm px-3 py-1 bg-muted rounded">
-                  Page {currentPage} of {totalPages}
-                  {isRendering && " (Loading page...)"}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage >= totalPages || isRendering}
-                >
-                  Next Page
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setZoom(prev => Math.max(0.5, prev - 0.2))}
-                  disabled={zoom <= 0.5}
-                >
-                  Zoom Out
-                </Button>
-                <span className="text-sm px-2">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setZoom(prev => Math.min(3, prev + 0.2))}
-                  disabled={zoom >= 3}
-                >
-                  Zoom In
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {currentSigner ? `Positioning for: ${currentSigner.name}` : 'Select a signer to position'}
-              </div>
-            </div>
-
-            {/* PDF Canvas Container */}
-            <div 
-              ref={containerRef}
-              className="flex-1 relative overflow-auto bg-white p-4"
-            >
-              {isLoadingPdf ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-gray-600">Loading PDF...</p>
-                  </div>
-                </div>
-              ) : error ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-gray-200 p-8 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">❌</div>
-                      <p className="text-gray-600">{error}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : !documentUrl ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-gray-200 p-8 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">📄</div>
-                      <p className="text-gray-600">No document URL provided</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative flex justify-center">
-                  {isRendering && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-gray-600">Loading page {currentPage}...</p>
-                      </div>
-                    </div>
-                  )}
-                  <canvas
-                    ref={canvasRef}
-                    className="border border-gray-300 cursor-crosshair shadow-lg"
-                    onClick={handleCanvasClick}
-                    style={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      opacity: isRendering ? 0.5 : 1
-                    }}
-                  />
-                  
-                  {/* Signature position overlays */}
-                  {signaturePositions
-                    .filter(position => position.page === currentPage)
-                    .map((position) => {
-                      const signer = signers.find(s => s.recipientId === position.recipientId);
-                      const isCurrentSigner = currentSigner?.recipientId === position.recipientId;
+          {documentType === 'text' ? (
+            <TextSignaturePositioning
+              documentContent={documentContent}
+              signers={signers}
+              onPositionsChange={handleTextPositionsChange}
+            />
+          ) : (
+            <>
+              {/* Left Panel - Signer List */}
+              <div className="w-72 border-r pr-4 space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Signers</h3>
+                  <div className="space-y-2">
+                    {signers.map((signer, index) => {
+                      const position = signaturePositions.find(p => p.recipientId === signer.recipientId);
+                      const isActive = currentSignerIndex === index;
                       
                       return (
                         <div
-                          key={position.recipientId}
-                          className={`absolute border-2 rounded px-2 py-1 text-xs font-medium cursor-move z-10 ${
-                            isCurrentSigner 
-                              ? 'border-primary bg-primary/20 text-primary' 
-                              : 'border-blue-500 bg-blue-500/20 text-blue-700'
+                          key={signer.recipientId}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            isActive 
+                              ? 'border-primary bg-primary/5' 
+                              : 'border-border hover:bg-muted/50'
                           }`}
-                          style={{
-                            left: position.x * zoom,
-                            top: position.y * zoom,
-                            width: 150 * zoom,
-                            height: 50 * zoom,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: Math.max(10, 12 * zoom)
-                          }}
-                          onMouseDown={(e) => {
-                            handleSignatureMouseDown(position.recipientId, e);
-                          }}
+                          onClick={() => setCurrentSignerIndex(index)}
                         >
-                          {signer?.name || 'Unknown'} - Sign Here
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{signer.name}</p>
+                              <p className="text-xs text-muted-foreground">{signer.email}</p>
+                            </div>
+                            <div className="text-xs">
+                              {position ? (
+                                <span className="text-green-600">✓ Set</span>
+                              ) : (
+                                <span className="text-muted-foreground">Click to position</span>
+                              )}
+                            </div>
+                          </div>
+                          {position && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Position: ({position.x}, {position.y})
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+
+                {currentSigner && (
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-medium text-sm mb-2">
+                      Currently positioning: {currentSigner.name}
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Click anywhere on the document to set the signature position
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Panel - Document Preview */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
+                {/* Page Navigation */}
+                <div className="flex items-center justify-between p-3 border-b bg-white">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage <= 1 || isRendering}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous Page
+                    </Button>
+                    <span className="text-sm px-3 py-1 bg-muted rounded">
+                      Page {currentPage} of {totalPages}
+                      {isRendering && " (Loading page...)"}
+                      {isConverting && " (Converting...)"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage >= totalPages || isRendering}
+                    >
+                      Next Page
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setZoom(prev => Math.max(0.5, prev - 0.2))}
+                      disabled={zoom <= 0.5}
+                    >
+                      Zoom Out
+                    </Button>
+                    <span className="text-sm px-2">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setZoom(prev => Math.min(3, prev + 0.2))}
+                      disabled={zoom >= 3}
+                    >
+                      Zoom In
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {currentSigner ? `Positioning for: ${currentSigner.name}` : 'Select a signer to position'}
+                  </div>
+                </div>
+
+                {/* PDF Canvas Container */}
+                <div 
+                  ref={containerRef}
+                  className="flex-1 relative overflow-auto bg-white p-4"
+                >
+                  {isLoadingPdf || isConverting ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-gray-600">
+                          {isConverting ? 'Converting document...' : 'Loading PDF...'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : error ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-gray-200 p-8 rounded-lg">
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">❌</div>
+                          <p className="text-gray-600">{error}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <canvas
+                        ref={canvasRef}
+                        style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+                        className="border border-gray-300 shadow-lg max-w-full cursor-crosshair"
+                        onClick={handleCanvasClick}
+                      />
+                      
+                      {/* Signature position overlays */}
+                      {signaturePositions
+                        .filter(pos => pos.page === currentPage)
+                        .map((position) => (
+                          <div
+                            key={position.recipientId}
+                            className="absolute bg-blue-500 bg-opacity-20 border-2 border-blue-500 rounded flex items-center justify-center text-xs font-medium text-blue-800 cursor-move z-10"
+                            style={{
+                              left: position.x * zoom,
+                              top: position.y * zoom,
+                              width: 120 * zoom,
+                              height: 40 * zoom,
+                              transform: 'translate(0, 0)'
+                            }}
+                            onMouseDown={(e) => handleSignatureMouseDown(position.recipientId, e)}
+                          >
+                            📝 {position.recipientName}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Cancel</span>
+          <Button variant="outline" onClick={onClose}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Cancel
           </Button>
-
-          <Button
-            onClick={handleConfirm}
-            disabled={isLoading || signaturePositions.length !== signers.length}
-            className="flex items-center space-x-2"
+          <Button 
+            onClick={handleConfirm} 
+            disabled={isLoading || isConverting || (documentType !== 'text' && isLoadingPdf)}
           >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span>Start Signing Process</span>
-              </>
-            )}
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? 'Processing...' : isConverting ? 'Converting...' : 'Confirm Positions'}
           </Button>
         </div>
       </DialogContent>
