@@ -63,9 +63,6 @@ verify_jwt = false
 [functions.docusign-sign]
 verify_jwt = false
 
-[functions.docusign-test]
-verify_jwt = false
-
 [functions.enhanced-contract-assistant]
 verify_jwt = false
 
