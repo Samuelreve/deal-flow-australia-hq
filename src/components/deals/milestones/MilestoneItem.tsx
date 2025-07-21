@@ -320,17 +320,115 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       if (assignmentError) {
         console.error('Error fetching assigned users:', assignmentError);
-        throw new Error('Failed to fetch assigned users');
       }
 
-      // Prepare signers list from assigned users
-      const signersList = (assignedUsers || []).map((assignment, index) => ({
-        email: assignment.profiles?.email || '',
-        name: assignment.profiles?.name || assignment.profiles?.email || '',
-        recipientId: (index + 1).toString()
-      }));
+      // Fetch all deal participants (admin, buyer, lawyer, etc.)
+      const { data: dealParticipants, error: participantsError } = await supabase
+        .from('deal_participants')
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            name,
+            email
+          )
+        `)
+        .eq('deal_id', dealId);
 
-      // If no users are assigned, fall back to current user if they can sign
+      if (participantsError) {
+        console.error('Error fetching deal participants:', participantsError);
+      }
+
+      // Get deal information for buyer
+      const { data: dealData, error: dealError } = await supabase
+        .from('deals')
+        .select('buyer_id')
+        .eq('id', dealId)
+        .single();
+
+      if (dealError) {
+        console.error('Error fetching deal data:', dealError);
+      }
+
+      // Get buyer profile separately if buyer exists
+      let buyerProfile = null;
+      if (dealData?.buyer_id) {
+        const { data: buyerProfileData, error: buyerProfileError } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', dealData.buyer_id)
+          .single();
+
+        if (!buyerProfileError) {
+          buyerProfile = buyerProfileData;
+        }
+      }
+
+      const signersList: Array<{email: string, name: string, recipientId: string}> = [];
+      let recipientIdCounter = 1;
+
+      // Add assigned users
+      if (assignedUsers) {
+        assignedUsers.forEach(assignment => {
+          if (assignment.profiles?.email) {
+            signersList.push({
+              email: assignment.profiles.email,
+              name: assignment.profiles.name || assignment.profiles.email,
+              recipientId: recipientIdCounter.toString()
+            });
+            recipientIdCounter++;
+          }
+        });
+      }
+
+      // Add admin participants
+      if (dealParticipants) {
+        dealParticipants.forEach(participant => {
+          if (participant.role === 'admin' && participant.profiles?.email) {
+            // Check if already added as assigned user
+            const alreadyAdded = signersList.some(signer => signer.email === participant.profiles?.email);
+            if (!alreadyAdded) {
+              signersList.push({
+                email: participant.profiles.email,
+                name: participant.profiles.name || participant.profiles.email,
+                recipientId: recipientIdCounter.toString()
+              });
+              recipientIdCounter++;
+            }
+          }
+        });
+
+        // Add lawyer participants
+        dealParticipants.forEach(participant => {
+          if (participant.role === 'lawyer' && participant.profiles?.email) {
+            // Check if already added
+            const alreadyAdded = signersList.some(signer => signer.email === participant.profiles?.email);
+            if (!alreadyAdded) {
+              signersList.push({
+                email: participant.profiles.email,
+                name: participant.profiles.name || participant.profiles.email,
+                recipientId: recipientIdCounter.toString()
+              });
+              recipientIdCounter++;
+            }
+          }
+        });
+      }
+
+      // Add buyer if exists and not already added
+      if (dealData?.buyer_id && buyerProfile?.email) {
+        const alreadyAdded = signersList.some(signer => signer.email === buyerProfile?.email);
+        if (!alreadyAdded) {
+          signersList.push({
+            email: buyerProfile.email,
+            name: buyerProfile.name || buyerProfile.email,
+            recipientId: recipientIdCounter.toString()
+          });
+          recipientIdCounter++;
+        }
+      }
+
+      // If no signers found, fall back to current user if they can sign
       if (signersList.length === 0 && canSignMilestoneDocuments) {
         const currentUserProfile = await supabase
           .from('profiles')
