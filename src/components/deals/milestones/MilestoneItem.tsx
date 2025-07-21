@@ -11,6 +11,7 @@ import { FileText, UserCheck, User, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getDocumentTypeForSigning } from '@/utils/fileUtils';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -40,7 +41,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { toast } = useToast();
   
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string} | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string, name: string} | null>(null);
   const [signers, setSigners] = useState<Array<{email: string, name: string, recipientId: string}>>([]);
   const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
   const [checkingSignatures, setCheckingSignatures] = useState(false);
@@ -269,8 +270,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         throw new Error('Failed to load document');
       }
 
-      // Get signed URL for document preview
+      // Check document type to determine how to handle it
+      const documentType = getDocumentTypeForSigning(document.name);
+      
       let signedUrl: string;
+      
+      if (documentType === 'text') {
+        // For TXT files, we need to get signed URL for content reading in the modal
+        // The modal will handle reading the content differently
+      }
       
       // Try different path formats for the deal_documents bucket
       const pathsToTry = [
@@ -317,7 +325,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       ];
 
       // Set up for signature positioning
-      setSelectedDocument({ id: documentId, url: urlData.signedUrl });
+      setSelectedDocument({ id: documentId, url: urlData.signedUrl, name: document.name });
       setSigners(signersList);
       setIsSignatureModalOpen(true);
 
@@ -801,6 +809,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           }}
           onConfirm={handleSignaturePositionsConfirmed}
           documentUrl={selectedDocument.url}
+          documentFilename={selectedDocument.name}
           signers={signers}
           isLoading={signingInProgress}
         />
