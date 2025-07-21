@@ -306,20 +306,44 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         throw new Error('Failed to generate document preview');
       }
 
-      // Prepare signers list - only the assigned user
-      const currentUserProfile = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', user.id)
-        .single();
+      // Fetch all assigned users for this milestone
+      const { data: assignedUsers, error: assignmentError } = await supabase
+        .from('milestone_assignments')
+        .select(`
+          user_id,
+          profiles:user_id (
+            name,
+            email
+          )
+        `)
+        .eq('milestone_id', milestone.id);
 
-      const signersList = [
-        {
+      if (assignmentError) {
+        console.error('Error fetching assigned users:', assignmentError);
+        throw new Error('Failed to fetch assigned users');
+      }
+
+      // Prepare signers list from assigned users
+      const signersList = (assignedUsers || []).map((assignment, index) => ({
+        email: assignment.profiles?.email || '',
+        name: assignment.profiles?.name || assignment.profiles?.email || '',
+        recipientId: (index + 1).toString()
+      }));
+
+      // If no users are assigned, fall back to current user if they can sign
+      if (signersList.length === 0 && canSignMilestoneDocuments) {
+        const currentUserProfile = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+
+        signersList.push({
           email: user.email!,
           name: currentUserProfile.data?.name || user.email!,
           recipientId: '1'
-        }
-      ];
+        });
+      }
 
       // Set up for signature positioning
       setSelectedDocument({ id: documentId, url: urlData.signedUrl, name: document.name });
