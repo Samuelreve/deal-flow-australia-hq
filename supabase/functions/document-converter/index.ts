@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import mammoth from "npm:mammoth@1.6.0"
+import puppeteer from "npm:puppeteer@21.7.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,20 +50,81 @@ serve(async (req) => {
         const result = await mammoth.convertToHtml({ buffer: binaryData })
         const html = result.value
         
-        // Since Puppeteer has file system access restrictions in Supabase Edge Functions,
-        // we'll return the HTML content for now and handle PDF conversion differently
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: 'PDF conversion temporarily unavailable due to runtime restrictions',
-            htmlContent: html,
-            fallback: true
-          }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+        // Launch Puppeteer with explicit configuration to avoid file system access
+        const browser = await puppeteer.launch({
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--disable-plugins',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--no-default-browser-check',
+            '--no-first-run',
+            '--disable-default-apps'
+          ],
+          headless: true,
+          executablePath: undefined, // Let Puppeteer find the browser
+        })
+        
+        try {
+          const page = await browser.newPage()
+          
+          // Set content with proper styling
+          const styledHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  line-height: 1.6;
+                  margin: 40px;
+                  color: #333;
+                }
+                p { margin-bottom: 1em; }
+                h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; }
+              </style>
+            </head>
+            <body>
+              ${html}
+            </body>
+            </html>
+          `
+          
+          await page.setContent(styledHtml, { waitUntil: 'networkidle0' })
+          
+          // Generate PDF
+          const pdfBuffer = await page.pdf({
+            format: 'A4',
+            margin: {
+              top: '20mm',
+              right: '20mm',
+              bottom: '20mm',
+              left: '20mm'
+            },
+            printBackground: true
+          })
+          
+          const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              pdfData: pdfBase64,
+              originalFilename: filename
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          )
+        } finally {
+          await browser.close()
+        }
       } else {
         // Only DOCX conversion is supported
         return new Response(
