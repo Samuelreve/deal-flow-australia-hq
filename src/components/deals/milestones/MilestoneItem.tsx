@@ -3,7 +3,7 @@ import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import MilestoneExplainButton from './MilestoneExplainButton';
-import DocumentSelectionModal from './DocumentSelectionModal';
+
 import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
 import DocumentUpload from '../document/DocumentUpload';
@@ -38,7 +38,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string} | null>(null);
   const [signers, setSigners] = useState<Array<{email: string, name: string, recipientId: string}>>([]);
@@ -67,8 +67,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
-  // Permission to sign milestone documents (assigned users and admins)
-  const canSignMilestoneDocuments = isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && milestoneDocuments.length > 0;
+  // Permission to sign milestone documents (assigned users only)
+  const canSignMilestoneDocuments = isParticipant && milestone.assigned_to === user?.id && milestoneDocuments.length > 0;
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -171,10 +171,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     }
   };
 
-  const handleSignMilestoneDocument = (documentId: string) => {
-    // Set up the document for signing
-    setSelectedDocument({ id: documentId, url: '' });
-    setIsDocumentModalOpen(true);
+  const handleSignMilestoneDocument = async (documentId: string) => {
+    // Directly sign the milestone document
+    await handleDocumentSelected(documentId);
   };
 
   const checkDocumentSignatures = async () => {
@@ -230,12 +229,25 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
     (!isDocumentSigning || signingStatus === 'completed');
 
-  const handleSignDocument = () => {
+  const handleSignDocument = async () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
-    setIsDocumentModalOpen(true);
+    
+    // Skip document selection modal and directly use milestone documents
+    if (milestoneDocuments.length === 0) {
+      toast({
+        title: 'No documents',
+        description: 'No documents found for this milestone',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Use the first document for the milestone
+    const documentToSign = milestoneDocuments[0];
+    await handleDocumentSelected(documentToSign.id);
   };
 
-  const handleDocumentSelected = async (documentId: string, buyerId?: string) => {
+  const handleDocumentSelected = async (documentId: string) => {
     if (!user) return;
 
     try {
@@ -282,7 +294,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         throw new Error('Failed to generate document preview');
       }
 
-      // Prepare signers list
+      // Prepare signers list - only the assigned user
       const currentUserProfile = await supabase
         .from('profiles')
         .select('name')
@@ -297,27 +309,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         }
       ];
 
-      // Add buyer if selected
-      if (buyerId) {
-        const { data: buyerProfile } = await supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', buyerId)
-          .single();
-        
-        if (buyerProfile) {
-          signersList.push({
-            email: buyerProfile.email,
-            name: buyerProfile.name,
-            recipientId: '2'
-          });
-        }
-      }
-
       // Set up for signature positioning
       setSelectedDocument({ id: documentId, url: urlData.signedUrl });
       setSigners(signersList);
-      setIsDocumentModalOpen(false);
       setIsSignatureModalOpen(true);
 
     } catch (error: any) {
@@ -788,15 +782,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
 
-      {/* Document Selection Modal */}
-      <DocumentSelectionModal
-        isOpen={isDocumentModalOpen}
-        onClose={() => setIsDocumentModalOpen(false)}
-        dealId={dealId}
-        userRole={userRole}
-        onDocumentSelected={handleDocumentSelected}
-        isLoading={signingInProgress}
-      />
 
       {/* Signature Positioning Modal */}
       {selectedDocument && (
