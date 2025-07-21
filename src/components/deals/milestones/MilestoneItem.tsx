@@ -67,8 +67,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
-  // Permission to sign milestone documents (assigned users only)
-  const canSignMilestoneDocuments = isParticipant && milestone.assigned_to === user?.id && milestoneDocuments.length > 0;
+  // Permission to sign milestone documents (assigned users and admins)
+  const canSignMilestoneDocuments = isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && milestoneDocuments.length > 0;
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -129,7 +129,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       console.log('User ID:', user?.id);
       console.log('Milestone assigned to:', milestone.assigned_to);
       console.log('Is participant:', isParticipant);
-      console.log('Can sign milestone documents:', isParticipant && milestone.assigned_to === user?.id && (data?.length || 0) > 0);
+      console.log('Can sign milestone documents:', isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && (data?.length || 0) > 0);
     } catch (error) {
       console.error('Error fetching milestone documents:', error);
     }
