@@ -41,7 +41,7 @@ export class UnifiedDocumentUploadService {
    * Upload a document file to storage and create database records
    */
   async uploadDocument(options: UploadOptions): Promise<Document | null> {
-    const { file, dealId, category, userId, documentId, documentName, onProgress } = options;
+    const { file, dealId, category, userId, documentId, documentName, milestoneId, onProgress } = options;
 
     try {
       onProgress?.(10);
@@ -64,7 +64,7 @@ export class UnifiedDocumentUploadService {
       }
 
       // Otherwise, create a new document
-      return await this.createNewDocument(file, dealId, category, userId, documentName, onProgress);
+      return await this.createNewDocument(file, dealId, category, userId, documentName, milestoneId, onProgress);
     } catch (error) {
       console.error("Error uploading document:", error);
       throw error;
@@ -80,6 +80,7 @@ export class UnifiedDocumentUploadService {
     category: string,
     userId: string,
     documentName?: string,
+    milestoneId?: string,
     onProgress?: (progress: number) => void
   ): Promise<Document> {
     // Upload file to storage
@@ -88,7 +89,7 @@ export class UnifiedDocumentUploadService {
 
     // Create document and version records
     const { document, version } = await this.creationService.createNewDocument(
-      file, dealId, category, userId, filePath, documentName
+      file, dealId, category, userId, filePath, documentName, milestoneId
     );
     onProgress?.(100);
 

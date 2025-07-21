@@ -15,7 +15,8 @@ export class DocumentCreationService {
     category: string,
     userId: string,
     filePath: string,
-    documentName?: string
+    documentName?: string,
+    milestoneId?: string
   ): Promise<DocumentCreationResult> {
     // Create document record
     const { data: documentData, error: docError } = await supabase
@@ -30,7 +31,7 @@ export class DocumentCreationService {
         type: file.type,
         status: "draft",
         version: 1,
-        milestone_id: null,
+        milestone_id: milestoneId || null,
         category
       })
       .select()

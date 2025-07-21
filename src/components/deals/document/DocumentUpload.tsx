@@ -18,6 +18,8 @@ interface DocumentUploadProps {
     userRole: string | null;
   };
   dealStatus?: string | null;
+  milestoneId?: string; // Optional milestone ID to associate document with
+  milestoneTitle?: string; // Optional milestone title for UI context
 }
 
 const DocumentUpload = ({ 
@@ -27,7 +29,9 @@ const DocumentUpload = ({
   isParticipant = true,
   documents = [],
   permissions,
-  dealStatus
+  dealStatus,
+  milestoneId,
+  milestoneTitle
 }: DocumentUploadProps) => {
   // Check if user has permission to upload documents
   const canUploadDocuments = permissions?.canUpload ?? 
@@ -59,19 +63,23 @@ const DocumentUpload = ({
 
   return (
     <div className="border-t pt-4 mt-4">
-      <h4 className="text-lg font-semibold mb-3">Upload Document</h4>
+      <h4 className="text-lg font-semibold mb-3">
+        {milestoneTitle ? `Upload Document for: ${milestoneTitle}` : 'Upload Document'}
+      </h4>
       
       <div className="flex items-center gap-3 mb-4">
         <DocumentUploadForm 
           dealId={dealId}
           onUpload={handleDocumentUpload}
           documents={documents}
+          milestoneId={milestoneId}
         />
         
         <SmartTemplateButton 
           dealId={dealId}
           onDocumentSaved={handleDocumentUpload}
           userRole={userRole}
+          milestoneId={milestoneId}
         />
       </div>
     </div>

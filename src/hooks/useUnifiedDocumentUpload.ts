@@ -11,6 +11,7 @@ interface UploadOptions {
   category: string;
   documentId?: string; // For adding versions
   documentName?: string; // Override name
+  milestoneId?: string; // Associate with milestone
 }
 
 /**

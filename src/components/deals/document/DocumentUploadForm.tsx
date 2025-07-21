@@ -10,12 +10,14 @@ interface DocumentUploadFormProps {
   dealId: string;
   onUpload?: () => void;
   documents?: Document[];
+  milestoneId?: string;
 }
 
 const DocumentUploadForm = ({ 
   dealId,
   onUpload,
-  documents = [] 
+  documents = [],
+  milestoneId
 }: DocumentUploadFormProps) => {
   const { uploading, uploadProgress, uploadDocument } = useUnifiedDocumentUpload();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -58,7 +60,8 @@ const DocumentUploadForm = ({
       const result = await uploadDocument({
         file: selectedFile,
         dealId,
-        category: selectedCategory
+        category: selectedCategory,
+        milestoneId
       });
       
       if (result) {

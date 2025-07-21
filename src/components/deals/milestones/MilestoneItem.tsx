@@ -6,7 +6,8 @@ import MilestoneExplainButton from './MilestoneExplainButton';
 import DocumentSelectionModal from './DocumentSelectionModal';
 import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
-import { FileText, UserCheck, User } from 'lucide-react';
+import DocumentUpload from '../document/DocumentUpload';
+import { FileText, UserCheck, User, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -47,6 +48,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [documentSaved, setDocumentSaved] = useState(false);
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
 
   // Determine if the current user has permission to update milestone status
   // Admin can always update, assigned user can update, or seller can update unassigned milestones
@@ -58,6 +60,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   
   // Permission to assign/unassign milestones (sellers and admins only)
   const canAssignMilestone = isParticipant && ['admin', 'seller'].includes(userRole.toLowerCase());
+  
+  // Permission to upload documents for milestones (admins only)
+  const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -481,6 +486,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           </button>
         )}
 
+        {/* Document Upload Button - Show for admins when milestone is not completed */}
+        {canUploadMilestoneDocuments && milestone.status !== 'completed' && (
+          <button
+            onClick={() => setShowDocumentUpload(!showDocumentUpload)}
+            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 focus:ring-2 focus:outline-none focus:ring-green-500"
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            Upload Document
+          </button>
+        )}
+
         {/* Status Update Buttons - Only show if user has permission */}
         {canUpdateMilestone && (
           <>
@@ -621,6 +637,29 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Document Upload Section - Show when upload button is clicked */}
+      {showDocumentUpload && canUploadMilestoneDocuments && (
+        <div className="mt-4">
+          <DocumentUpload
+            dealId={dealId}
+            userRole={userRole}
+            isParticipant={isParticipant}
+            permissions={{
+              canUpload: true,
+              canAddVersions: true,
+              userRole: userRole
+            }}
+            dealStatus="active"
+            milestoneId={milestone.id}
+            milestoneTitle={milestone.title}
+            onUpload={() => {
+              setShowDocumentUpload(false);
+              onMilestoneUpdated?.();
+            }}
+          />
         </div>
       )}
 

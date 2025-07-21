@@ -11,9 +11,10 @@ export interface SmartTemplateButtonProps {
   dealId: string;
   onDocumentSaved: () => void;
   userRole: string;
+  milestoneId?: string;
 }
 
-const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: SmartTemplateButtonProps) => {
+const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole, milestoneId }: SmartTemplateButtonProps) => {
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -92,7 +93,8 @@ const SmartTemplateButton = ({ documentId, dealId, onDocumentSaved, userRole }: 
           category: 'contract',
           uploaded_by: user.id,
           storage_path: filePath,
-          status: 'draft'
+          status: 'draft',
+          milestone_id: milestoneId || null
         })
         .select()
         .single();

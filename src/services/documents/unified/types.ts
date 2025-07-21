@@ -8,6 +8,7 @@ export interface UploadOptions {
   userId: string;
   documentId?: string;
   documentName?: string;
+  milestoneId?: string;
   onProgress?: (progress: number) => void;
 }
 
