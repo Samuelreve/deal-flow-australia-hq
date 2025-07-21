@@ -67,8 +67,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
-  // Permission to sign milestone documents (assigned users and admins)
-  const canSignMilestoneDocuments = isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && milestoneDocuments.length > 0;
+  // Permission to sign milestone documents (assigned users only)
+  const canSignMilestoneDocuments = isParticipant && milestone.assigned_to === user?.id && milestoneDocuments.length > 0;
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -171,10 +171,81 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     }
   };
 
-  const handleSignMilestoneDocument = (documentId: string) => {
-    // Set up the document for signing
-    setSelectedDocument({ id: documentId, url: '' });
-    setIsDocumentModalOpen(true);
+  const handleSignMilestoneDocument = async (documentId: string) => {
+    if (!user) return;
+
+    try {
+      // Get document URL for positioning (skip document selection modal)
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .select('storage_path, name')
+        .eq('id', documentId)
+        .single();
+
+      if (docError || !document) {
+        throw new Error('Failed to load document');
+      }
+
+      // Get signed URL for document preview
+      let signedUrl: string;
+      
+      // Try different path formats for the deal_documents bucket
+      const pathsToTry = [
+        document.storage_path,
+        `${dealId}/${document.storage_path}`,
+        document.storage_path.split('/').pop(), // Just the filename
+      ];
+      
+      let urlData: { signedUrl: string } | null = null;
+      
+      for (const path of pathsToTry) {
+        try {
+          const result = await supabase.storage
+            .from('deal_documents')
+            .createSignedUrl(path, 3600);
+          
+          if (result.data?.signedUrl && !result.error) {
+            urlData = result.data;
+            break;
+          }
+        } catch (error) {
+          console.log(`Failed to get signed URL for path: ${path}`, error);
+          continue;
+        }
+      }
+
+      if (!urlData?.signedUrl) {
+        throw new Error('Failed to generate document preview');
+      }
+
+      // Prepare signers list (only current user for milestone documents)
+      const currentUserProfile = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const signersList = [
+        {
+          email: user.email!,
+          name: currentUserProfile.data?.name || user.email!,
+          recipientId: '1'
+        }
+      ];
+
+      // Set up for signature positioning
+      setSelectedDocument({ id: documentId, url: urlData.signedUrl });
+      setSigners(signersList);
+      setIsSignatureModalOpen(true);
+
+    } catch (error: any) {
+      console.error('Error preparing document for positioning:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to prepare document',
+        variant: 'destructive'
+      });
+    }
   };
 
   const checkDocumentSignatures = async () => {
