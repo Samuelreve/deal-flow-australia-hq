@@ -4,10 +4,8 @@ import puppeteer from "npm:puppeteer@21.7.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-requested-with, accept, origin, referer, user-agent',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -50,23 +48,9 @@ serve(async (req) => {
         const result = await mammoth.convertToHtml({ buffer: binaryData })
         const html = result.value
         
-        // Launch Puppeteer with explicit configuration to avoid file system access
+        // Launch Puppeteer to convert HTML to PDF
         const browser = await puppeteer.launch({
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-extensions',
-            '--disable-plugins',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--no-default-browser-check',
-            '--no-first-run',
-            '--disable-default-apps'
-          ],
-          headless: true,
-          executablePath: undefined, // Let Puppeteer find the browser
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
         })
         
         try {
