@@ -774,7 +774,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     };
   }
 
-  console.log('Expires in:', expiresIn, 'seconds');
   console.log('✅ Successfully obtained DocuSign access token using SDK');
 
   // Create envelope for signing
