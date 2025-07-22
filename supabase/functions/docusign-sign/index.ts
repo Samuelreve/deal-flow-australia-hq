@@ -319,37 +319,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       user_info: userInfo
     };
     
-    // Store tokens in database for persistence
-    try {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      
-      const { error: dbError } = await supabase
-        .from('docusign_tokens')
-        .upsert({
-          user_id: '00000000-0000-0000-0000-000000000000', // System UUID for edge function tokens
-          access_token: oAuthToken.access_token,
-          refresh_token: oAuthToken.refresh_token,
-          account_id: defaultAccount.account_id,
-          base_uri: defaultAccount.base_uri,
-          expires_at: new Date(expiresAt).toISOString(),
-          user_info: userInfo
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (dbError) {
-        console.error('Failed to store DocuSign token:', dbError);
-        throw new Error('Failed to store DocuSign credentials');
-      }
-      
-      console.log('✅ Token stored in database successfully');
-    } catch (dbError) {
-      console.error('Database storage error:', dbError);
-      throw new Error('Failed to store DocuSign credentials');
-    }
+    // Tokens are stored in memory only, no database persistence needed
 
     console.log('✅ Successfully obtained and stored DocuSign access token via OAuth');
 
@@ -545,66 +515,7 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
 async function handleStatusRequest(req: Request): Promise<Response> {
   console.log('🔍 Status request - checking for stored token data...');
   
-  // Create Supabase client to retrieve token data
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-  
-  // Try to get token data from database first
-  try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from('docusign_tokens')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-      
-    console.log('🔍 Database token query result:', { tokenData, tokenError });
-    
-    if (!tokenError && tokenData) {
-      const now = new Date();
-      const expiresAt = new Date(tokenData.expires_at);
-      const expired = now >= expiresAt;
-      
-      console.log('🔍 Found token in database:', {
-        account_id: tokenData.account_id,
-        base_uri: tokenData.base_uri,
-        expires_at: tokenData.expires_at,
-        expired
-      });
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          authMethod: 'oauth',
-          isAuthenticated: true,
-          // For compatibility with retrieve function, include fields at top level
-          account_id: tokenData.account_id,
-          base_uri: tokenData.base_uri,
-          access_token: tokenData.access_token,
-          tokenData: {
-            account_id: tokenData.account_id,
-            base_uri: tokenData.base_uri,
-            expires_at: tokenData.expires_at,
-            user_info: tokenData.user_info
-          },
-          tokenStatus: {
-            isExpired: expired,
-            hasRefreshToken: !!tokenData.refresh_token,
-            expiresIn: Math.max(0, expiresAt.getTime() - now.getTime()) / 1000
-          },
-          message: expired ? 'OAuth token is expired' : 'OAuth token is valid'
-        }),
-        { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
-    }
-  } catch (error) {
-    console.error('❌ Error retrieving token from database:', error);
-  }
+  // Use JWT authentication directly, no database lookup needed
   
   // Check OAuth token data in memory (fallback)
   if (docusignTokenData) {
@@ -863,40 +774,8 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     };
   }
 
-  // Save token to database
-  if (tokenDataToSave) {
-    try {
-      console.log('Saving DocuSign token to database...', {
-        account_id: tokenDataToSave.account_id,
-        base_uri: tokenDataToSave.base_uri,
-        has_access_token: !!tokenDataToSave.access_token
-      });
-      
-      const { error: dbError } = await supabase
-        .from('docusign_tokens')
-        .upsert({
-          user_id: '00000000-0000-0000-0000-000000000000',
-          access_token: tokenDataToSave.access_token,
-          refresh_token: tokenDataToSave.refresh_token,
-          account_id: tokenDataToSave.account_id,
-          base_uri: tokenDataToSave.base_uri,
-          expires_at: new Date(tokenDataToSave.expires_at).toISOString(),
-          user_info: tokenDataToSave.user_info
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (dbError) {
-        console.error('Failed to save DocuSign token to database:', dbError);
-      } else {
-        console.log('✅ DocuSign token saved to database successfully');
-      }
-    } catch (dbError) {
-      console.error('Database save error during signing:', dbError);
-    }
-  } else {
-    console.log('⚠️ No DocuSign token data available to save');
-  }
+  console.log('Expires in:', expiresIn, 'seconds');
+  console.log('✅ Successfully obtained DocuSign access token using SDK');
 
   // Create envelope for signing
   const envelope = await createDocuSignEnvelope({
