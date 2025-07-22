@@ -47,9 +47,33 @@ serve(async (req) => {
         const result = await mammoth.convertToHtml({ buffer: binaryData })
         const html = result.value
         
-        // Launch Puppeteer to convert HTML to PDF
+        // Launch Puppeteer with minimal configuration to avoid file system access
         const browser = await puppeteer.launch({
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-features=TranslateUI',
+            '--disable-extensions',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--disable-translate',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--no-default-browser-check',
+            '--no-pings',
+            '--disable-plugins-discovery'
+          ],
+          headless: true,
+          ignoreDefaultArgs: ['--disable-extensions'],
           executablePath: undefined
         })
         
