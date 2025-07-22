@@ -796,8 +796,12 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     accessToken
   });
 
-  // Get signing URL for the first signer
-  const signingUrl = await getSigningUrl(envelope.envelopeId, '1', accessToken, signerEmail, signerName);
+  // Get signing URL for the requesting signer
+  const requestingSigner = signers.find(s => s.email === signerEmail);
+  if (!requestingSigner) {
+    throw new Error('Requesting signer not found in signers list');
+  }
+  const signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
 
   // Store envelope information in database
   await supabase
@@ -1085,11 +1089,9 @@ async function createDocuSignEnvelope(params: {
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
       
-      // Only set clientUserId for embedded signing (first signer gets signing URL)
-      // For remote signing, don't set clientUserId so DocuSign sends email
-      if (index === 0) {
-        signer.clientUserId = signerInfo.recipientId;
-      }
+      // Set clientUserId for the requesting signer (the one who will get the signing URL)
+      // This is determined by the docusign-sign call context
+      signer.clientUserId = signerInfo.recipientId;
       
       // Add signature tabs with coordinates
       const signHere = new SignHere();
