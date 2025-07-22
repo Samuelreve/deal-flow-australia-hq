@@ -11,6 +11,7 @@ import type {
 import { getDocumentTypeForSigning } from '@/utils/fileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import TextSignaturePositioning from './TextSignaturePositioning';
+import DocxPageViewer from '@/components/documents/DocxPageViewer';
 
 // Configure PDF.js worker - use local worker file with matching version
 PDFJS.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -66,6 +67,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [documentContent, setDocumentContent] = useState<string>('');
   const [convertedPdfUrl, setConvertedPdfUrl] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [docxPages, setDocxPages] = useState<string[]>([]);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -116,8 +118,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers, documentType]);
 
-  // Convert document to PDF
-  const convertDocumentToPdf = async () => {
+  // Convert document to HTML pages
+  const convertDocxToPages = async () => {
     if (!documentUrl || !documentFilename) return;
 
     setIsConverting(true);
@@ -130,8 +132,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       const arrayBuffer = await response.arrayBuffer();
       const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-      // Convert to PDF
-      const { data, error } = await supabase.functions.invoke('document-converter', {
+      // Convert to HTML pages
+      const { data, error } = await supabase.functions.invoke('docx-to-images', {
         body: {
           fileData: base64Data,
           mimeType: response.headers.get('content-type') || 'application/octet-stream',
@@ -143,36 +145,26 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
         throw new Error(data?.error || 'Conversion failed');
       }
 
-      // Create blob URL for the converted PDF
-      const pdfBlob = new Blob([Uint8Array.from(atob(data.pdfData), c => c.charCodeAt(0))], {
-        type: 'application/pdf'
-      });
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      setConvertedPdfUrl(pdfUrl);
-
-      // Load the converted PDF
-      const loadingTask = PDFJS.getDocument(pdfUrl);
-      const loadedDoc = await loadingTask.promise;
-      setPdfDocument(loadedDoc);
-      setTotalPages(loadedDoc.numPages);
+      setDocxPages(data.pages);
+      setTotalPages(data.totalPages);
       setCurrentPage(1);
       setIsLoadingPdf(false);
       setIsConverting(false);
 
       toast({
-        title: 'Document converted',
-        description: 'Document has been converted to PDF for signature positioning',
+        title: 'Document loaded',
+        description: 'Document has been loaded for signature positioning',
       });
 
     } catch (error) {
       console.error('Document conversion error:', error);
-      setError('Failed to convert document to PDF');
+      setError('Failed to convert document');
       setIsLoadingPdf(false);
       setIsConverting(false);
       loadedDocumentUrlRef.current = null;
       toast({
         title: 'Conversion failed',
-        description: 'Could not convert document to PDF. Please try with a PDF file.',
+        description: 'Could not load document. Please try again.',
         variant: 'destructive'
       });
     }
@@ -202,8 +194,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           loadedDocumentUrlRef.current = null;
         });
     } else if (documentType === 'convertible') {
-      // Convert document to PDF
-      convertDocumentToPdf();
+      // Convert DOCX to HTML pages
+      convertDocxToPages();
     } else {
       // Load PDF document (metadata only, not pages)
       console.log(`Loading PDF document: ${documentUrl}`);
@@ -622,17 +614,17 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                   </div>
                 </div>
 
-                {/* PDF Canvas Container */}
+                {/* PDF Canvas Container or DOCX Viewer */}
                 <div 
                   ref={containerRef}
-                  className="flex-1 relative overflow-auto bg-white p-4"
+                  className="flex-1 relative overflow-auto bg-white"
                 >
                   {isLoadingPdf || isConverting ? (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                         <p className="text-gray-600">
-                          {isConverting ? 'Converting document...' : 'Loading PDF...'}
+                          {isConverting ? 'Converting document...' : 'Loading document...'}
                         </p>
                       </div>
                     </div>
@@ -645,8 +637,20 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                         </div>
                       </div>
                     </div>
+                  ) : documentType === 'convertible' && docxPages.length > 0 ? (
+                    <DocxPageViewer
+                      pages={docxPages}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      signaturePositions={signaturePositions}
+                      onSignaturePositionChange={setSignaturePositions}
+                      signers={signers}
+                      currentSignerIndex={currentSignerIndex}
+                      onSignerSelect={setCurrentSignerIndex}
+                    />
                   ) : (
-                    <div className="relative">
+                    <div className="relative p-4">
                       <canvas
                         ref={canvasRef}
                         style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
