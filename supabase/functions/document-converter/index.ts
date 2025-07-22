@@ -1,17 +1,16 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import mammoth from "npm:mammoth@1.6.0"
 import puppeteer from "npm:puppeteer@19.11.1"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import { corsHeaders } from "../_shared/cors.ts"
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
 
   if (req.method !== 'POST') {
@@ -50,7 +49,8 @@ serve(async (req) => {
         
         // Launch Puppeteer to convert HTML to PDF
         const browser = await puppeteer.launch({
-          args: ['--no-sandbox', '--disable-setuid-sandbox']
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          executablePath: undefined
         })
         
         try {
