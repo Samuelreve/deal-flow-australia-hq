@@ -48,10 +48,20 @@ const DocxPageViewer: React.FC<DocxPageViewerProps> = ({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
+    // Scale coordinates for DocuSign compatibility
+    // DocuSign uses a coordinate system where (0,0) is top-left
+    // and coordinates are in points (1/72 of an inch)
+    // Our HTML pages are 794px wide (A4 width), which is ~595 points
+    const scaleX = 595 / 794; // Convert from px to points
+    const scaleY = 842 / 1123; // A4 height: 842 points / 1123px
+    
+    const scaledX = Math.round(x * scaleX);
+    const scaledY = Math.round(y * scaleY);
+
     const signer = signers[currentSignerIndex];
     const newPosition: SignaturePosition = {
-      x,
-      y,
+      x: scaledX,
+      y: scaledY,
       page: currentPage,
       recipientId: signer.recipientId,
       recipientName: signer.name
@@ -147,25 +157,31 @@ const DocxPageViewer: React.FC<DocxPageViewerProps> = ({
             className="pointer-events-none"
           />
           
-          {/* Signature Positions */}
-          {currentPagePositions.map((position, index) => (
-            <div
-              key={`${position.recipientId}-${position.page}-${index}`}
-              className="absolute border-2 border-dashed cursor-move flex items-center justify-center text-xs font-medium text-white rounded px-2 py-1"
-              style={{
-                left: position.x,
-                top: position.y,
-                backgroundColor: getSignerColor(position.recipientId),
-                borderColor: getSignerColor(position.recipientId),
-                minWidth: '120px',
-                height: '40px',
-                transform: 'translate(-50%, -50%)'
-              }}
-              onMouseDown={(e) => handleSignatureMouseDown(e, position)}
-            >
-              {position.recipientName}
-            </div>
-          ))}
+           {/* Signature Positions */}
+           {currentPagePositions.map((position, index) => {
+             // Inverse scale positions for display (convert from points back to pixels)
+             const displayX = position.x * (794 / 595);
+             const displayY = position.y * (1123 / 842);
+             
+             return (
+               <div
+                 key={`${position.recipientId}-${position.page}-${index}`}
+                 className="absolute border-2 border-dashed cursor-move flex items-center justify-center text-xs font-medium text-white rounded px-2 py-1"
+                 style={{
+                   left: displayX,
+                   top: displayY,
+                   backgroundColor: getSignerColor(position.recipientId),
+                   borderColor: getSignerColor(position.recipientId),
+                   minWidth: '120px',
+                   height: '40px',
+                   transform: 'translate(-50%, -50%)'
+                 }}
+                 onMouseDown={(e) => handleSignatureMouseDown(e, position)}
+               >
+                 {position.recipientName}
+               </div>
+             );
+           })}
           
           {/* Current Signer Indicator */}
           {currentSignerIndex !== null && (
