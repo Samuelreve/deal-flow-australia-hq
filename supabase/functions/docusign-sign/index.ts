@@ -1057,8 +1057,17 @@ async function createDocuSignEnvelope(params: {
     const document = new Document();
     document.documentBase64 = params.document.documentBase64;
     document.documentId = params.document.documentId;
-    document.fileExtension = params.document.fileExtension;
+    // Ensure proper file extension format
+    const extension = params.document.fileExtension;
+    document.fileExtension = extension === 'docx' ? 'docx' : 'pdf';
     document.name = params.document.name;
+    
+    console.log('Document details:', {
+      name: document.name,
+      fileExtension: document.fileExtension,
+      documentId: document.documentId,
+      base64Length: document.documentBase64?.length || 0
+    });
     
     // Create signers
     const signers = params.signers.map((signerInfo, index) => {
@@ -1067,12 +1076,14 @@ async function createDocuSignEnvelope(params: {
       signer.name = signerInfo.name;
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
-      // Set clientUserId for the first signer (the one who will get the signing URL)
+      
+      // Only set clientUserId for embedded signing (first signer gets signing URL)
+      // For remote signing, don't set clientUserId so DocuSign sends email
       if (index === 0) {
-        signer.clientUserId = signerInfo.recipientId; // Match the clientUserId to recipientId
+        signer.clientUserId = signerInfo.recipientId;
       }
       
-      // Add signature tabs with coordinates that will be passed from the frontend
+      // Add signature tabs with coordinates
       const signHere = new SignHere();
       signHere.documentId = params.document.documentId;
       signHere.pageNumber = signerInfo.pageNumber || '1';
@@ -1080,8 +1091,6 @@ async function createDocuSignEnvelope(params: {
       signHere.tabLabel = `SignHere${index + 1}`;
       signHere.xPosition = signerInfo.xPosition || '100';
       signHere.yPosition = signerInfo.yPosition || `${200 + (index * 100)}`;
-      signHere.width = '150';
-      signHere.height = '50';
       
       const tabs = new Tabs();
       tabs.signHereTabs = [signHere];
@@ -1089,6 +1098,14 @@ async function createDocuSignEnvelope(params: {
       
       return signer;
     });
+    
+    console.log('Signers configuration:', signers.map(s => ({
+      email: s.email,
+      name: s.name,
+      recipientId: s.recipientId,
+      clientUserId: s.clientUserId,
+      hasSignHereTabs: s.tabs?.signHereTabs?.length || 0
+    })));
     
     // Create recipients
     const recipients = new Recipients();
