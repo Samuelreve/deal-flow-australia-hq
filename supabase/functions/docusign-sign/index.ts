@@ -779,6 +779,10 @@ async function handleSigningRequest(req: Request): Promise<Response> {
         documentBase64 = convertResponse.data.pdfData;
         finalFileExtension = 'pdf';
         console.log('✅ Successfully converted DOCX to PDF');
+      } else if (convertResponse.data?.fallback) {
+        // Document converter returned fallback - send DOCX directly
+        console.log('Document converter returned fallback, sending DOCX directly to DocuSign...');
+        throw new Error('Converter fallback - will send DOCX directly');
       } else {
         throw new Error('Document conversion did not return PDF data');
       }
