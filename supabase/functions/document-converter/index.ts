@@ -1,8 +1,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import mammoth from "npm:mammoth@1.6.0"
-import puppeteer from "npm:puppeteer@19.11.1"
-import { corsHeaders } from "../_shared/cors.ts"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -47,92 +50,20 @@ serve(async (req) => {
         const result = await mammoth.convertToHtml({ buffer: binaryData })
         const html = result.value
         
-        // Launch Puppeteer with minimal configuration to avoid file system access
-        const browser = await puppeteer.launch({
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-features=TranslateUI',
-            '--disable-extensions',
-            '--disable-default-apps',
-            '--disable-sync',
-            '--disable-translate',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--no-default-browser-check',
-            '--no-pings',
-            '--disable-plugins-discovery'
-          ],
-          headless: true,
-          ignoreDefaultArgs: ['--disable-extensions'],
-          executablePath: undefined
-        })
-        
-        try {
-          const page = await browser.newPage()
-          
-          // Set content with proper styling
-          const styledHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body {
-                  font-family: Arial, sans-serif;
-                  line-height: 1.6;
-                  margin: 40px;
-                  color: #333;
-                }
-                p { margin-bottom: 1em; }
-                h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; }
-              </style>
-            </head>
-            <body>
-              ${html}
-            </body>
-            </html>
-          `
-          
-          await page.setContent(styledHtml, { waitUntil: 'networkidle0' })
-          
-          // Generate PDF
-          const pdfBuffer = await page.pdf({
-            format: 'A4',
-            margin: {
-              top: '20mm',
-              right: '20mm',
-              bottom: '20mm',
-              left: '20mm'
-            },
-            printBackground: true
-          })
-          
-          const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
-          
-          return new Response(
-            JSON.stringify({ 
-              success: true,
-              pdfData: pdfBase64,
-              originalFilename: filename
-            }),
-            { 
-              status: 200, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          )
-        } finally {
-          await browser.close()
-        }
+        // Since Puppeteer is not available in Supabase Edge Functions due to file system restrictions,
+        // we'll return the HTML content for now and handle conversion differently
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'PDF conversion not available - Puppeteer incompatible with Supabase Edge Functions',
+            fallback: true,
+            htmlContent: html // Include HTML for potential client-side conversion
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
       } else {
         // Only DOCX conversion is supported
         return new Response(
