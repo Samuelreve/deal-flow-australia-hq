@@ -756,49 +756,10 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   let documentBase64 = '';
   let finalFileExtension = fileExtension;
   
-  // Convert DOCX to PDF if needed, as DocuSign works better with PDF
-  if (fileExtension === 'docx') {
-    console.log('Converting DOCX to PDF for DocuSign...');
-    try {
-      // Call the document-converter function to convert DOCX to PDF
-      const convertResponse = await supabase.functions.invoke('document-converter', {
-        body: {
-          fileData: btoa(String.fromCharCode(...new Uint8Array(await fileData.arrayBuffer()))),
-          mimeType: document.type,
-          filename: document.name,
-          outputFormat: 'pdf'
-        }
-      });
-      
-      if (convertResponse.error) {
-        console.error('Document conversion failed:', convertResponse.error);
-        throw new Error('Failed to convert DOCX to PDF for signing');
-      }
-      
-      if (convertResponse.data?.success && convertResponse.data?.pdfData) {
-        documentBase64 = convertResponse.data.pdfData;
-        finalFileExtension = 'pdf';
-        console.log('✅ Successfully converted DOCX to PDF');
-      } else if (convertResponse.data?.fallback) {
-        // Document converter returned fallback - send DOCX directly
-        console.log('Document converter returned fallback, sending DOCX directly to DocuSign...');
-        throw new Error('Converter fallback - will send DOCX directly');
-      } else {
-        throw new Error('Document conversion did not return PDF data');
-      }
-    } catch (error) {
-      console.error('DOCX conversion failed:', error);
-      // Fallback: try to send DOCX directly to DocuSign
-      console.log('Falling back to sending DOCX directly to DocuSign...');
-      const arrayBuffer = await fileData.arrayBuffer();
-      documentBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      finalFileExtension = 'docx';
-    }
-  } else {
-    // For PDF and other formats, convert to base64 directly
-    const arrayBuffer = await fileData.arrayBuffer();
-    documentBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  }
+  // For all file types, convert to base64 directly
+  // DocuSign supports DOCX natively, so no conversion needed
+  const arrayBuffer = await fileData.arrayBuffer();
+  documentBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
   // Get DocuSign access token
   const accessToken = await getDocuSignAccessToken();
