@@ -1110,8 +1110,10 @@ async function createDocuSignEnvelope(params: {
       
       // Set clientUserId only for the signer who matches the requesting signerEmail
       // This enables embedded signing for that specific signer
+      // Use a consistent clientUserId format
       if (signerInfo.email === params.signerEmail) {
-        signer.clientUserId = signerInfo.recipientId;
+        signer.clientUserId = `client_${signerInfo.recipientId}`;
+        console.log(`Setting clientUserId for ${signerInfo.email}: client_${signerInfo.recipientId}`);
       }
       
       // Add signature tabs with coordinates
@@ -1204,7 +1206,7 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     recipientViewRequest.authenticationMethod = 'email';
     recipientViewRequest.email = recipientEmail;
     recipientViewRequest.userName = recipientName;
-    recipientViewRequest.clientUserId = recipientId; // Use recipientId as clientUserId (matches envelope creation logic)
+    recipientViewRequest.clientUserId = `client_${recipientId}`; // Must match the clientUserId set during envelope creation
     recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
     
     console.log('Recipient view request:', {
