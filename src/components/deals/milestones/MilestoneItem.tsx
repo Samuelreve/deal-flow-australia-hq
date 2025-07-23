@@ -40,7 +40,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { signingStatus: milestoneSigningStatus, loading: signingStatusLoading } = useMilestoneSigningStatus(milestone.id, dealId);
+  const { signingStatus: milestoneSigningStatus, loading: signingStatusLoading, userHasSigned, adminHasSigned, pendingSigners } = useMilestoneSigningStatus(milestone.id, dealId, user?.email);
   
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string, name: string} | null>(null);
@@ -778,6 +778,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             )}
           </span>
         )}
+
+        {/* Role-specific signing messages */}
+        {milestoneDocuments.length > 0 && milestoneSigningStatus === 'sent' && !userHasSigned && adminHasSigned && userRole !== 'admin' && (
+          <div className="mt-2 text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-md border border-orange-200">
+            <div className="flex items-center">
+              <FileCheck className="h-4 w-4 mr-2" />
+              Admin has signed - check your email and sign the document
+            </div>
+          </div>
+        )}
         
         {/* Add the explain button */}
         {isParticipant && (
@@ -1047,17 +1057,30 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   <p className="text-xs text-gray-500">
                     Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
                   </p>
-                </div>
-                {canSignMilestoneDocuments && (
-                  <Button
-                    onClick={() => handleSignMilestoneDocument(doc.id)}
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Sign Document
-                  </Button>
-                )}
+                 </div>
+                 {canSignMilestoneDocuments && (
+                   <>
+                     {userHasSigned ? (
+                       <Button
+                         disabled
+                         size="sm"
+                         className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
+                       >
+                         <CheckCircle className="h-4 w-4 mr-2" />
+                         You signed this document
+                       </Button>
+                     ) : (
+                       <Button
+                         onClick={() => handleSignMilestoneDocument(doc.id)}
+                         size="sm"
+                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                       >
+                         <FileText className="h-4 w-4 mr-2" />
+                         Sign Document
+                       </Button>
+                     )}
+                   </>
+                 )}
               </div>
             ))}
           </div>

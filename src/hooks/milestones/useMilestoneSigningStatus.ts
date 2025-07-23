@@ -6,12 +6,18 @@ interface SigningStatusResult {
   signingStatus: 'not_started' | 'sent' | 'completed';
   signatureRecords: any[];
   loading: boolean;
+  userHasSigned: boolean;
+  adminHasSigned: boolean;
+  pendingSigners: string[];
 }
 
-export const useMilestoneSigningStatus = (milestoneId: string, dealId: string) => {
+export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, userEmail?: string) => {
   const [signingStatus, setSigningStatus] = useState<'not_started' | 'sent' | 'completed'>('not_started');
   const [signatureRecords, setSignatureRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [userHasSigned, setUserHasSigned] = useState(false);
+  const [adminHasSigned, setAdminHasSigned] = useState(false);
+  const [pendingSigners, setPendingSigners] = useState<string[]>([]);
   const { toast } = useToast();
 
   const checkSigningStatus = async () => {
@@ -38,10 +44,13 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string) =
 
       const documentIds = milestoneDocuments.map(doc => doc.id);
 
-      // Check signatures for these documents
+      // Check signatures for these documents with signer details
       const { data: signatures, error: sigError } = await supabase
         .from('document_signatures')
-        .select('*')
+        .select(`
+          *,
+          profiles:signer_email (name, role)
+        `)
         .eq('deal_id', dealId)
         .in('document_id', documentIds)
         .order('created_at', { ascending: false });
@@ -55,8 +64,26 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string) =
 
       if (!signatures || signatures.length === 0) {
         setSigningStatus('not_started');
+        setUserHasSigned(false);
+        setAdminHasSigned(false);
+        setPendingSigners([]);
         return;
       }
+
+      // Check individual signing status
+      const userSigned = userEmail ? signatures.some(sig => 
+        sig.status === 'completed' && sig.signer_email === userEmail
+      ) : false;
+
+      const adminSigned = signatures.some(sig => 
+        sig.status === 'completed' && sig.signer_role === 'admin'
+      );
+
+      const pendingSignatures = signatures.filter(sig => sig.status === 'sent').map(sig => sig.signer_email);
+
+      setUserHasSigned(userSigned);
+      setAdminHasSigned(adminSigned);
+      setPendingSigners(pendingSignatures);
 
       // Check status - if any are completed, consider milestone signing completed
       const hasCompleted = signatures.some(sig => sig.status === 'completed');
@@ -79,7 +106,7 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string) =
 
   useEffect(() => {
     checkSigningStatus();
-  }, [milestoneId, dealId]);
+  }, [milestoneId, dealId, userEmail]);
 
   // Listen for real-time changes to document_signatures table
   useEffect(() => {
@@ -135,6 +162,9 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string) =
     signingStatus,
     signatureRecords,
     loading,
+    userHasSigned,
+    adminHasSigned,
+    pendingSigners,
     refreshStatus: checkSigningStatus
   } as SigningStatusResult & { refreshStatus: () => Promise<void> };
 };
