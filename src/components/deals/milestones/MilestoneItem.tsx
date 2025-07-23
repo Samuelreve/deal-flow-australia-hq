@@ -508,27 +508,20 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       if (data?.success) {
         console.log('DocuSign envelope created successfully:', data);
         
-        // Check if we have a signing URL (embedded signing) or using email-based signing
+        // Check if we have a signing URL for embedded signing
         if (data.signingUrl) {
           console.log('Got signing URL from DocuSign:', data.signingUrl);
           
-          // Open DocuSign signing URL in new window
-          const newWindow = window.open(data.signingUrl, '_blank');
-          
-          if (newWindow) {
-            console.log('New tab opened successfully');
-          } else {
-            console.warn('Failed to open new tab - may be blocked by popup blocker');
-            window.location.href = data.signingUrl;
-          }
+          // Open DocuSign signing URL in current window for embedded signing
+          window.location.href = data.signingUrl;
           
           toast({
-            title: 'Document signing initiated',
-            description: 'Please complete the signing process in the new window.'
+            title: 'Redirecting to DocuSign',
+            description: 'Opening DocuSign interface for signing...'
           });
         } else {
-          // Email-based signing workflow
-          console.log('Email-based signing initiated - all signers will receive email invitations');
+          // No signing URL - user will receive email invitation
+          console.log('No signing URL provided - email invitations sent to all signers');
           toast({
             title: 'Document sent for signing',
             description: 'All assigned signers will receive email invitations to sign the document.'

@@ -797,19 +797,24 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     signerEmail
   });
 
-  // Use email-based signing for all document types (more reliable than embedded signing)
-  // All signers will receive email invitations to sign the document
+  // Get signing URL for the requesting signer (embedded signing)
+  const requestingSigner = signers.find(s => s.email === signerEmail);
   let signingUrl = null;
   
-  const requestingSigner = signers.find(s => s.email === signerEmail);
   if (requestingSigner) {
-    console.log(`Requesting signer found: ${requestingSigner.email} - document sent via email for signing`);
-    console.log('Using email-based signing workflow (more reliable than embedded signing)');
+    console.log(`Requesting signer found: ${requestingSigner.email} - attempting embedded signing`);
+    
+    try {
+      // Generate embedded signing URL for the requesting signer
+      signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
+      console.log('✅ Successfully generated embedded signing URL for requesting signer');
+    } catch (error) {
+      console.error('Failed to generate embedded signing URL:', error);
+      console.log('User will need to sign via email invitation instead');
+    }
   } else {
     console.log('Requesting signer is not in the signers list - envelope created for assigned users only');
   }
-  
-  // Note: signingUrl remains null to indicate email-based signing is being used
 
   // Store envelope information in database
   await supabase
@@ -1099,11 +1104,14 @@ async function createDocuSignEnvelope(params: {
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
       
-      // For reliability, use email-based signing instead of embedded signing
-      // This approach works consistently for all document types
-      // Do not set clientUserId to use email-based signing flow
-      console.log(`Configuring email-based signing for ${signerInfo.email}`);
-      // Note: clientUserId is intentionally not set to enable email-based signing
+      // Set clientUserId for the requesting signer to enable embedded signing
+      // This allows the requesting user to sign immediately through the embedded interface
+      if (signerInfo.email === params.signerEmail) {
+        signer.clientUserId = `client_${signerInfo.recipientId}`;
+        console.log(`Setting clientUserId for requesting signer ${signerInfo.email}: client_${signerInfo.recipientId}`);
+      } else {
+        console.log(`No clientUserId set for ${signerInfo.email} - will receive email invitation`);
+      }
       
       // Add signature tabs with coordinates
       const signHere = new SignHere();
