@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMilestoneSigningStatus } from '@/hooks/milestones/useMilestoneSigningStatus';
 import MilestoneExplainButton from './MilestoneExplainButton';
 
 import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
 import DocumentUpload from '../document/DocumentUpload';
-import { FileText, UserCheck, User, Upload } from 'lucide-react';
+import { FileText, UserCheck, User, Upload, CheckCircle, Clock, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { signingStatus: milestoneSigningStatus, loading: signingStatusLoading } = useMilestoneSigningStatus(milestone.id, dealId);
   
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string, name: string} | null>(null);
@@ -755,6 +757,25 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ms-2">
             <User className="h-3 w-3 mr-1" />
             {milestone.assignedUser.name}
+          </span>
+        )}
+
+        {/* Signing Status Indicator for milestones with documents */}
+        {milestoneDocuments.length > 0 && (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ms-2 ${
+            milestoneSigningStatus === 'completed' 
+              ? 'bg-green-100 text-green-800' 
+              : milestoneSigningStatus === 'sent'
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-gray-100 text-gray-600'
+          }`}>
+            {milestoneSigningStatus === 'completed' ? (
+              <><CheckCircle className="h-3 w-3 mr-1" />Signed</>
+            ) : milestoneSigningStatus === 'sent' ? (
+              <><Clock className="h-3 w-3 mr-1" />Pending Signature</>
+            ) : (
+              <><FileCheck className="h-3 w-3 mr-1" />Ready to Sign</>
+            )}
           </span>
         )}
         
