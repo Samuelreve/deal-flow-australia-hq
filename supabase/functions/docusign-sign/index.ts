@@ -704,7 +704,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
         email: oppositeParty.profiles.email,
         name: oppositeParty.profiles.name,
         recipientId: '2',
-        routingOrder: '2'
+        routingOrder: '1' // Changed to 1 for concurrent signing
       }
     ];
 
