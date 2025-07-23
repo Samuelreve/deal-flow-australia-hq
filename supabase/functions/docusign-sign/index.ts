@@ -1,8 +1,6 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.0';
-import * as docusign from 'https://esm.sh/docusign-esign@6.3.0';
-import { Buffer } from 'https://deno.land/std@0.177.0/io/buffer.ts';
-import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,14 +13,12 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const { url, method, headers } = req;
-
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseKey, {
       global: {
-        headers: { Authorization: headers.get('Authorization')! },
+        headers: { Authorization: req.headers.get('Authorization')! },
       },
     });
 
@@ -60,14 +56,35 @@ serve(async (req) => {
 
     const signerEmail = profile.email;
     const signerName = profile.name;
+    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
+    const accessToken = Deno.env.get('DOCUSIGN_JWT_TOKEN');
+    const basePath = Deno.env.get('DOCUSIGN_BASE_PATH') || 'https://demo.docusign.net/restapi';
+
+    if (!accountId || !accessToken) {
+      return new Response(JSON.stringify({ error: 'DocuSign configuration missing' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Create signers array with current user as first signer
     const signers = [
       {
         email: signerEmail,
         name: signerName,
-        recipientId: '1', // Current user should be first
-        routingOrder: '1' // Current user signs first
+        recipientId: '1',
+        routingOrder: '1',
+        clientUserId: 'client_1',
+        tabs: {
+          signHereTabs: positions
+            .filter((pos: any) => pos.email === signerEmail)
+            .map((pos: any) => ({
+              documentId: '1',
+              pageNumber: pos.pageNumber,
+              xPosition: pos.xPosition,
+              yPosition: pos.yPosition
+            }))
+        }
       }
     ];
 
@@ -77,111 +94,115 @@ serve(async (req) => {
         email: oppositeParty.profiles.email,
         name: oppositeParty.profiles.name,
         recipientId: '2',
-        routingOrder: '2' // Opposite party signs second
+        routingOrder: '2',
+        tabs: {
+          signHereTabs: positions
+            .filter((pos: any) => pos.email === oppositeParty.profiles.email)
+            .map((pos: any) => ({
+              documentId: '1',
+              pageNumber: pos.pageNumber,
+              xPosition: pos.xPosition,
+              yPosition: pos.yPosition
+            }))
+        }
       });
     }
 
-    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
-    const apiClient = new docusign.ApiClient();
-    apiClient.setBasePath(Deno.env.get('DOCUSIGN_BASE_PATH') || '');
-    apiClient.addDefaultHeader('Authorization', `Bearer ${Deno.env.get('DOCUSIGN_JWT_TOKEN')}`);
-
-    const pdfBytes = Uint8Array.from(atob(documentBase64), c => c.charCodeAt(0));
-
-    const document = {
-      documentBase64: btoa(String.fromCharCode(...pdfBytes)),
-      documentId: '1',
-      fileExtension: 'pdf',
-      name: 'Example Document',
-    };
-
     const envelopeDefinition = {
-      accountId: accountId,
       emailSubject: 'Please sign this document',
-      documents: [document],
+      documents: [{
+        documentBase64: documentBase64,
+        documentId: '1',
+        fileExtension: 'pdf',
+        name: 'Document to Sign',
+      }],
       recipients: {
-        signers: signers.map(signer => ({
-          email: signer.email,
-          name: signer.name,
-          recipientId: signer.recipientId,
-          routingOrder: signer.routingOrder,
-          // Set clientUserId only for the current user (first signer)
-          clientUserId: signer.recipientId === '1' ? `client_${signer.recipientId}` : undefined,
-          tabs: {
-            signHereTabs: positions
-              .filter(pos => pos.email === signer.email)
-              .map(pos => ({
-                documentId: '1',
-                pageNumber: pos.pageNumber,
-                xPosition: pos.xPosition,
-                yPosition: pos.yPosition
-              }))
-          }
-        }))
+        signers: signers
       },
       status: 'sent',
     };
 
-    const envelopesApi = new docusign.EnvelopesApi(apiClient);
-    let envelopeSummary;
-    try {
-      envelopeSummary = await envelopesApi.createEnvelope(accountId, envelopeDefinition);
-      console.log('Envelope created:', envelopeSummary);
-    } catch (error) {
-      console.error('Error creating envelope:', error);
-      throw error;
-    }
+    console.log('Creating envelope with definition:', JSON.stringify(envelopeDefinition, null, 2));
 
-    const envelopeId = envelopeSummary.envelopeId;
+    // Create envelope using direct HTTP call
+    const createEnvelopeResponse = await fetch(`${basePath}/v2.1/accounts/${accountId}/envelopes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(envelopeDefinition),
+    });
 
-    const getSigningUrl = async (envelopeId: string) => {
-      console.log('Requesting signing URL from DocuSign...');
-      console.log('Envelope ID:', envelopeId);
-      console.log('API Base Path:', apiClient.getBasePath());
-      console.log('Account ID:', accountId);
-      
-      const recipientViewRequest = {
-        authenticationMethod: 'email',
-        email: signerEmail,
-        userName: signerName,
-        clientUserId: 'client_1', // Always use client_1 for current user
-        returnUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`
-      };
-
-      console.log('Recipient view request:', recipientViewRequest);
-
-      // Step 5: Get the embedded signing URL from DocuSign
-      try {
-        const viewUrl = await envelopesApi.createRecipientView(accountId, envelopeId, recipientViewRequest);
-        console.log('Signing URL:', viewUrl.url);
-        return viewUrl.url;
-      } catch (error) {
-        console.error('Error getting signing URL:', error);
-
-        // Check if the envelope is completed
-        const envelope = await envelopesApi.getEnvelope(accountId, envelopeId);
-        if (envelope.status === 'completed') {
-          console.warn('Envelope is already completed.');
-          return null;
-        }
-
-        throw error;
-      }
-    };
-
-    const signingUrl = await getSigningUrl(envelopeId);
-
-    if (!signingUrl) {
-      return new Response(JSON.stringify({ completed: true }), {
-        status: 200,
+    if (!createEnvelopeResponse.ok) {
+      const errorText = await createEnvelopeResponse.text();
+      console.error('Error creating envelope:', errorText);
+      return new Response(JSON.stringify({ error: 'Failed to create envelope', details: errorText }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ url: signingUrl }), {
+    const envelopeResult = await createEnvelopeResponse.json();
+    const envelopeId = envelopeResult.envelopeId;
+
+    console.log('Envelope created successfully:', envelopeId);
+
+    // Get the embedded signing URL
+    const recipientViewRequest = {
+      authenticationMethod: 'email',
+      email: signerEmail,
+      userName: signerName,
+      clientUserId: 'client_1',
+      returnUrl: `${supabaseUrl}/functions/v1/docusign-callback?envelopeId=${envelopeId}`
+    };
+
+    console.log('Requesting signing URL with:', JSON.stringify(recipientViewRequest, null, 2));
+
+    const signingUrlResponse = await fetch(`${basePath}/v2.1/accounts/${accountId}/envelopes/${envelopeId}/views/recipient`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(recipientViewRequest),
+    });
+
+    if (!signingUrlResponse.ok) {
+      const errorText = await signingUrlResponse.text();
+      console.error('Error getting signing URL:', errorText);
+      
+      // Check if envelope is already completed
+      const envelopeStatusResponse = await fetch(`${basePath}/v2.1/accounts/${accountId}/envelopes/${envelopeId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (envelopeStatusResponse.ok) {
+        const envelopeStatus = await envelopeStatusResponse.json();
+        if (envelopeStatus.status === 'completed') {
+          return new Response(JSON.stringify({ completed: true }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ error: 'Failed to get signing URL', details: errorText }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const signingUrlResult = await signingUrlResponse.json();
+    console.log('Signing URL obtained:', signingUrlResult.url);
+
+    return new Response(JSON.stringify({ url: signingUrlResult.url }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (error) {
     console.error('Function error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
