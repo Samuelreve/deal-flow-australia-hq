@@ -476,13 +476,24 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         };
       });
       
+      // Find the current user in the signers list to get their correct name
+      const currentUserSigner = signers.find(signer => signer.email === user.email);
+      const signerName = currentUserSigner?.name || user.email;
+      
+      console.log('DocuSign request details:', {
+        signerEmail: user.email,
+        signerName,
+        totalSigners: signers.length,
+        signersWithPositions: signersWithPositions.map(s => ({ email: s.email, name: s.name, recipientId: s.recipientId }))
+      });
+      
       // Call DocuSign edge function to initiate signing
       const { data, error } = await supabase.functions.invoke('docusign-sign', {
         body: {
           documentId: selectedDocument.id,
           dealId,
           signerEmail: user.email,
-          signerName: signers[0]?.name || user.email,
+          signerName,
           signerRole: userRole.toLowerCase(),
           buyerEmail: signers[1]?.email,
           buyerName: signers[1]?.name,

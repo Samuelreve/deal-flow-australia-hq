@@ -803,15 +803,17 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   
   if (requestingSigner) {
     // The requesting signer is one of the assigned signers
-    // Check if this signer should have embedded signing (clientUserId set)
-    const shouldHaveEmbeddedSigning = requestingSigner.email === signerEmail;
+    // Only try to get embedded signing URL if this signer has clientUserId set during envelope creation
+    // clientUserId is only set for the requesting signer (signerEmail parameter)
+    console.log(`Requesting signer found: ${requestingSigner.email}, checking for embedded signing capability`);
     
-    if (shouldHaveEmbeddedSigning) {
-      // This signer has clientUserId set during envelope creation, get their signing URL
+    try {
+      // Get their signing URL using the recipientId as clientUserId (must match what was set during envelope creation)
       signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
-    } else {
-      // This signer doesn't have clientUserId set, they will receive an email instead
-      console.log('Signer will receive signing invitation via email (not embedded signing)');
+      console.log('Successfully generated embedded signing URL for requesting signer');
+    } catch (error) {
+      console.error('Failed to generate embedded signing URL:', error);
+      console.log('Signer will receive signing invitation via email instead');
     }
   } else {
     // The requesting signer is not one of the assigned signers (e.g., admin creating envelope for others)
@@ -1202,7 +1204,7 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     recipientViewRequest.authenticationMethod = 'email';
     recipientViewRequest.email = recipientEmail;
     recipientViewRequest.userName = recipientName;
-    recipientViewRequest.clientUserId = recipientId; // This must match the clientUserId set during envelope creation
+    recipientViewRequest.clientUserId = recipientId; // Use recipientId as clientUserId (matches envelope creation logic)
     recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
     
     console.log('Recipient view request:', {
