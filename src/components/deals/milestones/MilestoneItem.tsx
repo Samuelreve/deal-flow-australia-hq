@@ -443,8 +443,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         });
       }
 
-      // Directly initiate DocuSign signing
-      await initiateDocuSignSigning(documentId, signersList);
+      // Set up for signature positioning
+      setSelectedDocument({ id: documentId, url: urlData.signedUrl, name: document.name });
+      setSigners(signersList);
+      setIsSignatureModalOpen(true);
 
     } catch (error: any) {
       console.error('Error preparing document for positioning:', error);
