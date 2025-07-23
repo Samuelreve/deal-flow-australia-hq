@@ -802,8 +802,17 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   let signingUrl = null;
   
   if (requestingSigner) {
-    // The requesting signer is one of the assigned signers, get their signing URL
-    signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
+    // The requesting signer is one of the assigned signers
+    // Check if this signer should have embedded signing (clientUserId set)
+    const shouldHaveEmbeddedSigning = requestingSigner.email === signerEmail;
+    
+    if (shouldHaveEmbeddedSigning) {
+      // This signer has clientUserId set during envelope creation, get their signing URL
+      signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
+    } else {
+      // This signer doesn't have clientUserId set, they will receive an email instead
+      console.log('Signer will receive signing invitation via email (not embedded signing)');
+    }
   } else {
     // The requesting signer is not one of the assigned signers (e.g., admin creating envelope for others)
     console.log('Requesting signer is not in the signers list - envelope created for assigned users only');
@@ -1193,7 +1202,7 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     recipientViewRequest.authenticationMethod = 'email';
     recipientViewRequest.email = recipientEmail;
     recipientViewRequest.userName = recipientName;
-    recipientViewRequest.clientUserId = recipientId; // Must match the clientUserId set during envelope creation
+    recipientViewRequest.clientUserId = recipientId; // This must match the clientUserId set during envelope creation
     recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
     
     console.log('Recipient view request:', {
