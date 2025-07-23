@@ -793,7 +793,8 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       name: document.name
     },
     signers,
-    accessToken
+    accessToken,
+    signerEmail
   });
 
   // Get signing URL for the requesting signer
@@ -1032,6 +1033,7 @@ async function createDocuSignEnvelope(params: {
   document: EnvelopeDocument;
   signers: EnvelopeRecipient[];
   accessToken: string;
+  signerEmail: string;
 }): Promise<{ envelopeId: string }> {
   try {
     console.log('Creating DocuSign envelope using SDK...');
@@ -1089,9 +1091,9 @@ async function createDocuSignEnvelope(params: {
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
       
-      // Only set clientUserId for the first signer (the requesting signer)
-      // DocuSign requires only ONE signer to have clientUserId for embedded signing
-      if (index === 0) {
+      // Set clientUserId only for the signer who matches the requesting signerEmail
+      // This enables embedded signing for that specific signer
+      if (signerInfo.email === params.signerEmail) {
         signer.clientUserId = signerInfo.recipientId;
       }
       
