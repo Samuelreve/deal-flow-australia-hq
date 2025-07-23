@@ -443,10 +443,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         });
       }
 
-      // Set up for signature positioning
-      setSelectedDocument({ id: documentId, url: urlData.signedUrl, name: document.name });
-      setSigners(signersList);
-      setIsSignatureModalOpen(true);
+      // Directly initiate DocuSign signing
+      await initiateDocuSignSigning(documentId, signersList);
 
     } catch (error: any) {
       console.error('Error preparing document for positioning:', error);
@@ -455,6 +453,112 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         description: error.message || 'Failed to prepare document',
         variant: 'destructive'
       });
+    }
+  };
+
+  const initiateDocuSignSigning = async (documentId: string, signersList: Array<{email: string, name: string, recipientId: string}>) => {
+    if (!user) return;
+
+    setSigningInProgress(true);
+    try {
+      console.log('Starting direct DocuSign process');
+
+      // Prepare signers with default positions (no positioning modal)
+      const signersWithPositions = signersList.map(signer => ({
+        ...signer,
+        xPosition: '100',
+        yPosition: '200',
+        pageNumber: '1'
+      }));
+      
+      // Find the current user in the signers list to get their correct name
+      const currentUserSigner = signersList.find(signer => signer.email === user.email);
+      const signerName = currentUserSigner?.name || user.email;
+      
+      console.log('DocuSign request details:', {
+        signerEmail: user.email,
+        signerName,
+        totalSigners: signersList.length,
+        signersWithPositions: signersWithPositions.map(s => ({ email: s.email, name: s.name, recipientId: s.recipientId }))
+      });
+      
+      // Call DocuSign edge function to initiate signing
+      const { data, error } = await supabase.functions.invoke('docusign-sign', {
+        body: {
+          documentId: documentId,
+          dealId,
+          signerEmail: user.email,
+          signerName,
+          signerRole: userRole.toLowerCase(),
+          buyerEmail: signersList[1]?.email,
+          buyerName: signersList[1]?.name,
+          signaturePositions: signersWithPositions
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
+        console.log('DocuSign envelope created successfully:', data);
+        
+        // Check if we have a signing URL for embedded signing
+        if (data.signingUrl) {
+          console.log('Got signing URL from DocuSign:', data.signingUrl);
+          
+          // Open DocuSign signing URL in current window for embedded signing
+          window.location.href = data.signingUrl;
+          
+          toast({
+            title: 'Redirecting to DocuSign',
+            description: 'Opening DocuSign interface for signing...'
+          });
+        } else {
+          // No signing URL - user will receive email invitation
+          console.log('No signing URL provided - email invitations sent to all signers');
+          toast({
+            title: 'Document sent for signing',
+            description: 'All assigned signers will receive email invitations to sign the document.'
+          });
+        }
+
+        // Refresh signature status after a delay
+        setTimeout(() => {
+          checkDocumentSignatures();
+        }, 2000);
+      } else {
+        console.error('DocuSign envelope creation failed');
+        toast({
+          title: 'Failed to initiate signing',
+          description: 'There was an error creating the DocuSign envelope.',
+          variant: 'destructive'
+        });
+      }
+
+    } catch (error: any) {
+      console.error('Error starting DocuSign process:', error);
+      
+      // Check if this is a consent required error
+      if (error.message && error.message.startsWith('CONSENT_REQUIRED:')) {
+        const consentUrl = error.message.split('CONSENT_REQUIRED:')[1];
+        
+        toast({
+          title: 'DocuSign consent required',
+          description: 'Opening consent page in new tab. Please grant consent and try again.',
+        });
+        
+        window.open(consentUrl, '_blank');
+        return;
+      }
+      
+      toast({
+        title: 'Signing failed',
+        description: error.message || 'Failed to start document signing process',
+        variant: 'destructive'
+      });
+    } finally {
+      setSigningInProgress(false);
     }
   };
 
