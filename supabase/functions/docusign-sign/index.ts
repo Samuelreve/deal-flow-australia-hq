@@ -797,12 +797,17 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     signerEmail
   });
 
-  // Get signing URL for the requesting signer
+  // Get signing URL for the requesting signer (only if they are one of the signers)
   const requestingSigner = signers.find(s => s.email === signerEmail);
-  if (!requestingSigner) {
-    throw new Error('Requesting signer not found in signers list');
+  let signingUrl = null;
+  
+  if (requestingSigner) {
+    // The requesting signer is one of the assigned signers, get their signing URL
+    signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
+  } else {
+    // The requesting signer is not one of the assigned signers (e.g., admin creating envelope for others)
+    console.log('Requesting signer is not in the signers list - envelope created for assigned users only');
   }
-  const signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
 
   // Store envelope information in database
   await supabase
@@ -819,8 +824,9 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   return new Response(
     JSON.stringify({
       success: true,
-      signingUrl,
-      envelopeId: envelope.envelopeId
+      signingUrl: signingUrl || null,
+      envelopeId: envelope.envelopeId,
+      message: signingUrl ? 'Envelope created and signing URL generated' : 'Envelope created for assigned signers'
     }),
     {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
