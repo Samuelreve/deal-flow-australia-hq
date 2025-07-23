@@ -1089,9 +1089,11 @@ async function createDocuSignEnvelope(params: {
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
       
-      // Set clientUserId for the requesting signer (the one who will get the signing URL)
-      // This is determined by the docusign-sign call context
-      signer.clientUserId = signerInfo.recipientId;
+      // Only set clientUserId for the requesting signer (for embedded signing)
+      // Others will receive email notifications for remote signing
+      if (signerInfo.email === params.signerEmail) {
+        signer.clientUserId = signerInfo.recipientId;
+      }
       
       // Add signature tabs with coordinates
       const signHere = new SignHere();
