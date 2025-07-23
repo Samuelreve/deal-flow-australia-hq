@@ -505,35 +505,52 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         throw error;
       }
 
-      if (data?.signingUrl) {
-        console.log('Got signing URL from DocuSign:', data.signingUrl);
+      if (data?.success) {
+        console.log('DocuSign envelope created successfully:', data);
         
-        // Open DocuSign signing URL in new window
-        const newWindow = window.open(data.signingUrl, '_blank');
-        
-        if (newWindow) {
-          console.log('New tab opened successfully');
+        // Check if we have a signing URL (embedded signing) or using email-based signing
+        if (data.signingUrl) {
+          console.log('Got signing URL from DocuSign:', data.signingUrl);
+          
+          // Open DocuSign signing URL in new window
+          const newWindow = window.open(data.signingUrl, '_blank');
+          
+          if (newWindow) {
+            console.log('New tab opened successfully');
+          } else {
+            console.warn('Failed to open new tab - may be blocked by popup blocker');
+            window.location.href = data.signingUrl;
+          }
+          
+          toast({
+            title: 'Document signing initiated',
+            description: 'Please complete the signing process in the new window.'
+          });
         } else {
-          console.warn('Failed to open new tab - may be blocked by popup blocker');
-          window.location.href = data.signingUrl;
+          // Email-based signing workflow
+          console.log('Email-based signing initiated - all signers will receive email invitations');
+          toast({
+            title: 'Document sent for signing',
+            description: 'All assigned signers will receive email invitations to sign the document.'
+          });
         }
         
         // Close the modals
         setIsSignatureModalOpen(false);
         setSelectedDocument(null);
         setSigners([]);
-        
-        toast({
-          title: 'Document signing initiated',
-          description: 'Please complete the signing process in the new window.'
-        });
 
         // Refresh signature status after a delay
         setTimeout(() => {
           checkDocumentSignatures();
         }, 2000);
       } else {
-        console.error('No signing URL received from DocuSign API');
+        console.error('DocuSign envelope creation failed');
+        toast({
+          title: 'Failed to initiate signing',
+          description: 'There was an error creating the DocuSign envelope.',
+          variant: 'destructive'
+        });
       }
 
     } catch (error: any) {
