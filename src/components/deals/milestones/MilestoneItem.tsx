@@ -70,11 +70,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Permission to upload documents for milestones (admins only)
   const canUploadMilestoneDocuments = isParticipant && ['admin'].includes(userRole.toLowerCase());
   
-  // Permission to sign milestone documents (assigned users and admins, only when milestone is in progress)
-  const canSignMilestoneDocuments = isParticipant && 
-    milestone.status === 'in_progress' && 
-    (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && 
-    milestoneDocuments.length > 0;
+  // Permission to sign milestone documents (assigned users and admins)
+  const canSignMilestoneDocuments = isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && milestoneDocuments.length > 0;
   
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
@@ -238,11 +235,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     }
   };
   
-  // Prevent completing milestone if documents exist but aren't signed
-  const hasUnsignedDocuments = milestoneDocuments.length > 0 && milestoneSigningStatus !== 'completed';
+  // Prevent completing Document Signing if documents aren't signed
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
-    (!isDocumentSigning || signingStatus === 'completed') &&
-    !hasUnsignedDocuments;
+    (!isDocumentSigning || signingStatus === 'completed');
 
   const handleSignDocument = async () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
@@ -793,16 +788,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             </div>
           </div>
         )}
-
-        {/* Document signing requirement message */}
-        {milestoneDocuments.length > 0 && milestone.status === 'in_progress' && hasUnsignedDocuments && (
-          <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md border border-red-200">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-2" />
-              Please sign the document before completing this milestone
-            </div>
-          </div>
-        )}
         
         {/* Add the explain button */}
         {isParticipant && (
@@ -893,8 +878,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     milestoneTitle: milestone.title,
                     isDocumentSigning,
                     signingStatus,
-                    hasUnsignedDocuments,
-                    canMarkAsCompleted,
                     canUpdateMilestone,
                     userRole,
                     assignedTo: milestone.assigned_to,
@@ -902,43 +885,21 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   });
                   
                   if (isDocumentSigning && signingStatus !== 'completed') {
-                    console.log('❌ Blocking completion - Document Signing milestone - documents not signed');
-                    toast({
-                      title: 'Documents must be signed',
-                      description: 'Documents must be signed by all parties before completing the Document Signing milestone.',
-                      variant: 'destructive'
-                    });
-                    return;
-                  }
-
-                  if (hasUnsignedDocuments) {
-                    console.log('❌ Blocking completion - milestone has unsigned documents');
-                    toast({
-                      title: 'Documents must be signed',
-                      description: 'Please sign all milestone documents before completing this milestone.',
-                      variant: 'destructive'
-                    });
+                    console.log('❌ Blocking completion - documents not signed');
+                    alert('Documents must be signed by all parties before completing the Document Signing milestone.');
                     return;
                   }
                   
                   console.log('✅ Proceeding with milestone completion');
                   onUpdateStatus(milestone.id, 'completed');
                 }}
-                disabled={updatingMilestoneId === milestone.id || !canMarkAsCompleted}
+                disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                  !canMarkAsCompleted
+                  isDocumentSigning && signingStatus !== 'completed' 
                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                     : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
                 } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={
-                  !canMarkAsCompleted 
-                    ? hasUnsignedDocuments 
-                      ? 'Please sign all milestone documents first'
-                      : isDocumentSigning && signingStatus !== 'completed' 
-                      ? 'Documents must be signed by all parties first' 
-                      : 'Cannot complete milestone'
-                    : ''
-                }
+                title={isDocumentSigning && signingStatus !== 'completed' ? 'Documents must be signed by all parties first' : ''}
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
               </button>

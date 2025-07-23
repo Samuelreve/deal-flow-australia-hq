@@ -111,24 +111,13 @@ serve(async (req: Request) => {
 
     // Get the deal ID for redirect (from signature record or URL param)
     let redirectDealId = dealId;
-    
-    // Try to get deal ID from webhook envelope ID (both query param and webhook body)
-    const finalEnvelopeId = webhookEnvelopeId || envelopeId;
-    
-    if (!redirectDealId && finalEnvelopeId) {
-      console.log('🔍 Looking up deal ID for envelope:', finalEnvelopeId);
-      const { data: signature, error: signatureError } = await supabase
+    if (!redirectDealId && envelopeId) {
+      const { data: signature } = await supabase
         .from('document_signatures')
         .select('deal_id')
-        .eq('envelope_id', finalEnvelopeId)
+        .eq('envelope_id', envelopeId)
         .single();
-      
-      if (signatureError) {
-        console.error('Error finding signature record:', signatureError);
-      } else {
-        redirectDealId = signature?.deal_id;
-        console.log('📋 Found deal ID from signature:', redirectDealId);
-      }
+      redirectDealId = signature?.deal_id;
     }
 
     // Determine redirect URL - redirect to deal details page
