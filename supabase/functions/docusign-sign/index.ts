@@ -644,7 +644,31 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   );
 
   console.log('Parsing request body...');
-  const { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, signaturePositions }: DocuSignRequest = await req.json();
+  const requestBody = await req.json();
+  console.log('Raw request body:', requestBody);
+  
+  const { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, signaturePositions }: DocuSignRequest = requestBody;
+
+  // Validate required parameters
+  if (!documentId || !dealId || !signerEmail || !signerName || !signerRole) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Missing required parameters',
+        required: ['documentId', 'dealId', 'signerEmail', 'signerName', 'signerRole'],
+        received: {
+          documentId: !!documentId,
+          dealId: !!dealId,
+          signerEmail: !!signerEmail,
+          signerName: !!signerName,
+          signerRole: !!signerRole
+        }
+      }),
+      { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      }
+    );
+  }
 
   console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, hasPositions: !!signaturePositions });
 
