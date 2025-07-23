@@ -808,9 +808,17 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     console.log(`Requesting signer found: ${requestingSigner.email}, checking for embedded signing capability`);
     
     try {
-      // Get their signing URL using the recipientId as clientUserId (must match what was set during envelope creation)
-      signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
-      console.log('Successfully generated embedded signing URL for requesting signer');
+      // Get their signing URL - check if this signer was assigned clientUserId during envelope creation
+      // Only signers with clientUserId can have embedded signing
+      const hasClientUserId = requestingSigner.email === signerEmail; // Only requesting signer gets clientUserId
+      
+      if (hasClientUserId) {
+        console.log('Attempting to generate embedded signing URL for requesting signer');
+        signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
+        console.log('Successfully generated embedded signing URL for requesting signer');
+      } else {
+        console.log('This signer does not have clientUserId - cannot generate embedded signing URL');
+      }
     } catch (error) {
       console.error('Failed to generate embedded signing URL:', error);
       console.log('Signer will receive signing invitation via email instead');
@@ -1225,8 +1233,8 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
     // Set authentication
     apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
     
-    // First check the envelope status - it must be "sent" to create a recipient view
-    console.log('Checking envelope status before creating recipient view...');
+    // First check the envelope status and recipients
+    console.log('Checking envelope status and recipients before creating recipient view...');
     try {
       const envelopeInfo = await envelopesApi.getEnvelope(accountId, envelopeId);
       console.log('Envelope status:', envelopeInfo.status);
@@ -1235,6 +1243,45 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
         statusChangedDateTime: envelopeInfo.statusChangedDateTime,
         emailSubject: envelopeInfo.emailSubject
       });
+      
+      // Get recipients to verify clientUserId setup
+      try {
+        const recipients = await envelopesApi.listRecipients(accountId, envelopeId);
+        console.log('Envelope recipients:', recipients.signers?.map(s => ({
+          email: s.email,
+          name: s.name,
+          recipientId: s.recipientId,
+          clientUserId: s.clientUserId,
+          status: s.status,
+          routingOrder: s.routingOrder
+        })));
+        
+        // Find the requesting recipient
+        const requestingRecipient = recipients.signers?.find(s => s.recipientId === recipientId);
+        if (requestingRecipient) {
+          console.log('Target recipient details:', {
+            email: requestingRecipient.email,
+            recipientId: requestingRecipient.recipientId,
+            clientUserId: requestingRecipient.clientUserId,
+            status: requestingRecipient.status
+          });
+          
+          if (!requestingRecipient.clientUserId) {
+            throw new Error('Recipient does not have clientUserId - embedded signing not available');
+          }
+          
+          if (requestingRecipient.clientUserId !== `client_${recipientId}`) {
+            console.error('clientUserId mismatch!');
+            console.error('Expected:', `client_${recipientId}`);
+            console.error('Actual:', requestingRecipient.clientUserId);
+            throw new Error(`clientUserId mismatch. Expected: client_${recipientId}, Actual: ${requestingRecipient.clientUserId}`);
+          }
+        } else {
+          throw new Error(`Recipient with ID ${recipientId} not found in envelope`);
+        }
+      } catch (recipientError) {
+        console.error('Failed to get envelope recipients:', recipientError);
+      }
       
       if (envelopeInfo.status !== 'sent') {
         console.error('Envelope is not in sent status. Current status:', envelopeInfo.status);
@@ -1266,17 +1313,29 @@ async function getSigningUrl(envelopeId: string, recipientId: string, accessToke
         message: apiError.message,
         status: apiError.status,
         statusText: apiError.statusText,
-        response: apiError.response?.body || apiError.response?.text || apiError.response,
+        response: apiError.response?.data || apiError.response?.body || apiError.response?.text || apiError.response,
         headers: apiError.response?.headers
       });
       
-      // Try to get the response body text for more details
-      if (apiError.response?.res) {
-        try {
-          const responseText = await apiError.response.res.text();
-          console.error('DocuSign Response Body:', responseText);
-        } catch (e) {
-          console.error('Could not read response body:', e);
+      // Try to get more detailed error information
+      if (apiError.response) {
+        const response = apiError.response;
+        console.error('Full API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          body: response.body,
+          headers: response.headers
+        });
+        
+        // If it's a 400 error, it's likely an issue with the clientUserId or envelope state
+        if (response.status === 400) {
+          console.error('400 Bad Request - Possible issues:');
+          console.error('1. clientUserId mismatch between envelope creation and recipient view');
+          console.error('2. Envelope not ready for embedded signing');
+          console.error('3. Recipient not configured for embedded signing');
+          console.error('Current clientUserId:', recipientViewRequest.clientUserId);
+          console.error('Expected format: client_<recipientId>');
         }
       }
       
