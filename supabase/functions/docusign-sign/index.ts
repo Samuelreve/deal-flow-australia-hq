@@ -688,16 +688,27 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
   if (signaturePositions && signaturePositions.length > 0) {
     // Use the provided signature positions
-    signers = signaturePositions.map((pos, index) => ({
-      email: pos.email,
-      name: pos.name,
-      recipientId: pos.recipientId,
-      routingOrder: (index + 1).toString(),
-      xPosition: pos.xPosition,
-      yPosition: pos.yPosition,
-      pageNumber: pos.pageNumber
-    }));
-    console.log('Using provided signature positions:', signers);
+    signers = signaturePositions.map((pos, index) => {
+      // Set requesting signer to routing order 1, others to 2
+      const isRequestingSigner = pos.email === signerEmail;
+      
+      return {
+        email: pos.email,
+        name: pos.name,
+        recipientId: pos.recipientId,
+        routingOrder: isRequestingSigner ? "1" : "2",
+        xPosition: pos.xPosition,
+        yPosition: pos.yPosition,
+        pageNumber: pos.pageNumber
+      };
+    });
+    console.log('Signers configuration:', signers.map(s => ({
+      email: s.email,
+      name: s.name,
+      recipientId: s.recipientId,
+      routingOrder: s.routingOrder,
+      isRequestingSigner: s.email === signerEmail
+    })));
   } else {
     // Fallback to legacy behavior - find opposite party
     const { data: participants, error: participantsError } = await supabase
@@ -808,7 +819,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
   console.log('✅ Successfully obtained DocuSign access token using SDK');
 
-  // Create envelope for signing
+  // Create envelope for signing  
   const envelope = await createDocuSignEnvelope({
     document: {
       documentBase64,
