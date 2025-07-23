@@ -797,36 +797,19 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     signerEmail
   });
 
-  // Get signing URL for the requesting signer (only if they are one of the signers)
-  const requestingSigner = signers.find(s => s.email === signerEmail);
+  // Use email-based signing for all document types (more reliable than embedded signing)
+  // All signers will receive email invitations to sign the document
   let signingUrl = null;
   
+  const requestingSigner = signers.find(s => s.email === signerEmail);
   if (requestingSigner) {
-    // The requesting signer is one of the assigned signers
-    // Only try to get embedded signing URL if this signer has clientUserId set during envelope creation
-    // clientUserId is only set for the requesting signer (signerEmail parameter)
-    console.log(`Requesting signer found: ${requestingSigner.email}, checking for embedded signing capability`);
-    
-    try {
-      // Get their signing URL - check if this signer was assigned clientUserId during envelope creation
-      // Only signers with clientUserId can have embedded signing
-      const hasClientUserId = requestingSigner.email === signerEmail; // Only requesting signer gets clientUserId
-      
-      if (hasClientUserId) {
-        console.log('Attempting to generate embedded signing URL for requesting signer');
-        signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
-        console.log('Successfully generated embedded signing URL for requesting signer');
-      } else {
-        console.log('This signer does not have clientUserId - cannot generate embedded signing URL');
-      }
-    } catch (error) {
-      console.error('Failed to generate embedded signing URL:', error);
-      console.log('Signer will receive signing invitation via email instead');
-    }
+    console.log(`Requesting signer found: ${requestingSigner.email} - document sent via email for signing`);
+    console.log('Using email-based signing workflow (more reliable than embedded signing)');
   } else {
-    // The requesting signer is not one of the assigned signers (e.g., admin creating envelope for others)
     console.log('Requesting signer is not in the signers list - envelope created for assigned users only');
   }
+  
+  // Note: signingUrl remains null to indicate email-based signing is being used
 
   // Store envelope information in database
   await supabase
@@ -1116,13 +1099,11 @@ async function createDocuSignEnvelope(params: {
       signer.recipientId = signerInfo.recipientId;
       signer.routingOrder = signerInfo.routingOrder;
       
-      // Set clientUserId only for the signer who matches the requesting signerEmail
-      // This enables embedded signing for that specific signer
-      // Use a consistent clientUserId format
-      if (signerInfo.email === params.signerEmail) {
-        signer.clientUserId = `client_${signerInfo.recipientId}`;
-        console.log(`Setting clientUserId for ${signerInfo.email}: client_${signerInfo.recipientId}`);
-      }
+      // For reliability, use email-based signing instead of embedded signing
+      // This approach works consistently for all document types
+      // Do not set clientUserId to use email-based signing flow
+      console.log(`Configuring email-based signing for ${signerInfo.email}`);
+      // Note: clientUserId is intentionally not set to enable email-based signing
       
       // Add signature tabs with coordinates
       const signHere = new SignHere();
