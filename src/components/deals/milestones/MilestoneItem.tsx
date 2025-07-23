@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getDocumentTypeForSigning } from '@/utils/fileUtils';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface MilestoneItemProps {
   milestone: Milestone;
@@ -54,14 +53,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
   const [milestoneMessages, setMilestoneMessages] = useState<string[]>([]);
-  const [realTimeSigningStatus, setRealTimeSigningStatus] = useState<{
-    envelopeId?: string;
-    status?: string;
-    lastUpdate?: string;
-  }>({});
-  
-  // Reference for real-time channel
-  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Determine if the current user has permission to update milestone status
   // Admin can always update, assigned user can update, or seller can update unassigned milestones
@@ -115,58 +106,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [isDocumentSigning]);
-
-  // Set up real-time listening for signing status updates
-  useEffect(() => {
-    if (!dealId) return;
-
-    // Create a channel for this deal
-    const channel = supabase.channel(`deal_${dealId}`)
-      .on('broadcast', { event: 'signature_update' }, (payload) => {
-        console.log('📡 Received real-time signature update:', payload);
-        
-        setRealTimeSigningStatus({
-          envelopeId: payload.payload.envelopeId,
-          status: payload.payload.status,
-          lastUpdate: payload.payload.timestamp
-        });
-
-        // Show toast notification
-        const statusMessages = {
-          sent: 'Document sent for signing',
-          delivered: 'Document delivered to recipient',
-          completed: 'Document signed successfully!',
-          declined: 'Document signing was declined',
-          voided: 'Document signing was cancelled'
-        };
-
-        const message = statusMessages[payload.payload.status as keyof typeof statusMessages] || 
-                       `Document status: ${payload.payload.status}`;
-
-        toast({
-          title: 'Signing Status Update',
-          description: message,
-          variant: payload.payload.status === 'completed' ? 'default' : 'default'
-        });
-
-        // Refresh signature status after receiving real-time update
-        if (isDocumentSigning) {
-          setTimeout(() => {
-            checkDocumentSignatures();
-          }, 1000);
-        }
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-
-    // Cleanup on unmount
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, [dealId, isDocumentSigning, toast]);
 
   const fetchMilestoneDocuments = async () => {
     try {
@@ -981,26 +920,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {/* Document Signing Workflow - Show for Document Signing milestone when in progress */}
       {isDocumentSigning && milestone.status === 'in_progress' && (
         <div className="mt-3 flex flex-col gap-3">
-          {/* Real-time Signing Status Indicator */}
-          {realTimeSigningStatus.status && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <p className="text-sm font-medium text-blue-800">
-                  Real-time status: {realTimeSigningStatus.status === 'sent' ? 'Document sent for signing' :
-                                   realTimeSigningStatus.status === 'delivered' ? 'Document delivered to recipient' :
-                                   realTimeSigningStatus.status === 'completed' ? 'Document signed successfully!' :
-                                   realTimeSigningStatus.status}
-                </p>
-              </div>
-              {realTimeSigningStatus.lastUpdate && (
-                <p className="text-xs text-blue-600 mt-1">
-                  Last updated: {new Date(realTimeSigningStatus.lastUpdate).toLocaleTimeString()}
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Sign Document Button - Show when not started or can start signing */}
           {signingStatus === 'not_started' && (
             <div className="flex gap-2">
