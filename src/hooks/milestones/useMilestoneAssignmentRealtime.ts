@@ -29,16 +29,6 @@ export function useMilestoneAssignmentRealtime(
 
     console.log('🟡 Setting up real-time milestone assignment subscription for:', { dealId, milestoneId });
 
-    // We need to get milestones for this deal to filter assignments
-    let filter = '';
-    if (milestoneId) {
-      filter = `milestone_id=eq.${milestoneId}`;
-    } else if (dealId) {
-      // For deal-level subscriptions, we'll need to filter based on milestones in that deal
-      // This is more complex, so we'll use a different approach
-      filter = '';
-    }
-
     const channelName = milestoneId 
       ? `milestone_assignments:milestone:${milestoneId}` 
       : `milestone_assignments:deal:${dealId}`;
