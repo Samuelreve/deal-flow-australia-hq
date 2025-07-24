@@ -163,7 +163,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       });
 
       // Check signing status and show appropriate messages
-      if (milestoneSigningStatus === 'partially_completed') {
+      if (milestoneSigningStatus === 'sent' && milestone.assigned_to === user?.id && !userHasSigned) {
+        // Document has been sent for signing and assigned user hasn't signed yet
+        messages.push(`Opposite has signed. Please check your email and sign the document.`);
+      } else if (milestoneSigningStatus === 'partially_completed') {
         if (milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
           // Assigned user hasn't signed yet but others have
           const signerNamesText = signerNames.join(', ');
