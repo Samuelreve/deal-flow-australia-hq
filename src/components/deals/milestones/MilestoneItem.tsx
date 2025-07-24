@@ -45,12 +45,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string, name: string} | null>(null);
   const [signers, setSigners] = useState<Array<{email: string, name: string, recipientId: string}>>([]);
-  const [documentsAreSigned, setDocumentsAreSigned] = useState(false);
-  const [checkingSignatures, setCheckingSignatures] = useState(false);
   const [signingInProgress, setSigningInProgress] = useState(false);
   const [downloadingSignedDoc, setDownloadingSignedDoc] = useState(false);
   const [documentSaved, setDocumentSaved] = useState(false);
-  const [signingStatus, setSigningStatus] = useState<'not_started' | 'partially_signed' | 'completed'>('not_started');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
@@ -87,27 +84,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     fetchMilestoneMessages();
   }, [milestone.id]);
 
-  // Check if documents are signed for this deal
-  useEffect(() => {
-    if (isDocumentSigning) {
-      checkDocumentSignatures();
-    }
-  }, [dealId, isDocumentSigning]);
-
-  // Re-check signatures when window regains focus (user returns from DocuSign)
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isDocumentSigning) {
-        // Add a small delay to ensure callback has processed
-        setTimeout(() => {
-          checkDocumentSignatures();
-        }, 1000);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isDocumentSigning]);
+  // Use the milestone signing status from the hook instead of local checks
 
   const fetchMilestoneDocuments = async () => {
     try {
@@ -186,58 +163,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     await handleDocumentSelected(documentId);
   };
 
-  const checkDocumentSignatures = async () => {
-    if (!dealId) return;
-    
-    setCheckingSignatures(true);
-    try {
-      // Check for all signatures for this deal (both completed and sent)
-      const { data: allSignatures, error } = await supabase
-        .from('document_signatures')
-        .select('*')
-        .eq('deal_id', dealId);
-
-      if (error) {
-        console.error('Error checking signatures:', error);
-        return;
-      }
-
-      // Check completed signatures
-      const completedSignatures = allSignatures?.filter(sig => sig.status === 'completed') || [];
-      const buyerSigned = completedSignatures.some(sig => sig.signer_role === 'buyer');
-      const sellerSigned = completedSignatures.some(sig => sig.signer_role === 'seller');
-      const adminSigned = completedSignatures.some(sig => sig.signer_role === 'admin');
-      
-      // Check if any signatures are sent (waiting for signature)
-      const sentSignatures = allSignatures?.filter(sig => sig.status === 'sent') || [];
-      
-      // Update signing status based on signatures
-      // Admin can act as either buyer or seller, so if admin signed, consider it complete
-      // Or if both buyer and seller signed, it's complete
-      if ((buyerSigned && sellerSigned) || adminSigned) {
-        setSigningStatus('completed');
-        setDocumentsAreSigned(true);
-      } else if (sentSignatures.length > 0) {
-        setSigningStatus('partially_signed');
-        setDocumentsAreSigned(false);
-      } else if (completedSignatures.length > 0) {
-        setSigningStatus('partially_signed');
-        setDocumentsAreSigned(false);
-      } else {
-        setSigningStatus('not_started');
-        setDocumentsAreSigned(false);
-      }
-      
-    } catch (error) {
-      console.error('Error checking document signatures:', error);
-    } finally {
-      setCheckingSignatures(false);
-    }
-  };
+  // Remove the local checkDocumentSignatures function - use the hook instead
   
   // Prevent completing Document Signing if documents aren't signed
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
-    (!isDocumentSigning || signingStatus === 'completed');
+    (!isDocumentSigning || milestoneSigningStatus === 'completed');
 
   const handleSignDocument = async () => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
@@ -527,10 +457,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           });
         }
 
-        // Refresh signature status after a delay
-        setTimeout(() => {
-          checkDocumentSignatures();
-        }, 2000);
+        // Status will be updated automatically via the hook's real-time subscription
       } else {
         console.error('DocuSign envelope creation failed');
         toast({
@@ -641,10 +568,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         setSelectedDocument(null);
         setSigners([]);
 
-        // Refresh signature status after a delay
-        setTimeout(() => {
-          checkDocumentSignatures();
-        }, 2000);
+        // Status will be updated automatically via the hook's real-time subscription
       } else {
         console.error('DocuSign envelope creation failed');
         toast({
@@ -877,14 +801,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     milestoneId: milestone.id, 
                     milestoneTitle: milestone.title,
                     isDocumentSigning,
-                    signingStatus,
+                    milestoneSigningStatus,
                     canUpdateMilestone,
                     userRole,
                     assignedTo: milestone.assigned_to,
                     currentUserId: user?.id
                   });
                   
-                  if (isDocumentSigning && signingStatus !== 'completed') {
+                  if (isDocumentSigning && milestoneSigningStatus !== 'completed') {
                     console.log('❌ Blocking completion - documents not signed');
                     alert('Documents must be signed by all parties before completing the Document Signing milestone.');
                     return;
@@ -893,13 +817,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   console.log('✅ Proceeding with milestone completion');
                   onUpdateStatus(milestone.id, 'completed');
                 }}
-                disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && signingStatus !== 'completed')}
+                disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && milestoneSigningStatus !== 'completed')}
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                  isDocumentSigning && signingStatus !== 'completed' 
+                  isDocumentSigning && milestoneSigningStatus !== 'completed'
                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                     : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
                 } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={isDocumentSigning && signingStatus !== 'completed' ? 'Please sign the document before completing this milestone' : ''}
+                title={isDocumentSigning && milestoneSigningStatus !== 'completed' ? 'Please sign the document before completing this milestone' : ''}
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
               </button>
