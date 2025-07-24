@@ -765,7 +765,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               ) : null
             : (
               <div className="flex items-center gap-2 flex-wrap">
-                {milestone.assignedUser && (
+                {milestone.assignedUser && milestone.status !== 'completed' && (
                   <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300">
                     <UserCheck className="h-4 w-4 mr-2 text-green-600" />
                     <span className="font-semibold text-green-800">{milestone.assignedUser.name}</span>
