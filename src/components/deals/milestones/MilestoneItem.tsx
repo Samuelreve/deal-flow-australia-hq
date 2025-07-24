@@ -162,8 +162,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }
       });
 
-      // Check if others have signed and show message to assigned users
-      if (hasOtherSignatures && milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+      // Check signing status and show appropriate messages
+      if (milestoneSigningStatus === 'partially_completed') {
+        if (milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+          // Assigned user hasn't signed yet but others have
+          const signerNamesText = signerNames.join(', ');
+          messages.push(`Opposite signed, check your email and sign the document.`);
+        }
+      } else if (hasOtherSignatures && milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+        // Fallback for other signing status cases
         const signerNamesText = signerNames.join(', ');
         messages.push(`Check your email, ${signerNamesText} has signed. Please sign the document.`);
       }
@@ -1048,30 +1055,41 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                      </div>
                    )
                  ) : (
-                   /* Non-assigned users see sign button if they can sign */
-                   canSignMilestoneDocuments && (
-                     <>
-                       {milestoneSigningStatus === 'completed' ? (
-                         <Button
-                           disabled
-                           size="sm"
-                           className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
-                         >
-                           <CheckCircle className="h-4 w-4 mr-2" />
-                           Signed
-                         </Button>
-                       ) : (
-                         <Button
-                           onClick={() => handleSignMilestoneDocument(doc.id)}
-                           size="sm"
-                           className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                         >
-                           <FileText className="h-4 w-4 mr-2" />
-                           Sign Document
-                         </Button>
-                       )}
-                     </>
-                   )
+                    /* Non-assigned users see sign button if they can sign */
+                    canSignMilestoneDocuments && (
+                      <>
+                        {milestoneSigningStatus === 'completed' ? (
+                          <Button
+                            disabled
+                            size="sm"
+                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Signed
+                          </Button>
+                        ) : milestoneSigningStatus === 'partially_completed' && userHasSigned ? (
+                          // User has already signed (admin case)
+                          <Button
+                            disabled
+                            size="sm"
+                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Signed
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleSignMilestoneDocument(doc.id)}
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={milestoneSigningStatus === 'partially_completed' && userHasSigned}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Sign Document
+                          </Button>
+                        )}
+                      </>
+                    )
                  )}
               </div>
             ))}
