@@ -784,7 +784,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           <div className="mt-2 text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-md border border-orange-200">
             <div className="flex items-center">
               <FileCheck className="h-4 w-4 mr-2" />
-              Admin has signed - check your email and sign the document
+              Seller signed, please check the email and sign the document
             </div>
           </div>
         )}
@@ -899,7 +899,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                     : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
                 } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={isDocumentSigning && signingStatus !== 'completed' ? 'Documents must be signed by all parties first' : ''}
+                title={isDocumentSigning && signingStatus !== 'completed' ? 'Please sign the document before completing this milestone' : ''}
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
               </button>
@@ -952,7 +952,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {isDocumentSigning && milestone.status === 'in_progress' && (
         <div className="mt-3 flex flex-col gap-3">
           {/* Sign Document Button - Show when not started or can start signing */}
-          {signingStatus === 'not_started' && (
+          {milestoneSigningStatus === 'not_started' && (
             <div className="flex gap-2">
               <button
                 onClick={handleSignDocument}
@@ -965,28 +965,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             </div>
           )}
 
-          {/* Partially Signed State */}
-          {signingStatus === 'partially_signed' && (
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownloadSignedDocument}
-                  disabled={true}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Save Signed Document
-                </button>
-              </div>
-              <div className="text-xs text-amber-600 font-medium">
-                Waiting for Recipient's Sign
-              </div>
-            </div>
-          )}
-
-          {/* Fully Signed State - Show save button for admin */}
-          {signingStatus === 'completed' && (
+          {/* Signed State - Show signed button */}
+          {milestoneSigningStatus === 'completed' && (
             <div className="flex items-center gap-3">
+              <button
+                disabled
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Signed
+              </button>
               <div className="text-sm text-emerald-600 font-medium">
                 ✓ Document signed by all parties
               </div>
@@ -1004,6 +992,25 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   {downloadingSignedDoc ? 'Saving...' : documentSaved ? 'Document Saved' : 'Save Document to Deal'}
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Partially Signed State */}
+          {milestoneSigningStatus === 'sent' && (
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadSignedDocument}
+                  disabled={true}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Save Signed Document
+                </button>
+              </div>
+              <div className="text-xs text-amber-600 font-medium">
+                Waiting for Recipient's Sign
+              </div>
             </div>
           )}
         </div>
@@ -1060,14 +1067,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                  </div>
                  {canSignMilestoneDocuments && (
                    <>
-                     {userHasSigned ? (
+                     {milestoneSigningStatus === 'completed' ? (
                        <Button
                          disabled
                          size="sm"
                          className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
                        >
                          <CheckCircle className="h-4 w-4 mr-2" />
-                         You signed this document
+                         Signed
                        </Button>
                      ) : (
                        <Button
