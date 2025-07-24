@@ -755,31 +755,33 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           </div>
         )}
       </h4>
-      {(milestone.dueDate || milestone.completedAt) && (
+      {(milestone.dueDate || milestone.completedAt || milestone.assignedUser) && (
         <div className="block mb-2 text-sm font-normal leading-none">
-          {milestone.status !== 'completed' 
-            ? milestone.dueDate ? (
+          {milestone.status !== 'completed' ? (
+            <>
+              {milestone.dueDate && (
                 <span className="text-gray-400 dark:text-gray-500">
                   Due by: {formatDate(milestone.dueDate)}
                 </span>
-              ) : null
-            : (
-              <div className="flex items-center gap-2 flex-wrap">
-                {milestone.assignedUser && milestone.status !== 'completed' && (
-                  <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300">
-                    <UserCheck className="h-4 w-4 mr-2 text-green-600" />
-                    <span className="font-semibold text-green-800">{milestone.assignedUser.name}</span>
-                    <span className="ml-1 text-green-700">completed</span>
-                  </div>
-                )}
-                {milestone.completedAt && (
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">
-                    {formatDate(milestone.completedAt)}
-                  </span>
-                )}
-              </div>
-            )
-          }
+              )}
+              {/* Show completion badge when assigned user completed but milestone isn't fully completed */}
+              {milestone.assignedUser && milestone.status === 'in_progress' && (
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300 mt-1">
+                  <UserCheck className="h-4 w-4 mr-2 text-green-600" />
+                  <span className="font-semibold text-green-800">{milestone.assignedUser.name}</span>
+                  <span className="ml-1 text-green-700">completed</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              {milestone.completedAt && (
+                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                  {formatDate(milestone.completedAt)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
       {milestone.description && (
@@ -822,7 +824,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         {/* Status Update Buttons - Only show if user has permission */}
         {canUpdateMilestone && (
           <>
-            {/* "Mark as Completed" button - only for in_progress milestones with restrictions for Document Signing */}
+            {/* "Mark as Completed" button - only for in_progress milestones with restrictions */}
             {milestone.status === 'in_progress' && (
               <button
                 onClick={() => {
@@ -846,13 +848,24 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   console.log('✅ Proceeding with milestone completion');
                   onUpdateStatus(milestone.id, 'completed');
                 }}
-                disabled={updatingMilestoneId === milestone.id || (isDocumentSigning && milestoneSigningStatus !== 'completed')}
+                disabled={
+                  updatingMilestoneId === milestone.id || 
+                  (isDocumentSigning && milestoneSigningStatus !== 'completed') ||
+                  (milestone.assigned_to === user?.id && !!milestone.assignedUser)
+                }
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                  isDocumentSigning && milestoneSigningStatus !== 'completed'
+                  isDocumentSigning && milestoneSigningStatus !== 'completed' ||
+                  (milestone.assigned_to === user?.id && !!milestone.assignedUser)
                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                     : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
                 } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={isDocumentSigning && milestoneSigningStatus !== 'completed' ? 'Please sign the document before completing this milestone' : ''}
+                title={
+                  isDocumentSigning && milestoneSigningStatus !== 'completed' 
+                    ? 'Please sign the document before completing this milestone' 
+                    : milestone.assigned_to === user?.id && !!milestone.assignedUser
+                    ? 'You have completed your part. Waiting for admin approval.'
+                    : ''
+                }
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
               </button>
