@@ -82,12 +82,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Check if this is the "Document Signing" milestone
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
   
-  // Only show sign button for "Document Signing" milestone when it's in progress
-  // Don't show sign button if others have signed and current user hasn't
+  // Only show sign button for non-assigned users in "Document Signing" milestone
   const showSignButton = isDocumentSigning && 
     ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
     milestone.status === 'in_progress' &&
-    !(hasOtherSignatures && !userHasSigned && milestone.assigned_to === user?.id);
+    milestone.assigned_to !== user?.id;
   
   // Fetch milestone-specific documents and messages
   useEffect(() => {
@@ -895,18 +894,35 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {/* Document Signing Workflow - Show for Document Signing milestone when in progress */}
       {isDocumentSigning && milestone.status === 'in_progress' && (
         <div className="mt-3 flex flex-col gap-3">
-          {/* Sign Document Button - Show when not started or can start signing */}
-          {milestoneSigningStatus === 'not_started' && (
+          {/* Assigned users get different messages instead of sign button */}
+          {milestone.assigned_to === user?.id ? (
             <div className="flex gap-2">
-              <button
-                onClick={handleSignDocument}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
-                disabled={signingInProgress}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                {signingInProgress ? 'Starting...' : 'Sign Document'}
-              </button>
+              {!hasOtherSignatures ? (
+                <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
+                  <FileText className="w-4 h-4 mr-2" />
+                  You need to sign this document
+                </div>
+              ) : (
+                <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <FileText className="w-4 h-4 mr-2" />
+                  {signerNames.join(', ')} has signed. Check your email and sign the document
+                </div>
+              )}
             </div>
+          ) : (
+            /* Sign Document Button - Show for non-assigned users when not started */
+            milestoneSigningStatus === 'not_started' && showSignButton && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSignDocument}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
+                  disabled={signingInProgress}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  {signingInProgress ? 'Starting...' : 'Sign Document'}
+                </button>
+              </div>
+            )
           )}
 
           {/* Signed State - Show signed button */}
