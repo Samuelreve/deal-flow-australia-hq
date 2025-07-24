@@ -87,9 +87,9 @@ serve(async (req: Request) => {
       // Handle various DocuSign webhook events
       if (webhookEvent === 'recipient-sent' || webhookEvent === 'recipient-delivered' || webhookStatus === 'sent') {
         newStatus = 'sent';
-      } else if (webhookEvent === 'recipient-completed') {
+      } else if (webhookEvent === 'sign_completed' || webhookEvent === 'recipient-completed') {
         newStatus = 'partially_completed'; // Individual recipient completed
-      } else if (webhookEvent === 'envelope-completed' || webhookEvent === 'signing_complete' || webhookStatus === 'completed') {
+      } else if (webhookEvent === 'envelope_completed' || webhookStatus === 'completed') {
         newStatus = 'completed'; // Full envelope completed
       }
       
