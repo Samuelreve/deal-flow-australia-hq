@@ -68,6 +68,7 @@ serve(async (req: Request) => {
     let webhookEvent = event;
     let webhookEnvelopeId = envelopeId;
     let webhookStatus = null;
+    let redirectDealId = dealId;
     
     if (requestBody && requestBody.event) {
       webhookEvent = requestBody.event;
@@ -79,11 +80,16 @@ serve(async (req: Request) => {
 
     // Update signature status based on webhook event
     if (webhookEnvelopeId) {
+      console.log('🔍 Looking up deal ID for envelope:', webhookEnvelopeId);
+      
       let newStatus = 'pending'; // default
       
-      if (webhookEvent === 'recipient-sent' || webhookStatus === 'sent') {
+      // Handle various DocuSign webhook events
+      if (webhookEvent === 'recipient-sent' || webhookEvent === 'recipient-delivered' || webhookStatus === 'sent') {
         newStatus = 'sent';
-      } else if (webhookEvent === 'envelope-completed' || webhookStatus === 'completed') {
+      } else if (webhookEvent === 'envelope-completed' || webhookEvent === 'signing_complete' || webhookStatus === 'completed') {
+        newStatus = 'completed';
+      } else if (webhookEvent === 'recipient-completed') {
         newStatus = 'completed';
       }
       
@@ -101,6 +107,18 @@ serve(async (req: Request) => {
       } else {
         console.log(`✅ Signature status updated to: ${newStatus}`);
       }
+      
+      // Get the deal ID from the signature record for redirect
+      const { data: signature, error: sigError } = await supabase
+        .from('document_signatures')
+        .select('deal_id')
+        .eq('envelope_id', webhookEnvelopeId)
+        .single();
+        
+      if (!sigError && signature) {
+        console.log('📋 Found deal ID from signature:', signature.deal_id);
+        redirectDealId = signature.deal_id;
+      }
     }
 
     if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
@@ -109,8 +127,7 @@ serve(async (req: Request) => {
       console.log('✅ Document signing completed. User can now manually download the signed document.');
     }
 
-    // Get the deal ID for redirect (from signature record or URL param)
-    let redirectDealId = dealId;
+    // Get the deal ID for redirect (already set above or from URL param)
     if (!redirectDealId && envelopeId) {
       const { data: signature } = await supabase
         .from('document_signatures')
