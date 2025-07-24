@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import MilestoneTracker from "@/components/deals/milestones/MilestoneTracker";
-import { useMilestoneRealtime } from "@/hooks/milestones/useMilestoneRealtime";
-import { useMilestoneAssignmentRealtime } from "@/hooks/milestones/useMilestoneAssignmentRealtime";
-import { useDocumentRealtime } from "@/hooks/documents/useDocumentRealtime";
 
 interface DealMilestonesTabProps {
   dealId: string;
@@ -15,31 +12,6 @@ const DealMilestonesTab: React.FC<DealMilestonesTabProps> = ({ dealId }) => {
   const [userRole, setUserRole] = useState<string>('');
   const [isParticipant, setIsParticipant] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Setup real-time subscriptions to monitor changes
-  useMilestoneRealtime(
-    dealId,
-    () => setRefreshKey(prev => prev + 1), // Force refresh on milestone updates
-    () => setRefreshKey(prev => prev + 1), // Force refresh on milestone inserts
-    () => setRefreshKey(prev => prev + 1)  // Force refresh on milestone deletes
-  );
-
-  useMilestoneAssignmentRealtime(
-    dealId,
-    undefined, // milestone-specific - handled at item level
-    () => setRefreshKey(prev => prev + 1), // Force refresh on assignment updates
-    () => setRefreshKey(prev => prev + 1), // Force refresh on assignment updates
-    () => setRefreshKey(prev => prev + 1)  // Force refresh on assignment deletions
-  );
-
-  useDocumentRealtime(
-    dealId,
-    undefined, // milestone-specific - handled at item level
-    () => setRefreshKey(prev => prev + 1), // Force refresh on document uploads
-    () => setRefreshKey(prev => prev + 1), // Force refresh on document updates
-    () => setRefreshKey(prev => prev + 1)  // Force refresh on document deletions
-  );
 
   useEffect(() => {
     checkParticipationAndRole();
@@ -94,7 +66,6 @@ const DealMilestonesTab: React.FC<DealMilestonesTabProps> = ({ dealId }) => {
 
   return (
     <MilestoneTracker
-      key={refreshKey}
       dealId={dealId}
       userRole={userRole}
       isParticipant={isParticipant}

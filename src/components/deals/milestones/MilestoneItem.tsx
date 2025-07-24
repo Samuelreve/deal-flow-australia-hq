@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Milestone } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMilestoneSigningStatus } from '@/hooks/milestones/useMilestoneSigningStatus';
-import { useDocumentRealtime } from '@/hooks/documents/useDocumentRealtime';
-import { useMilestoneAssignmentRealtime } from '@/hooks/milestones/useMilestoneAssignmentRealtime';
 import MilestoneExplainButton from './MilestoneExplainButton';
 
 import SignaturePositioningModal from './SignaturePositioningModal';
@@ -185,64 +183,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       console.error('Error fetching milestone messages:', error);
     }
   };
-
-  // Real-time handlers
-  const handleDocumentInsert = useCallback((newDocument: any) => {
-    console.log('🔵 Document inserted for milestone:', milestone.id, newDocument);
-    setMilestoneDocuments(prev => {
-      const exists = prev.some(doc => doc.id === newDocument.id);
-      if (exists) return prev;
-      return [...prev, newDocument];
-    });
-    // Refresh messages when new document is added
-    fetchMilestoneMessages();
-  }, [milestone.id, fetchMilestoneMessages]);
-
-  const handleDocumentUpdate = useCallback((updatedDocument: any) => {
-    console.log('🔵 Document updated for milestone:', milestone.id, updatedDocument);
-    setMilestoneDocuments(prev => 
-      prev.map(doc => doc.id === updatedDocument.id ? { ...doc, ...updatedDocument } : doc)
-    );
-  }, [milestone.id]);
-
-  const handleDocumentDelete = useCallback((documentId: string) => {
-    console.log('🔵 Document deleted for milestone:', milestone.id, documentId);
-    setMilestoneDocuments(prev => prev.filter(doc => doc.id !== documentId));
-    fetchMilestoneMessages();
-  }, [milestone.id, fetchMilestoneMessages]);
-
-  const handleAssignmentInsert = useCallback((newAssignment: any) => {
-    console.log('🟡 Assignment added for milestone:', milestone.id, newAssignment);
-    // The milestone assignment changes will be handled by the parent component's real-time updates
-    onMilestoneUpdated?.();
-  }, [milestone.id, onMilestoneUpdated]);
-
-  const handleAssignmentUpdate = useCallback((updatedAssignment: any) => {
-    console.log('🟡 Assignment updated for milestone:', milestone.id, updatedAssignment);
-    onMilestoneUpdated?.();
-  }, [milestone.id, onMilestoneUpdated]);
-
-  const handleAssignmentDelete = useCallback((assignmentId: string) => {
-    console.log('🟡 Assignment removed for milestone:', milestone.id, assignmentId);
-    onMilestoneUpdated?.();
-  }, [milestone.id, onMilestoneUpdated]);
-
-  // Setup real-time subscriptions
-  useDocumentRealtime(
-    dealId,
-    milestone.id,
-    handleDocumentInsert,
-    handleDocumentUpdate,
-    handleDocumentDelete
-  );
-
-  useMilestoneAssignmentRealtime(
-    dealId,
-    milestone.id,
-    handleAssignmentInsert,
-    handleAssignmentUpdate,
-    handleAssignmentDelete
-  );
 
   const handleSignMilestoneDocument = async (documentId: string) => {
     // Directly sign the milestone document

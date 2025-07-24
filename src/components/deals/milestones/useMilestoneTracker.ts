@@ -2,49 +2,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Milestone, MilestoneStatus } from '@/types/deal';
-import { useMilestoneRealtime } from '@/hooks/milestones/useMilestoneRealtime';
 
 export function useMilestoneTracker(dealId: string, initialMilestones: Milestone[] = []) {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [loadingMilestones, setLoadingMilestones] = useState(initialMilestones.length === 0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [updatingMilestoneId, setUpdatingMilestoneId] = useState<string | null>(null);
-
-  // Real-time milestone update handlers
-  const handleRealtimeMilestoneUpdate = useCallback((updatedMilestone: Milestone) => {
-    console.log('🔴 Real-time milestone update received:', updatedMilestone);
-    setMilestones(prevMilestones => {
-      return prevMilestones.map(m => 
-        m.id === updatedMilestone.id ? updatedMilestone : m
-      ).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-    });
-  }, []);
-
-  const handleRealtimeMilestoneInsert = useCallback((newMilestone: Milestone) => {
-    console.log('🔴 Real-time milestone insert received:', newMilestone);
-    setMilestones(prevMilestones => {
-      const exists = prevMilestones.some(m => m.id === newMilestone.id);
-      if (exists) return prevMilestones;
-      
-      return [...prevMilestones, newMilestone]
-        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-    });
-  }, []);
-
-  const handleRealtimeMilestoneDelete = useCallback((milestoneId: string) => {
-    console.log('🔴 Real-time milestone delete received:', milestoneId);
-    setMilestones(prevMilestones => 
-      prevMilestones.filter(m => m.id !== milestoneId)
-    );
-  }, []);
-
-  // Setup real-time subscription
-  useMilestoneRealtime(
-    dealId,
-    handleRealtimeMilestoneUpdate,
-    handleRealtimeMilestoneInsert,
-    handleRealtimeMilestoneDelete
-  );
   
   // Fetch milestones from API
   const fetchMilestones = useCallback(async () => {
