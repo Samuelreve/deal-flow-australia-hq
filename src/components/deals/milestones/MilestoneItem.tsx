@@ -40,7 +40,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const { getStatusColor, formatStatus, formatDate } = useMilestoneHelpers();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { signingStatus: milestoneSigningStatus, loading: signingStatusLoading, userHasSigned, adminHasSigned, pendingSigners } = useMilestoneSigningStatus(milestone.id, dealId, user?.email);
+  const { 
+    signingStatus: milestoneSigningStatus, 
+    loading: signingStatusLoading, 
+    userHasSigned, 
+    adminHasSigned, 
+    pendingSigners,
+    assignedUsers,
+    hasOtherSignatures,
+    signerNames
+  } = useMilestoneSigningStatus(milestone.id, dealId, user?.email);
   
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{id: string, url: string, name: string} | null>(null);
@@ -704,11 +713,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         )}
 
         {/* Role-specific signing messages */}
-        {milestoneDocuments.length > 0 && milestoneSigningStatus === 'sent' && !userHasSigned && adminHasSigned && userRole !== 'admin' && (
+        {milestoneDocuments.length > 0 && milestoneSigningStatus === 'sent' && !userHasSigned && hasOtherSignatures && (
           <div className="mt-2 text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-md border border-orange-200">
             <div className="flex items-center">
               <FileCheck className="h-4 w-4 mr-2" />
-              Seller signed, please check the email and sign the document
+              {signerNames.length > 0 
+                ? `${signerNames.join(', ')} ${signerNames.length === 1 ? 'has' : 'have'} signed, please check your email and sign the document`
+                : 'Someone has signed, please check your email and sign the document'
+              }
             </div>
           </div>
         )}

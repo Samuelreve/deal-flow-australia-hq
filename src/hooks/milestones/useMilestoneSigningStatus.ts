@@ -9,6 +9,9 @@ interface SigningStatusResult {
   userHasSigned: boolean;
   adminHasSigned: boolean;
   pendingSigners: string[];
+  assignedUsers: any[];
+  hasOtherSignatures: boolean;
+  signerNames: string[];
 }
 
 export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, userEmail?: string) => {
@@ -18,6 +21,9 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
   const [userHasSigned, setUserHasSigned] = useState(false);
   const [adminHasSigned, setAdminHasSigned] = useState(false);
   const [pendingSigners, setPendingSigners] = useState<string[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<any[]>([]);
+  const [hasOtherSignatures, setHasOtherSignatures] = useState(false);
+  const [signerNames, setSignerNames] = useState<string[]>([]);
   const { toast } = useToast();
 
   const checkSigningStatus = async () => {
@@ -25,6 +31,24 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
     
     setLoading(true);
     try {
+      // Get assigned users for this milestone
+      const { data: assignedUsersData, error: assignmentError } = await supabase
+        .from('milestone_assignments')
+        .select(`
+          user_id,
+          profiles:user_id (
+            name,
+            email
+          )
+        `)
+        .eq('milestone_id', milestoneId);
+
+      if (assignmentError) {
+        console.error('Error fetching assigned users:', assignmentError);
+      }
+
+      setAssignedUsers(assignedUsersData || []);
+
       // Get documents for this milestone
       const { data: milestoneDocuments, error: docsError } = await supabase
         .from('documents')
@@ -39,6 +63,8 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
       if (!milestoneDocuments || milestoneDocuments.length === 0) {
         setSigningStatus('not_started');
         setSignatureRecords([]);
+        setHasOtherSignatures(false);
+        setSignerNames([]);
         return;
       }
 
@@ -64,6 +90,8 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
         setUserHasSigned(false);
         setAdminHasSigned(false);
         setPendingSigners([]);
+        setHasOtherSignatures(false);
+        setSignerNames([]);
         return;
       }
 
@@ -76,11 +104,32 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
         sig.status === 'completed' && sig.signer_role === 'admin'
       );
 
+      const completedSignatures = signatures.filter(sig => sig.status === 'completed');
       const pendingSignatures = signatures.filter(sig => sig.status === 'sent').map(sig => sig.signer_email);
+
+      // Check if there are other completed signatures (not by current user)
+      const otherCompletedSignatures = completedSignatures.filter(sig => 
+        sig.signer_email !== userEmail
+      );
+
+      // Get names of people who have signed
+      const signedEmails = completedSignatures.map(sig => sig.signer_email);
+      const signerNamesList: string[] = [];
+      
+      // Map emails to names from assigned users
+      if (assignedUsersData) {
+        assignedUsersData.forEach(assignedUser => {
+          if (signedEmails.includes(assignedUser.profiles?.email)) {
+            signerNamesList.push(assignedUser.profiles?.name || assignedUser.profiles?.email || 'Unknown');
+          }
+        });
+      }
 
       setUserHasSigned(userSigned);
       setAdminHasSigned(adminSigned);
       setPendingSigners(pendingSignatures);
+      setHasOtherSignatures(otherCompletedSignatures.length > 0);
+      setSignerNames(signerNamesList);
 
       // Check status - if any are completed, consider milestone signing completed
       const hasCompleted = signatures.some(sig => sig.status === 'completed');
@@ -162,6 +211,9 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
     userHasSigned,
     adminHasSigned,
     pendingSigners,
+    assignedUsers,
+    hasOtherSignatures,
+    signerNames,
     refreshStatus: checkSigningStatus
   } as SigningStatusResult & { refreshStatus: () => Promise<void> };
 };
