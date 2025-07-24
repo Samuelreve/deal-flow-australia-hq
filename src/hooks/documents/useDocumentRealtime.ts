@@ -33,14 +33,15 @@ export function useDocumentRealtime(
 
     console.log('🔵 Setting up real-time document subscription for:', { dealId, milestoneId });
 
-    // Create filter based on what IDs we have
+    // Create filter based on what IDs we have - Supabase doesn't support multiple filters in one string
     let filter = '';
-    if (dealId && milestoneId) {
-      filter = `deal_id=eq.${dealId},milestone_id=eq.${milestoneId}`;
+    if (milestoneId) {
+      // Priority to milestone-specific filtering
+      filter = `milestone_id=eq.${milestoneId}`;
     } else if (dealId) {
       filter = `deal_id=eq.${dealId}`;
-    } else if (milestoneId) {
-      filter = `milestone_id=eq.${milestoneId}`;
+    } else {
+      return; // No valid filter
     }
 
     const channelName = milestoneId 
