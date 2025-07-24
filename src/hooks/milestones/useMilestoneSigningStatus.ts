@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SigningStatusResult {
-  signingStatus: 'not_started' | 'sent' | 'completed';
+  signingStatus: 'not_started' | 'sent' | 'partially_completed' | 'completed';
   signatureRecords: any[];
   loading: boolean;
   userHasSigned: boolean;
@@ -15,7 +15,7 @@ interface SigningStatusResult {
 }
 
 export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, userEmail?: string) => {
-  const [signingStatus, setSigningStatus] = useState<'not_started' | 'sent' | 'completed'>('not_started');
+  const [signingStatus, setSigningStatus] = useState<'not_started' | 'sent' | 'partially_completed' | 'completed'>('not_started');
   const [signatureRecords, setSignatureRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [userHasSigned, setUserHasSigned] = useState(false);
@@ -97,14 +97,14 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
 
       // Check individual signing status
       const userSigned = userEmail ? signatures.some(sig => 
-        sig.status === 'completed' && sig.signer_email === userEmail
+        (sig.status === 'completed' || sig.status === 'partially_completed') && sig.signer_email === userEmail
       ) : false;
 
       const adminSigned = signatures.some(sig => 
-        sig.status === 'completed' && sig.signer_role === 'admin'
+        (sig.status === 'completed' || sig.status === 'partially_completed') && sig.signer_role === 'admin'
       );
 
-      const completedSignatures = signatures.filter(sig => sig.status === 'completed');
+      const completedSignatures = signatures.filter(sig => sig.status === 'completed' || sig.status === 'partially_completed');
       const pendingSignatures = signatures.filter(sig => sig.status === 'sent').map(sig => sig.signer_email);
 
       // Check if there are other completed signatures (not by current user)
@@ -131,12 +131,15 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
       setHasOtherSignatures(otherCompletedSignatures.length > 0);
       setSignerNames(signerNamesList);
 
-      // Check status - if any are completed, consider milestone signing completed
-      const hasCompleted = signatures.some(sig => sig.status === 'completed');
+      // Check status - envelope completed vs individual completed
+      const hasEnvelopeCompleted = signatures.some(sig => sig.status === 'completed');
+      const hasPartiallyCompleted = signatures.some(sig => sig.status === 'partially_completed');
       const hasSent = signatures.some(sig => sig.status === 'sent');
 
-      if (hasCompleted) {
+      if (hasEnvelopeCompleted) {
         setSigningStatus('completed');
+      } else if (hasPartiallyCompleted) {
+        setSigningStatus('partially_completed');
       } else if (hasSent) {
         setSigningStatus('sent');
       } else {
@@ -179,8 +182,13 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
             if (newStatus !== oldStatus) {
               if (newStatus === 'completed') {
                 toast({
-                  title: 'Document Signed',
-                  description: 'A milestone document has been signed successfully.',
+                  title: 'Document Fully Signed',
+                  description: 'All parties have signed the milestone document.',
+                });
+              } else if (newStatus === 'partially_completed') {
+                toast({
+                  title: 'Document Partially Signed',
+                  description: 'One party has signed the document.',
                 });
               } else if (newStatus === 'sent') {
                 toast({
