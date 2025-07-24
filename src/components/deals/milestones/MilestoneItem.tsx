@@ -1028,7 +1028,12 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                  {/* Show different content for assigned vs non-assigned users */}
                  {milestone.assigned_to === user?.id ? (
                    /* Assigned users see messages instead of sign button */
-                   !hasOtherSignatures ? (
+                   milestoneSigningStatus === 'completed' ? (
+                     <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md">
+                       <CheckCircle className="h-4 w-4 mr-2" />
+                       Sign completed
+                     </div>
+                   ) : !hasOtherSignatures ? (
                      <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
                        You need to sign this document
                      </div>
