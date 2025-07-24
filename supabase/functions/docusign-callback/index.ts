@@ -91,9 +91,9 @@ serve(async (req: Request) => {
         newStatus = 'completed';
       } else if (webhookEvent === 'recipient-completed') {
         newStatus = 'completed';
-      } else if (webhookEvent === 'signing_complete') {
-        newStatus = 'completed';
       }
+      
+      console.log(`📋 Setting signature status to: ${newStatus} for envelope: ${webhookEnvelopeId}`);
       
       // Update signature status
       const { error: statusError } = await supabase

@@ -44,13 +44,10 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
 
       const documentIds = milestoneDocuments.map(doc => doc.id);
 
-      // Check signatures for these documents with signer details
+      // Check signatures for these documents
       const { data: signatures, error: sigError } = await supabase
         .from('document_signatures')
-        .select(`
-          *,
-          profiles:signer_email (name, role)
-        `)
+        .select('*')
         .eq('deal_id', dealId)
         .in('document_id', documentIds)
         .order('created_at', { ascending: false });
