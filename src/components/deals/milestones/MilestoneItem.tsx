@@ -1036,7 +1036,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     ) : milestoneSigningStatus === 'partially_completed' ? (
                       <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
                         <Clock className="h-4 w-4 mr-2" />
-                        Check your email and sign the document
+                        Opposite signed, check your email and sign the document.
                       </div>
                    ) : !hasOtherSignatures ? (
                      <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
