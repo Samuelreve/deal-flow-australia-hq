@@ -91,6 +91,8 @@ serve(async (req: Request) => {
         newStatus = 'completed';
       } else if (webhookEvent === 'recipient-completed') {
         newStatus = 'completed';
+      } else if (webhookEvent === 'signing_complete') {
+        newStatus = 'completed';
       }
       
       // Update signature status
