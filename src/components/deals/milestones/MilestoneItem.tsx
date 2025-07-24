@@ -1077,6 +1077,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Signed
                           </Button>
+                        ) : milestoneSigningStatus === 'sent' && userRole.toLowerCase() === 'admin' ? (
+                          // Admin user when document is sent for signing
+                          <Button
+                            disabled
+                            size="sm"
+                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
+                          >
+                            <Clock className="h-4 w-4 mr-2" />
+                            Document Sent
+                          </Button>
                         ) : (
                           <Button
                             onClick={() => handleSignMilestoneDocument(doc.id)}
