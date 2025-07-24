@@ -83,15 +83,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const isDocumentSigning = milestone.title.toLowerCase().includes('document signing');
   
   // Only show sign button for "Document Signing" milestone when it's in progress
+  // Don't show sign button if others have signed and current user hasn't
   const showSignButton = isDocumentSigning && 
     ['buyer', 'seller', 'lawyer', 'admin'].includes(userRole.toLowerCase()) &&
-    milestone.status === 'in_progress';
+    milestone.status === 'in_progress' &&
+    !(hasOtherSignatures && !userHasSigned && milestone.assigned_to === user?.id);
   
   // Fetch milestone-specific documents and messages
   useEffect(() => {
     fetchMilestoneDocuments();
     fetchMilestoneMessages();
-  }, [milestone.id]);
+  }, [milestone.id, hasOtherSignatures, userHasSigned, signerNames]);
 
   // Use the milestone signing status from the hook instead of local checks
 
@@ -148,18 +150,24 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         const isAdmin = uploaderRole === 'admin';
         const isCurrentUser = doc.uploaded_by === user?.id;
         
-        // Show message for assigned users or admin (current user)
-        if (milestone.assigned_to === user?.id || (isCurrentUser && isAdmin)) {
-          if (isCurrentUser && isAdmin) {
-            // Admin who uploaded sees different message
-            messages.push(`You uploaded document "${doc.name}" for this milestone`);
-          } else {
-            // Assigned user sees the original message
-            const roleText = isAdmin ? ' (Admin)' : '';
-            messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
-          }
+      // Show message for assigned users or admin (current user)
+      if (milestone.assigned_to === user?.id || (isCurrentUser && isAdmin)) {
+        if (isCurrentUser && isAdmin) {
+          // Admin who uploaded sees different message
+          messages.push(`You uploaded document "${doc.name}" for this milestone`);
+        } else {
+          // Assigned user sees the original message
+          const roleText = isAdmin ? ' (Admin)' : '';
+          messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
         }
+      }
       });
+
+      // Check if others have signed and show message to assigned users
+      if (hasOtherSignatures && milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+        const signerNamesText = signerNames.join(', ');
+        messages.push(`Check your email, ${signerNamesText} has signed. Please sign the document.`);
+      }
 
       setMilestoneMessages(messages);
     } catch (error) {
