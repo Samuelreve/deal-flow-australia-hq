@@ -90,6 +90,17 @@ serve(async (req) => {
     const allowedRoles = ['admin', 'seller', 'lawyer'];
     const isAssignedUser = milestone.assigned_to === userId;
     
+    console.log('🔍 Permission check debug:', {
+      userId,
+      participantRole: participant.role,
+      participantRoleLower: participant.role.toLowerCase(),
+      allowedRoles,
+      isRoleAllowed: allowedRoles.includes(participant.role.toLowerCase()),
+      milestoneAssignedTo: milestone.assigned_to,
+      isAssignedUser,
+      canUpdate: allowedRoles.includes(participant.role.toLowerCase()) || isAssignedUser
+    });
+    
     if (!allowedRoles.includes(participant.role.toLowerCase()) && !isAssignedUser) {
       return new Response(
         JSON.stringify({ error: `Permission denied: Role '${participant.role}' cannot update milestones and user is not assigned to this milestone` }),
