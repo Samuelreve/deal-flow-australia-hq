@@ -764,7 +764,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   Due by: {formatDate(milestone.dueDate)}
                 </span>
               )}
-              {/* Assignment indicator is shown in the title area above */}
+              {/* Show completion badge when assigned user has completed the milestone */}
+              {milestone.assignedUser && (milestone.status as string) === 'completed' && (
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300 mt-1">
+                  <UserCheck className="h-4 w-4 mr-2 text-green-600" />
+                  <span className="font-semibold text-green-800">{milestone.assignedUser.name}</span>
+                  <span className="ml-1 text-green-700">completed</span>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
@@ -843,20 +850,16 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                 }}
                 disabled={
                   updatingMilestoneId === milestone.id || 
-                  (isDocumentSigning && milestoneSigningStatus !== 'completed') ||
-                  (milestone.assigned_to === user?.id && !!milestone.assignedUser)
+                  (isDocumentSigning && milestoneSigningStatus !== 'completed')
                 }
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
-                  isDocumentSigning && milestoneSigningStatus !== 'completed' ||
-                  (milestone.assigned_to === user?.id && !!milestone.assignedUser)
+                  isDocumentSigning && milestoneSigningStatus !== 'completed'
                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
                     : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
                 } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title={
                   isDocumentSigning && milestoneSigningStatus !== 'completed' 
                     ? 'Please sign the document before completing this milestone' 
-                    : milestone.assigned_to === user?.id && !!milestone.assignedUser
-                    ? 'You have completed your part. Waiting for admin approval.'
                     : ''
                 }
               >
