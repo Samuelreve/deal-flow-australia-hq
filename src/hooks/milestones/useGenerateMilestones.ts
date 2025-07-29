@@ -73,7 +73,7 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         deal_id: dealId,
         title: milestone.name,
         description: milestone.description,
-        status: 'not_started' as MilestoneStatus,
+        status: 'not_started' as const,
         order_index: (index + 1) * 10
       }));
       
@@ -154,7 +154,7 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
         deal_id: dealId,
         title: milestone.name,
         description: milestone.description,
-        status: 'not_started' as MilestoneStatus, // Using the explicit enum type from types/deal.ts
+        status: 'not_started' as const,
         order_index: (index + 1) * 10
       }));
       

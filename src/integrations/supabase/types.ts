@@ -1858,7 +1858,12 @@ export type Database = {
     Enums: {
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"
       document_status: "draft" | "final" | "signed"
-      milestone_status: "not_started" | "in_progress" | "completed" | "blocked"
+      milestone_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "blocked"
+        | "pending_approval"
       user_role:
         | "seller"
         | "buyer"
@@ -2004,7 +2009,13 @@ export const Constants = {
     Enums: {
       deal_status: ["draft", "active", "pending", "completed", "cancelled"],
       document_status: ["draft", "final", "signed"],
-      milestone_status: ["not_started", "in_progress", "completed", "blocked"],
+      milestone_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "blocked",
+        "pending_approval",
+      ],
       user_role: ["seller", "buyer", "lawyer", "admin", "advisor", "browsing"],
     },
   },
