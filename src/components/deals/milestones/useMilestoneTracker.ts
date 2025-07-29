@@ -2,12 +2,77 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Milestone, MilestoneStatus } from '@/types/deal';
+import { useMilestoneRealtime } from '@/hooks/milestones/useMilestoneRealtime';
 
 export function useMilestoneTracker(dealId: string, initialMilestones: Milestone[] = []) {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [loadingMilestones, setLoadingMilestones] = useState(initialMilestones.length === 0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [updatingMilestoneId, setUpdatingMilestoneId] = useState<string | null>(null);
+  
+  // Handle real-time milestone updates
+  const handleRealtimeUpdate = useCallback(async (updatedMilestone: any) => {
+    console.log('🔄 Real-time milestone update received:', updatedMilestone);
+    
+    // Fetch user profile if assigned_to exists
+    let assignedUser = undefined;
+    if (updatedMilestone.assigned_to) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('id', updatedMilestone.assigned_to)
+        .single();
+      
+      if (profileData) {
+        assignedUser = {
+          id: profileData.id,
+          name: profileData.name,
+          email: profileData.email
+        };
+      }
+    }
+    
+    const formattedMilestone = {
+      id: updatedMilestone.id,
+      title: updatedMilestone.title,
+      description: updatedMilestone.description || '',
+      status: updatedMilestone.status,
+      dueDate: updatedMilestone.due_date ? new Date(updatedMilestone.due_date) : undefined,
+      completedAt: updatedMilestone.completed_at ? new Date(updatedMilestone.completed_at) : undefined,
+      assigned_to: updatedMilestone.assigned_to,
+      assignedUser,
+      order_index: updatedMilestone.order_index
+    };
+    
+    setMilestones(prevMilestones => {
+      const updated = prevMilestones.map(m => 
+        m.id === updatedMilestone.id ? formattedMilestone : m
+      );
+      console.log('✅ Updated milestones from real-time:', updated);
+      return updated;
+    });
+  }, []);
+
+  const handleRealtimeInsert = useCallback(async (newMilestone: any) => {
+    console.log('🆕 Real-time milestone insert received:', newMilestone);
+    // Refetch all milestones to ensure proper order
+    fetchMilestones();
+  }, []);
+
+  const handleRealtimeDelete = useCallback((deletedMilestone: any) => {
+    console.log('🗑️ Real-time milestone delete received:', deletedMilestone);
+    setMilestones(prevMilestones => 
+      prevMilestones.filter(m => m.id !== deletedMilestone.id)
+    );
+  }, []);
+
+  // Setup real-time subscription
+  useMilestoneRealtime(
+    dealId, 
+    handleRealtimeUpdate, 
+    handleRealtimeInsert, 
+    handleRealtimeDelete
+  );
   
   // Fetch milestones from API
   const fetchMilestones = useCallback(async () => {
