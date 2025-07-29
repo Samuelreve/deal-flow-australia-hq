@@ -13,6 +13,7 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
   // Handle real-time milestone updates
   const handleRealtimeUpdate = useCallback(async (updatedMilestone: any) => {
     console.log('🔄 Real-time milestone update received:', updatedMilestone);
+    console.log('🔍 Raw status from real-time:', updatedMilestone.status, 'type:', typeof updatedMilestone.status);
     
     // Fetch user profile if assigned_to exists
     let assignedUser = undefined;

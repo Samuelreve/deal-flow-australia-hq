@@ -86,10 +86,13 @@ const MilestoneAssignmentModal: React.FC<MilestoneAssignmentModalProps> = ({
 
     setLoading(true);
     try {
-      // Update the milestone's assigned_to field
+      // Update the milestone's assigned_to field only - do not change status
       const { error: milestoneError } = await supabase
         .from('milestones')
-        .update({ assigned_to: selectedUserId })
+        .update({ 
+          assigned_to: selectedUserId,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', milestoneId);
 
       if (milestoneError) throw milestoneError;
@@ -128,10 +131,13 @@ const MilestoneAssignmentModal: React.FC<MilestoneAssignmentModalProps> = ({
   const handleUnassign = async () => {
     setLoading(true);
     try {
-      // Remove assignment from milestone
+      // Remove assignment from milestone - only update assigned_to field
       const { error: milestoneError } = await supabase
         .from('milestones')
-        .update({ assigned_to: null })
+        .update({ 
+          assigned_to: null,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', milestoneId);
 
       if (milestoneError) throw milestoneError;
