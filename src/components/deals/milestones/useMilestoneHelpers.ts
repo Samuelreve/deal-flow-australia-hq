@@ -6,6 +6,7 @@ export const useMilestoneHelpers = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-200 text-green-800';
+      case 'pending_approval': return 'bg-amber-200 text-amber-800';
       case 'in_progress': return 'bg-blue-200 text-blue-800';
       case 'blocked': return 'bg-red-200 text-red-800';
       case 'not_started': return 'bg-gray-200 text-gray-800';
@@ -18,6 +19,7 @@ export const useMilestoneHelpers = () => {
     console.log('🏷️ Formatting status:', status, 'type:', typeof status);
     switch (status) {
       case 'completed': return 'Completed';
+      case 'pending_approval': return 'Long completed';
       case 'in_progress': return 'In Progress';
       case 'blocked': return 'Blocked';
       case 'not_started': return 'Upcoming';

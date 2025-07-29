@@ -869,6 +869,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Completed'}
               </button>
             )}
+
+            {/* "Approve Completion" button - only for pending_approval milestones by admins/sellers/lawyers */}
+            {milestone.status === 'pending_approval' && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()) && (
+              <button
+                onClick={() => onUpdateStatus(milestone.id, 'completed')}
+                disabled={updatingMilestoneId === milestone.id}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300"
+              >
+                {updatingMilestoneId === milestone.id ? 'Approving...' : 'Approve Completion'}
+              </button>
+            )}
             
             {/* "Start Milestone" button - only for not_started milestones if previous milestone is completed */}
             {milestone.status === 'not_started' && (

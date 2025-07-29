@@ -2,7 +2,7 @@
 import { User, UserRole } from "@/types/auth";
 
 // Define milestone status
-export type MilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
+export type MilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked" | "pending_approval";
 
 // Define milestone assigned user type
 export interface MilestoneAssignedUser {

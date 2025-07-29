@@ -89,38 +89,59 @@ serve(async (req) => {
     // 4. Check if user role can update milestones or if user is assigned to this milestone
     const allowedRoles = ['admin', 'seller', 'lawyer'];
     const isAssignedUser = milestone.assigned_to === userId;
+    const canApprove = allowedRoles.includes(participant.role.toLowerCase());
     
     console.log('🔍 Permission check debug:', {
       userId,
       participantRole: participant.role,
       participantRoleLower: participant.role.toLowerCase(),
       allowedRoles,
-      isRoleAllowed: allowedRoles.includes(participant.role.toLowerCase()),
+      isRoleAllowed: canApprove,
       milestoneAssignedTo: milestone.assigned_to,
       isAssignedUser,
-      canUpdate: allowedRoles.includes(participant.role.toLowerCase()) || isAssignedUser
+      canUpdate: canApprove || isAssignedUser,
+      newStatus,
+      currentStatus: milestone.status
     });
     
-    if (!allowedRoles.includes(participant.role.toLowerCase()) && !isAssignedUser) {
+    if (!canApprove && !isAssignedUser) {
       return new Response(
         JSON.stringify({ error: `Permission denied: Role '${participant.role}' cannot update milestones and user is not assigned to this milestone` }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // 5. Prepare update data
+    // 5. Prepare update data with two-step completion process
     const updateData: Record<string, any> = {};
     
     // Only add fields that are provided
     if (newStatus) {
-      updateData.status = newStatus;
-      
-      // If completing the milestone, set completed_at timestamp
+      // Two-step completion process:
+      // - If assigned user tries to mark as "completed", change to "pending_approval"
+      // - Only admins/sellers/lawyers can approve from "pending_approval" to "completed"
       if (newStatus === "completed") {
-        updateData.completed_at = new Date().toISOString();
-      } else if (milestone.status === "completed") {
-        // If un-completing, clear the completed_at timestamp
-        updateData.completed_at = null;
+        if (isAssignedUser && !canApprove) {
+          // Assigned user can only mark as pending approval
+          updateData.status = "pending_approval";
+          updateData.completed_at = new Date().toISOString(); // Set when user completes their part
+        } else if (canApprove) {
+          // Admin/seller/lawyer can directly complete or approve pending approval
+          updateData.status = "completed";
+          updateData.completed_at = new Date().toISOString();
+        } else {
+          return new Response(
+            JSON.stringify({ error: "Permission denied: Cannot complete milestone" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // Other status changes work normally
+        updateData.status = newStatus;
+        
+        if (milestone.status === "completed" || milestone.status === "pending_approval") {
+          // If un-completing, clear the completed_at timestamp
+          updateData.completed_at = null;
+        }
       }
     }
     
