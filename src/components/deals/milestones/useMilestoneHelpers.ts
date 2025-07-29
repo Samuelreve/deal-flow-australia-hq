@@ -15,12 +15,15 @@ export const useMilestoneHelpers = () => {
 
   // Helper function to format status for display
   const formatStatus = (status: string) => {
+    console.log('🏷️ Formatting status:', status, 'type:', typeof status);
     switch (status) {
       case 'completed': return 'Completed';
       case 'in_progress': return 'In Progress';
       case 'blocked': return 'Blocked';
       case 'not_started': return 'Upcoming';
-      default: return status;
+      default: 
+        console.warn('⚠️ Unknown status received:', status);
+        return status;
     }
   };
 

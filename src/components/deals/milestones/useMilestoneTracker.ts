@@ -46,9 +46,10 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
     
     setMilestones(prevMilestones => {
       const updated = prevMilestones.map(m => 
-        m.id === updatedMilestone.id ? formattedMilestone : m
+        m.id === updatedMilestone.id ? { ...m, ...formattedMilestone } : m
       );
       console.log('✅ Updated milestones from real-time:', updated);
+      console.log('🔄 Milestone status after update:', formattedMilestone.status);
       return updated;
     });
   }, []);
