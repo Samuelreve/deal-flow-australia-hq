@@ -60,7 +60,7 @@ serve(async (req) => {
     // 2. Get milestone details and verify it exists
     const { data: milestone, error: milestoneError } = await supabaseAdmin
       .from("milestones")
-      .select("id, deal_id, status")
+      .select("id, deal_id, status, assigned_to")
       .eq("id", milestoneId)
       .single();
 
@@ -86,11 +86,13 @@ serve(async (req) => {
       );
     }
 
-    // 4. Check if user role can update milestones
+    // 4. Check if user role can update milestones or if user is assigned to this milestone
     const allowedRoles = ['admin', 'seller', 'lawyer'];
-    if (!allowedRoles.includes(participant.role.toLowerCase())) {
+    const isAssignedUser = milestone.assigned_to === userId;
+    
+    if (!allowedRoles.includes(participant.role.toLowerCase()) && !isAssignedUser) {
       return new Response(
-        JSON.stringify({ error: `Permission denied: Role '${participant.role}' cannot update milestones` }),
+        JSON.stringify({ error: `Permission denied: Role '${participant.role}' cannot update milestones and user is not assigned to this milestone` }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
