@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DealInvitation, DealInvitationsResponse } from "@/types/invitation";
 import { toast } from "@/hooks/use-toast";
@@ -60,6 +60,33 @@ export function useDealInvitations(dealId: string, canInviteParticipants: boolea
       setLoadingInvitations(false);
     }
   }, [dealId, canInviteParticipants]);
+
+  // Set up real-time subscription for invitation updates
+  useEffect(() => {
+    if (!dealId || !canInviteParticipants) return;
+
+    const channel = supabase
+      .channel(`deal-invitations-${dealId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'deal_invitations',
+          filter: `deal_id=eq.${dealId}`
+        },
+        (payload) => {
+          console.log('Real-time invitation change:', payload);
+          // Refresh invitations when any change occurs
+          fetchInvitations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, canInviteParticipants, fetchInvitations]);
 
   return {
     invitations,
