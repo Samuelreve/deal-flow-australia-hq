@@ -114,6 +114,15 @@ serve(async (req) => {
     // 5. Prepare update data with two-step completion process
     const updateData: Record<string, any> = {};
     
+    console.log('🔍 Status update request:', {
+      requestedStatus: newStatus,
+      currentStatus: milestone.status,
+      isAssignedUser,
+      canApprove,
+      userId,
+      participantRole: participant.role
+    });
+    
     // Only add fields that are provided
     if (newStatus) {
       // Two-step completion process:
@@ -122,13 +131,16 @@ serve(async (req) => {
       if (newStatus === "completed") {
         if (isAssignedUser && !canApprove) {
           // Assigned user can only mark as pending approval
+          console.log('🔄 Converting completion request to pending_approval for assigned user');
           updateData.status = "pending_approval";
           updateData.completed_at = new Date().toISOString(); // Set when user completes their part
         } else if (canApprove) {
           // Admin/seller/lawyer can directly complete or approve pending approval
+          console.log('🏁 Admin/seller/lawyer completing milestone');
           updateData.status = "completed";
           updateData.completed_at = new Date().toISOString();
         } else {
+          console.log('❌ Permission denied: Cannot complete milestone');
           return new Response(
             JSON.stringify({ error: "Permission denied: Cannot complete milestone" }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -136,6 +148,7 @@ serve(async (req) => {
         }
       } else {
         // Other status changes work normally
+        console.log('🔄 Normal status change:', newStatus);
         updateData.status = newStatus;
         
         if (milestone.status === "completed" || milestone.status === "pending_approval") {
