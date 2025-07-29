@@ -836,7 +836,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     canUpdateMilestone,
                     userRole,
                     assignedTo: milestone.assigned_to,
-                    currentUserId: user?.id
+                    currentUserId: user?.id,
+                    assignedUser: milestone.assignedUser,
+                    isUserAssigned: milestone.assigned_to === user?.id,
+                    buttonDisabled: updatingMilestoneId === milestone.id || (isDocumentSigning && milestoneSigningStatus !== 'completed')
                   });
                   
                   if (isDocumentSigning && milestoneSigningStatus !== 'completed') {
