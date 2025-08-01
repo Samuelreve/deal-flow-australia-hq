@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DocumentComment } from "@/types/documentComment";
 import { fetchVersionComments, addDocumentComment, editDocumentComment, deleteDocumentComment, toggleCommentResolved } from "./commentOperations";
@@ -79,7 +79,7 @@ export function useDocumentComments(documentVersionId?: string) {
   );
 
   // Initialize comments when documentVersionId changes
-  useCallback(() => {
+  useEffect(() => {
     if (documentVersionId) {
       fetchComments();
     } else {
