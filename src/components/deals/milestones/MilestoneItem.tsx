@@ -93,7 +93,29 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   useEffect(() => {
     fetchMilestoneDocuments();
     fetchMilestoneMessages();
-  }, [milestone.id, hasOtherSignatures, userHasSigned, signerNames]);
+    
+    // Set up real-time listener for milestone documents changes
+    const documentChannel = supabase
+      .channel(`milestone-docs-${milestone.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `milestone_id=eq.${milestone.id}`
+        },
+        (payload) => {
+          console.log('Real-time document change for milestone:', payload);
+          fetchMilestoneDocuments(); // Refresh documents when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(documentChannel);
+    };
+  }, [milestone.id]);
 
   // Use the milestone signing status from the hook instead of local checks
 

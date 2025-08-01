@@ -35,9 +35,9 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
     switch (signingStatus) {
       case 'completed':
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Fully Signed
+            🎉 Fully Signed
           </Badge>
         );
       case 'partially_completed':
@@ -70,8 +70,8 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
       return {
         type: 'success' as const,
         icon: CheckCircle,
-        title: 'All Signatures Complete',
-        message: 'This milestone document has been fully signed by all parties.'
+        title: '🎉 All Signatures Complete!',
+        message: 'This milestone document has been fully signed by all parties. The document is now legally complete and ready for the next phase.'
       };
     }
 

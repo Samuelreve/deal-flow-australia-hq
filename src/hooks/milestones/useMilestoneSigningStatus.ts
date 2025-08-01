@@ -161,8 +161,8 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
   useEffect(() => {
     if (!dealId || !milestoneId) return;
 
-    const channel = supabase
-      .channel('milestone-signing-status')
+    const signatureChannel = supabase
+      .channel(`milestone-signing-status-${milestoneId}`)
       .on(
         'postgres_changes',
         {
@@ -182,13 +182,13 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
             if (newStatus !== oldStatus) {
               if (newStatus === 'completed') {
                 toast({
-                  title: 'Document Fully Signed',
-                  description: 'All parties have signed the milestone document.',
+                  title: 'Document Fully Signed! ✅',
+                  description: 'All parties have signed the milestone document. The document is now complete.',
                 });
               } else if (newStatus === 'partially_completed') {
                 toast({
                   title: 'Document Partially Signed',
-                  description: 'One party has signed the document.',
+                  description: 'One party has signed the document. Waiting for other signatures.',
                 });
               } else if (newStatus === 'sent') {
                 toast({
@@ -199,16 +199,37 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
             }
           }
           
-          // Refresh status after a short delay
+          // Immediately refresh status for real-time updates
+          checkSigningStatus();
+        }
+      )
+      .subscribe();
+
+    // Also listen for document uploads to this milestone
+    const documentChannel = supabase
+      .channel(`milestone-documents-${milestoneId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `milestone_id=eq.${milestoneId}`
+        },
+        (payload) => {
+          console.log('Document change for milestone:', payload);
+          
+          // Refresh status when documents are added/removed from this milestone
           setTimeout(() => {
             checkSigningStatus();
-          }, 1000);
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(signatureChannel);
+      supabase.removeChannel(documentChannel);
     };
   }, [dealId, milestoneId, toast]);
 
