@@ -4,6 +4,7 @@ import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMilestoneSigningStatus } from '@/hooks/milestones/useMilestoneSigningStatus';
 import MilestoneExplainButton from './MilestoneExplainButton';
+import DocumentSigningStatus from './DocumentSigningStatus';
 
 import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
@@ -1045,11 +1046,27 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
 
-      {/* Milestone Documents with Sign Button */}
+      {/* Milestone Documents with Enhanced Status */}
       {milestoneDocuments.length > 0 && (
         <div className="mt-4">
-          <h5 className="text-sm font-medium text-gray-900 mb-2">Documents for this milestone:</h5>
-          <div className="space-y-2">
+          <h5 className="text-sm font-medium text-gray-900 mb-3">Documents for this milestone:</h5>
+          
+          {/* Document Signing Status Component */}
+          <DocumentSigningStatus 
+            documentCount={milestoneDocuments.length}
+            signingStatus={milestoneSigningStatus}
+            isAssignedUser={milestone.assigned_to === user?.id}
+            userHasSigned={userHasSigned}
+            hasOtherSignatures={hasOtherSignatures}
+            signerNames={signerNames}
+            milestone={{
+              id: milestone.id,
+              title: milestone.title,
+              assigned_to: milestone.assigned_to
+            }}
+          />
+          
+          <div className="space-y-2 mt-4">
             {milestoneDocuments.map((doc) => (
               <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
                 <div>
@@ -1058,74 +1075,32 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                     Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
                   </p>
                  </div>
-                 {/* Show different content for assigned vs non-assigned users */}
-                 {milestone.assigned_to === user?.id ? (
-                   /* Assigned users see messages instead of sign button */
-                   milestoneSigningStatus === 'completed' ? (
-                     <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md">
-                       <CheckCircle className="h-4 w-4 mr-2" />
-                       Sign completed
-                     </div>
-                    ) : milestoneSigningStatus === 'partially_completed' ? (
-                      <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Opposite signed, check your email and sign the document.
-                      </div>
-                   ) : !hasOtherSignatures ? (
-                     <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
-                       You need to sign this document
-                     </div>
-                   ) : (
-                     <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md">
-                       {signerNames.join(', ')} has signed. Check your email and sign the document
-                     </div>
-                   )
-                 ) : (
-                    /* Non-assigned users see sign button if they can sign */
-                    canSignMilestoneDocuments && (
-                      <>
-                        {milestoneSigningStatus === 'completed' ? (
-                          <Button
-                            disabled
-                            size="sm"
-                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Signed
-                          </Button>
-                        ) : milestoneSigningStatus === 'partially_completed' && userHasSigned ? (
-                          // User has already signed (admin case)
-                          <Button
-                            disabled
-                            size="sm"
-                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Signed
-                          </Button>
-                        ) : milestoneSigningStatus === 'sent' && userRole.toLowerCase() === 'admin' ? (
-                          // Admin user when document is sent for signing
-                          <Button
-                            disabled
-                            size="sm"
-                            className="bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-200"
-                          >
-                            <Clock className="h-4 w-4 mr-2" />
-                            Document Sent
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => handleSignMilestoneDocument(doc.id)}
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={milestoneSigningStatus === 'partially_completed' && userHasSigned}
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Sign Document
-                          </Button>
-                        )}
-                      </>
-                    )
+                 
+                 {/* Show sign button only for admins/non-assigned users */}
+                 {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
+                   <>
+                     {milestoneSigningStatus === 'completed' ? (
+                       <Button
+                         disabled
+                         size="sm"
+                         variant="outline"
+                         className="text-green-600 border-green-200 bg-green-50"
+                       >
+                         <CheckCircle className="h-4 w-4 mr-2" />
+                         Signed
+                       </Button>
+                     ) : (
+                       <Button
+                         onClick={() => handleSignDocument()}
+                         size="sm"
+                         variant="outline"
+                         className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                       >
+                         <FileCheck className="h-4 w-4 mr-2" />
+                         Sign Document
+                       </Button>
+                     )}
+                   </>
                  )}
               </div>
             ))}
