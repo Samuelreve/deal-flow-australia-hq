@@ -4,7 +4,6 @@ import { Document } from "@/types/deal";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import DocumentUploadForm from "./DocumentUploadForm";
-import SmartTemplateButton from "./SmartTemplateButton";
 
 interface DocumentUploadProps {
   dealId: string;
@@ -67,18 +66,11 @@ const DocumentUpload = ({
         {milestoneTitle ? `Upload Document for: ${milestoneTitle}` : 'Upload Document'}
       </h4>
       
-      <div className="flex items-center gap-3 mb-4">
+      <div className="mb-4">
         <DocumentUploadForm 
           dealId={dealId}
           onUpload={handleDocumentUpload}
           documents={documents}
-          milestoneId={milestoneId}
-        />
-        
-        <SmartTemplateButton 
-          dealId={dealId}
-          onDocumentSaved={handleDocumentUpload}
-          userRole={userRole}
           milestoneId={milestoneId}
         />
       </div>
