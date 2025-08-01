@@ -975,7 +975,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               )}
             </div>
           ) : (
-            /* Sign Document Button - Show for non-assigned users when not started and not sent */
+            /* Sign Document Button - Show for non-assigned users when not started */
             milestoneSigningStatus === 'not_started' && showSignButton && (
               <div className="flex gap-2">
                 <button
@@ -988,19 +988,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                 </button>
               </div>
             )
-          )}
-
-          {/* Show disabled Sign Document button when sent for signing */}
-          {milestoneSigningStatus === 'sent' && showSignButton && (
-            <div className="flex gap-2">
-              <button
-                disabled
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed rounded-lg"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Document Sent for Signing
-              </button>
-            </div>
           )}
 
           {/* Signed State - Show signed button */}
