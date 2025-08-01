@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Milestone } from '@/types/deal';
+import { Milestone, MilestoneStatus } from '@/types/deal';
 import { useMilestoneHelpers } from './useMilestoneHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMilestoneSigningStatus } from '@/hooks/milestones/useMilestoneSigningStatus';
@@ -19,7 +19,7 @@ interface MilestoneItemProps {
   milestone: Milestone;
   userRole: string;
   updatingMilestoneId: string | null;
-  onUpdateStatus: (milestoneId: string, newStatus: "not_started" | "in_progress" | "completed" | "blocked") => void;
+  onUpdateStatus: (milestoneId: string, newStatus: MilestoneStatus) => void;
   isParticipant?: boolean;
   dealId: string;
   canStart?: boolean;
@@ -152,6 +152,12 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     try {
       const messages: string[] = [];
       
+      // Don't show any signing messages if milestone is completed or document is fully signed
+      if (milestone.status === 'completed') {
+        setMilestoneMessages([]);
+        return;
+      }
+      
       // Get documents uploaded for this milestone with uploader info
       const { data: docs, error } = await supabase
         .from('documents')
@@ -172,33 +178,36 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         const isAdmin = uploaderRole === 'admin';
         const isCurrentUser = doc.uploaded_by === user?.id;
         
-      // Show message for assigned users or admin (current user)
-      if (milestone.assigned_to === user?.id || (isCurrentUser && isAdmin)) {
-        if (isCurrentUser && isAdmin) {
-          // Admin who uploaded sees different message
-          messages.push(`You uploaded document "${doc.name}" for this milestone`);
-        } else {
-          // Assigned user sees the original message
-          const roleText = isAdmin ? ' (Admin)' : '';
-          messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
+        // Show message for assigned users or admin (current user) only if not completed
+        if ((milestone.assigned_to === user?.id || (isCurrentUser && isAdmin)) && 
+            (milestone.status as string) !== 'completed') {
+          if (isCurrentUser && isAdmin) {
+            // Admin who uploaded sees different message
+            messages.push(`You uploaded document "${doc.name}" for this milestone`);
+          } else {
+            // Assigned user sees the original message only if not completed
+            const roleText = isAdmin ? ' (Admin)' : '';
+            messages.push(`${uploaderName}${roleText} uploaded document "${doc.name}" and please sign the document.`);
+          }
         }
-      }
       });
 
-      // Check signing status and show appropriate messages
-      if (milestoneSigningStatus === 'sent' && milestone.assigned_to === user?.id && !userHasSigned) {
-        // Document has been sent for signing and assigned user hasn't signed yet
-        messages.push(`Opposite has signed. Please check your email and sign the document.`);
-      } else if (milestoneSigningStatus === 'partially_completed') {
-        if (milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
-          // Assigned user hasn't signed yet but others have
+      // Add signing status messages only if milestone not completed
+      if ((milestone.status as string) !== 'completed') {
+        if (milestoneSigningStatus === 'sent' && milestone.assigned_to === user?.id && !userHasSigned) {
+          // Document has been sent for signing and assigned user hasn't signed yet
+          messages.push(`Opposite has signed. Please check your email and sign the document.`);
+        } else if (milestoneSigningStatus === 'partially_completed') {
+          if (milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+            // Assigned user hasn't signed yet but others have
+            const signerNamesText = signerNames.join(', ');
+            messages.push(`Opposite signed, check your email and sign the document.`);
+          }
+        } else if (hasOtherSignatures && milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
+          // Fallback for other signing status cases
           const signerNamesText = signerNames.join(', ');
-          messages.push(`Opposite signed, check your email and sign the document.`);
+          messages.push(`Check your email, ${signerNamesText} has signed. Please sign the document.`);
         }
-      } else if (hasOtherSignatures && milestone.assigned_to === user?.id && !userHasSigned && signerNames.length > 0) {
-        // Fallback for other signing status cases
-        const signerNamesText = signerNames.join(', ');
-        messages.push(`Check your email, ${signerNamesText} has signed. Please sign the document.`);
       }
 
       setMilestoneMessages(messages);
@@ -1057,8 +1066,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
 
-      {/* Milestone Messages */}
-      {milestoneMessages.length > 0 && (
+      {/* Milestone Messages - Only show if milestone is not completed */}
+      {milestoneMessages.length > 0 && (milestone.status as string) !== 'completed' && (
         <div className="mt-4 space-y-2">
           {milestoneMessages.map((message, index) => (
             <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
