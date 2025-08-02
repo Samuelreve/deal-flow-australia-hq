@@ -32,10 +32,24 @@ export function useCommentRealtime(
           table: 'document_comments', 
           filter: `document_version_id=eq.${documentVersionId}` 
         },
-        (payload) => {
+        async (payload) => {
           console.log('Realtime comment INSERT received:', payload);
           const newComment = payload.new as DocumentComment;
-          if (onInsert) onInsert(newComment);
+          
+          // Fetch the user profile data for the new comment
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name, avatar_url')
+            .eq('id', newComment.user_id)
+            .single();
+          
+          // Add profile data to the comment
+          const commentWithProfile = {
+            ...newComment,
+            user: profileData
+          } as DocumentComment;
+          
+          if (onInsert) onInsert(commentWithProfile);
         }
       )
       .on(
@@ -46,10 +60,24 @@ export function useCommentRealtime(
           table: 'document_comments', 
           filter: `document_version_id=eq.${documentVersionId}` 
         },
-        (payload) => {
+        async (payload) => {
           console.log('Realtime comment UPDATE received:', payload);
           const updatedComment = payload.new as DocumentComment;
-          if (onUpdate) onUpdate(updatedComment);
+          
+          // Fetch the user profile data for the updated comment
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name, avatar_url')
+            .eq('id', updatedComment.user_id)
+            .single();
+          
+          // Add profile data to the comment
+          const commentWithProfile = {
+            ...updatedComment,
+            user: profileData
+          } as DocumentComment;
+          
+          if (onUpdate) onUpdate(commentWithProfile);
         }
       )
       .on(

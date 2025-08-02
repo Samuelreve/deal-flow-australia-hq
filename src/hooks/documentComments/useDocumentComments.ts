@@ -32,21 +32,9 @@ export function useDocumentComments(documentVersionId?: string) {
 
   // Set up real-time updates for comments
   const handleNewComment = useCallback((newComment: DocumentComment) => {
-    // Get the new comment and fetch related user data
-    const fetchCommentDetails = async () => {
-      try {
-        const result = await fetchVersionComments(documentVersionId as string);
-        const fullComment = result.find(c => c.id === newComment.id);
-        if (fullComment) {
-          setComments(prevComments => addCommentToState(prevComments, fullComment));
-        }
-      } catch (err) {
-        console.error('Error fetching new comment details:', err);
-      }
-    };
-    
-    fetchCommentDetails();
-  }, [documentVersionId]);
+    console.log('Adding new comment via realtime:', newComment);
+    setComments(prevComments => addCommentToState(prevComments, newComment));
+  }, []);
 
   const handleUpdatedComment = useCallback((updatedComment: DocumentComment) => {
     if (updatedComment.content) {
