@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Deal } from "@/types/deal";
 import { DealParticipant } from "@/components/deals/DealParticipants";
 import { toast } from "@/hooks/use-toast";
+import { useParticipantsRealtime } from "./useParticipantsRealtime";
 
 type ParticipantsLoadedCallback = (participants: DealParticipant[]) => void;
 
@@ -125,66 +126,23 @@ export function useDealParticipants(
     }
   }, [deal.id, isAuthenticated, deal.participants, mapMockParticipants, onParticipantsLoaded]);
 
-  // Set up real-time updates for participants and invitations
-  useEffect(() => {
-    if (!isAuthenticated || !deal.id) return;
+  // Handle real-time updates
+  const handleParticipantsUpdate = useCallback(() => {
+    console.log('🔄 Participants updated, refreshing data...');
+    fetchParticipants();
+  }, [fetchParticipants]);
 
-    console.log('🔄 Setting up real-time subscriptions for deal:', deal.id);
+  const handleInvitationsUpdate = useCallback(() => {
+    console.log('📧 Invitations updated, refreshing data...');
+    fetchParticipants();
+  }, [fetchParticipants]);
 
-    // Create unique channel name with timestamp to prevent conflicts
-    const channelName = `participants-${deal.id}-${Date.now()}`;
-    
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'deal_participants',
-          filter: `deal_id=eq.${deal.id}`
-        },
-        (payload) => {
-          console.log('🔄 Deal participants real-time update:', payload);
-          // Use a small delay to ensure database consistency
-          setTimeout(() => {
-            fetchParticipants();
-          }, 100);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'deal_invitations',
-          filter: `deal_id=eq.${deal.id}`
-        },
-        (payload) => {
-          console.log('📧 Deal invitations real-time update:', payload);
-          // Use a small delay to ensure database consistency
-          setTimeout(() => {
-            fetchParticipants();
-          }, 100);
-          
-          // Show toast notification for invitation acceptance
-          if (payload.new && (payload.new as any).status === 'accepted' && payload.old && (payload.old as any).status === 'pending') {
-            toast({
-              title: "🎉 Invitation Accepted!",
-              description: `${(payload.new as any).invitee_email} has joined the deal`,
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔄 Cleaning up real-time subscriptions');
-      supabase.removeChannel(channel);
-    };
-  }, [deal.id, isAuthenticated]); // Removed fetchParticipants from deps to prevent recreation
+  // Set up real-time updates using dedicated hook
+  useParticipantsRealtime(
+    isAuthenticated ? deal.id : undefined,
+    handleParticipantsUpdate,
+    handleInvitationsUpdate
+  );
 
   return {
     participants,
