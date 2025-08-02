@@ -157,12 +157,19 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
     checkSigningStatus();
   }, [milestoneId, dealId, userEmail]);
 
-  // Listen for real-time changes to document_signatures table
+  // Listen for real-time changes to document_signatures table and documents table
   useEffect(() => {
     if (!dealId || !milestoneId) return;
 
+    console.log(`Setting up real-time listeners for milestone ${milestoneId}, deal ${dealId}`);
+
+    // Create unique channel names to avoid conflicts
+    const signatureChannelName = `signatures-${milestoneId}-${Date.now()}`;
+    const documentChannelName = `documents-${milestoneId}-${Date.now()}`;
+
+    // Listen for document signature changes
     const signatureChannel = supabase
-      .channel(`milestone-signing-status-${milestoneId}`)
+      .channel(signatureChannelName)
       .on(
         'postgres_changes',
         {
@@ -172,7 +179,7 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
           filter: `deal_id=eq.${dealId}`
         },
         (payload) => {
-          console.log('Signature status changed:', payload);
+          console.log('🔄 Real-time signature status changed:', payload);
           
           // Show toast notification based on the change
           if (payload.eventType === 'UPDATE' && payload.new) {
@@ -182,32 +189,48 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
             if (newStatus !== oldStatus) {
               if (newStatus === 'completed') {
                 toast({
-                  title: 'Document Fully Signed! ✅',
+                  title: '🎉 Document Fully Signed!',
                   description: 'All parties have signed the milestone document. The document is now complete.',
                 });
               } else if (newStatus === 'partially_completed') {
                 toast({
-                  title: 'Document Partially Signed',
+                  title: '✍️ Document Partially Signed',
                   description: 'One party has signed the document. Waiting for other signatures.',
                 });
               } else if (newStatus === 'sent') {
                 toast({
-                  title: 'Document Sent for Signing',
+                  title: '📨 Document Sent for Signing',
                   description: 'A milestone document has been sent for signing.',
                 });
               }
             }
           }
           
-          // Immediately refresh status for real-time updates
+          // Immediately refresh status without delay for real-time updates
+          console.log('🔄 Refreshing signing status due to signature change');
           checkSigningStatus();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'document_signatures',
+          filter: `deal_id=eq.${dealId}`
+        },
+        (payload) => {
+          console.log('🔄 New signature record created:', payload);
+          checkSigningStatus();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Signature channel ${signatureChannelName} status:`, status);
+      });
 
-    // Also listen for document uploads to this milestone
+    // Listen for document changes to this milestone
     const documentChannel = supabase
-      .channel(`milestone-documents-${milestoneId}`)
+      .channel(documentChannelName)
       .on(
         'postgres_changes',
         {
@@ -217,19 +240,51 @@ export const useMilestoneSigningStatus = (milestoneId: string, dealId: string, u
           filter: `milestone_id=eq.${milestoneId}`
         },
         (payload) => {
-          console.log('Document change for milestone:', payload);
+          console.log('🔄 Document change for milestone:', payload);
           
           // Refresh status when documents are added/removed from this milestone
           setTimeout(() => {
+            console.log('🔄 Refreshing signing status due to document change');
             checkSigningStatus();
           }, 500);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Document channel ${documentChannelName} status:`, status);
+      });
+
+    // Additional channel to listen for general deal document changes
+    const dealDocumentChannelName = `deal-docs-${dealId}-${Date.now()}`;
+    const dealDocumentChannel = supabase
+      .channel(dealDocumentChannelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents',
+          filter: `deal_id=eq.${dealId}`
+        },
+        (payload) => {
+          console.log('🔄 Deal document change:', payload);
+          // Only refresh if it affects this milestone
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+          if (newRecord?.milestone_id === milestoneId || oldRecord?.milestone_id === milestoneId) {
+            console.log('🔄 Refreshing signing status due to deal document change affecting this milestone');
+            checkSigningStatus();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Deal document channel ${dealDocumentChannelName} status:`, status);
+      });
 
     return () => {
+      console.log('🧹 Cleaning up real-time channels for milestone:', milestoneId);
       supabase.removeChannel(signatureChannel);
       supabase.removeChannel(documentChannel);
+      supabase.removeChannel(dealDocumentChannel);
     };
   }, [dealId, milestoneId, toast]);
 
