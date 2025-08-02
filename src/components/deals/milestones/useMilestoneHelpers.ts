@@ -15,11 +15,11 @@ export const useMilestoneHelpers = () => {
   };
 
   // Helper function to format status for display
-  const formatStatus = (status: string) => {
+  const formatStatus = (status: string, assignedUserName?: string) => {
     console.log('🏷️ Formatting status:', status, 'type:', typeof status);
     switch (status) {
       case 'completed': return 'Completed';
-      case 'pending_approval': return 'Long completed';
+      case 'pending_approval': return assignedUserName ? `${assignedUserName} completed` : 'Pending approval';
       case 'in_progress': return 'In Progress';
       case 'blocked': return 'Blocked';
       case 'not_started': return 'Upcoming';

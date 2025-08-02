@@ -734,7 +734,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       <h4 className="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
         {milestone.title}
         <span className={`text-sm font-medium me-2 px-2.5 py-0.5 rounded ms-3 ${getStatusColor(milestone.status)}`}>
-          {formatStatus(milestone.status)}
+          {formatStatus(milestone.status, milestone.assignedUser?.name)}
         </span>
         
         {/* Assignment indicator */}
