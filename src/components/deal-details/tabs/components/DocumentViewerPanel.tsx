@@ -18,7 +18,7 @@ interface DocumentViewerPanelProps {
   onAnalyzeDocument: (type: 'summary' | 'key_terms' | 'risks') => void;
   onOpenDocumentInNewTab: () => void;
   onToggleCommentForm: () => void;
-  onAddComment: (content: string) => void;
+  onAddComment: (content: string, parentCommentId?: string) => void;
 }
 
 const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({

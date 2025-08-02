@@ -382,15 +382,15 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     setShowAnalysisModal(true);
   };
 
-  const handleAddComment = async (content: string) => {
+  const handleAddComment = async (content: string, parentCommentId?: string) => {
     if (!currentVersionId) return;
     
     try {
-      await addComment({ content });
+      await addComment({ content, parent_comment_id: parentCommentId });
       setShowCommentForm(false);
       showToast({
         title: "Success",
-        description: "Comment added successfully"
+        description: parentCommentId ? "Reply added successfully" : "Comment added successfully"
       });
     } catch (error) {
       console.error('Error adding comment:', error);
