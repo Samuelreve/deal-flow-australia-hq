@@ -1179,27 +1179,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                       Preview
                     </Button>
                     
-                     {/* Save to Deal Room Button - Show for admins when document is fully signed */}
-                     {userRole === 'admin' && milestoneSigningStatus === 'completed' && (
-                       <Button
-                         onClick={handleSaveSignedDocumentToDealRoom}
-                         size="sm"
-                         disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
-                         className={`${
-                           downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
-                             ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                             : 'bg-blue-600 hover:bg-blue-700 text-white'
-                         }`}
-                       >
-                         <Save className="h-4 w-4 mr-2" />
-                         {downloadingSignedDoc 
-                           ? 'Saving...' 
-                           : savedSignedDocuments.has(milestone.id)
-                             ? 'Saved to Deal Room' 
-                             : 'Save to Deal Room'
-                         }
-                       </Button>
-                     )}
+                      {/* Save to Deal Room Button removed from here - it's already in the main status section */}
                      
                      {/* Show sign button only for admins/non-assigned users */}
                      {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
