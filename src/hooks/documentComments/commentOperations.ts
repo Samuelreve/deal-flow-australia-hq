@@ -9,59 +9,55 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
   try {
     console.log('Fetching comments for document version:', versionId);
     
-    // First fetch all comments for this version, ordered by creation time
+    // Use the new database function to get nested comments with full author info
     const { data, error } = await supabase
-      .from('document_comments')
-      .select(`
-        *,
-        profiles(name, avatar_url)
-      `)
-      .eq('document_version_id', versionId)
-      .order('created_at', { ascending: true });
+      .rpc('get_document_comments_with_nested_structure', {
+        p_document_version_id: versionId
+      });
     
     if (error) {
       console.error("Error fetching document comments:", error);
       throw error;
     }
     
-    console.log('Raw comments data:', data);
+    console.log('Raw comments data from function:', data);
     
     // Transform the data to match our DocumentComment interface
-    const transformedComments = (data || []).map(comment => ({
-      ...comment,
-      user: comment.profiles ? {
-        id: comment.user_id,
-        name: comment.profiles.name,
-        avatar_url: comment.profiles.avatar_url
-      } : undefined
-    }));
-    
-    // Organize comments into parent-child structure
-    const topLevelComments: DocumentComment[] = [];
-    const repliesMap = new Map<string, DocumentComment[]>();
-    
-    // First pass: separate top-level comments and replies
-    transformedComments.forEach(comment => {
-      if (comment.parent_comment_id) {
-        // This is a reply
-        if (!repliesMap.has(comment.parent_comment_id)) {
-          repliesMap.set(comment.parent_comment_id, []);
+    const transformedComments = (data || []).map((comment: any) => {
+      // Parse the replies JSON if it exists
+      let replies: DocumentComment[] = [];
+      if (comment.replies && typeof comment.replies === 'string') {
+        try {
+          replies = JSON.parse(comment.replies);
+        } catch (e) {
+          console.warn('Failed to parse replies JSON:', e);
+          replies = [];
         }
-        repliesMap.get(comment.parent_comment_id)!.push(comment);
-      } else {
-        // This is a top-level comment
-        topLevelComments.push(comment);
+      } else if (Array.isArray(comment.replies)) {
+        replies = comment.replies;
       }
+
+      // Ensure user object is properly typed
+      const userProfile = comment.user || comment.profiles;
+      const user = {
+        id: comment.user_id,
+        name: (typeof userProfile === 'object' && userProfile !== null && 'name' in userProfile) 
+          ? userProfile.name as string || 'Unknown User'
+          : 'Unknown User',
+        avatar_url: (typeof userProfile === 'object' && userProfile !== null && 'avatar_url' in userProfile) 
+          ? userProfile.avatar_url as string
+          : undefined
+      };
+
+      return {
+        ...comment,
+        user,
+        replies
+      } as DocumentComment;
     });
     
-    // Second pass: attach replies to their parent comments
-    topLevelComments.forEach(comment => {
-      const replies = repliesMap.get(comment.id) || [];
-      comment.replies = replies;
-    });
-    
-    console.log('Processed comments:', topLevelComments);
-    return topLevelComments;
+    console.log('Processed comments:', transformedComments);
+    return transformedComments;
   } catch (error) {
     console.error("Error in fetchVersionComments:", error);
     return [];

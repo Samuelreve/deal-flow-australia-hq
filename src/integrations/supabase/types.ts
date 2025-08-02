@@ -1759,6 +1759,24 @@ export type Database = {
         Args: { deal_uuid: string }
         Returns: Database["public"]["CompositeTypes"]["timeline_event"][]
       }
+      get_document_comments_with_nested_structure: {
+        Args: { p_document_version_id: string }
+        Returns: {
+          id: string
+          content: string
+          document_version_id: string
+          user_id: string
+          created_at: string
+          updated_at: string
+          page_number: number
+          location_data: Json
+          resolved: boolean
+          parent_comment_id: string
+          profiles: Json
+          user: Json
+          replies: Json
+        }[]
+      }
       get_health_comparisons: {
         Args: { p_user_id: string }
         Returns: {
@@ -1800,6 +1818,24 @@ export type Database = {
           report_type: string
           status: string
           user_id: string
+        }[]
+      }
+      get_nested_document_comments: {
+        Args: { p_document_version_id: string }
+        Returns: {
+          id: string
+          content: string
+          document_version_id: string
+          user_id: string
+          created_at: string
+          updated_at: string
+          page_number: number
+          location_data: Json
+          resolved: boolean
+          parent_comment_id: string
+          author_name: string
+          author_avatar_url: string
+          replies: Json
         }[]
       }
       get_recovery_plans: {

@@ -26,7 +26,7 @@ export function useDocumentComments(documentVersionId?: string) {
     setLoading(true);
     try {
       const fetchedComments = await fetchVersionComments(documentVersionId);
-      console.log('Fetched comments for version:', documentVersionId);
+      console.log('Fetched nested comments for version:', documentVersionId);
       console.log('Comments fetched:', fetchedComments.length);
       setComments(fetchedComments);
     } finally {
@@ -36,31 +36,25 @@ export function useDocumentComments(documentVersionId?: string) {
 
   // Set up real-time updates for comments
   const handleNewComment = useCallback((newComment: DocumentComment) => {
-    console.log('Adding new comment via realtime:', newComment);
-    setComments(prevComments => addCommentToState(prevComments, newComment));
-  }, []);
+    console.log('Real-time comment change detected, refetching all comments');
+    // Since we're using a database function for nested structure,
+    // refetch all comments to maintain proper nesting
+    fetchComments();
+  }, [fetchComments]);
 
   const handleUpdatedComment = useCallback((updatedComment: DocumentComment) => {
-    if (updatedComment.content) {
-      // Content update
-      setComments(prevComments => 
-        updateCommentInState(prevComments, updatedComment.id, updatedComment.content)
-      );
-    }
-    
-    // Update resolved status if it has changed
-    if ('resolved' in updatedComment) {
-      setComments(prevComments => 
-        updateCommentResolvedStatus(prevComments, updatedComment.id, updatedComment.resolved)
-      );
-    }
-  }, []);
+    console.log('Real-time comment update detected, refetching all comments');
+    // Since we're using a database function for nested structure,
+    // refetch all comments to maintain proper nesting
+    fetchComments();
+  }, [fetchComments]);
 
   const handleDeletedComment = useCallback((deletedComment: DocumentComment) => {
-    setComments(prevComments => 
-      removeCommentFromState(prevComments, deletedComment.id, deletedComment.parent_comment_id)
-    );
-  }, []);
+    console.log('Real-time comment deletion detected, refetching all comments');
+    // Since we're using a database function for nested structure,
+    // refetch all comments to maintain proper nesting
+    fetchComments();
+  }, [fetchComments]);
 
   // Initialize the real-time subscription
   useCommentRealtime(

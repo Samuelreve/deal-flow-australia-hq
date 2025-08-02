@@ -254,19 +254,19 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     }
   };
 
-  // Use comments directly since they already come pre-structured from the backend
+  // Comments now come pre-structured with nested replies from database function
   const groupedComments = React.useMemo(() => {
     // Debug log to see the structure
-    console.log('📝 Comments structure:', comments);
+    console.log('📝 Comments from database function:', comments);
     comments.forEach(comment => {
       if (comment.replies && comment.replies.length > 0) {
         console.log(`💬 Comment ${comment.id} has ${comment.replies.length} replies:`, comment.replies);
       }
     });
     
-    // Comments from the backend already have the proper nested structure
-    // We just need to filter for top-level comments
-    return comments.filter(comment => !comment.parent_comment_id);
+    // Comments from the database function already have the proper nested structure
+    // No need to filter as they already come as top-level comments with nested replies
+    return comments;
   }, [comments]);
 
   return (
