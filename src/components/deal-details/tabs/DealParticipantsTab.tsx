@@ -176,8 +176,8 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const otherParticipants = participants.filter(participant => participant.user_id !== user?.id);
   const totalParticipants = participants.length;
 
-  // Check if current user can invite participants (admin/seller or buyer)
-  const canInviteParticipants = currentUserRole && ['seller', 'admin', 'buyer'].includes(currentUserRole);
+  // Check if current user can invite participants (only admin and seller)
+  const canInviteParticipants = currentUserRole && ['admin'].includes(currentUserRole);
 
   return (
     <div className="space-y-6">
