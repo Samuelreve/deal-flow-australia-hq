@@ -63,15 +63,18 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Strong visible connecting lines like in the image */}
-            <div className="absolute -left-8 top-0 w-6 h-6 border-l-4 border-b-4 border-muted-foreground/60 rounded-bl-lg"></div>
-            {!isLast && <div className="absolute -left-8 top-6 w-1 h-full bg-muted-foreground/40"></div>}
+            {/* Enhanced connecting lines system */}
+            <div className="absolute -left-8 top-0 w-8 h-8 border-l-2 border-b-2 border-primary/40 rounded-bl-lg"></div>
+            {!isLast && <div className="absolute -left-8 top-8 w-0.5 h-full bg-primary/30"></div>}
             
-            {/* Small connecting dot */}
-            <div className="absolute -left-9 top-1 w-2 h-2 bg-muted-foreground/60 rounded-full"></div>
+            {/* Visual connection dot */}
+            <div className="absolute -left-9 top-1 w-3 h-3 bg-primary/60 rounded-full border-2 border-background shadow-sm"></div>
             
-            <div className="ml-4 transform transition-all duration-200 hover:translate-x-1">
-              <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-muted-foreground/60`}>
+            {/* Hierarchy indicator */}
+            <div className="absolute -left-12 top-0 w-2 h-full bg-gradient-to-b from-primary/20 to-transparent rounded-full"></div>
+            
+            <div className="ml-6 transform transition-all duration-200 hover:translate-x-1">
+              <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-primary/50`}>
                 <div className="flex items-start gap-3 mb-2">
                   <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
                      <span className="text-sm font-semibold text-white">
@@ -151,11 +154,14 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
               </div>
             )}
 
-            {/* Nested Replies - Recursive with connecting lines */}
+            {/* Nested Replies - Enhanced recursive connecting lines */}
             {reply.replies && reply.replies.length > 0 && (
-              <div className="relative mt-3">
-                {/* Continuation line for deeper nesting */}
-                <div className="absolute -left-6 top-0 w-0.5 h-full bg-primary/30"></div>
+              <div className="relative mt-4">
+                {/* Enhanced continuation line for deeper nesting */}
+                <div className="absolute -left-8 top-0 w-1 h-full bg-gradient-to-b from-primary/40 to-primary/20 rounded-full"></div>
+                
+                {/* Depth indicator for visual hierarchy */}
+                <div className="absolute -left-10 top-0 w-0.5 h-full bg-primary/15"></div>
                 
                 <NestedReplies 
                   replies={reply.replies} 
