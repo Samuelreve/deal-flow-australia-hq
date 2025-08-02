@@ -13,6 +13,12 @@ interface Comment {
   profiles?: {
     name?: string;
   };
+  user?: {
+    id: string;
+    name: string;
+    email?: string;
+    avatar_url?: string;
+  };
   replies?: Comment[];
 }
 
@@ -68,15 +74,15 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
               <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-muted-foreground/60`}>
                 <div className="flex items-start gap-3 mb-2">
                   <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
-                    <span className="text-sm font-semibold text-white">
-                      {reply.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
+                     <span className="text-sm font-semibold text-white">
+                       {(reply.user?.name || reply.profiles?.name)?.charAt(0)?.toUpperCase() || 'U'}
+                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-foreground">
-                        {reply.profiles?.name || 'Unknown User'}
-                        {user?.id === reply.user_id && (
+                       <span className="text-sm font-semibold text-foreground">
+                         {reply.user?.name || reply.profiles?.name || 'Unknown User'}
+                         {user?.id === reply.user_id && (
                           <span className="ml-1 text-xs text-primary font-medium">(me)</span>
                         )}
                       </span>
@@ -113,11 +119,11 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
                 <div className="absolute -left-6 top-0 w-6 h-6 border-l-4 border-b-4 border-primary rounded-bl-xl"></div>
                 <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                   <div className="text-xs text-primary/70 mb-3 font-medium">
-                    Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
+                    Replying to <span className="font-semibold text-primary">{reply.user?.name || reply.profiles?.name || 'Unknown User'}</span>
                   </div>
                   <div className="space-y-3">
                     <Textarea 
-                      placeholder={`Reply to ${reply.profiles?.name || 'Unknown User'}...`}
+                      placeholder={`Reply to ${reply.user?.name || reply.profiles?.name || 'Unknown User'}...`}
                       className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
                       id={`reply-input-${reply.id}`}
                       onKeyDown={(e) => handleReplyKeyDown(e, reply.id)}
@@ -250,6 +256,14 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
   // Use comments directly since they already come pre-structured from the backend
   const groupedComments = React.useMemo(() => {
+    // Debug log to see the structure
+    console.log('📝 Comments structure:', comments);
+    comments.forEach(comment => {
+      if (comment.replies && comment.replies.length > 0) {
+        console.log(`💬 Comment ${comment.id} has ${comment.replies.length} replies:`, comment.replies);
+      }
+    });
+    
     // Comments from the backend already have the proper nested structure
     // We just need to filter for top-level comments
     return comments.filter(comment => !comment.parent_comment_id);
@@ -323,13 +337,13 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-10 h-10 ${userTheme.avatar} rounded-full flex items-center justify-center shadow-md border-2 border-white`}>
                     <span className="text-sm font-bold text-white">
-                      {comment.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      {(comment.user?.name || comment.profiles?.name)?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-base font-semibold text-foreground">
-                        {comment.profiles?.name || 'Unknown User'}
+                        {comment.user?.name || comment.profiles?.name || 'Unknown User'}
                         {user?.id === comment.user_id && (
                           <span className="ml-2 text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-full">(me)</span>
                         )}
@@ -378,13 +392,13 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                             <div className="flex items-start gap-3 mb-2">
                               <div className={`w-7 h-7 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
                                 <span className="text-xs font-semibold text-white">
-                                  {reply.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                  {(reply.user?.name || reply.profiles?.name)?.charAt(0)?.toUpperCase() || 'U'}
                                 </span>
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-sm font-semibold text-foreground">
-                                    {reply.profiles?.name || 'Unknown User'}
+                                    {reply.user?.name || reply.profiles?.name || 'Unknown User'}
                                     {user?.id === reply.user_id && (
                                       <span className="ml-1 text-xs text-primary font-medium">(me)</span>
                                     )}
@@ -418,11 +432,11 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                               <div className="mt-3 pl-4 border-l-2 border-primary/50 animate-fade-in">
                                 <div className="p-3 border rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                                   <div className="text-xs text-primary/70 mb-2 font-medium">
-                                    Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
+                                    Replying to <span className="font-semibold text-primary">{reply.user?.name || reply.profiles?.name || 'Unknown User'}</span>
                                   </div>
                                   <div className="space-y-3">
                                     <Textarea 
-                                      placeholder={`Reply to ${reply.profiles?.name || 'Unknown User'}...`}
+                                      placeholder={`Reply to ${reply.user?.name || reply.profiles?.name || 'Unknown User'}...`}
                                       className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
                                       id={`reply-input-${reply.id}`}
                                       onKeyDown={(e) => handleReplyKeyDown(e, reply.id)}
@@ -463,11 +477,11 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                   <div className="absolute -left-6 top-0 w-6 h-6 border-l-4 border-b-4 border-primary rounded-bl-xl"></div>
                   <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                     <div className="text-xs text-primary/70 mb-3 font-medium">
-                      Replying to <span className="font-semibold text-primary">{comment.profiles?.name || 'Unknown User'}</span>
+                      Replying to <span className="font-semibold text-primary">{comment.user?.name || comment.profiles?.name || 'Unknown User'}</span>
                     </div>
                     <div className="space-y-3">
                       <Textarea 
-                        placeholder={`Reply to ${comment.profiles?.name || 'Unknown User'}...`}
+                        placeholder={`Reply to ${comment.user?.name || comment.profiles?.name || 'Unknown User'}...`}
                         className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
                         id={`reply-input-${comment.id}`}
                         onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}

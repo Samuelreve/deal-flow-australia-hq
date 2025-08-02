@@ -7,13 +7,26 @@ export function addCommentToState(
   comments: DocumentComment[],
   newComment: DocumentComment
 ): DocumentComment[] {
+  // Ensure the new comment has a replies array initialized
+  const commentWithReplies = {
+    ...newComment,
+    replies: newComment.replies || []
+  };
+
   // If it's a reply, find the parent and add it to its replies
   if (newComment.parent_comment_id) {
     return comments.map(comment => {
       if (comment.id === newComment.parent_comment_id) {
         return {
           ...comment,
-          replies: [...(comment.replies || []), newComment]
+          replies: [...(comment.replies || []), commentWithReplies]
+        };
+      }
+      // Also check nested replies in case the parent is itself a reply
+      if (comment.replies && comment.replies.length > 0) {
+        return {
+          ...comment,
+          replies: addCommentToState(comment.replies, newComment)
         };
       }
       return comment;
@@ -21,7 +34,7 @@ export function addCommentToState(
   }
   
   // Otherwise, add it as a new top-level comment
-  return [...comments, newComment];
+  return [...comments, commentWithReplies];
 }
 
 /**
