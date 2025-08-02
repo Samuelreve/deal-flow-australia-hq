@@ -9,6 +9,8 @@ import { Document } from "@/types/deal";
 import DocumentAnalysisModal from "@/components/deals/document/DocumentAnalysisModal";
 import ContractAnalyzerDialog from "@/components/deals/document/ContractAnalyzerDialog";
 import { useAnalysisOperations } from "@/hooks/document-ai/useAnalysisOperations";
+import { useDocumentComments } from "@/hooks/documentComments";
+import { mapDbCommentToServiceComment } from "@/services/documentComment/mappers";
 import { toast } from "sonner";
 
 interface DatabaseDocument {
@@ -45,11 +47,23 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   const [documentPreview, setDocumentPreview] = useState<string>('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [comments, setComments] = useState<any[]>([]);
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [currentVersionId, setCurrentVersionId] = useState<string | undefined>();
   const { toast: showToast } = useToast();
   const { user } = useAuth();
+  
+  // Use the real-time document comments hook
+  const {
+    comments: dbComments,
+    loading: commentsLoading,
+    submitting: isSubmittingComment,
+    addComment,
+    editComment,
+    deleteComment,
+    toggleResolved
+  } = useDocumentComments(currentVersionId);
+  
+  // Convert database comments to service comments for the UI
+  const comments = dbComments.map(comment => mapDbCommentToServiceComment(comment));
 
   // Map database documents to Document type
   const mapToDocument = (dbDoc: DatabaseDocument): Document => ({
@@ -77,8 +91,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   useEffect(() => {
     if (selectedDocument) {
       fetchDocumentPreview(selectedDocument);
-      // Get the latest version ID and fetch comments
-      const fetchLatestVersionAndComments = async () => {
+      // Get the latest version ID for real-time comments
+      const fetchLatestVersion = async () => {
         const { data: versionData, error } = await supabase
           .from('document_versions')
           .select('id')
@@ -88,11 +102,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
           .single();
 
         if (!error && versionData?.id) {
-          fetchComments(versionData.id);
+          setCurrentVersionId(versionData.id);
         }
       };
       
-      fetchLatestVersionAndComments();
+      fetchLatestVersion();
     }
   }, [selectedDocument]);
 
@@ -353,63 +367,12 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     setShowAnalysisModal(true);
   };
 
-  const handleAddComment = async (content: string, parentCommentId?: string) => {
-    if (!selectedDocument || !user) return;
-
-    setIsSubmittingComment(true);
+  const handleAddComment = async (content: string) => {
+    if (!currentVersionId) return;
+    
     try {
-      // First, get the latest document version directly from document_versions table
-      const { data: versionData, error: versionError } = await supabase
-        .from('document_versions')
-        .select('id')
-        .eq('document_id', selectedDocument.id)
-        .order('version_number', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (versionError || !versionData?.id) {
-        console.error('Error finding document version:', versionError);
-        showToast({
-          title: "Error",
-          description: "Unable to find document version for commenting. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Adding comment to version:', versionData.id);
-
-      const { data: commentData, error: commentError } = await supabase
-        .from('document_comments')
-        .insert({
-          document_version_id: versionData.id,
-          content: content,
-          user_id: user.id,
-          parent_comment_id: parentCommentId || null
-        })
-        .select(`
-          *,
-          profiles:user_id (
-            name,
-            avatar_url
-          )
-        `)
-        .single();
-
-      if (commentError) {
-        console.error('Error adding comment:', commentError);
-        showToast({
-          title: "Error",
-          description: "Failed to add comment. Please check your permissions.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Comment added successfully:', commentData);
-      setComments(prev => [commentData, ...prev]);
+      await addComment({ content });
       setShowCommentForm(false);
-      
       showToast({
         title: "Success",
         description: "Comment added successfully"
@@ -421,38 +384,9 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
         description: "Failed to add comment",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmittingComment(false);
     }
   };
 
-  const fetchComments = async (documentVersionId: string) => {
-    try {
-      console.log('Fetching comments for version:', documentVersionId);
-      
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('document_comments')
-        .select(`
-          *,
-          profiles:user_id (
-            name,
-            avatar_url
-          )
-        `)
-        .eq('document_version_id', documentVersionId)
-        .order('created_at', { ascending: false });
-
-      if (commentsError) {
-        console.error('Error fetching comments:', commentsError);
-        return;
-      }
-
-      console.log('Comments fetched:', commentsData?.length || 0);
-      setComments(commentsData || []);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
-  };
 
   if (loading) {
     return (
