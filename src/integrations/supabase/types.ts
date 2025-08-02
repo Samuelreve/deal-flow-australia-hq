@@ -1377,6 +1377,39 @@ export type Database = {
           },
         ]
       }
+      milestone_signed_documents: {
+        Row: {
+          created_at: string | null
+          deal_id: string
+          document_id: string | null
+          envelope_id: string
+          id: string
+          milestone_id: string
+          saved_by_user_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deal_id: string
+          document_id?: string | null
+          envelope_id: string
+          id?: string
+          milestone_id: string
+          saved_by_user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deal_id?: string
+          document_id?: string | null
+          envelope_id?: string
+          id?: string
+          milestone_id?: string
+          saved_by_user_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       milestones: {
         Row: {
           assigned_to: string | null

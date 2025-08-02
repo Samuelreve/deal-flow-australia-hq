@@ -126,11 +126,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   // Check if signed documents have been saved to the deal room
   const checkSignedDocumentsSaved = async () => {
     try {
-      const { data: signedDocs, error } = await supabase
-        .from('documents')
+      const { data: savedDocs, error } = await supabase
+        .from('milestone_signed_documents')
         .select('id')
+        .eq('milestone_id', milestone.id)
         .eq('deal_id', dealId)
-        .eq('status', 'signed')
         .limit(1);
 
       if (error) {
@@ -138,7 +138,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         return;
       }
 
-      setHasSignedDocumentSaved(signedDocs && signedDocs.length > 0);
+      setHasSignedDocumentSaved(savedDocs && savedDocs.length > 0);
     } catch (error) {
       console.error('Error checking signed documents:', error);
     }
@@ -725,6 +725,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         }
 
         console.log('Successfully downloaded signed document:', data);
+        
+        // Record that signed document has been saved
+        await supabase
+          .from('milestone_signed_documents')
+          .insert({
+            milestone_id: milestone.id,
+            deal_id: dealId,
+            saved_by_user_id: user.id,
+            envelope_id: signature.envelope_id,
+            document_id: data?.documentId || null
+          });
       }
 
       toast({
@@ -1130,8 +1141,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               title: milestone.title,
               assigned_to: milestone.assigned_to
             }}
-            userRole={userRole}
-            onDownloadSignedDocument={handleDownloadSignedDocument}
           />
           
           <div className="space-y-2 mt-4">

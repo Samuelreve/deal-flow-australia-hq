@@ -1,8 +1,7 @@
 import React from 'react';
-import { CheckCircle, Clock, FileCheck, Mail, AlertCircle, Download } from 'lucide-react';
+import { CheckCircle, Clock, FileCheck, Mail, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 
 interface DocumentSigningStatusProps {
   documentCount: number;
@@ -16,8 +15,6 @@ interface DocumentSigningStatusProps {
     title: string;
     assigned_to: string | null;
   };
-  userRole?: string;
-  onDownloadSignedDocument?: () => void;
 }
 
 const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
@@ -27,9 +24,7 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
   userHasSigned,
   hasOtherSignatures,
   signerNames,
-  milestone,
-  userRole,
-  onDownloadSignedDocument
+  milestone
 }) => {
   if (documentCount === 0) {
     return null;
@@ -191,21 +186,6 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
         <div className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-md">
           <div className="font-medium">Signed by:</div>
           <div>{signerNames.join(', ')}</div>
-        </div>
-      )}
-
-      {/* Download Button for Non-Admin Participants */}
-      {signingStatus === 'completed' && userRole !== 'admin' && onDownloadSignedDocument && (
-        <div className="pt-2">
-          <Button
-            onClick={onDownloadSignedDocument}
-            size="sm"
-            variant="outline"
-            className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download Signed Document
-          </Button>
         </div>
       )}
     </div>
