@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,24 +48,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Set up real-time updates
-  useParticipantsRealtime(
-    dealId,
-    () => {
-      console.log('🔄 Participants updated in DealParticipantsTab, refreshing...');
-      fetchParticipants();
-    },
-    () => {
-      console.log('📧 Invitations updated in DealParticipantsTab, refreshing...');
-      fetchParticipants();
-    }
-  );
-
-  useEffect(() => {
-    fetchParticipants();
-  }, [dealId]);
-
-  const fetchParticipants = async () => {
+  const fetchParticipants = useCallback(async () => {
     try {
       // Fetch accepted participants
       const { data: participantsData, error: participantsError } = await supabase
@@ -110,7 +93,29 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     } finally {
       setLoading(false);
     }
-  };
+  }, [dealId, toast]);
+
+  // Handle real-time updates with useCallback to prevent infinite re-renders
+  const handleParticipantsUpdate = useCallback(() => {
+    console.log('🔄 Participants updated in DealParticipantsTab, refreshing...');
+    fetchParticipants();
+  }, [fetchParticipants]);
+
+  const handleInvitationsUpdate = useCallback(() => {
+    console.log('📧 Invitations updated in DealParticipantsTab, refreshing...');
+    fetchParticipants();
+  }, [fetchParticipants]);
+
+  // Set up real-time updates
+  useParticipantsRealtime(
+    dealId,
+    handleParticipantsUpdate,
+    handleInvitationsUpdate
+  );
+
+  useEffect(() => {
+    fetchParticipants();
+  }, [fetchParticipants]);
 
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {

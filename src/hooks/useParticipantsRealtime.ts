@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -11,6 +11,14 @@ export function useParticipantsRealtime(
   onInvitationsUpdate?: () => void
 ) {
   const [participantsChannel, setParticipantsChannel] = useState<RealtimeChannel | null>(null);
+  
+  // Use refs to store the latest callbacks without causing re-renders
+  const onParticipantsUpdateRef = useRef(onParticipantsUpdate);
+  const onInvitationsUpdateRef = useRef(onInvitationsUpdate);
+  
+  // Update refs when callbacks change
+  onParticipantsUpdateRef.current = onParticipantsUpdate;
+  onInvitationsUpdateRef.current = onInvitationsUpdate;
 
   useEffect(() => {
     if (!dealId) {
@@ -33,8 +41,8 @@ export function useParticipantsRealtime(
         },
         (payload) => {
           console.log('🔄 Real-time participants update:', payload);
-          if (onParticipantsUpdate) {
-            onParticipantsUpdate();
+          if (onParticipantsUpdateRef.current) {
+            onParticipantsUpdateRef.current();
           }
         }
       )
@@ -48,8 +56,8 @@ export function useParticipantsRealtime(
         },
         (payload) => {
           console.log('📧 Real-time invitations update:', payload);
-          if (onInvitationsUpdate) {
-            onInvitationsUpdate();
+          if (onInvitationsUpdateRef.current) {
+            onInvitationsUpdateRef.current();
           }
         }
       )
@@ -66,7 +74,7 @@ export function useParticipantsRealtime(
         supabase.removeChannel(channel);
       }
     };
-  }, [dealId, onParticipantsUpdate, onInvitationsUpdate]);
+  }, [dealId]); // Remove callback dependencies to prevent infinite loops
 
   return { participantsChannel };
 }

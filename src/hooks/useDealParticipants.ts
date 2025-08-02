@@ -126,7 +126,7 @@ export function useDealParticipants(
     }
   }, [deal.id, isAuthenticated, deal.participants, mapMockParticipants, onParticipantsLoaded]);
 
-  // Handle real-time updates
+  // Handle real-time updates with useCallback to prevent infinite re-renders
   const handleParticipantsUpdate = useCallback(() => {
     console.log('🔄 Participants updated, refreshing data...');
     fetchParticipants();
