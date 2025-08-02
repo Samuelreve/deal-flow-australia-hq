@@ -125,22 +125,28 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
   // Check if signed documents have been saved to the deal room
   const checkSignedDocumentsSaved = async () => {
+    if (!user?.id) return;
+    
     try {
+      console.log('🔍 Checking for saved signed documents for milestone:', milestone.id);
+      
       const { data: savedDocs, error } = await supabase
         .from('milestone_signed_documents')
-        .select('id')
+        .select('id, envelope_id, created_at')
         .eq('milestone_id', milestone.id)
-        .eq('deal_id', dealId)
-        .limit(1);
+        .eq('deal_id', dealId);
 
       if (error) {
-        console.error('Error checking signed documents:', error);
+        console.error('❌ Error checking signed documents:', error);
         return;
       }
 
-      setHasSignedDocumentSaved(savedDocs && savedDocs.length > 0);
+      console.log('📋 Found saved signed documents:', savedDocs);
+      const hasSaved = savedDocs && savedDocs.length > 0;
+      setHasSignedDocumentSaved(hasSaved);
+      console.log('✅ Set hasSignedDocumentSaved to:', hasSaved);
     } catch (error) {
-      console.error('Error checking signed documents:', error);
+      console.error('❌ Error checking signed documents:', error);
     }
   };
 
@@ -711,6 +717,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       // Download signed documents for each completed envelope
       for (const signature of signatures) {
+        console.log('💾 Processing envelope for saving:', signature.envelope_id);
+        
         const { data, error } = await supabase.functions.invoke('docusign-download-signed', {
           body: {
             envelopeId: signature.envelope_id,
@@ -720,14 +728,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         });
 
         if (error) {
-          console.error('Error downloading envelope:', signature.envelope_id, error);
+          console.error('❌ Error downloading envelope:', signature.envelope_id, error);
           continue;
         }
 
-        console.log('Successfully downloaded signed document:', data);
+        console.log('✅ Successfully downloaded signed document:', data);
         
         // Record that signed document has been saved
-        await supabase
+        console.log('💾 Saving record to milestone_signed_documents...');
+        const { data: insertData, error: insertError } = await supabase
           .from('milestone_signed_documents')
           .insert({
             milestone_id: milestone.id,
@@ -735,7 +744,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             saved_by_user_id: user.id,
             envelope_id: signature.envelope_id,
             document_id: data?.documentId || null
-          });
+          })
+          .select();
+
+        if (insertError) {
+          console.error('❌ Error saving milestone signed document record:', insertError);
+        } else {
+          console.log('✅ Successfully saved milestone signed document record:', insertData);
+        }
       }
 
       toast({
@@ -746,6 +762,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       // Mark document as saved and check again
       setDocumentSaved(true);
       setHasSignedDocumentSaved(true);
+      
+      console.log('🔄 Re-checking signed documents status after save...');
+      // Re-check the database to ensure the state is accurate
+      await checkSignedDocumentsSaved();
 
       // Trigger refresh of documents list without full page reload
       window.dispatchEvent(new CustomEvent('documentsUpdated'));
@@ -764,8 +784,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
   // Modified save button handler that also updates persistent state
   const handleSaveSignedDocumentToDealRoom = async () => {
+    console.log('🚀 Starting save signed document to deal room process...');
     await handleDownloadSignedDocument();
-    // Re-check if signed documents have been saved
+    // Re-check if signed documents have been saved after the operation
+    console.log('🔄 Re-checking signed documents status after save operation...');
     await checkSignedDocumentsSaved();
   };
   
@@ -1185,7 +1207,12 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                          }`}
                        >
                          <Save className="h-4 w-4 mr-2" />
-                         {downloadingSignedDoc ? 'Saving...' : hasSignedDocumentSaved ? 'Saved to Deal Room' : 'Save to Deal Room'}
+                         {downloadingSignedDoc 
+                           ? 'Saving...' 
+                           : hasSignedDocumentSaved 
+                             ? 'Saved to Deal Room' 
+                             : 'Save to Deal Room'
+                         }
                        </Button>
                      )}
                      
