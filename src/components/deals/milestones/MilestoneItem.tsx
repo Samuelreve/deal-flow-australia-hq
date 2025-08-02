@@ -8,8 +8,9 @@ import DocumentSigningStatus from './DocumentSigningStatus';
 
 import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
+import MilestoneDocumentPreviewModal from './MilestoneDocumentPreviewModal';
 import DocumentUpload from '../document/DocumentUpload';
-import { FileText, UserCheck, User, Upload, CheckCircle, Clock, FileCheck } from 'lucide-react';
+import { FileText, UserCheck, User, Upload, CheckCircle, Clock, FileCheck, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -62,6 +63,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
   const [milestoneMessages, setMilestoneMessages] = useState<string[]>([]);
+  const [previewDocument, setPreviewDocument] = useState<{id: string, name: string, storage_path: string} | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // Determine if the current user has permission to update milestone status
   // Admin can always update, assigned user can update, or seller can update unassigned milestones
@@ -1100,39 +1103,59 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           <div className="space-y-2 mt-4">
             {milestoneDocuments.map((doc) => (
               <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                  <p className="text-xs text-gray-500">
-                    Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
-                  </p>
-                 </div>
-                 
-                 {/* Show sign button only for admins/non-assigned users */}
-                 {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
-                   <>
-                     {milestoneSigningStatus === 'completed' ? (
-                       <Button
-                         disabled
-                         size="sm"
-                         variant="outline"
-                         className="text-green-600 border-green-200 bg-green-50"
-                       >
-                         <CheckCircle className="h-4 w-4 mr-2" />
-                         Signed
-                       </Button>
-                     ) : (
-                       <Button
-                         onClick={() => handleSignDocument()}
-                         size="sm"
-                         variant="outline"
-                         className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
-                       >
-                         <FileCheck className="h-4 w-4 mr-2" />
-                         Sign Document
-                       </Button>
-                     )}
-                   </>
-                 )}
+                 <div>
+                   <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                   <p className="text-xs text-gray-500">
+                     Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
+                   </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Preview Button - Show for all participants */}
+                    <Button
+                      onClick={() => {
+                        setPreviewDocument({
+                          id: doc.id,
+                          name: doc.name,
+                          storage_path: doc.storage_path
+                        });
+                        setIsPreviewModalOpen(true);
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                    
+                    {/* Show sign button only for admins/non-assigned users */}
+                    {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
+                      <>
+                        {milestoneSigningStatus === 'completed' ? (
+                          <Button
+                            disabled
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-200 bg-green-50"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Signed
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleSignDocument()}
+                            size="sm"
+                            variant="outline"
+                            className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                          >
+                            <FileCheck className="h-4 w-4 mr-2" />
+                            Sign Document
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
               </div>
             ))}
           </div>
@@ -1156,6 +1179,17 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           isLoading={signingInProgress}
         />
       )}
+
+      {/* Document Preview Modal */}
+      <MilestoneDocumentPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => {
+          setIsPreviewModalOpen(false);
+          setPreviewDocument(null);
+        }}
+        document={previewDocument}
+        dealId={dealId}
+      />
 
       {/* Assignment Modal */}
       <MilestoneAssignmentModal
