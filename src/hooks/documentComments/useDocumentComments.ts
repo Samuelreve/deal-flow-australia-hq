@@ -90,10 +90,7 @@ export function useDocumentComments(documentVersionId?: string) {
       const newComment = await addDocumentComment(documentVersionId, newCommentData, user.id);
       
       // With realtime enabled, the comment will be added via the subscription
-      // But we'll still update state immediately for better UX
-      if (newComment) {
-        setComments(prevComments => addCommentToState(prevComments, newComment));
-      }
+      // We don't need to manually update state here as it causes duplication
       
       return newComment;
     } finally {
@@ -110,10 +107,7 @@ export function useDocumentComments(documentVersionId?: string) {
       const success = await editDocumentComment(commentId, content);
       
       // With realtime enabled, the comment will be updated via the subscription
-      // But we'll still update state immediately for better UX
-      if (success) {
-        setComments(prevComments => updateCommentInState(prevComments, commentId, content));
-      }
+      // We don't need to manually update state here as it causes duplication
       
       return success;
     } finally {
@@ -128,10 +122,7 @@ export function useDocumentComments(documentVersionId?: string) {
     const success = await deleteDocumentComment(commentId);
     
     // With realtime enabled, the comment will be removed via the subscription
-    // But we'll still update state immediately for better UX
-    if (success) {
-      setComments(prevComments => removeCommentFromState(prevComments, commentId, parentId));
-    }
+    // We don't need to manually update state here as it causes duplication
     
     return success;
   };
@@ -144,12 +135,7 @@ export function useDocumentComments(documentVersionId?: string) {
       const { newStatus } = await toggleCommentResolved(commentId);
       
       // With realtime enabled, the comment will be updated via the subscription
-      // But we'll still update state immediately for better UX
-      if (newStatus !== undefined) {
-        setComments(prevComments => 
-          updateCommentResolvedStatus(prevComments, commentId, newStatus)
-        );
-      }
+      // We don't need to manually update state here as it causes duplication
       
       return true;
     } catch (error: any) {

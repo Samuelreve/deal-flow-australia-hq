@@ -248,20 +248,11 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     }
   };
 
-  // Group comments by parent-child relationship with recursive nesting
+  // Use comments directly since they already come pre-structured from the backend
   const groupedComments = React.useMemo(() => {
-    // Always build the tree structure to avoid duplication
-    const buildCommentTree = (parentId: string | null): Comment[] => {
-      return comments
-        .filter(comment => comment.parent_comment_id === parentId)
-        .map(comment => ({
-          ...comment,
-          replies: buildCommentTree(comment.id)
-        }));
-    };
-    
-    const builtTree = buildCommentTree(null);
-    return builtTree;
+    // Comments from the backend already have the proper nested structure
+    // We just need to filter for top-level comments
+    return comments.filter(comment => !comment.parent_comment_id);
   }, [comments]);
 
   return (
