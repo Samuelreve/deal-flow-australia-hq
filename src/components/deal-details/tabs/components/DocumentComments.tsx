@@ -57,19 +57,12 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
   isSubmittingComment
 }) => {
   return (
-    <div className="space-y-3 mt-3 relative">
-      {/* Main continuous vertical line */}
-      <div className="absolute left-4 top-0 w-0.5 h-full bg-primary"></div>
-      
+    <div className="space-y-3 mt-3">
       {replies.map((reply, index) => {
-        const isLast = index === replies.length - 1;
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Horizontal connector from main line to reply */}
-            <div className="absolute left-4 top-6 w-6 h-0.5 bg-primary"></div>
-            
-            <div className="ml-12">
+            <div className="ml-8">
               <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-primary/50`}>
                 <div className="flex items-start gap-3 mb-2">
                   <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
@@ -370,9 +363,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
               {/* Replies Section - Use NestedReplies component for proper recursive handling */}
               {comment.replies && comment.replies.length > 0 && (
-                <div className="mt-3 relative">
-                  {/* Main vertical line connecting to replies */}
-                  <div className="absolute left-6 top-0 w-0.5 h-6 bg-primary"></div>
+                <div className="mt-3">
                   <NestedReplies
                     replies={comment.replies} 
                     level={0}
