@@ -57,11 +57,14 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Enhanced connecting line with gradient */}
-            <div className="absolute left-0 top-0 w-4 h-8 border-l-2 border-b-2 border-primary/30 rounded-bl-xl"></div>
-            {!isLast && <div className="absolute left-0 top-8 w-0.5 h-full bg-gradient-to-b from-primary/30 to-transparent"></div>}
+            {/* Enhanced connecting lines to show reply relationship */}
+            <div className="absolute left-2 top-0 w-6 h-6 border-l-2 border-b-2 border-primary/40 rounded-bl-lg"></div>
+            {!isLast && <div className="absolute left-2 top-6 w-0.5 h-full bg-primary/20"></div>}
             
-            <div className="ml-8 transform transition-all duration-200 hover:translate-x-1">
+            {/* Additional visual indicator */}
+            <div className="absolute left-0 top-3 w-2 h-2 bg-primary/60 rounded-full shadow-sm"></div>
+            
+            <div className="ml-10 transform transition-all duration-200 hover:translate-x-1">
               <div className={`p-3 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} animate-fade-in border-l-4`}>
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border-2 border-white`}>
@@ -105,7 +108,9 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
 
             {/* Enhanced Reply Form for This Comment */}
             {replyingToId === reply.id && handleSubmitReply && handleReplyKeyDown && (
-              <div className="ml-8 mt-3 pl-4 border-l-2 border-primary/50 animate-fade-in">
+              <div className="ml-10 mt-3 pl-4 border-l-2 border-primary/50 animate-fade-in relative">
+                {/* Visual connection to parent */}
+                <div className="absolute -left-6 top-0 w-4 h-4 border-l-2 border-b-2 border-primary/50 rounded-bl-lg"></div>
                 <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                   <div className="text-xs text-primary/70 mb-3 font-medium">
                     Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
@@ -372,7 +377,9 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
               {/* Enhanced Reply Form for Root Comment */}
               {replyingToId === comment.id && (
-                <div className="ml-6 pl-4 border-l-2 border-primary/50 animate-fade-in">
+                <div className="ml-6 pl-6 border-l-2 border-primary/50 animate-fade-in relative">
+                  {/* Visual connection to parent comment */}
+                  <div className="absolute -left-4 top-0 w-4 h-4 border-l-2 border-b-2 border-primary/50 rounded-bl-lg"></div>
                   <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                     <div className="text-xs text-primary/70 mb-3 font-medium">
                       Replying to <span className="font-semibold text-primary">{comment.profiles?.name || 'Unknown User'}</span>
