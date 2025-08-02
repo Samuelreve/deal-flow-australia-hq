@@ -57,35 +57,35 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Always visible connecting lines for existing replies */}
-            <div className="absolute -left-6 top-4 w-8 h-8 border-l-4 border-b-4 border-primary/60 rounded-bl-2xl"></div>
-            {!isLast && <div className="absolute -left-6 top-12 w-1 h-full bg-primary/40"></div>}
+            {/* Strong visible connecting lines like in the image */}
+            <div className="absolute -left-8 top-0 w-6 h-6 border-l-4 border-b-4 border-red-400 rounded-bl-lg"></div>
+            {!isLast && <div className="absolute -left-8 top-6 w-1 h-full bg-red-400"></div>}
             
-            {/* Visual reply indicator dot */}
-            <div className="absolute -left-6 top-2 w-3 h-3 bg-primary rounded-full shadow-sm"></div>
+            {/* Small connecting dot */}
+            <div className="absolute -left-9 top-1 w-2 h-2 bg-red-400 rounded-full"></div>
             
-            <div className="ml-6 transform transition-all duration-200 hover:translate-x-1">
-              <div className={`p-3 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} animate-fade-in border-l-4`}>
-                <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border-2 border-white`}>
+            <div className="ml-4 transform transition-all duration-200 hover:translate-x-1">
+              <div className={`relative p-2 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-red-400 scale-90 transform`}>
+                <div className="flex items-start gap-2 mb-2">
+                  <div className={`w-6 h-6 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
                     <span className="text-xs font-semibold text-white">
                       {reply.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-foreground">
+                      <span className="text-xs font-semibold text-foreground">
                         {reply.profiles?.name || 'Unknown User'}
                         {user?.id === reply.user_id && (
                           <span className="ml-1 text-xs text-primary font-medium">(me)</span>
                         )}
                       </span>
-                      <span className="text-xs text-primary font-bold bg-primary/10 px-2 py-1 rounded-full">↳ replied</span>
+                      <span className="text-xs text-red-500 font-bold bg-red-50 px-1 py-0.5 rounded">↳ replied</span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(reply.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/90 leading-relaxed">{reply.content}</p>
+                    <p className="text-xs text-foreground/90 leading-relaxed">{reply.content}</p>
                   </div>
                 </div>
                 
@@ -365,11 +365,11 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 )}
               </div>
 
-              {/* Replies Section with visible nested lines */}
+              {/* Replies Section with strong visible nested lines */}
               {comment.replies && comment.replies.length > 0 && (
-                <div className="relative mt-4">
-                  {/* Main connecting line for the reply section */}
-                  <div className="absolute left-6 top-0 w-0.5 h-full bg-primary/30"></div>
+                <div className="relative mt-4 ml-8">
+                  {/* Main vertical connecting line */}
+                  <div className="absolute -left-8 top-0 w-1 h-full bg-red-400"></div>
                   
                   <NestedReplies 
                     replies={comment.replies} 
