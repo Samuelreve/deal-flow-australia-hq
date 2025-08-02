@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Deal } from "@/types/deal";
@@ -124,6 +124,58 @@ export function useDealParticipants(
       setLoadingParticipants(false);
     }
   }, [deal.id, isAuthenticated, deal.participants, mapMockParticipants, onParticipantsLoaded]);
+
+  // Set up real-time updates for participants and invitations
+  useEffect(() => {
+    if (!isAuthenticated || !deal.id) return;
+
+    // Create unique channel name with timestamp to prevent conflicts
+    const channelName = `participants-${deal.id}-${Date.now()}`;
+    
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'deal_participants',
+          filter: `deal_id=eq.${deal.id}`
+        },
+        (payload) => {
+          console.log('🔄 Deal participants real-time update:', payload);
+          // Refresh participants when there are changes
+          fetchParticipants();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'deal_invitations',
+          filter: `deal_id=eq.${deal.id}`
+        },
+        (payload) => {
+          console.log('📧 Deal invitations real-time update:', payload);
+          // Refresh participants when invitation status changes
+          fetchParticipants();
+          
+          // Show toast notification for invitation acceptance
+          if (payload.new && payload.new.status === 'accepted' && payload.old && payload.old.status === 'pending') {
+            toast({
+              title: "🎉 Invitation Accepted!",
+              description: `${payload.new.invitee_email} has joined the deal`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [deal.id, isAuthenticated, fetchParticipants]);
 
   return {
     participants,
