@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
 import { formatParticipantDate } from "@/utils/dateUtils";
+import { useParticipantsRealtime } from "@/hooks/useParticipantsRealtime";
 
 interface Participant {
   id: string;
@@ -46,6 +47,19 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Set up real-time updates
+  useParticipantsRealtime(
+    dealId,
+    () => {
+      console.log('🔄 Participants updated in DealParticipantsTab, refreshing...');
+      fetchParticipants();
+    },
+    () => {
+      console.log('📧 Invitations updated in DealParticipantsTab, refreshing...');
+      fetchParticipants();
+    }
+  );
 
   useEffect(() => {
     fetchParticipants();
