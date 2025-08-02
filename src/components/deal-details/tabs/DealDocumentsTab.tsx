@@ -63,7 +63,8 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
   } = useDocumentComments(currentVersionId);
   
   // Convert database comments to the format expected by DocumentComments component
-  const mapDbCommentToLegacyFormat = (dbComment: any) => ({
+  // The useDocumentComments hook already provides properly nested comments with replies
+  const mapDbCommentToLegacyFormat = (dbComment: any): any => ({
     id: dbComment.id,
     content: dbComment.content,
     created_at: dbComment.created_at,
@@ -72,9 +73,11 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     profiles: dbComment.user ? {
       name: dbComment.user.name
     } : undefined,
-    replies: dbComment.replies ? dbComment.replies.map(mapDbCommentToLegacyFormat) : undefined
+    // Recursively map replies if they exist
+    replies: dbComment.replies ? dbComment.replies.map(mapDbCommentToLegacyFormat) : []
   });
   
+  // Map the nested comments structure (dbComments already contains the reply hierarchy)
   const comments = dbComments.map(mapDbCommentToLegacyFormat);
 
   // Map database documents to Document type
