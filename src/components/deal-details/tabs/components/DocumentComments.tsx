@@ -51,50 +51,48 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
   isSubmittingComment
 }) => {
   return (
-    <div className="space-y-2 mt-2">
+    <div className="space-y-3 mt-3">
       {replies.map((reply, index) => {
         const isLast = index === replies.length - 1;
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Connecting line */}
-            <div className="absolute left-0 top-0 w-4 h-6 border-l-2 border-b-2 border-muted rounded-bl-lg"></div>
-            {!isLast && <div className="absolute left-0 top-6 w-0.5 h-full bg-muted"></div>}
+            {/* Enhanced connecting line with gradient */}
+            <div className="absolute left-0 top-0 w-4 h-8 border-l-2 border-b-2 border-primary/30 rounded-bl-xl"></div>
+            {!isLast && <div className="absolute left-0 top-8 w-0.5 h-full bg-gradient-to-b from-primary/30 to-transparent"></div>}
             
-            <div className="ml-6">
-              <div className={`p-3 border rounded-lg ${replyTheme.bg} ${replyTheme.border} animate-fade-in`}>
-                <div className="flex items-start gap-2 mb-2">
-                  <div className={`w-6 h-6 ${replyTheme.avatar} rounded-full flex items-center justify-center`}>
-                    <span className="text-xs font-medium">
-                      {reply.profiles?.name?.charAt(0) || 'U'}
+            <div className="ml-8 transform transition-all duration-200 hover:translate-x-1">
+              <div className={`p-3 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} animate-fade-in border-l-4`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border-2 border-white`}>
+                    <span className="text-xs font-semibold text-white">
+                      {reply.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-foreground">
                         {reply.profiles?.name || 'Unknown User'}
                         {user?.id === reply.user_id && (
-                          <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                          <span className="ml-1 text-xs text-primary font-medium">(me)</span>
                         )}
                       </span>
-                      <span className="text-xs text-muted-foreground">replied</span>
+                      <span className="text-xs text-primary/60 font-medium">replied</span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(reply.created_at).toLocaleDateString()}
                       </span>
                     </div>
+                    <p className="text-sm text-foreground/90 leading-relaxed">{reply.content}</p>
                   </div>
-                </div>
-                <div className="pl-8">
-                  <p className="text-sm text-foreground">{reply.content}</p>
                 </div>
                 
                 {/* Reply button for nested replies */}
                 {user?.id !== reply.user_id && (
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-3 flex justify-end">
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                      className="h-7 flex items-center text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                       onClick={() => setReplyingToId(reply.id)}
                     >
                       <Reply className="h-3 w-3 mr-1" />
@@ -105,17 +103,17 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
               </div>
             </div>
 
-            {/* Reply Form for This Comment */}
+            {/* Enhanced Reply Form for This Comment */}
             {replyingToId === reply.id && handleSubmitReply && handleReplyKeyDown && (
-              <div className="ml-6 pl-4 border-l-2 border-primary animate-fade-in">
-                <div className="p-3 border rounded-lg bg-primary/5">
-                  <div className="text-xs text-muted-foreground mb-2">
-                    Replying to <span className="font-medium">{reply.profiles?.name || 'Unknown User'}</span>
+              <div className="ml-8 mt-3 pl-4 border-l-2 border-primary/50 animate-fade-in">
+                <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+                  <div className="text-xs text-primary/70 mb-3 font-medium">
+                    Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
                   </div>
                   <div className="space-y-3">
                     <Textarea 
                       placeholder={`Reply to ${reply.profiles?.name || 'Unknown User'}...`}
-                      className="min-h-[60px] resize-none text-sm border-primary/20 focus:border-primary"
+                      className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
                       id={`reply-input-${reply.id}`}
                       onKeyDown={(e) => handleReplyKeyDown(e, reply.id)}
                     />
@@ -316,41 +314,41 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
           groupedComments.map((comment) => {
             const userTheme = getUserColorTheme(comment.user_id);
             return (
-            <div key={comment.id} className="space-y-2">
-              {/* Main Comment */}
-              <div className={`p-3 border rounded-lg ${userTheme.bg} ${userTheme.border}`}>
-                <div className="flex items-start gap-2 mb-2">
-                  <div className={`w-8 h-8 ${userTheme.avatar} rounded-full flex items-center justify-center`}>
-                    <span className="text-xs font-medium">
-                      {comment.profiles?.name?.charAt(0) || 'U'}
+            <div key={comment.id} className="space-y-3 animate-fade-in">
+              {/* Main Comment with enhanced styling */}
+              <div className={`p-4 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${userTheme.bg} ${userTheme.border} border-l-4`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-10 h-10 ${userTheme.avatar} rounded-full flex items-center justify-center shadow-md border-2 border-white`}>
+                    <span className="text-sm font-bold text-white">
+                      {comment.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base font-semibold text-foreground">
                         {comment.profiles?.name || 'Unknown User'}
                         {user?.id === comment.user_id && (
-                          <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                          <span className="ml-2 text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-full">(me)</span>
                         )}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(comment.created_at).toLocaleDateString()}
                       </span>
                     </div>
+                    <p className="text-sm text-foreground/90 leading-relaxed">{comment.content}</p>
                   </div>
                 </div>
-                <p className="text-sm text-foreground">{comment.content}</p>
                 
                 {/* Reply button - show only for other users' comments */}
                 {user?.id !== comment.user_id && (
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-3 flex justify-end">
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-foreground"
+                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                       onClick={() => setReplyingToId(comment.id)}
                     >
-                      <Reply className="h-3 w-3 mr-1" />
+                      <Reply className="h-4 w-4 mr-1" />
                       Reply
                     </Button>
                   </div>
@@ -372,17 +370,17 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 />
               )}
 
-              {/* Reply Form for Root Comment */}
+              {/* Enhanced Reply Form for Root Comment */}
               {replyingToId === comment.id && (
-                <div className="ml-6 pl-4 border-l-2 border-primary animate-fade-in">
-                  <div className="p-3 border rounded-lg bg-primary/5">
-                    <div className="text-xs text-muted-foreground mb-2">
-                      Replying to <span className="font-medium">{comment.profiles?.name || 'Unknown User'}</span>
+                <div className="ml-6 pl-4 border-l-2 border-primary/50 animate-fade-in">
+                  <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+                    <div className="text-xs text-primary/70 mb-3 font-medium">
+                      Replying to <span className="font-semibold text-primary">{comment.profiles?.name || 'Unknown User'}</span>
                     </div>
                     <div className="space-y-3">
                       <Textarea 
                         placeholder={`Reply to ${comment.profiles?.name || 'Unknown User'}...`}
-                        className="min-h-[60px] resize-none text-sm border-primary/20 focus:border-primary"
+                        className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
                         id={`reply-input-${comment.id}`}
                         onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
                       />
