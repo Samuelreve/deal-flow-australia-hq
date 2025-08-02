@@ -62,8 +62,20 @@ const DealDocumentsTab: React.FC<DealDocumentsTabProps> = ({ dealId }) => {
     toggleResolved
   } = useDocumentComments(currentVersionId);
   
-  // Convert database comments to service comments for the UI
-  const comments = dbComments.map(comment => mapDbCommentToServiceComment(comment));
+  // Convert database comments to the format expected by DocumentComments component
+  const mapDbCommentToLegacyFormat = (dbComment: any) => ({
+    id: dbComment.id,
+    content: dbComment.content,
+    created_at: dbComment.created_at,
+    user_id: dbComment.user_id,
+    parent_comment_id: dbComment.parent_comment_id,
+    profiles: dbComment.user ? {
+      name: dbComment.user.name
+    } : undefined,
+    replies: dbComment.replies ? dbComment.replies.map(mapDbCommentToLegacyFormat) : undefined
+  });
+  
+  const comments = dbComments.map(mapDbCommentToLegacyFormat);
 
   // Map database documents to Document type
   const mapToDocument = (dbDoc: DatabaseDocument): Document => ({
