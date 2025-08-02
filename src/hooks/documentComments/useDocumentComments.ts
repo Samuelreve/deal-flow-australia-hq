@@ -15,6 +15,8 @@ export function useDocumentComments(documentVersionId?: string) {
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   
+  console.log('useDocumentComments called with documentVersionId:', documentVersionId);
+  
   /**
    * Load comments for a document version
    */
@@ -24,6 +26,8 @@ export function useDocumentComments(documentVersionId?: string) {
     setLoading(true);
     try {
       const fetchedComments = await fetchVersionComments(documentVersionId);
+      console.log('Fetched comments for version:', documentVersionId);
+      console.log('Comments fetched:', fetchedComments.length);
       setComments(fetchedComments);
     } finally {
       setLoading(false);

@@ -9,18 +9,14 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
   try {
     console.log('Fetching comments for document version:', versionId);
     
+    // First fetch all comments for this version, ordered by creation time
     const { data, error } = await supabase
       .from('document_comments')
       .select(`
         *,
-        user:profiles(id, name, email, avatar_url),
-        replies:document_comments(
-          *,
-          user:profiles(id, name, email, avatar_url)
-        )
+        profiles(name, avatar_url)
       `)
       .eq('document_version_id', versionId)
-      .is('parent_comment_id', null)
       .order('created_at', { ascending: true });
     
     if (error) {
@@ -28,8 +24,44 @@ export async function fetchVersionComments(versionId: string): Promise<DocumentC
       throw error;
     }
     
-    console.log('Fetched comments:', data);
-    return data || [];
+    console.log('Raw comments data:', data);
+    
+    // Transform the data to match our DocumentComment interface
+    const transformedComments = (data || []).map(comment => ({
+      ...comment,
+      user: comment.profiles ? {
+        id: comment.user_id,
+        name: comment.profiles.name,
+        avatar_url: comment.profiles.avatar_url
+      } : undefined
+    }));
+    
+    // Organize comments into parent-child structure
+    const topLevelComments: DocumentComment[] = [];
+    const repliesMap = new Map<string, DocumentComment[]>();
+    
+    // First pass: separate top-level comments and replies
+    transformedComments.forEach(comment => {
+      if (comment.parent_comment_id) {
+        // This is a reply
+        if (!repliesMap.has(comment.parent_comment_id)) {
+          repliesMap.set(comment.parent_comment_id, []);
+        }
+        repliesMap.get(comment.parent_comment_id)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+    
+    // Second pass: attach replies to their parent comments
+    topLevelComments.forEach(comment => {
+      const replies = repliesMap.get(comment.id) || [];
+      comment.replies = replies;
+    });
+    
+    console.log('Processed comments:', topLevelComments);
+    return topLevelComments;
   } catch (error) {
     console.error("Error in fetchVersionComments:", error);
     return [];
@@ -59,7 +91,7 @@ export async function addDocumentComment(
         location_data,
         parent_comment_id,
       })
-      .select('*, user:profiles(id, name, email, avatar_url)')
+      .select('*, profiles(name, avatar_url)')
       .single();
     
     if (error) {
@@ -67,8 +99,18 @@ export async function addDocumentComment(
       throw error;
     }
     
-    console.log('Added comment:', data);
-    return data;
+    // Transform the data to match our DocumentComment interface
+    const transformedComment = {
+      ...data,
+      user: data.profiles ? {
+        id: data.user_id,
+        name: data.profiles.name,
+        avatar_url: data.profiles.avatar_url
+      } : undefined
+    };
+    
+    console.log('Added comment:', transformedComment);
+    return transformedComment;
   } catch (error) {
     console.error("Error in addDocumentComment:", error);
     return null;

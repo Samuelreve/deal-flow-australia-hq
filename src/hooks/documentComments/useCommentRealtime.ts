@@ -17,11 +17,15 @@ export function useCommentRealtime(
 
   useEffect(() => {
     if (!documentVersionId) {
+      console.log('No document version ID provided for real-time subscription');
       return;
     }
 
-    // Setup realtime subscription
-    const channel = supabase.channel(`document_comments:${documentVersionId}`);
+    console.log('Setting up real-time subscription for document version:', documentVersionId);
+
+    // Setup realtime subscription with a unique channel name
+    const channelName = `document_comments_${documentVersionId}`;
+    const channel = supabase.channel(channelName);
 
     channel
       .on(
@@ -43,12 +47,17 @@ export function useCommentRealtime(
             .eq('id', newComment.user_id)
             .single();
           
-          // Add profile data to the comment
+          // Transform the comment to match our interface
           const commentWithProfile = {
             ...newComment,
-            user: profileData
+            user: profileData ? {
+              id: newComment.user_id,
+              name: profileData.name,
+              avatar_url: profileData.avatar_url
+            } : undefined
           } as DocumentComment;
           
+          console.log('Processed new comment with profile:', commentWithProfile);
           if (onInsert) onInsert(commentWithProfile);
         }
       )
@@ -71,12 +80,17 @@ export function useCommentRealtime(
             .eq('id', updatedComment.user_id)
             .single();
           
-          // Add profile data to the comment
+          // Transform the comment to match our interface
           const commentWithProfile = {
             ...updatedComment,
-            user: profileData
+            user: profileData ? {
+              id: updatedComment.user_id,
+              name: profileData.name,
+              avatar_url: profileData.avatar_url
+            } : undefined
           } as DocumentComment;
           
+          console.log('Processed updated comment with profile:', commentWithProfile);
           if (onUpdate) onUpdate(commentWithProfile);
         }
       )
@@ -94,13 +108,15 @@ export function useCommentRealtime(
           if (onDelete) onDelete(deletedComment);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Document comments subscription status:', status);
+      });
     
     setCommentsChannel(channel);
     
     // Cleanup function
     return () => {
-      console.log('Cleaning up document comments subscription');
+      console.log('Cleaning up document comments subscription for:', documentVersionId);
       if (channel) {
         supabase.removeChannel(channel);
       }
