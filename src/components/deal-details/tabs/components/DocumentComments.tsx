@@ -378,23 +378,101 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 )}
               </div>
 
-              {/* Replies Section with strong visible nested lines */}
+              {/* Replies Section - positioned immediately after parent comment */}
               {comment.replies && comment.replies.length > 0 && (
-                <div className="relative mt-4 ml-8">
-                  {/* Main vertical connecting line */}
-                  <div className="absolute -left-8 top-0 w-1 h-full bg-muted-foreground/40"></div>
-                  
-                  <NestedReplies 
-                    replies={comment.replies} 
-                    level={1}
-                    getUserColorTheme={getUserColorTheme}
-                    user={user}
-                    setReplyingToId={setReplyingToId}
-                    replyingToId={replyingToId}
-                    handleSubmitReply={handleSubmitReply}
-                    handleReplyKeyDown={handleReplyKeyDown}
-                    isSubmittingComment={isSubmittingComment}
-                  />
+                <div className="mt-3">
+                  {/* Sort replies by creation date to show chronological order */}
+                  {comment.replies
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .map((reply, index) => {
+                      const isLast = index === comment.replies!.length - 1;
+                      const replyTheme = getUserColorTheme(reply.user_id);
+                      return (
+                        <div key={reply.id} className="relative ml-6 mt-3">
+                          {/* Connecting lines for each reply */}
+                          <div className="absolute -left-6 top-2 w-6 h-6 border-l-2 border-b-2 border-muted-foreground/50 rounded-bl-lg"></div>
+                          {!isLast && <div className="absolute -left-6 top-8 w-0.5 h-full bg-muted-foreground/30"></div>}
+                          
+                          {/* Reply comment box */}
+                          <div className={`p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-muted-foreground/60`}>
+                            <div className="flex items-start gap-3 mb-2">
+                              <div className={`w-7 h-7 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
+                                <span className="text-xs font-semibold text-white">
+                                  {reply.profiles?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-semibold text-foreground">
+                                    {reply.profiles?.name || 'Unknown User'}
+                                    {user?.id === reply.user_id && (
+                                      <span className="ml-1 text-xs text-primary font-medium">(me)</span>
+                                    )}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">↳ replied</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(reply.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-foreground/90 leading-relaxed">{reply.content}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Reply button for this reply */}
+                            {user?.id !== reply.user_id && (
+                              <div className="mt-2 flex justify-end">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-7 flex items-center text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                  onClick={() => setReplyingToId(reply.id)}
+                                >
+                                  <Reply className="h-3 w-3 mr-1" />
+                                  Reply
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {/* Reply form for this specific reply */}
+                            {replyingToId === reply.id && (
+                              <div className="mt-3 pl-4 border-l-2 border-primary/50 animate-fade-in">
+                                <div className="p-3 border rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+                                  <div className="text-xs text-primary/70 mb-2 font-medium">
+                                    Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <Textarea 
+                                      placeholder={`Reply to ${reply.profiles?.name || 'Unknown User'}...`}
+                                      className="min-h-[60px] resize-none text-sm border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-lg"
+                                      id={`reply-input-${reply.id}`}
+                                      onKeyDown={(e) => handleReplyKeyDown(e, reply.id)}
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => setReplyingToId(null)}
+                                        disabled={isSubmittingComment}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button 
+                                        size="sm"
+                                        onClick={() => handleSubmitReply(reply.id)}
+                                        disabled={isSubmittingComment}
+                                      >
+                                        <Send className="h-4 w-4 mr-1" />
+                                        {isSubmittingComment ? 'Replying...' : 'Reply'}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
 
