@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, ExternalLink, AlertCircle } from "lucide-react";
+import { FileText, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -168,31 +168,13 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
     }
   };
 
-  const handleOpenInNewTab = () => {
-    if (documentUrl) {
-      window.open(documentUrl, '_blank');
-    }
-  };
-
   if (!document) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg">{document.name}</DialogTitle>
-            {documentUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenInNewTab}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open in New Tab
-              </Button>
-            )}
-          </div>
+          <DialogTitle className="text-lg">{document.name}</DialogTitle>
         </DialogHeader>
         
         <div className="flex-1 flex min-h-0 gap-4">
@@ -231,16 +213,6 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
                       Unable to load document preview. The document may not be compatible with inline viewing.
                     </AlertDescription>
                   </Alert>
-                  {documentUrl && (
-                    <Button
-                      variant="outline"
-                      className="mt-3"
-                      onClick={handleOpenInNewTab}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Open Document Externally
-                    </Button>
-                  )}
                 </div>
               ) : (
                 <div className="flex-1 p-4 overflow-auto">
