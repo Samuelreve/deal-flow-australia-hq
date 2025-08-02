@@ -57,14 +57,14 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         const replyTheme = getUserColorTheme(reply.user_id);
         return (
           <div key={reply.id} className="relative">
-            {/* Very visible connecting lines to show reply relationship */}
-            <div className="absolute left-0 top-0 w-8 h-8 border-l-4 border-b-4 border-primary rounded-bl-2xl"></div>
-            {!isLast && <div className="absolute left-0 top-8 w-1 h-full bg-primary"></div>}
+            {/* Always visible connecting lines for existing replies */}
+            <div className="absolute -left-6 top-4 w-8 h-8 border-l-4 border-b-4 border-primary/60 rounded-bl-2xl"></div>
+            {!isLast && <div className="absolute -left-6 top-12 w-1 h-full bg-primary/40"></div>}
             
-            {/* Visual reply indicator */}
-            <div className="absolute left-0 top-2 w-3 h-3 bg-primary rounded-full"></div>
+            {/* Visual reply indicator dot */}
+            <div className="absolute -left-6 top-2 w-3 h-3 bg-primary rounded-full shadow-sm"></div>
             
-            <div className="ml-12 pl-4 border-l-2 border-primary/30 transform transition-all duration-200 hover:translate-x-1">
+            <div className="ml-6 transform transition-all duration-200 hover:translate-x-1">
               <div className={`p-3 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} animate-fade-in border-l-4`}>
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border-2 border-white`}>
@@ -108,9 +108,9 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
 
             {/* Enhanced Reply Form for This Comment */}
             {replyingToId === reply.id && handleSubmitReply && handleReplyKeyDown && (
-              <div className="ml-12 mt-3 pl-6 border-l-4 border-primary animate-fade-in relative">
+              <div className="ml-6 mt-3 pl-6 border-l-4 border-primary animate-fade-in relative">
                 {/* Strong visual connection to parent */}
-                <div className="absolute -left-8 top-0 w-6 h-6 border-l-4 border-b-4 border-primary rounded-bl-xl"></div>
+                <div className="absolute -left-6 top-0 w-6 h-6 border-l-4 border-b-4 border-primary rounded-bl-xl"></div>
                 <div className="p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
                   <div className="text-xs text-primary/70 mb-3 font-medium">
                     Replying to <span className="font-semibold text-primary">{reply.profiles?.name || 'Unknown User'}</span>
@@ -145,19 +145,24 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
               </div>
             )}
 
-            {/* Nested Replies */}
+            {/* Nested Replies - Recursive with connecting lines */}
             {reply.replies && reply.replies.length > 0 && (
-              <NestedReplies 
-                replies={reply.replies} 
-                level={level + 1}
-                getUserColorTheme={getUserColorTheme}
-                user={user}
-                setReplyingToId={setReplyingToId}
-                replyingToId={replyingToId}
-                handleSubmitReply={handleSubmitReply}
-                handleReplyKeyDown={handleReplyKeyDown}
-                isSubmittingComment={isSubmittingComment}
-              />
+              <div className="relative mt-3">
+                {/* Continuation line for deeper nesting */}
+                <div className="absolute -left-6 top-0 w-0.5 h-full bg-primary/30"></div>
+                
+                <NestedReplies 
+                  replies={reply.replies} 
+                  level={level + 1}
+                  getUserColorTheme={getUserColorTheme}
+                  user={user}
+                  setReplyingToId={setReplyingToId}
+                  replyingToId={replyingToId}
+                  handleSubmitReply={handleSubmitReply}
+                  handleReplyKeyDown={handleReplyKeyDown}
+                  isSubmittingComment={isSubmittingComment}
+                />
+              </div>
             )}
           </div>
         );
@@ -360,19 +365,24 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                 )}
               </div>
 
-              {/* Replies Section */}
+              {/* Replies Section with visible nested lines */}
               {comment.replies && comment.replies.length > 0 && (
-                <NestedReplies 
-                  replies={comment.replies} 
-                  level={1}
-                  getUserColorTheme={getUserColorTheme}
-                  user={user}
-                  setReplyingToId={setReplyingToId}
-                  replyingToId={replyingToId}
-                  handleSubmitReply={handleSubmitReply}
-                  handleReplyKeyDown={handleReplyKeyDown}
-                  isSubmittingComment={isSubmittingComment}
-                />
+                <div className="relative mt-4">
+                  {/* Main connecting line for the reply section */}
+                  <div className="absolute left-6 top-0 w-0.5 h-full bg-primary/30"></div>
+                  
+                  <NestedReplies 
+                    replies={comment.replies} 
+                    level={1}
+                    getUserColorTheme={getUserColorTheme}
+                    user={user}
+                    setReplyingToId={setReplyingToId}
+                    replyingToId={replyingToId}
+                    handleSubmitReply={handleSubmitReply}
+                    handleReplyKeyDown={handleReplyKeyDown}
+                    isSubmittingComment={isSubmittingComment}
+                  />
+                </div>
               )}
 
               {/* Enhanced Reply Form for Root Comment */}
