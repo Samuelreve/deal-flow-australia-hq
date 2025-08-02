@@ -62,7 +62,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
-  const [hasSignedDocumentSaved, setHasSignedDocumentSaved] = useState(false);
+  const [savedSignedDocuments, setSavedSignedDocuments] = useState<Set<string>>(new Set());
   const [milestoneMessages, setMilestoneMessages] = useState<string[]>([]);
   const [previewDocument, setPreviewDocument] = useState<{id: string, name: string, storage_path: string} | null>(null);
 
@@ -119,34 +119,38 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       supabase.removeChannel(documentChannel);
     };
     
-    // Check if signed documents have already been saved to deal room
-    checkSignedDocumentsSaved();
+    // Load saved signed documents from localStorage
+    loadSavedSignedDocuments();
   }, [milestone.id]);
 
-  // Check if signed documents have been saved to the deal room
-  const checkSignedDocumentsSaved = async () => {
-    if (!user?.id) return;
-    
+  // Load saved signed documents from localStorage
+  const loadSavedSignedDocuments = () => {
     try {
-      console.log('🔍 Checking for saved signed documents for milestone:', milestone.id);
-      
-      const { data: savedDocs, error } = await supabase
-        .from('milestone_signed_documents')
-        .select('id, envelope_id, created_at')
-        .eq('milestone_id', milestone.id)
-        .eq('deal_id', dealId);
-
-      if (error) {
-        console.error('❌ Error checking signed documents:', error);
-        return;
+      const saved = localStorage.getItem(`savedSignedDocs_${dealId}`);
+      if (saved) {
+        const savedArray = JSON.parse(saved) as string[];
+        const savedSet = new Set<string>(savedArray);
+        setSavedSignedDocuments(savedSet);
+        console.log('📂 Loaded saved signed documents for deal:', savedSet);
       }
-
-      console.log('📋 Found saved signed documents:', savedDocs);
-      const hasSaved = savedDocs && savedDocs.length > 0;
-      setHasSignedDocumentSaved(hasSaved);
-      console.log('✅ Set hasSignedDocumentSaved to:', hasSaved);
     } catch (error) {
-      console.error('❌ Error checking signed documents:', error);
+      console.error('Error loading saved signed documents:', error);
+    }
+  };
+
+  // Save to localStorage when a milestone document is saved
+  const markMilestoneDocumentAsSaved = (milestoneId: string) => {
+    try {
+      const currentSaved = localStorage.getItem(`savedSignedDocs_${dealId}`);
+      const savedArray = currentSaved ? JSON.parse(currentSaved) as string[] : [];
+      const savedSet = new Set<string>(savedArray);
+      savedSet.add(milestoneId);
+      
+      localStorage.setItem(`savedSignedDocs_${dealId}`, JSON.stringify([...savedSet]));
+      setSavedSignedDocuments(new Set<string>(savedSet));
+      console.log('✅ Marked milestone as saved:', milestoneId);
+    } catch (error) {
+      console.error('Error saving milestone document status:', error);
     }
   };
 
@@ -733,25 +737,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         }
 
         console.log('✅ Successfully downloaded signed document:', data);
-        
-        // Record that signed document has been saved
-        console.log('💾 Saving record to milestone_signed_documents...');
-        const { data: insertData, error: insertError } = await supabase
-          .from('milestone_signed_documents')
-          .insert({
-            milestone_id: milestone.id,
-            deal_id: dealId,
-            saved_by_user_id: user.id,
-            envelope_id: signature.envelope_id,
-            document_id: data?.documentId || null
-          })
-          .select();
-
-        if (insertError) {
-          console.error('❌ Error saving milestone signed document record:', insertError);
-        } else {
-          console.log('✅ Successfully saved milestone signed document record:', insertData);
-        }
       }
 
       toast({
@@ -759,13 +744,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         description: 'Signed document has been saved to Documents tab',
       });
 
-      // Mark document as saved and check again
+      // Mark document as saved
       setDocumentSaved(true);
-      setHasSignedDocumentSaved(true);
       
-      console.log('🔄 Re-checking signed documents status after save...');
-      // Re-check the database to ensure the state is accurate
-      await checkSignedDocumentsSaved();
+      // Mark this milestone as having saved signed documents
+      markMilestoneDocumentAsSaved(milestone.id);
 
       // Trigger refresh of documents list without full page reload
       window.dispatchEvent(new CustomEvent('documentsUpdated'));
@@ -786,9 +769,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const handleSaveSignedDocumentToDealRoom = async () => {
     console.log('🚀 Starting save signed document to deal room process...');
     await handleDownloadSignedDocument();
-    // Re-check if signed documents have been saved after the operation
-    console.log('🔄 Re-checking signed documents status after save operation...');
-    await checkSignedDocumentsSaved();
   };
   
   return (
@@ -1199,9 +1179,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                        <Button
                          onClick={handleSaveSignedDocumentToDealRoom}
                          size="sm"
-                         disabled={downloadingSignedDoc || hasSignedDocumentSaved}
+                         disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
                          className={`${
-                           downloadingSignedDoc || hasSignedDocumentSaved 
+                           downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
                              ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
                              : 'bg-blue-600 hover:bg-blue-700 text-white'
                          }`}
@@ -1209,7 +1189,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                          <Save className="h-4 w-4 mr-2" />
                          {downloadingSignedDoc 
                            ? 'Saving...' 
-                           : hasSignedDocumentSaved 
+                           : savedSignedDocuments.has(milestone.id)
                              ? 'Saved to Deal Room' 
                              : 'Save to Deal Room'
                          }
