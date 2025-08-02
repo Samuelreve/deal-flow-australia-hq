@@ -1098,6 +1098,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               title: milestone.title,
               assigned_to: milestone.assigned_to
             }}
+            userRole={userRole}
+            onSaveSignedDocument={handleDownloadSignedDocument}
+            onDownloadSignedDocument={handleDownloadSignedDocument}
+            downloadingSignedDoc={downloadingSignedDoc}
+            documentSaved={documentSaved}
           />
           
           <div className="space-y-2 mt-4">

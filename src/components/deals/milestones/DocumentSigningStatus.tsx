@@ -1,7 +1,8 @@
 import React from 'react';
-import { CheckCircle, Clock, FileCheck, Mail, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, FileCheck, Mail, AlertCircle, Download, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface DocumentSigningStatusProps {
   documentCount: number;
@@ -15,6 +16,11 @@ interface DocumentSigningStatusProps {
     title: string;
     assigned_to: string | null;
   };
+  userRole?: string;
+  onSaveSignedDocument?: () => void;
+  onDownloadSignedDocument?: () => void;
+  downloadingSignedDoc?: boolean;
+  documentSaved?: boolean;
 }
 
 const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
@@ -24,7 +30,12 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
   userHasSigned,
   hasOtherSignatures,
   signerNames,
-  milestone
+  milestone,
+  userRole,
+  onSaveSignedDocument,
+  onDownloadSignedDocument,
+  downloadingSignedDoc = false,
+  documentSaved = false
 }) => {
   if (documentCount === 0) {
     return null;
@@ -186,6 +197,41 @@ const DocumentSigningStatus: React.FC<DocumentSigningStatusProps> = ({
         <div className="text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-md">
           <div className="font-medium">Signed by:</div>
           <div>{signerNames.join(', ')}</div>
+        </div>
+      )}
+
+      {/* Action Buttons for Fully Signed Documents */}
+      {signingStatus === 'completed' && (
+        <div className="flex gap-2 pt-2">
+          {/* Save Button for Admin */}
+          {userRole === 'admin' && onSaveSignedDocument && (
+            <Button
+              onClick={onSaveSignedDocument}
+              size="sm"
+              disabled={downloadingSignedDoc || documentSaved}
+              className={`${
+                downloadingSignedDoc || documentSaved 
+                  ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {downloadingSignedDoc ? 'Saving...' : documentSaved ? 'Document Saved' : 'Save to Deal Room'}
+            </Button>
+          )}
+
+          {/* Download Button for Participants */}
+          {userRole !== 'admin' && onDownloadSignedDocument && (
+            <Button
+              onClick={onDownloadSignedDocument}
+              size="sm"
+              variant="outline"
+              className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Signed Document
+            </Button>
+          )}
         </div>
       )}
     </div>
