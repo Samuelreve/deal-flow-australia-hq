@@ -10,7 +10,7 @@ import SignaturePositioningModal from './SignaturePositioningModal';
 import MilestoneAssignmentModal from './MilestoneAssignmentModal';
 import MilestoneDocumentPreviewModal from './MilestoneDocumentPreviewModal';
 import DocumentUpload from '../document/DocumentUpload';
-import { FileText, UserCheck, User, Upload, CheckCircle, Clock, FileCheck, Eye } from 'lucide-react';
+import { FileText, UserCheck, User, Upload, CheckCircle, Clock, FileCheck, Eye, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -62,11 +62,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const [milestoneDocuments, setMilestoneDocuments] = useState<any[]>([]);
+  const [hasSignedDocumentSaved, setHasSignedDocumentSaved] = useState(false);
   const [milestoneMessages, setMilestoneMessages] = useState<string[]>([]);
   const [previewDocument, setPreviewDocument] = useState<{id: string, name: string, storage_path: string} | null>(null);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
-  // Determine if the current user has permission to update milestone status
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   // Admin can always update, assigned user can update, or seller can update unassigned milestones
   const canUpdateMilestone = isParticipant && (
     ['admin'].includes(userRole.toLowerCase()) || 
@@ -118,7 +118,31 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     return () => {
       supabase.removeChannel(documentChannel);
     };
+    
+    // Check if signed documents have already been saved to deal room
+    checkSignedDocumentsSaved();
   }, [milestone.id]);
+
+  // Check if signed documents have been saved to the deal room
+  const checkSignedDocumentsSaved = async () => {
+    try {
+      const { data: signedDocs, error } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('deal_id', dealId)
+        .eq('status', 'signed')
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking signed documents:', error);
+        return;
+      }
+
+      setHasSignedDocumentSaved(signedDocs && signedDocs.length > 0);
+    } catch (error) {
+      console.error('Error checking signed documents:', error);
+    }
+  };
 
   // Use the milestone signing status from the hook instead of local checks
 
@@ -708,8 +732,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         description: 'Signed document has been saved to Documents tab',
       });
 
-      // Mark document as saved
+      // Mark document as saved and check again
       setDocumentSaved(true);
+      setHasSignedDocumentSaved(true);
 
       // Trigger refresh of documents list without full page reload
       window.dispatchEvent(new CustomEvent('documentsUpdated'));
@@ -724,6 +749,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     } finally {
       setDownloadingSignedDoc(false);
     }
+  };
+
+  // Modified save button handler that also updates persistent state
+  const handleSaveSignedDocumentToDealRoom = async () => {
+    await handleDownloadSignedDocument();
+    // Re-check if signed documents have been saved
+    await checkSignedDocumentsSaved();
   };
   
   return (
@@ -1099,10 +1131,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               assigned_to: milestone.assigned_to
             }}
             userRole={userRole}
-            onSaveSignedDocument={handleDownloadSignedDocument}
             onDownloadSignedDocument={handleDownloadSignedDocument}
-            downloadingSignedDoc={downloadingSignedDoc}
-            documentSaved={documentSaved}
           />
           
           <div className="space-y-2 mt-4">
@@ -1134,32 +1163,49 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                       Preview
                     </Button>
                     
-                    {/* Show sign button only for admins/non-assigned users */}
-                    {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
-                      <>
-                        {milestoneSigningStatus === 'completed' ? (
-                          <Button
-                            disabled
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-200 bg-green-50"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Signed
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => handleSignDocument()}
-                            size="sm"
-                            variant="outline"
-                            className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
-                          >
-                            <FileCheck className="h-4 w-4 mr-2" />
-                            Sign Document
-                          </Button>
-                        )}
-                      </>
-                    )}
+                     {/* Save to Deal Room Button - Show for admins when document is fully signed */}
+                     {userRole === 'admin' && milestoneSigningStatus === 'completed' && (
+                       <Button
+                         onClick={handleSaveSignedDocumentToDealRoom}
+                         size="sm"
+                         disabled={downloadingSignedDoc || hasSignedDocumentSaved}
+                         className={`${
+                           downloadingSignedDoc || hasSignedDocumentSaved 
+                             ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                             : 'bg-blue-600 hover:bg-blue-700 text-white'
+                         }`}
+                       >
+                         <Save className="h-4 w-4 mr-2" />
+                         {downloadingSignedDoc ? 'Saving...' : hasSignedDocumentSaved ? 'Saved to Deal Room' : 'Save to Deal Room'}
+                       </Button>
+                     )}
+                     
+                     {/* Show sign button only for admins/non-assigned users */}
+                     {milestone.assigned_to !== user?.id && canSignMilestoneDocuments && (
+                       <>
+                         {milestoneSigningStatus === 'completed' ? (
+                           <Button
+                             disabled
+                             size="sm"
+                             variant="outline"
+                             className="text-green-600 border-green-200 bg-green-50"
+                           >
+                             <CheckCircle className="h-4 w-4 mr-2" />
+                             Signed
+                           </Button>
+                         ) : (
+                           <Button
+                             onClick={() => handleSignDocument()}
+                             size="sm"
+                             variant="outline"
+                             className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                           >
+                             <FileCheck className="h-4 w-4 mr-2" />
+                             Sign Document
+                           </Button>
+                         )}
+                       </>
+                     )}
                   </div>
               </div>
             ))}
