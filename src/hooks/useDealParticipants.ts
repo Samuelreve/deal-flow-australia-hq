@@ -129,6 +129,8 @@ export function useDealParticipants(
   useEffect(() => {
     if (!isAuthenticated || !deal.id) return;
 
+    console.log('🔄 Setting up real-time subscriptions for deal:', deal.id);
+
     // Create unique channel name with timestamp to prevent conflicts
     const channelName = `participants-${deal.id}-${Date.now()}`;
     
@@ -144,38 +146,45 @@ export function useDealParticipants(
         },
         (payload) => {
           console.log('🔄 Deal participants real-time update:', payload);
-          // Refresh participants when there are changes
-          fetchParticipants();
+          // Use a small delay to ensure database consistency
+          setTimeout(() => {
+            fetchParticipants();
+          }, 100);
         }
       )
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'deal_invitations',
           filter: `deal_id=eq.${deal.id}`
         },
         (payload) => {
           console.log('📧 Deal invitations real-time update:', payload);
-          // Refresh participants when invitation status changes
-          fetchParticipants();
+          // Use a small delay to ensure database consistency
+          setTimeout(() => {
+            fetchParticipants();
+          }, 100);
           
           // Show toast notification for invitation acceptance
-          if (payload.new && payload.new.status === 'accepted' && payload.old && payload.old.status === 'pending') {
+          if (payload.new && (payload.new as any).status === 'accepted' && payload.old && (payload.old as any).status === 'pending') {
             toast({
               title: "🎉 Invitation Accepted!",
-              description: `${payload.new.invitee_email} has joined the deal`,
+              description: `${(payload.new as any).invitee_email} has joined the deal`,
             });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('🔄 Cleaning up real-time subscriptions');
       supabase.removeChannel(channel);
     };
-  }, [deal.id, isAuthenticated, fetchParticipants]);
+  }, [deal.id, isAuthenticated]); // Removed fetchParticipants from deps to prevent recreation
 
   return {
     participants,
