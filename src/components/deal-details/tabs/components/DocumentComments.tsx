@@ -64,10 +64,10 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         return (
           <div key={reply.id} className="relative">
             {/* Simple connecting line from parent to reply */}
-            <div className="absolute -left-6 top-0 w-6 h-6 border-l-2 border-b-2 border-muted-foreground/30"></div>
+            <div className="absolute -left-6 top-0 w-6 h-6 border-l-2 border-b-2 border-border"></div>
             
             {/* Vertical line for continuation to next reply */}
-            {!isLast && <div className="absolute -left-6 top-6 w-px h-full bg-muted-foreground/30"></div>}
+            {!isLast && <div className="absolute -left-6 top-6 w-px h-full bg-border"></div>}
             
             <div className="ml-8">
               <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-primary/50`}>
