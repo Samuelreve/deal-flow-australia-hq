@@ -250,17 +250,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
   // Group comments by parent-child relationship with recursive nesting
   const groupedComments = React.useMemo(() => {
-    // If comments already have a nested structure with replies, use them directly
-    // Only filter for top-level comments (those without parent_comment_id)
-    const topLevelComments = comments.filter(comment => !comment.parent_comment_id);
-    
-    // If we already have nested replies, return as-is
-    if (topLevelComments.some(comment => comment.replies && comment.replies.length > 0)) {
-      console.log('Using pre-nested comment structure:', topLevelComments);
-      return topLevelComments;
-    }
-    
-    // Fallback: build tree structure if replies aren't nested yet
+    // Always build the tree structure to avoid duplication
     const buildCommentTree = (parentId: string | null): Comment[] => {
       return comments
         .filter(comment => comment.parent_comment_id === parentId)
@@ -271,7 +261,6 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     };
     
     const builtTree = buildCommentTree(null);
-    console.log('Built comment tree:', builtTree);
     return builtTree;
   }, [comments]);
 
