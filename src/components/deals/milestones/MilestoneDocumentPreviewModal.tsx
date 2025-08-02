@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, ExternalLink, AlertCircle, X } from "lucide-react";
+import { FileText, ExternalLink, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -182,25 +182,16 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg">{document.name}</DialogTitle>
-            <div className="flex items-center gap-2">
-              {documentUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenInNewTab}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open in New Tab
-                </Button>
-              )}
+            {documentUrl && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={onClose}
+                onClick={handleOpenInNewTab}
               >
-                <X className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in New Tab
               </Button>
-            </div>
+            )}
           </div>
         </DialogHeader>
         
