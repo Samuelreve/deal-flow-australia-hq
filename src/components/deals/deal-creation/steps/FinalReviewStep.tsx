@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StepProps } from '../types';
 import { ReviewSubmissionHeader } from './review-submission/ReviewSubmissionHeader';
 import { BusinessInformationSummary } from './review-submission/BusinessInformationSummary';
@@ -32,10 +32,10 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = useCallback(() => {
     // TODO: Implement PDF generation
     console.log('Downloading PDF summary...');
-  };
+  }, [data]);
 
   const handleSubmit = () => {
     if (onSubmit) {
