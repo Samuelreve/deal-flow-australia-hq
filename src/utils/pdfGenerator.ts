@@ -1,5 +1,6 @@
 
 import { DealCreationData } from '@/components/deals/deal-creation/types';
+import { sanitizeFilename } from '@/utils/fileUtils';
 
 /**
  * Generate and download a PDF summary of deal creation data
@@ -45,7 +46,11 @@ Generated on: ${new Date().toLocaleDateString()}
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `deal-summary-${data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'untitled'}.txt`;
+  link.download = sanitizeFilename(
+    `deal-summary-${
+      data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'untitled'
+    }.txt`
+  );
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
