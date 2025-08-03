@@ -1,12 +1,9 @@
-
 import React from 'react';
 import { FileText, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DealCreationData } from '../../types';
-import { generateDealSummaryPDF } from '@/utils/pdfGenerator';
-import { useToast } from '@/hooks/use-toast';
 
 interface DocumentsSummaryProps {
   data: DealCreationData;
@@ -14,26 +11,6 @@ interface DocumentsSummaryProps {
 }
 
 export const DocumentsSummary: React.FC<DocumentsSummaryProps> = ({ data, onDownloadPDF }) => {
-  const { toast } = useToast();
-
-  const handleDownloadPDF = () => {
-    try {
-      generateDealSummaryPDF(data);
-      toast({
-        title: "PDF Generated",
-        description: "Deal summary has been generated and downloaded",
-      });
-      onDownloadPDF(); // Call the original callback
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      toast({
-        title: "PDF Generation Failed",
-        description: "There was an error generating the PDF summary",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -43,9 +20,9 @@ export const DocumentsSummary: React.FC<DocumentsSummaryProps> = ({ data, onDown
             Documents ({data.uploadedDocuments.length})
           </CardTitle>
         </div>
-        <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+        <Button variant="outline" size="sm" onClick={onDownloadPDF}>
           <Download className="mr-2 h-4 w-4" />
-          Download Summary
+          Download PDF summary
         </Button>
       </CardHeader>
       <CardContent>
@@ -75,3 +52,4 @@ export const DocumentsSummary: React.FC<DocumentsSummaryProps> = ({ data, onDown
     </Card>
   );
 };
+

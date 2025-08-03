@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StepProps } from '../types';
 import { ReviewSubmissionHeader } from './review-submission/ReviewSubmissionHeader';
 import { BusinessInformationSummary } from './review-submission/BusinessInformationSummary';
@@ -8,6 +8,8 @@ import { SellerInformationSummary } from './review-submission/SellerInformationS
 import { DocumentsSummary } from './review-submission/DocumentsSummary';
 import { FinalChecklist } from './review-submission/FinalChecklist';
 import { ReviewSubmissionActions } from './review-submission/ReviewSubmissionActions';
+import { generateDealSummaryPDF } from '@/utils/pdfGenerator';
+import { useToast } from '@/hooks/use-toast';
 
 interface FinalReviewStepProps extends StepProps {
   tempDealId?: string;
@@ -32,10 +34,24 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const downloadPDF = () => {
-    // TODO: Implement PDF generation
-    console.log('Downloading PDF summary...');
-  };
+  const { toast } = useToast();
+
+  const downloadPDF = useCallback(() => {
+    try {
+      generateDealSummaryPDF(data);
+      toast({
+        title: 'PDF Generated',
+        description: 'Deal summary has been generated and downloaded'
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: 'PDF Generation Failed',
+        description: 'There was an error generating the PDF summary',
+        variant: 'destructive'
+      });
+    }
+  }, [data, toast]);
 
   const handleSubmit = () => {
     if (onSubmit) {
