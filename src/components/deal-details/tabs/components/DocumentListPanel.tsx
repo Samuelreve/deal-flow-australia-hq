@@ -58,13 +58,19 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const handleDownload = async (doc: Document) => {
+  const handleDownload = async (doc: any) => {
     try {
-      // Try to use the document's URL directly first
-      if (doc.url) {
-        window.open(doc.url, '_blank');
+      // Use storage_path to create signed URL since the doc object from database has storage_path
+      const storagePath = doc.storage_path;
+      if (storagePath) {
+        const signedUrl = await documentStorageService.createSignedUrl(dealId, storagePath);
+        if (signedUrl) {
+          window.open(signedUrl, '_blank');
+        } else {
+          console.error('Failed to create signed URL for document download');
+        }
       } else {
-        console.error('No URL available for document download');
+        console.error('No storage path available for document download');
       }
     } catch (error) {
       console.error('Error downloading document:', error);
