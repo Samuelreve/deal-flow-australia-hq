@@ -6,6 +6,7 @@ import { Upload, Download, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import { Document } from "@/types/deal";
+import { documentStorageService } from "@/services/documents/documentStorageService";
 
 interface DocumentListPanelProps {
   documents: Document[];
@@ -55,6 +56,19 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
     };
     
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const handleDownload = async (doc: Document) => {
+    try {
+      // Try to use the document's URL directly first
+      if (doc.url) {
+        window.open(doc.url, '_blank');
+      } else {
+        console.error('No URL available for document download');
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+    }
   };
 
   return (
@@ -127,9 +141,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
                             className="h-6 w-6 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (doc.url) {
-                                window.open(doc.url, '_blank');
-                              }
+                              handleDownload(doc);
                             }}
                             title="Download document"
                           >
