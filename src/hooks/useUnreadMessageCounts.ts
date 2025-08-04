@@ -144,8 +144,10 @@ export function useUnreadMessageCounts(dealId: string) {
           table: 'messages',
           filter: `deal_id=eq.${dealId}`
         },
-        () => {
+        (payload) => {
+          console.log('🔔 Realtime message UPDATE received:', payload);
           // Refresh counts when messages are marked as read
+          console.log('🔔 Refreshing unread counts due to message update');
           fetchUnreadCounts();
         }
       )
