@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Share, FileText, Sparkles } from "lucide-react";
+import { Upload, Download, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import { Document } from "@/types/deal";
@@ -121,8 +121,19 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-sm truncate">{doc.name}</h4>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <Share className="h-3 w-3" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (doc.url) {
+                                window.open(doc.url, '_blank');
+                              }
+                            }}
+                            title="Download document"
+                          >
+                            <Download className="h-3 w-3" />
                           </Button>
                         </div>
                         
