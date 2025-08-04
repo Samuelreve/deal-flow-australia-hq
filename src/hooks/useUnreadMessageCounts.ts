@@ -62,11 +62,13 @@ export function useUnreadMessageCounts(dealId: string) {
     if (!dealId || !user?.id) return;
 
     try {
+      console.log('🔔 Marking messages as read:', { dealId, recipientUserId });
       await supabase.rpc('mark_messages_as_read', {
         p_deal_id: dealId,
         p_recipient_user_id: recipientUserId
       });
       
+      console.log('🔔 Messages marked as read, refreshing counts');
       // Refresh counts after marking as read
       fetchUnreadCounts();
     } catch (error) {

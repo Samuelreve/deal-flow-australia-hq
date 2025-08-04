@@ -53,6 +53,7 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParti
   // Mark messages as read when viewing a conversation
   useEffect(() => {
     if (messages.length > 0) {
+      console.log('🔔 Marking messages as read for:', selectedContactId || 'deal chat');
       markAsRead(selectedContactId);
     }
   }, [messages, selectedContactId, markAsRead]);
