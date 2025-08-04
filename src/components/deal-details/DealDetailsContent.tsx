@@ -53,17 +53,8 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
 }) => {
   const { unreadCounts, markAsRead } = useUnreadMessageCounts(dealId);
   
-  // Mark all messages as read when user visits messages tab
-  useEffect(() => {
-    if (activeTab === "messages" && unreadCounts.total > 0) {
-      // Mark both deal chat and all private messages as read
-      markAsRead(); // Deal chat messages
-      // Mark all private messages as read
-      Object.keys(unreadCounts.privateMessages).forEach(userId => {
-        markAsRead(userId);
-      });
-    }
-  }, [activeTab, unreadCounts.total, markAsRead, unreadCounts.privateMessages]);
+  // Note: Messages are marked as read individually when viewing specific conversations
+  // in the DealMessagesTab component, not automatically when switching to the Messages tab
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
