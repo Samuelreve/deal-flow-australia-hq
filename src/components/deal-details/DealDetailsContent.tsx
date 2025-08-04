@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
+import { useTabNotificationIndicator } from "@/hooks/useTabNotificationIndicator";
 import DealOverviewTab from "./tabs/DealOverviewTab";
 import DealMilestonesTab from "./tabs/DealMilestonesTab";
 import DealDocumentsTab from "./tabs/DealDocumentsTab";
@@ -51,10 +51,14 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   dealId,
   selectedParticipantId
 }) => {
-  const { unreadCounts, markAsRead } = useUnreadMessageCounts(dealId);
+  const { hasUnreadMessages, markTabAsViewed } = useTabNotificationIndicator(dealId);
   
-  // Note: Messages are marked as read individually when viewing specific conversations
-  // in the DealMessagesTab component, not automatically when switching to the Messages tab
+  // Mark tab as viewed when user switches to messages tab
+  useEffect(() => {
+    if (activeTab === "messages") {
+      markTabAsViewed();
+    }
+  }, [activeTab, markTabAsViewed]);
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -65,7 +69,7 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
         <TabsTrigger value="participants">Participants</TabsTrigger>
         <TabsTrigger value="messages" className="relative">
           Messages
-          {unreadCounts.total > 0 && activeTab !== "messages" && (
+          {hasUnreadMessages && activeTab !== "messages" && (
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></div>
           )}
         </TabsTrigger>
