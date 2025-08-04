@@ -2,11 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Download, FileText, Sparkles } from "lucide-react";
+import { Upload, Share, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import { Document } from "@/types/deal";
-import { documentStorageService } from "@/services/documents/documentStorageService";
 
 interface DocumentListPanelProps {
   documents: Document[];
@@ -56,25 +55,6 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
     };
     
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const handleDownload = async (doc: any) => {
-    try {
-      // Use storage_path to create signed URL since the doc object from database has storage_path
-      const storagePath = doc.storage_path;
-      if (storagePath) {
-        const signedUrl = await documentStorageService.createSignedUrl(dealId, storagePath);
-        if (signedUrl) {
-          window.open(signedUrl, '_blank');
-        } else {
-          console.error('Failed to create signed URL for document download');
-        }
-      } else {
-        console.error('No storage path available for document download');
-      }
-    } catch (error) {
-      console.error('Error downloading document:', error);
-    }
   };
 
   return (
@@ -141,17 +121,8 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-sm truncate">{doc.name}</h4>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(doc);
-                            }}
-                            title="Download document"
-                          >
-                            <Download className="h-3 w-3" />
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Share className="h-3 w-3" />
                           </Button>
                         </div>
                         
