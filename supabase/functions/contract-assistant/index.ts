@@ -368,24 +368,84 @@ Please provide a detailed answer based on the contract content.`;
         console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
         console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
-        // Create summarization prompt following the working document summary pattern
-        const systemPrompt = `You are a concise contract summarizer. Always provide extremely brief, direct summaries. Never exceed 6 sentences or 150 words. Use only plain text - NO markdown, asterisks, or special formatting.`;
+        // Create analysis prompt based on the analysis type
+        const getAnalysisPrompts = (analysisType: string) => {
+          const baseSystemPrompt = `You are a concise contract analyst. Always provide extremely brief, direct analysis. Never exceed 6 sentences or 150 words. Use only plain text - NO markdown, asterisks, or special formatting.`;
+          
+          switch (analysisType) {
+            case 'key_terms':
+            case 'summary':
+              return {
+                systemPrompt: baseSystemPrompt,
+                userPrompt: `Analyze KEY TERMS in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
 
-        const userPrompt = `Provide a VERY BRIEF contract summary in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
-
-RULES:
-- Start with document type and parties
-- Include key obligations and financial terms
-- Mention important dates or deadlines
-- State termination or key provisions
+FOCUS ON:
+- Document type and parties
+- Key obligations and financial terms
+- Important dates or deadlines
+- Termination or key provisions
 - Use simple, clear language
-- NO legal jargon or lengthy explanations
 - Maximum 150 words total
 
 Contract content:
 ${contractText.substring(0, 6000)}
 
-Summary:`;
+Key Terms Analysis:`
+              };
+            
+            case 'risk_assessment':
+            case 'risks':
+              return {
+                systemPrompt: baseSystemPrompt,
+                userPrompt: `Identify RISKS in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
+
+FOCUS ON:
+- Financial risks and liability exposure
+- Performance risks and penalties
+- Termination risks and conditions
+- Compliance risks and requirements
+- Use simple, clear language
+- Maximum 150 words total
+
+Contract content:
+${contractText.substring(0, 6000)}
+
+Risk Assessment:`
+              };
+            
+            case 'obligations':
+              return {
+                systemPrompt: baseSystemPrompt,
+                userPrompt: `Analyze OBLIGATIONS in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
+
+FOCUS ON:
+- Each party's key responsibilities
+- Performance requirements and standards
+- Delivery obligations and timelines
+- Reporting and communication duties
+- Use simple, clear language
+- Maximum 150 words total
+
+Contract content:
+${contractText.substring(0, 6000)}
+
+Obligations Analysis:`
+              };
+            
+            default:
+              return {
+                systemPrompt: baseSystemPrompt,
+                userPrompt: `Provide a BRIEF contract analysis in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
+
+Contract content:
+${contractText.substring(0, 6000)}
+
+Analysis:`
+              };
+          }
+        };
+
+        const { systemPrompt, userPrompt } = getAnalysisPrompts((requestData as any).analysisType || 'summary');
 
         console.log('🤖 Calling OpenAI API...');
 
