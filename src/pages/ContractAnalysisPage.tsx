@@ -378,37 +378,60 @@ const ContractAnalysisPage: React.FC = () => {
 
                 {/* Q&A Tab */}
                 <TabsContent value="qa" className="mt-0">
-                  <div className="space-y-4 h-[500px] flex flex-col">
-                    <h3 className="text-lg font-semibold">Ask Questions</h3>
+                  <div className="h-[500px] flex flex-col">
+                    <h3 className="text-lg font-semibold mb-4">Ask Questions</h3>
                     
-                    <ScrollArea className="flex-1 rounded-md border p-4">
-                      <ConversationHistory
-                        questionHistory={questionHistory.filter(q => q.type === 'question')}
-                        isProcessing={isProcessing}
-                      />
-                    </ScrollArea>
+                    {/* Chat History */}
+                    <div className="flex-1 mb-4">
+                      {questionHistory.filter(q => q.type === 'question').length > 0 ? (
+                        <ScrollArea className="h-full rounded-md border p-4 bg-muted/20">
+                          <ConversationHistory
+                            questionHistory={questionHistory.filter(q => q.type === 'question')}
+                            isProcessing={isProcessing}
+                          />
+                        </ScrollArea>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          <p className="text-sm">Start by asking a question about your contract</p>
+                        </div>
+                      )}
+                    </div>
 
-                    <form onSubmit={handleQuestionSubmit} className="flex gap-2">
-                      <Textarea
-                        value={userQuestion}
-                        onChange={(e) => setUserQuestion(e.target.value)}
-                        placeholder="Ask a question about this contract..."
-                        rows={3}
-                        className="flex-1 resize-none"
-                        disabled={isProcessing || loadingSummary}
-                      />
-                      <Button 
-                        type="submit" 
-                        disabled={!userQuestion.trim() || isProcessing || loadingSummary}
-                        size="lg"
-                      >
-                        {isProcessing || loadingSummary ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </form>
+                    {/* Question Input */}
+                    <div className="space-y-2">
+                      <form onSubmit={handleQuestionSubmit} className="relative">
+                        <Textarea
+                          value={userQuestion}
+                          onChange={(e) => setUserQuestion(e.target.value)}
+                          placeholder="Ask a question about this contract..."
+                          rows={4}
+                          className="pr-16 resize-none border-2 focus:border-primary"
+                          disabled={isProcessing || loadingSummary}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleQuestionSubmit(e);
+                            }
+                          }}
+                        />
+                        <Button 
+                          type="submit" 
+                          disabled={!userQuestion.trim() || isProcessing || loadingSummary}
+                          size="icon"
+                          className="absolute right-2 bottom-2 h-10 w-10 rounded-full bg-primary hover:bg-primary/90"
+                        >
+                          {isProcessing || loadingSummary ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </form>
+                      
+                      <p className="text-xs text-muted-foreground text-center">
+                        This AI analysis is for informational purposes only and should not be considered legal advice. Always consult with a qualified attorney for legal matters.
+                      </p>
+                    </div>
                   </div>
                 </TabsContent>
               </CardContent>
