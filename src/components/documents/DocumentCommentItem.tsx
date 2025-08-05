@@ -1,6 +1,5 @@
 import React from 'react';
-import { CheckCircle, Reply } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Reply } from 'lucide-react';
 import { DocumentComment } from '@/types/documentComment';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -22,8 +21,6 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   isActive = false,
   isReply = false
 }) => {
-  const { user } = useAuth();
-
   // Generate consistent color theme for each user
   const getUserColorTheme = (userId: string) => {
     const colors = [
@@ -52,24 +49,10 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   const userTheme = getUserColorTheme(comment.user_id);
   const userName = comment.user?.name || 'User';
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
-  
-  const handleResolveToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleResolved(comment.id);
-  };
 
   const handleReplyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onReplyClick?.(comment.id);
-  };
-
-  // Format the timestamp as a relative time (e.g., "2 hours ago")
-  const getRelativeTime = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return 'Unknown time';
-    }
   };
 
   // Format date like "8/3/2025"
@@ -85,7 +68,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       return 'Unknown date';
     }
   };
-  
+
   return (
     <div className={`${isReply ? 'mb-2' : 'mb-3'}`}>
       <div 
@@ -111,9 +94,6 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">
                 {userName}
-                {user?.id === comment.user_id && (
-                  <span className="ml-1 text-xs text-muted-foreground">(me)</span>
-                )}
               </span>
               {isReply && (
                 <span className="text-xs text-muted-foreground">replied</span>
@@ -148,7 +128,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
             )}
 
             {/* Reply button */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-end">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -158,17 +138,6 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
                 <Reply className="h-3 w-3 mr-1" />
                 Reply
               </Button>
-              
-              {/* Actions */}
-              {user && (
-                <button
-                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                  onClick={handleResolveToggle}
-                  title={comment.resolved ? "Mark as unresolved" : "Mark as resolved"}
-                >
-                  <CheckCircle className={`h-4 w-4 ${comment.resolved ? 'text-green-500' : 'text-muted-foreground'}`} />
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -178,12 +147,12 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       {comment.replies && comment.replies.length > 0 && (
         <div className="relative ml-11 mt-2 space-y-2">
           {/* Vertical connecting line */}
-          <div className="absolute left-[-20px] top-0 bottom-0 w-[1px] bg-border"></div>
+          <div className="absolute left-[-20px] top-0 bottom-0 w-[2px] bg-blue-300 rounded-full"></div>
           
           {comment.replies.map((reply, index) => (
             <div key={reply.id} className="relative">
               {/* Horizontal connecting line */}
-              <div className="absolute left-[-20px] top-4 w-[16px] h-[1px] bg-border"></div>
+              <div className="absolute left-[-20px] top-4 w-[16px] h-[2px] bg-blue-300 rounded-full"></div>
               
               <DocumentCommentItem
                 comment={reply}
