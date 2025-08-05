@@ -6,6 +6,28 @@ import OpenAI from "https://esm.sh/openai@4.0.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
 
+// Function to clean AI response and apply proper formatting
+function cleanAIResponse(text: string): string {
+  if (!text) return text;
+  
+  return text
+    // Remove all markdown headers (### -> numbers)
+    .replace(/^#{1,6}\s*(\d+\.?\s*.*?)$/gm, '$1')
+    // Remove bold/italic formatting
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+    // Remove extra asterisks and hash symbols
+    .replace(/[*#]+/g, '')
+    // Clean up bullet points and replace with dashes
+    .replace(/^\s*[-•]\s*/gm, '- ')
+    // Ensure proper indentation with numbers and dashes
+    .replace(/^(\d+\.?\s*[A-Z][^:\n]*):?\s*$/gm, '$1')
+    // Clean up any remaining special characters except numbers and dashes
+    .replace(/[^\w\s\d.\-(),:;'"\/\n]/g, '')
+    // Normalize line breaks
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
   try {
     console.log("🔧 Extracting text from:", { fileName, contentType, size: fileBuffer.byteLength });
@@ -61,7 +83,7 @@ async function analyzeContractWithAI(text: string, openai: any): Promise<any> {
       max_tokens: 2000
     });
 
-    const analysis = response.choices[0].message.content;
+    const analysis = cleanAIResponse(response.choices[0].message.content || '');
     
     // Structure the analysis data
     return {

@@ -1,6 +1,28 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Function to clean AI response and apply proper formatting
+function cleanAIResponse(text: string): string {
+  if (!text) return text;
+  
+  return text
+    // Remove all markdown headers (### -> numbers)
+    .replace(/^#{1,6}\s*(\d+\.?\s*.*?)$/gm, '$1')
+    // Remove bold/italic formatting
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+    // Remove extra asterisks and hash symbols
+    .replace(/[*#]+/g, '')
+    // Clean up bullet points and replace with dashes
+    .replace(/^\s*[-•]\s*/gm, '- ')
+    // Ensure proper indentation with numbers and dashes
+    .replace(/^(\d+\.?\s*[A-Z][^:\n]*):?\s*$/gm, '$1')
+    // Clean up any remaining special characters except numbers and dashes
+    .replace(/[^\w\s\d.\-(),:;'"\/\n]/g, '')
+    // Normalize line breaks
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function verifyAuthorizedDealParticipant(
   supabaseClient: any,
   userId: string,
@@ -46,47 +68,47 @@ ${content.substring(0, 2000)}`;
     const documentType = classificationResponse.choices[0]?.message?.content?.trim() || "NON-CONTRACT";
 
     if (documentType === "CONTRACT") {
-      // Use contract-specific analysis with strict formatting rules
-      const contractPrompt = `Analyze this contract and provide a professional summary. Use only plain text with clear sections and simple formatting.
+      // Use contract-specific analysis
+      const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
 
-${content.substring(0, 8000)}
+${content}
 
-Provide EXACTLY this structure using simple text headings (no special characters):
+Provide your analysis in this exact structure using only plain text headings:
 
 CONTRACT TYPE AND PURPOSE
-Brief description of what type of contract this is and its main purpose.
+[Identify the type of contract and its main purpose]
 
 KEY PARTIES
-List the main parties and their roles.
+[List the main parties involved and their roles]
 
-MAIN TERMS AND CONDITIONS  
-Summarize the most important terms and obligations.
+MAIN TERMS AND CONDITIONS
+[Summarize the most important terms, obligations, and conditions]
 
 FINANCIAL TERMS
-Detail any payments, pricing, or financial obligations.
+[Detail any payments, pricing, or financial obligations]
 
 KEY DATES AND DEADLINES
-Important dates, deadlines, or time periods.
+[Important dates, deadlines, or time periods]
 
 TERMINATION CONDITIONS
-How and when the contract can be terminated.
+[How and when the contract can be terminated]
 
 POTENTIAL RISKS OR CONCERNS
-Any risks, ambiguous clauses, or areas of concern.
+[Any risks, ambiguous clauses, or areas of concern]
 
-Keep each section to 2-3 sentences maximum. Use clear, simple language.`;
+Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a legal document analyst. Provide clear, structured analysis using only plain text. Never use markdown, asterisks, hash symbols, or special formatting. Keep responses concise and professional." },
+          { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
           { role: "user", content: contractPrompt }
         ],
-        temperature: 0.1,
-        max_tokens: 800
+        temperature: 0.2,
+        max_tokens: 1500
       });
 
-      const analysis = response.choices[0]?.message?.content || "Could not analyze the contract.";
+      const analysis = cleanAIResponse(response.choices[0]?.message?.content || "Could not analyze the contract.");
       
       return {
         summary: analysis + "\n\nDISCLAIMER: This AI-generated analysis is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance.",
@@ -94,44 +116,44 @@ Keep each section to 2-3 sentences maximum. Use clear, simple language.`;
       };
 
     } else {
-      // Use general document analysis with strict formatting rules
-      const generalPrompt = `Analyze this document and provide a summary using only plain text with clear sections.
+      // Use general document analysis
+      const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
 
-${content.substring(0, 8000)}
+${content}
 
-Provide EXACTLY this structure using simple text headings (no special characters):
+Provide your analysis in this exact structure using only plain text headings:
 
 DOCUMENT TYPE
-Identify what type of document this is.
+[Identify what type of document this is]
 
 MAIN PURPOSE
-Explain the primary purpose or objective.
+[Explain the primary purpose or objective of the document]
 
 KEY INFORMATION
-Summarize the most important information or content.
+[Summarize the most important information, data, or content]
 
 MAIN SECTIONS OR TOPICS
-Overview of the major sections or topics covered.
+[Overview of the major sections or topics covered]
 
 IMPORTANT DETAILS
-Any specific details, numbers, dates, or requirements.
+[Any specific details, numbers, dates, or requirements that stand out]
 
 RECOMMENDATIONS OR NEXT STEPS
-If applicable, any suggested actions or next steps.
+[If applicable, any suggested actions or next steps]
 
-Keep each section to 2-3 sentences maximum. Use clear, simple language.`;
+Keep the summary clear and focused on the most relevant information. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a document analyst. Provide clear, structured analysis using only plain text. Never use markdown, asterisks, hash symbols, or special formatting. Keep responses concise and professional." },
+          { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
           { role: "user", content: generalPrompt }
         ],
-        temperature: 0.1,
-        max_tokens: 600
+        temperature: 0.2,
+        max_tokens: 1200
       });
 
-      const analysis = response.choices[0]?.message?.content || "Could not analyze the document.";
+      const analysis = cleanAIResponse(response.choices[0]?.message?.content || "Could not analyze the document.");
       
       return {
         summary: analysis + "\n\nNOTE: This is an AI-generated summary for informational purposes. Please review the original document for complete and accurate information.",
