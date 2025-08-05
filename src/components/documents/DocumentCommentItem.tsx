@@ -174,19 +174,26 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
         </div>
       </div>
       
-      {/* Nested replies */}
+      {/* Nested replies with connecting lines */}
       {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-11 mt-2 space-y-2">
-          {comment.replies.map((reply) => (
-            <DocumentCommentItem
-              key={reply.id}
-              comment={reply}
-              onCommentClick={onCommentClick}
-              onToggleResolved={onToggleResolved}
-              onReplyClick={onReplyClick}
-              isActive={isActive}
-              isReply={true}
-            />
+        <div className="relative ml-11 mt-2 space-y-2">
+          {/* Vertical connecting line */}
+          <div className="absolute left-[-20px] top-0 bottom-0 w-[1px] bg-border"></div>
+          
+          {comment.replies.map((reply, index) => (
+            <div key={reply.id} className="relative">
+              {/* Horizontal connecting line */}
+              <div className="absolute left-[-20px] top-4 w-[16px] h-[1px] bg-border"></div>
+              
+              <DocumentCommentItem
+                comment={reply}
+                onCommentClick={onCommentClick}
+                onToggleResolved={onToggleResolved}
+                onReplyClick={onReplyClick}
+                isActive={isActive}
+                isReply={true}
+              />
+            </div>
           ))}
         </div>
       )}
