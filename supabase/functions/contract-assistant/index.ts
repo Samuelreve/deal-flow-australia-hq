@@ -39,6 +39,7 @@ interface ContractAssistantRequest {
   documentId?: string;
   versionId?: string;
   userQuestion?: string;
+  analysisType?: string;
   // Legacy support for old format
   question?: string;
   contractText?: string;
@@ -445,7 +446,7 @@ Analysis:`
           }
         };
 
-        const { systemPrompt, userPrompt } = getAnalysisPrompts((requestData as any).analysisType || 'summary');
+        const { systemPrompt, userPrompt } = getAnalysisPrompts(requestData.analysisType || 'summary');
 
         console.log('🤖 Calling OpenAI API...');
 
@@ -474,6 +475,7 @@ Analysis:`
           }
         );
       }
+
 
       // For real deals, check participant access (existing code for production deals)
       const { data: participation, error: participationError } = await supabase
