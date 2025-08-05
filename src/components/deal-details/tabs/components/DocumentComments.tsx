@@ -57,10 +57,7 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
   isSubmittingComment
 }) => {
   return (
-    <div className="relative ml-11 mt-2 space-y-2">
-      {/* Vertical connecting line */}
-      <div className="absolute left-[-20px] top-0 bottom-0 w-[2px] bg-blue-300 rounded-full"></div>
-      
+    <div className="mt-3 space-y-2">
       {replies.map((reply, index) => {
         const replyTheme = getUserColorTheme(reply.user_id);
         const userName = reply.user?.name || reply.profiles?.name || 'Unknown User';
@@ -81,12 +78,15 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
         };
 
         return (
-          <div key={reply.id} className="relative">
-            {/* Horizontal connecting line */}
-            <div className="absolute left-[-20px] top-4 w-[16px] h-[2px] bg-blue-300 rounded-full"></div>
+          <div key={reply.id} className="relative pl-8">
+            {/* Connecting line - vertical line on the left */}
+            <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-blue-200"></div>
             
             {/* Reply styled like the image */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 relative">
+              {/* Horizontal connecting line */}
+              <div className="absolute left-[-20px] top-4 w-[20px] h-[2px] bg-blue-200"></div>
+              
               <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
