@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { CheckCircle, MessageSquare, Reply } from 'lucide-react';
+import { CheckCircle, Reply } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DocumentComment } from '@/types/documentComment';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,9 +27,9 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   // Generate consistent color theme for each user
   const getUserColorTheme = (userId: string) => {
     const colors = [
-      { bg: 'bg-blue-50', border: 'border-blue-200', avatar: 'bg-blue-100', text: 'text-blue-600' },
-      { bg: 'bg-green-50', border: 'border-green-200', avatar: 'bg-green-100', text: 'text-green-600' },
       { bg: 'bg-purple-50', border: 'border-purple-200', avatar: 'bg-purple-100', text: 'text-purple-600' },
+      { bg: 'bg-green-50', border: 'border-green-200', avatar: 'bg-green-100', text: 'text-green-600' },
+      { bg: 'bg-blue-50', border: 'border-blue-200', avatar: 'bg-blue-100', text: 'text-blue-600' },
       { bg: 'bg-orange-50', border: 'border-orange-200', avatar: 'bg-orange-100', text: 'text-orange-600' },
       { bg: 'bg-pink-50', border: 'border-pink-200', avatar: 'bg-pink-100', text: 'text-pink-600' },
       { bg: 'bg-indigo-50', border: 'border-indigo-200', avatar: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -72,79 +71,76 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
       return 'Unknown time';
     }
   };
+
+  // Format date like "8/3/2025"
+  const formatShortDate = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return 'Unknown date';
+    }
+  };
   
   return (
-    <div 
-      className={`${isReply ? 'mb-2' : 'mb-3'} ${
-        isActive ? 'ring-2 ring-primary rounded-md' : ''
-      } ${
-        comment.resolved ? 'opacity-75' : ''
-      } transition-colors`}
-    >
+    <div className={`${isReply ? 'mb-2' : 'mb-3'}`}>
       <div 
         className={`${
           isReply 
-            ? 'bg-muted/30 border border-border/50 rounded-md p-3' 
-            : `${userTheme.bg} ${userTheme.border} border rounded-md p-3`
-        } hover:bg-accent/50 cursor-pointer`}
+            ? 'bg-green-50 border border-green-200 rounded-lg p-3' 
+            : `${userTheme.bg} ${userTheme.border} border rounded-lg p-3`
+        } hover:opacity-80 cursor-pointer transition-all ${
+          isActive ? 'ring-2 ring-primary' : ''
+        } ${
+          comment.resolved ? 'opacity-75' : ''
+        }`}
         onClick={() => onCommentClick(comment.id, comment.location_data)}
       >
         <div className="flex items-start gap-3">
           {/* Avatar */}
-          <div className={`w-8 h-8 ${userTheme.avatar} rounded-full flex items-center justify-center text-xs font-semibold ${userTheme.text} flex-shrink-0`}>
+          <div className={`w-8 h-8 ${isReply ? 'bg-green-100 text-green-600' : `${userTheme.avatar} ${userTheme.text}`} rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0`}>
             {initials}
           </div>
           
           <div className="flex-1 min-w-0">
             {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">
-                  {userName}
-                  {user?.id === comment.user_id && (
-                    <span className="ml-1 text-xs text-muted-foreground">(me)</span>
-                  )}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-sm">
+                {userName}
+                {user?.id === comment.user_id && (
+                  <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                )}
+              </span>
+              {isReply && (
+                <span className="text-xs text-muted-foreground">replied</span>
+              )}
+              <span className="text-xs text-muted-foreground">
+                {formatShortDate(comment.created_at)}
+              </span>
+              {comment.resolved && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                  Resolved
                 </span>
-                {isReply && (
-                  <span className="text-xs text-muted-foreground">replied</span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {getRelativeTime(comment.created_at)}
-                </span>
-                {comment.resolved && (
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                    Resolved
-                  </span>
-                )}
-              </div>
-              
-              {/* Actions */}
-              <div className="flex items-center gap-1">
-                {user && (
-                  <button
-                    className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                    onClick={handleResolveToggle}
-                    title={comment.resolved ? "Mark as unresolved" : "Mark as resolved"}
-                  >
-                    <CheckCircle className={`h-4 w-4 ${comment.resolved ? 'text-green-500' : 'text-muted-foreground'}`} />
-                  </button>
-                )}
-              </div>
+              )}
             </div>
             
-            {/* Selected text quote */}
+            {/* Selected text quote - only for main comments */}
             {comment.location_data?.selectedText && !isReply && (
-              <div className="mb-2 text-xs italic bg-muted/50 p-2 rounded border-l-2 border-muted-foreground/30">
+              <div className="mb-2 text-xs italic bg-background/50 p-2 rounded border-l-2 border-muted-foreground/30">
                 "{comment.location_data.selectedText}"
               </div>
             )}
             
             {/* Comment content */}
-            <div className={`text-sm ${comment.resolved ? 'text-muted-foreground' : 'text-foreground'} mb-2`}>
+            <div className={`text-sm mb-2 ${comment.resolved ? 'text-muted-foreground' : 'text-foreground'}`}>
               {comment.content}
             </div>
             
-            {/* Page number */}
+            {/* Page number - only for main comments */}
             {comment.page_number && !isReply && (
               <div className="text-xs text-muted-foreground mb-2">
                 Page {comment.page_number}
@@ -152,7 +148,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
             )}
 
             {/* Reply button */}
-            <div className="flex justify-start">
+            <div className="flex items-center justify-between">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -162,6 +158,17 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
                 <Reply className="h-3 w-3 mr-1" />
                 Reply
               </Button>
+              
+              {/* Actions */}
+              {user && (
+                <button
+                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                  onClick={handleResolveToggle}
+                  title={comment.resolved ? "Mark as unresolved" : "Mark as resolved"}
+                >
+                  <CheckCircle className={`h-4 w-4 ${comment.resolved ? 'text-green-500' : 'text-muted-foreground'}`} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -186,6 +193,5 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
     </div>
   );
 };
-
 
 export default DocumentCommentItem;

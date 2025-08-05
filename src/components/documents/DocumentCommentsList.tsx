@@ -2,10 +2,10 @@
 import React from 'react';
 import { Loader2, MessageSquare } from 'lucide-react';
 import DocumentCommentItem from './DocumentCommentItem';
-import { DocumentComment as DbDocumentComment } from '@/types/documentComment';
+import { DocumentComment } from '@/types/documentComment';
 
 interface DocumentCommentsListProps {
-  comments: DbDocumentComment[];
+  comments: DocumentComment[];
   loading: boolean;
   onCommentClick: (commentId: string, locationData: any) => void;
   onToggleResolved: (commentId: string) => void;
