@@ -46,44 +46,44 @@ ${content.substring(0, 2000)}`;
     const documentType = classificationResponse.choices[0]?.message?.content?.trim() || "NON-CONTRACT";
 
     if (documentType === "CONTRACT") {
-      // Use contract-specific analysis
-      const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
+      // Use contract-specific analysis with strict formatting rules
+      const contractPrompt = `Analyze this contract and provide a professional summary. Use only plain text with clear sections and simple formatting.
 
-${content}
+${content.substring(0, 8000)}
 
-Provide your analysis in this exact structure using only plain text headings:
+Provide EXACTLY this structure using simple text headings (no special characters):
 
 CONTRACT TYPE AND PURPOSE
-[Identify the type of contract and its main purpose]
+Brief description of what type of contract this is and its main purpose.
 
 KEY PARTIES
-[List the main parties involved and their roles]
+List the main parties and their roles.
 
-MAIN TERMS AND CONDITIONS
-[Summarize the most important terms, obligations, and conditions]
+MAIN TERMS AND CONDITIONS  
+Summarize the most important terms and obligations.
 
 FINANCIAL TERMS
-[Detail any payments, pricing, or financial obligations]
+Detail any payments, pricing, or financial obligations.
 
 KEY DATES AND DEADLINES
-[Important dates, deadlines, or time periods]
+Important dates, deadlines, or time periods.
 
 TERMINATION CONDITIONS
-[How and when the contract can be terminated]
+How and when the contract can be terminated.
 
 POTENTIAL RISKS OR CONCERNS
-[Any risks, ambiguous clauses, or areas of concern]
+Any risks, ambiguous clauses, or areas of concern.
 
-Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
+Keep each section to 2-3 sentences maximum. Use clear, simple language.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
+          { role: "system", content: "You are a legal document analyst. Provide clear, structured analysis using only plain text. Never use markdown, asterisks, hash symbols, or special formatting. Keep responses concise and professional." },
           { role: "user", content: contractPrompt }
         ],
-        temperature: 0.2,
-        max_tokens: 1500
+        temperature: 0.1,
+        max_tokens: 800
       });
 
       const analysis = response.choices[0]?.message?.content || "Could not analyze the contract.";
@@ -94,41 +94,41 @@ Keep each section concise but comprehensive. Use plain English and avoid legal j
       };
 
     } else {
-      // Use general document analysis
-      const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
+      // Use general document analysis with strict formatting rules
+      const generalPrompt = `Analyze this document and provide a summary using only plain text with clear sections.
 
-${content}
+${content.substring(0, 8000)}
 
-Provide your analysis in this exact structure using only plain text headings:
+Provide EXACTLY this structure using simple text headings (no special characters):
 
 DOCUMENT TYPE
-[Identify what type of document this is]
+Identify what type of document this is.
 
 MAIN PURPOSE
-[Explain the primary purpose or objective of the document]
+Explain the primary purpose or objective.
 
 KEY INFORMATION
-[Summarize the most important information, data, or content]
+Summarize the most important information or content.
 
 MAIN SECTIONS OR TOPICS
-[Overview of the major sections or topics covered]
+Overview of the major sections or topics covered.
 
 IMPORTANT DETAILS
-[Any specific details, numbers, dates, or requirements that stand out]
+Any specific details, numbers, dates, or requirements.
 
 RECOMMENDATIONS OR NEXT STEPS
-[If applicable, any suggested actions or next steps]
+If applicable, any suggested actions or next steps.
 
-Keep the summary clear and focused on the most relevant information. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
+Keep each section to 2-3 sentences maximum. Use clear, simple language.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
+          { role: "system", content: "You are a document analyst. Provide clear, structured analysis using only plain text. Never use markdown, asterisks, hash symbols, or special formatting. Keep responses concise and professional." },
           { role: "user", content: generalPrompt }
         ],
-        temperature: 0.2,
-        max_tokens: 1200
+        temperature: 0.1,
+        max_tokens: 600
       });
 
       const analysis = response.choices[0]?.message?.content || "Could not analyze the document.";
