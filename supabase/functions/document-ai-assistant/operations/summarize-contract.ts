@@ -47,11 +47,11 @@ ${content.substring(0, 2000)}`;
 
     if (documentType === "CONTRACT") {
       // Use contract-specific analysis
-      const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+      const contractPrompt = `Analyze this contract and provide a comprehensive summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
 
 ${content}
 
-Provide your analysis in this exact structure:
+Provide your analysis in this exact structure using only plain text headings:
 
 CONTRACT TYPE AND PURPOSE
 [Identify the type of contract and its main purpose]
@@ -74,12 +74,12 @@ TERMINATION CONDITIONS
 POTENTIAL RISKS OR CONCERNS
 [Any risks, ambiguous clauses, or areas of concern]
 
-Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible.`;
+Keep each section concise but comprehensive. Use plain English and avoid legal jargon where possible. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+          { role: "system", content: "You are a legal document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
           { role: "user", content: contractPrompt }
         ],
         temperature: 0.2,
@@ -95,11 +95,11 @@ Keep each section concise but comprehensive. Use plain English and avoid legal j
 
     } else {
       // Use general document analysis
-      const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. Do not use markdown, bullet points, or special formatting.
+      const generalPrompt = `Analyze this document and provide a summary in clean, plain text format. STRICTLY avoid all markdown formatting including asterisks, hash symbols, bullet points, or any special characters. Use only plain text.
 
 ${content}
 
-Provide your analysis in this exact structure:
+Provide your analysis in this exact structure using only plain text headings:
 
 DOCUMENT TYPE
 [Identify what type of document this is]
@@ -119,12 +119,12 @@ IMPORTANT DETAILS
 RECOMMENDATIONS OR NEXT STEPS
 [If applicable, any suggested actions or next steps]
 
-Keep the summary clear and focused on the most relevant information.`;
+Keep the summary clear and focused on the most relevant information. Remember: NO asterisks, NO hash symbols, NO markdown formatting whatsoever.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without markdown or special formatting." },
+          { role: "system", content: "You are a document analysis expert. Provide clear, structured analysis in plain text format without any markdown formatting. NEVER use asterisks, hash symbols, or any special characters. Use only plain text." },
           { role: "user", content: generalPrompt }
         ],
         temperature: 0.2,

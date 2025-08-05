@@ -50,11 +50,11 @@ async function analyzeContractWithAI(text: string, openai: any): Promise<any> {
       messages: [
         {
           role: "system",
-          content: "You are a legal document analysis AI. Analyze contracts and provide structured insights including key parties, important terms, potential risks, and key dates. Be professional and thorough."
+          content: "You are a legal document analysis AI. Analyze contracts and provide structured insights including key parties, important terms, potential risks, and key dates. Be professional and thorough. IMPORTANT: Provide your response in plain text format without any markdown formatting, asterisks, hash symbols, or special characters. Use only simple text formatting."
         },
         {
           role: "user",
-          content: `Please analyze this contract and provide a comprehensive summary:\n\n${text}`
+          content: `Please analyze this contract and provide a comprehensive summary in plain text format (no markdown, no asterisks, no hash symbols):\n\n${text}`
         }
       ],
       temperature: 0.3,
