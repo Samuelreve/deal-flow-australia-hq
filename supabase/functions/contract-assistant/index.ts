@@ -368,27 +368,24 @@ Please provide a detailed answer based on the contract content.`;
         console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
         console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
-        // Create summarization prompt with strict formatting rules
-        const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Provide clear, structured analysis using only plain text. NEVER use markdown, asterisks, hash symbols, or special formatting.
+        // Create summarization prompt following the working document summary pattern
+        const systemPrompt = `You are a concise contract summarizer. Always provide extremely brief, direct summaries. Never exceed 6 sentences or 150 words. Use only plain text - NO markdown, asterisks, or special formatting.`;
 
-When analyzing contracts, focus on:
-1. Parties involved and their roles
-2. Key obligations and responsibilities  
-3. Financial terms and payment structures
-4. Important dates and timelines
-5. Termination conditions and clauses
-6. Risk factors and liability provisions
-7. Intellectual property considerations
-8. Dispute resolution mechanisms
+        const userPrompt = `Provide a VERY BRIEF contract summary in EXACTLY 4-6 short sentences. Each sentence should be no more than 25 words.
 
-Use only plain text headings and simple formatting. Keep sections concise and professional.`;
+RULES:
+- Start with document type and parties
+- Include key obligations and financial terms
+- Mention important dates or deadlines
+- State termination or key provisions
+- Use simple, clear language
+- NO legal jargon or lengthy explanations
+- Maximum 150 words total
 
-        const userPrompt = `Provide a professional summary of this contract using only plain text formatting. Keep sections clear and concise:
+Contract content:
+${contractText.substring(0, 6000)}
 
-CONTRACT DOCUMENT:
-${contractText.substring(0, 8000)}
-
-Structure your response with simple text headings (no special characters) and focus on the most critical aspects.`;
+Summary:`;
 
         console.log('🤖 Calling OpenAI API...');
 
@@ -399,7 +396,7 @@ Structure your response with simple text headings (no special characters) and fo
             { role: "user", content: userPrompt }
           ],
           temperature: 0.1,
-          max_tokens: 800
+          max_tokens: 200
         });
 
         const summary = cleanAIResponse(completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.");
