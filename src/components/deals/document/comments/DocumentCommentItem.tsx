@@ -209,19 +209,26 @@ const DocumentCommentItem = ({
         
         {/* Render replies if any */}
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3 space-y-3 pl-4 border-l border-gray-100">
-            {comment.replies.map(reply => (
-              <DocumentCommentItem
-                key={reply.id}
-                comment={reply}
-                currentUserId={currentUserId}
-                isReply={true}
-                onReplyToComment={onReplyToComment}
-                onDelete={onDelete}
-                onEdit={onEdit}
-                currentUserDealRole={currentUserDealRole}
-                submitting={submitting}
-              />
+          <div className="relative mt-3 space-y-3 pl-4">
+            {/* Connecting line */}
+            <div className="absolute left-2 top-0 bottom-0 w-[2px] bg-blue-300 rounded-full"></div>
+            
+            {comment.replies.map((reply, index) => (
+              <div key={reply.id} className="relative">
+                {/* Horizontal connector */}
+                <div className="absolute left-[-8px] top-3 w-[12px] h-[2px] bg-blue-300 rounded-full"></div>
+                
+                <DocumentCommentItem
+                  comment={reply}
+                  currentUserId={currentUserId}
+                  isReply={true}
+                  onReplyToComment={onReplyToComment}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  currentUserDealRole={currentUserDealRole}
+                  submitting={submitting}
+                />
+              </div>
             ))}
           </div>
         )}
