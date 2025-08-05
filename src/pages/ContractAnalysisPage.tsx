@@ -381,17 +381,19 @@ const ContractAnalysisPage: React.FC = () => {
                   <div className="h-[500px] flex flex-col">
                     <h3 className="text-lg font-semibold mb-4">Ask Questions</h3>
                     
-                    {/* Chat History */}
-                    <div className="flex-1 mb-4">
+                    {/* Chat History - Scrollable Area */}
+                    <div className="flex-1 mb-4 min-h-0">
                       {questionHistory.filter(q => q.type === 'question').length > 0 ? (
-                        <ScrollArea className="h-full rounded-md border p-4 bg-muted/20">
-                          <ConversationHistory
-                            questionHistory={questionHistory.filter(q => q.type === 'question')}
-                            isProcessing={isProcessing}
-                          />
+                        <ScrollArea className="h-full w-full rounded-md border bg-muted/20">
+                          <div className="p-4">
+                            <ConversationHistory
+                              questionHistory={questionHistory.filter(q => q.type === 'question')}
+                              isProcessing={isProcessing}
+                            />
+                          </div>
                         </ScrollArea>
                       ) : (
-                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                        <div className="h-full flex items-center justify-center text-muted-foreground border rounded-md">
                           <p className="text-sm">Start by asking a question about your contract</p>
                         </div>
                       )}
