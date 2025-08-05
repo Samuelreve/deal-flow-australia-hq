@@ -55,35 +55,37 @@ const ProfessionalQuestionFormatter: React.FC<ProfessionalQuestionFormatterProps
   };
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-slate-200 shadow-sm w-full max-w-full overflow-hidden">
       <CardHeader className="bg-slate-50 border-b border-slate-200 pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <MessageSquare className="h-4 w-4 text-white" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-slate-800 mb-2">Legal Inquiry</h3>
-              <p className="text-sm text-slate-600 leading-relaxed italic">
+              <p className="text-sm text-slate-600 leading-relaxed italic break-words">
                 "{question}"
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2 text-xs text-slate-500 flex-shrink-0">
             <Clock className="h-4 w-4" />
             {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="p-6">
+      <CardContent className="p-6 w-full max-w-full">
         <div className="flex items-center gap-2 mb-4">
           <Scale className="h-4 w-4 text-slate-600" />
           <h4 className="text-sm font-semibold text-slate-800">Legal Analysis & Response</h4>
         </div>
         
-        <div className="prose prose-slate max-w-none">
-          {formatAnswer(answer)}
+        <div className="prose prose-slate max-w-none w-full overflow-hidden">
+          <div className="break-words overflow-wrap-anywhere">
+            {formatAnswer(answer)}
+          </div>
         </div>
         
         {sources && sources.length > 0 && (
