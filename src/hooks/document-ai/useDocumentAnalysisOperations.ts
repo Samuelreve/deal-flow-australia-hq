@@ -9,22 +9,19 @@ const cleanMarkdownText = (text: string): string => {
   if (!text) return '';
   
   return text
-    // Remove all markdown headers (###, ##, #)
-    .replace(/#{1,6}\s*/g, '')
+    // Remove all markdown headers (###, ##, #) but keep the text
+    .replace(/#{1,6}\s+([^\n]*)/g, '$1')
     // Remove all bold/italic markdown formatting (**text**, *text*, ***text***)
     .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
-    // Remove standalone asterisks and dashes
-    .replace(/^\s*[\*\-•]+\s*/gm, '')
-    // Remove bullet point markers at start of lines
-    .replace(/^\s*[-*•]\s+/gm, '')
-    // Remove horizontal rules and separators
+    // Remove standalone asterisks at start of lines (but keep content dashes and numbers)
+    .replace(/^\s*\*+\s*/gm, '')
+    // Remove markdown bullet points but preserve numbered lists and content dashes
+    .replace(/^\s*\*\s+/gm, '')
+    // Remove horizontal rules (multiple dashes) but keep single dashes in content
     .replace(/^-{3,}$/gm, '')
     .replace(/^={3,}$/gm, '')
-    // Clean up any remaining asterisks or markdown symbols
-    .replace(/\*+/g, '')
-    .replace(/\-{2,}/g, '')
-    // Remove any remaining hash symbols
-    .replace(/#/g, '')
+    // Clean up any remaining standalone asterisks
+    .replace(/(?<!\w)\*+(?!\w)/g, '')
     // Clean up multiple spaces and newlines
     .replace(/\s{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
