@@ -16,22 +16,26 @@ const SummaryRenderer: React.FC<SummaryRendererProps> = ({ content }) => {
     if (!text) return '';
     
     return text
-      // Remove markdown headers and replace with proper spacing
-      .replace(/#{1,6}\s+([^\n]+)/g, '$1')
-      // Remove bold/italic markdown but keep the text
-      .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
-      // Clean up bullet points and lists
-      .replace(/^\s*[-*•]\s+/gm, '• ')
-      // Remove extra dashes and formatting
-      .replace(/^-+\s*/gm, '')
-      // Clean up section separators
-      .replace(/#+\s*/g, '')
-      // Format numbered sections properly
-      .replace(/(\d+)\.\s*([^\n]+)/g, '$1. $2')
+      // Remove all markdown headers (###, ##, #)
+      .replace(/#{1,6}\s*/g, '')
+      // Remove all bold/italic markdown formatting (**text**, *text*, ***text***)
+      .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
+      // Remove standalone asterisks and dashes
+      .replace(/^\s*[\*\-•]+\s*/gm, '')
+      // Remove bullet point markers at start of lines
+      .replace(/^\s*[-*•]\s+/gm, '')
+      // Remove horizontal rules and separators
+      .replace(/^-{3,}$/gm, '')
+      .replace(/^={3,}$/gm, '')
+      // Clean up any remaining asterisks or markdown symbols
+      .replace(/\*+/g, '')
+      .replace(/\-{2,}/g, '')
+      // Remove any remaining hash symbols
+      .replace(/#/g, '')
       // Clean up multiple spaces and newlines
       .replace(/\s{2,}/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
-      // Ensure proper line breaks after sections
+      // Ensure proper spacing after periods and colons
       .replace(/([.:])\s*\n/g, '$1\n\n')
       .trim();
   };
