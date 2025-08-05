@@ -11,6 +11,28 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+// Function to clean AI response and apply proper formatting
+function cleanAIResponse(text: string): string {
+  if (!text) return text;
+  
+  return text
+    // Remove all markdown headers (### -> numbers)
+    .replace(/^#{1,6}\s*(\d+\.?\s*.*?)$/gm, '$1')
+    // Remove bold/italic formatting
+    .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+    // Remove extra asterisks and hash symbols
+    .replace(/[*#]+/g, '')
+    // Clean up bullet points and replace with dashes
+    .replace(/^\s*[-•]\s*/gm, '- ')
+    // Ensure proper indentation with numbers and dashes
+    .replace(/^(\d+\.?\s*[A-Z][^:\n]*):?\s*$/gm, '$1')
+    // Clean up any remaining special characters except numbers and dashes
+    .replace(/[^\w\s\d.\-(),:;'"\/\n]/g, '')
+    // Normalize line breaks
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 interface ContractAssistantRequest {
   requestType: 'answer_question' | 'summarize_contract_terms';
   dealId?: string;
@@ -346,12 +368,12 @@ Please provide a detailed answer based on the contract content.`;
         console.log('🚀 Sending to OpenAI - Content length:', contractText.length);
         console.log('📝 Content preview (first 500 chars):', contractText.substring(0, 500));
 
-        // Create summarization prompt
-        const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Your task is to provide a comprehensive but accessible summary of contract terms and key provisions.
+        // Create summarization prompt with strict formatting rules
+        const systemPrompt = `You are a professional legal document analyst specializing in contract analysis. Provide clear, structured analysis using only plain text. NEVER use markdown, asterisks, hash symbols, or special formatting.
 
-When summarizing contracts, focus on:
+When analyzing contracts, focus on:
 1. Parties involved and their roles
-2. Key obligations and responsibilities
+2. Key obligations and responsibilities  
 3. Financial terms and payment structures
 4. Important dates and timelines
 5. Termination conditions and clauses
@@ -359,14 +381,14 @@ When summarizing contracts, focus on:
 7. Intellectual property considerations
 8. Dispute resolution mechanisms
 
-Provide your summary in clear, professional language that both legal professionals and business stakeholders can understand. Use bullet points and structured formatting where appropriate to enhance readability.`;
+Use only plain text headings and simple formatting. Keep sections concise and professional.`;
 
-        const userPrompt = `Please provide a comprehensive summary of the following contract document. Focus on the key terms, obligations, financial aspects, and any notable provisions that parties should be aware of:
+        const userPrompt = `Provide a professional summary of this contract using only plain text formatting. Keep sections clear and concise:
 
 CONTRACT DOCUMENT:
-${contractText}
+${contractText.substring(0, 8000)}
 
-Please structure your summary with clear sections and highlight the most critical aspects of this agreement.`;
+Structure your response with simple text headings (no special characters) and focus on the most critical aspects.`;
 
         console.log('🤖 Calling OpenAI API...');
 
@@ -376,11 +398,11 @@ Please structure your summary with clear sections and highlight the most critica
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
           ],
-          temperature: 0.3,
-          max_tokens: 2000
+          temperature: 0.1,
+          max_tokens: 800
         });
 
-        const summary = completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.";
+        const summary = cleanAIResponse(completion.choices[0]?.message?.content || "I couldn't generate a summary. Please try again.");
 
         console.log('✅ Summary generated successfully, length:', summary.length);
 
