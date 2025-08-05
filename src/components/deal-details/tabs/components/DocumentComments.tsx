@@ -57,50 +57,75 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
   isSubmittingComment
 }) => {
   return (
-    <div className="space-y-3 mt-3">
+    <div className="relative ml-11 mt-2 space-y-2">
+      {/* Vertical connecting line */}
+      <div className="absolute left-[-20px] top-0 bottom-0 w-[2px] bg-blue-300 rounded-full"></div>
+      
       {replies.map((reply, index) => {
         const replyTheme = getUserColorTheme(reply.user_id);
+        const userName = reply.user?.name || reply.profiles?.name || 'Unknown User';
+        const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+        
+        // Format date like "8/3/2025"
+        const formatShortDate = (timestamp: string) => {
+          try {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-US', {
+              month: 'numeric',
+              day: 'numeric',
+              year: 'numeric'
+            });
+          } catch (e) {
+            return 'Unknown date';
+          }
+        };
+
         return (
           <div key={reply.id} className="relative">
-            <div className="ml-8">
-              <div className={`relative p-3 border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${replyTheme.bg} ${replyTheme.border} border-l-4 border-l-primary/50`}>
-                <div className="flex items-start gap-3 mb-2">
-                  <div className={`w-8 h-8 ${replyTheme.avatar} rounded-full flex items-center justify-center shadow-sm border border-white`}>
-                     <span className="text-sm font-semibold text-white">
-                       {(reply.user?.name || reply.profiles?.name)?.charAt(0)?.toUpperCase() || 'U'}
-                     </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                       <span className="text-sm font-semibold text-foreground">
-                         {reply.user?.name || reply.profiles?.name || 'Unknown User'}
-                         {user?.id === reply.user_id && (
-                          <span className="ml-1 text-xs text-primary font-medium">(me)</span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">↳ replied</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(reply.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground/90 leading-relaxed">{reply.content}</p>
-                  </div>
+            {/* Horizontal connecting line */}
+            <div className="absolute left-[-20px] top-4 w-[16px] h-[2px] bg-blue-300 rounded-full"></div>
+            
+            {/* Reply styled like the image */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                  {userInitials}
                 </div>
                 
-                {/* Reply button for nested replies */}
-                {user?.id !== reply.user_id && (
-                  <div className="mt-3 flex justify-end">
+                <div className="flex-1 min-w-0">
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">
+                      {userName}
+                      {user?.id === reply.user_id && (
+                        <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground">replied</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatShortDate(reply.created_at)}
+                    </span>
+                  </div>
+                  
+                  {/* Reply content */}
+                  <div className="text-sm mb-2 text-foreground">
+                    {reply.content}
+                  </div>
+                  
+                  {/* Reply button */}
+                  <div className="flex items-center justify-end">
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="h-7 flex items-center text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                       onClick={() => setReplyingToId(reply.id)}
                     >
                       <Reply className="h-3 w-3 mr-1" />
                       Reply
                     </Button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -319,46 +344,66 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
         ) : (
           groupedComments.map((comment) => {
             const userTheme = getUserColorTheme(comment.user_id);
+            const userName = comment.user?.name || comment.profiles?.name || 'Unknown User';
+            const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+            
+            // Format date like "8/3/2025"
+            const formatShortDate = (timestamp: string) => {
+              try {
+                const date = new Date(timestamp);
+                return date.toLocaleDateString('en-US', {
+                  month: 'numeric',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+              } catch (e) {
+                return 'Unknown date';
+              }
+            };
+
             return (
-            <div key={comment.id} className="space-y-3 animate-fade-in">
-              {/* Main Comment with enhanced styling */}
-              <div className={`p-4 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 ${userTheme.bg} ${userTheme.border} border-l-4`}>
-                <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 ${userTheme.avatar} rounded-full flex items-center justify-center shadow-md border-2 border-white`}>
-                    <span className="text-sm font-bold text-white">
-                      {(comment.user?.name || comment.profiles?.name)?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
+            <div key={comment.id} className="space-y-3">
+              {/* Main Comment styled like the image */}
+              <div className={`${userTheme.bg} ${userTheme.border} border rounded-lg p-3`}>
+                <div className="flex items-start gap-3">
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 ${userTheme.avatar} rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0`}>
+                    <span className="text-purple-600">{userInitials}</span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-base font-semibold text-foreground">
-                        {comment.user?.name || comment.profiles?.name || 'Unknown User'}
+                  
+                  <div className="flex-1 min-w-0">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">
+                        {userName}
                         {user?.id === comment.user_id && (
-                          <span className="ml-2 text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-full">(me)</span>
+                          <span className="ml-1 text-xs text-muted-foreground">(me)</span>
                         )}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(comment.created_at).toLocaleDateString()}
+                        {formatShortDate(comment.created_at)}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/90 leading-relaxed">{comment.content}</p>
+                    
+                    {/* Comment content */}
+                    <div className="text-sm mb-2 text-foreground">
+                      {comment.content}
+                    </div>
+                    
+                    {/* Reply button */}
+                    <div className="flex items-center justify-end">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setReplyingToId(comment.id)}
+                      >
+                        <Reply className="h-3 w-3 mr-1" />
+                        Reply
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Reply button - show only for other users' comments */}
-                {user?.id !== comment.user_id && (
-                  <div className="mt-3 flex justify-end">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 flex items-center text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                      onClick={() => setReplyingToId(comment.id)}
-                    >
-                      <Reply className="h-4 w-4 mr-1" />
-                      Reply
-                    </Button>
-                  </div>
-                )}
               </div>
 
               {/* Replies Section - Use NestedReplies component for proper recursive handling */}
