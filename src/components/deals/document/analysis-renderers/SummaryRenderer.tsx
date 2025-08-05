@@ -11,14 +11,28 @@ interface SummaryRendererProps {
 const SummaryRenderer: React.FC<SummaryRendererProps> = ({ content }) => {
   const { summary, keyPoints = [], documentType, wordCount, disclaimer } = content;
 
-  // Clean summary text by removing markdown formatting
+  // Clean and format summary text professionally
   const cleanSummary = (text: string) => {
     if (!text) return '';
+    
     return text
-      .replace(/#{1,6}\s+/g, '') // Remove # headers
-      .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove * formatting
-      .replace(/^\s*-\s+/gm, '') // Remove bullet points
-      .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
+      // Remove markdown headers and replace with proper spacing
+      .replace(/#{1,6}\s+([^\n]+)/g, '$1')
+      // Remove bold/italic markdown but keep the text
+      .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+      // Clean up bullet points and lists
+      .replace(/^\s*[-*•]\s+/gm, '• ')
+      // Remove extra dashes and formatting
+      .replace(/^-+\s*/gm, '')
+      // Clean up section separators
+      .replace(/#+\s*/g, '')
+      // Format numbered sections properly
+      .replace(/(\d+)\.\s*([^\n]+)/g, '$1. $2')
+      // Clean up multiple spaces and newlines
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      // Ensure proper line breaks after sections
+      .replace(/([.:])\s*\n/g, '$1\n\n')
       .trim();
   };
 
