@@ -1,28 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Function to clean AI response and apply proper formatting
-function cleanAIResponse(text: string): string {
-  if (!text) return text;
-  
-  return text
-    // Remove all markdown headers (### -> numbers)
-    .replace(/^#{1,6}\s*(\d+\.?\s*.*?)$/gm, '$1')
-    // Remove bold/italic formatting
-    .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
-    // Remove extra asterisks and hash symbols
-    .replace(/[*#]+/g, '')
-    // Clean up bullet points and replace with dashes
-    .replace(/^\s*[-•]\s*/gm, '- ')
-    // Ensure proper indentation with numbers and dashes
-    .replace(/^(\d+\.?\s*[A-Z][^:\n]*):?\s*$/gm, '$1')
-    // Clean up any remaining special characters except numbers and dashes
-    .replace(/[^\w\s\d.\-(),:;'"\/\n]/g, '')
-    // Normalize line breaks
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
 export async function verifyAuthorizedDealParticipant(
   supabaseClient: any,
   userId: string,
@@ -108,7 +86,7 @@ Keep each section concise but comprehensive. Use plain English and avoid legal j
         max_tokens: 1500
       });
 
-      const analysis = cleanAIResponse(response.choices[0]?.message?.content || "Could not analyze the contract.");
+      const analysis = response.choices[0]?.message?.content || "Could not analyze the contract.";
       
       return {
         summary: analysis + "\n\nDISCLAIMER: This AI-generated analysis is for informational purposes only and does not constitute legal advice. Please consult with a qualified attorney for legal guidance.",
@@ -153,7 +131,7 @@ Keep the summary clear and focused on the most relevant information. Remember: N
         max_tokens: 1200
       });
 
-      const analysis = cleanAIResponse(response.choices[0]?.message?.content || "Could not analyze the document.");
+      const analysis = response.choices[0]?.message?.content || "Could not analyze the document.";
       
       return {
         summary: analysis + "\n\nNOTE: This is an AI-generated summary for informational purposes. Please review the original document for complete and accurate information.",
