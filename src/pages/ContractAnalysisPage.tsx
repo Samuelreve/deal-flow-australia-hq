@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -43,6 +43,7 @@ const ContractAnalysisPage: React.FC = () => {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [userQuestion, setUserQuestion] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   console.log('📊 Contract page state:', {
     contractsCount: contracts.length,
@@ -236,10 +237,27 @@ const ContractAnalysisPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <Button variant="outline" onClick={() => selectContract('')}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload New
-                </Button>
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload New
+                  </Button>
+                </>
               </div>
             </CardHeader>
           </Card>
