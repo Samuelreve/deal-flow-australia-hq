@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Send, FileText, Upload, Brain, MessageCircle } from 'lucide-react';
 import RealContractUpload from '@/components/contract/RealContractUpload';
 import ConversationHistory from '@/components/contract/tabs/components/ConversationHistory';
+import UploadProgressIndicator from '@/components/contract/upload/UploadProgressIndicator';
 
 const ContractAnalysisPage: React.FC = () => {
   console.log('🏠 ContractAnalysisPage rendering...');
@@ -43,6 +44,7 @@ const ContractAnalysisPage: React.FC = () => {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [userQuestion, setUserQuestion] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   console.log('📊 Contract page state:', {
@@ -139,6 +141,7 @@ const ContractAnalysisPage: React.FC = () => {
     }
 
     try {
+      setSelectedFileName(file.name);
       console.log('📤 Uploading file:', {
         name: file.name,
         size: file.size,
@@ -223,6 +226,14 @@ const ContractAnalysisPage: React.FC = () => {
         <ContractAnalysisHeader />
         
         <div className="mt-6 space-y-6">
+          {(uploading || uploadProgress > 0 || contractsError) && (
+            <UploadProgressIndicator
+              isUploading={uploading}
+              uploadProgress={uploadProgress}
+              fileName={selectedFileName || undefined}
+              error={contractsError}
+            />
+          )}
           {/* Contract Header */}
           <Card>
             <CardHeader className="pb-3">
@@ -247,6 +258,7 @@ const ContractAnalysisPage: React.FC = () => {
                   />
                   <Button
                     variant="outline"
+                    disabled={uploading}
                     onClick={() => {
                       if (fileInputRef.current) {
                         fileInputRef.current.value = '';
@@ -254,8 +266,12 @@ const ContractAnalysisPage: React.FC = () => {
                       }
                     }}
                   >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload New
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {uploading ? 'Uploading...' : 'Upload New'}
                   </Button>
                 </>
               </div>
