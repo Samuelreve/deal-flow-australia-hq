@@ -33,8 +33,7 @@ const DocumentUpload = ({
   milestoneTitle
 }: DocumentUploadProps) => {
   // Check if user has permission to upload documents
-  const canUploadDocuments = permissions?.canUpload ?? 
-    (isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()));
+  const canUploadDocuments = permissions?.canUpload ?? isParticipant;
   
   // Check if deal status allows uploads
   const isDealStatusAllowingUploads = !dealStatus || ['draft', 'active', 'pending'].includes(dealStatus);

@@ -23,7 +23,7 @@ export class DocumentPermissionService {
       .single();
 
     if (error) return false;
-    return ['admin', 'seller', 'lawyer'].includes(data.role);
+    return true; // All participants can upload documents
   }
 
   /**

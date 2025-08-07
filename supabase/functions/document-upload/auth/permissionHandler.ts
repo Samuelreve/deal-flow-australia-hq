@@ -70,13 +70,7 @@ export class PermissionHandler {
    * Check if user's role allows document uploads
    */
   async checkUploadPermission(userRole: string): Promise<boolean> {
-    // Define roles that can upload documents
-    const allowedRoles = ['admin', 'seller', 'lawyer'];
-    
-    if (!allowedRoles.includes(userRole.toLowerCase())) {
-      throw new Error(`Permission denied: Your role (${userRole}) cannot upload documents`);
-    }
-
+    // All participants can upload documents
     return true;
   }
 

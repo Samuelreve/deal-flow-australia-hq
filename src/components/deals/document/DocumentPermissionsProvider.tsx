@@ -32,9 +32,9 @@ export const DocumentPermissionsProvider: React.FC<DocumentPermissionsProviderPr
 }) => {
   // Calculate permissions based on role and deal status
   const permissions: DocumentPermissions = {
-    canUpload: isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()),
+    canUpload: isParticipant, // All participants can upload documents
     canDelete: isParticipant && ['admin', 'seller', 'lawyer'].includes(userRole.toLowerCase()),
-    canAddVersions: isParticipant && ['admin', 'seller', 'lawyer', 'buyer'].includes(userRole.toLowerCase()),
+    canAddVersions: isParticipant, // All participants can add versions
     canShare: isParticipant,
     canAnalyze: true // Analysis is available to all users
   };
