@@ -92,8 +92,11 @@ export function useCopilot(options: UseCopilotOptions = {}) {
       const data = await callAssistant({ operation: 'suggest_next_action', dealId: activeDealId });
       const aiText = data.suggestion || data.response || 'Here is your next recommended step.';
       addMessage("assistant", aiText);
+      return aiText;
     } catch (e: any) {
-      addMessage("assistant", `Unable to fetch next action. ${e.message ?? ''}`.trim());
+      const msg = `Unable to fetch next action. ${e.message ?? ''}`.trim();
+      addMessage("assistant", msg);
+      return '';
     } finally {
       setLoading(false);
     }
@@ -108,8 +111,11 @@ export function useCopilot(options: UseCopilotOptions = {}) {
         ? `Suggested milestones:\n- ${data.milestones.map((m: any) => m.title || m).join("\n- ")}`
         : (data.response || 'Generated milestones for your deal.');
       addMessage("assistant", text);
+      return text;
     } catch (e: any) {
-      addMessage("assistant", `Unable to generate milestones. ${e.message ?? ''}`.trim());
+      const msg = `Unable to generate milestones. ${e.message ?? ''}`.trim();
+      addMessage("assistant", msg);
+      return '';
     } finally {
       setLoading(false);
     }
@@ -122,8 +128,30 @@ export function useCopilot(options: UseCopilotOptions = {}) {
       const data = await callAssistant({ operation: 'summarize_deal', dealId: activeDealId });
       const aiText = data.summary || data.response || 'Here is the current deal summary.';
       addMessage("assistant", aiText);
+      return aiText;
     } catch (e: any) {
-      addMessage("assistant", `Unable to summarize deal. ${e.message ?? ''}`.trim());
+      const msg = `Unable to summarize deal. ${e.message ?? ''}`.trim();
+      addMessage("assistant", msg);
+      return '';
+    } finally {
+      setLoading(false);
+    }
+  }, [addMessage, callAssistant, ensureDealContext]);
+
+  const predictDealHealth = useCallback(async () => {
+    setLoading(true);
+    try {
+      const activeDealId = await ensureDealContext();
+      const data = await callAssistant({ operation: 'predict_deal_health', dealId: activeDealId });
+      const pct = data.probability_of_success_percentage ?? data.predicted_score;
+      const conf = data.confidence_level ?? data.confidence;
+      const summary = `Deal health prediction: ${pct ?? 'N/A'}% success probability${conf ? ` (confidence: ${conf})` : ''}.`;
+      addMessage("assistant", summary);
+      return summary;
+    } catch (e: any) {
+      const msg = `Unable to predict deal health. ${e.message ?? ''}`.trim();
+      addMessage("assistant", msg);
+      return '';
     } finally {
       setLoading(false);
     }
@@ -137,6 +165,7 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     suggestNextAction,
     generateMilestones,
     summarizeDeal,
+    predictDealHealth,
     ensureDealContext,
   };
 }

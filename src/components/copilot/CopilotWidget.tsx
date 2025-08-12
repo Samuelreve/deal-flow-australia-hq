@@ -3,9 +3,13 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Brain } from "lucide-react";
 import CopilotChat from "./CopilotChat";
+import CopilotSuggestions from "./CopilotSuggestions";
+import { useDealsCount } from "./useDealsCount";
 
 const CopilotWidget: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const { count } = useDealsCount();
+  const isPreDeal = (count ?? 0) === 0;
 
   return (
     <div className="pointer-events-none">
@@ -17,13 +21,14 @@ const CopilotWidget: React.FC = () => {
             size="lg"
             className="shadow-md"
             onClick={() => setOpen(true)}
+            aria-label="Open Deal Copilot"
           >
             <Brain className="h-5 w-5" />
           </Button>
         )}
       </div>
 
-      {/* Chat surface */}
+      {/* Surface */}
       {open && (
         <div className="fixed bottom-4 right-4 z-50 pointer-events-auto">
           <div className="relative">
@@ -32,7 +37,7 @@ const CopilotWidget: React.FC = () => {
                 ×
               </Button>
             </div>
-            <CopilotChat />
+            {isPreDeal ? <CopilotSuggestions /> : <CopilotChat />}
           </div>
         </div>
       )}

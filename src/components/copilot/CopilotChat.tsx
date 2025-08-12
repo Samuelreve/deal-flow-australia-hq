@@ -4,30 +4,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Loader2, Send, Compass, ListChecks, FileText } from "lucide-react";
+import { Brain, Loader2, Send, Compass, ListChecks, FileText, Activity } from "lucide-react";
 import { useCopilot } from "./useCopilot";
 
 const QuickActions: React.FC<{
   onNext: () => void;
   onMilestones: () => void;
   onSummary: () => void;
+  onHealth: () => void;
   loading: boolean;
-}> = ({ onNext, onMilestones, onSummary, loading }) => (
+}> = ({ onNext, onMilestones, onSummary, onHealth, loading }) => (
   <div className="flex flex-wrap gap-2">
+    <Button size="sm" variant="secondary" onClick={onSummary} disabled={loading}>
+      <FileText className="h-4 w-4" /> Summarize deal
+    </Button>
     <Button size="sm" variant="secondary" onClick={onNext} disabled={loading}>
-      <Compass className="h-4 w-4" /> Next step
+      <Compass className="h-4 w-4" /> Next steps
     </Button>
     <Button size="sm" variant="secondary" onClick={onMilestones} disabled={loading}>
-      <ListChecks className="h-4 w-4" /> Milestones
+      <ListChecks className="h-4 w-4" /> Generate milestones
     </Button>
-    <Button size="sm" variant="secondary" onClick={onSummary} disabled={loading}>
-      <FileText className="h-4 w-4" /> Summary
+    <Button size="sm" variant="secondary" onClick={onHealth} disabled={loading}>
+      <Activity className="h-4 w-4" /> Show health
     </Button>
   </div>
 );
 
 const CopilotChat: React.FC = () => {
-  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal } = useCopilot();
+  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth } = useCopilot();
   const [input, setInput] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -46,17 +50,21 @@ const CopilotChat: React.FC = () => {
   };
 
   return (
-    <Card className="w-[360px] h-[520px] shadow-lg">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Brain className="h-5 w-5" /> Deal Copilot (AU)
-        </CardTitle>
-      </CardHeader>
+    <Card className="w-[360px] h-[520px] shadow-lg overflow-hidden">
+      <div className="bg-primary text-primary-foreground px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            <span className="font-semibold">Copilot</span>
+          </div>
+        </div>
+      </div>
       <CardContent className="flex flex-col h-[420px] gap-3">
         <QuickActions
           onNext={suggestNextAction}
           onMilestones={generateMilestones}
           onSummary={summarizeDeal}
+          onHealth={predictDealHealth}
           loading={loading}
         />
 
