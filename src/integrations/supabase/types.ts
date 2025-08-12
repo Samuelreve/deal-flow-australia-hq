@@ -633,7 +633,11 @@ export type Database = {
           business_years_in_operation: number | null
           buyer_id: string | null
           closing_date: string | null
+          counterparty_country: string | null
+          counterparty_name: string | null
           created_at: string
+          cross_border: boolean | null
+          currency: string | null
           deal_type: string | null
           description: string | null
           health_score: number
@@ -663,7 +667,11 @@ export type Database = {
           business_years_in_operation?: number | null
           buyer_id?: string | null
           closing_date?: string | null
+          counterparty_country?: string | null
+          counterparty_name?: string | null
           created_at?: string
+          cross_border?: boolean | null
+          currency?: string | null
           deal_type?: string | null
           description?: string | null
           health_score?: number
@@ -693,7 +701,11 @@ export type Database = {
           business_years_in_operation?: number | null
           buyer_id?: string | null
           closing_date?: string | null
+          counterparty_country?: string | null
+          counterparty_name?: string | null
           created_at?: string
+          cross_border?: boolean | null
+          currency?: string | null
           deal_type?: string | null
           description?: string | null
           health_score?: number
