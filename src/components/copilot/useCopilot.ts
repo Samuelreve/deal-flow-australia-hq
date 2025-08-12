@@ -59,7 +59,7 @@ export function useCopilot(options: UseCopilotOptions = {}) {
       setUserId(user.id);
     }
     const body = { userId: userId || (await supabase.auth.getUser()).data.user?.id, ...payload };
-    const { data, error } = await supabase.functions.invoke('document-ai-assistant', { body });
+    const { data, error } = await supabase.functions.invoke('copilot', { body });
     if (error) throw new Error(error.message || 'Assistant error');
     return data as any;
   }, [userId]);

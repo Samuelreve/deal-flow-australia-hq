@@ -67,7 +67,7 @@ const CopilotSuggestions: React.FC = () => {
   const { ensureDealContext } = useCopilot();
   const fetchSuggestion = async (operation: 'suggest_next_action'): Promise<string> => {
     const dealId = await ensureDealContext();
-    const { data, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke('document-ai-assistant', {
+    const { data, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke('copilot', {
       body: { operation, dealId }
     });
     if (error) throw new Error(error.message);
@@ -76,7 +76,7 @@ const CopilotSuggestions: React.FC = () => {
 
   const fetchMilestones = async (): Promise<string[]> => {
     const dealId = await ensureDealContext();
-    const { data, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke('document-ai-assistant', {
+    const { data, error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke('copilot', {
       body: { operation: 'generate_milestones', dealId }
     });
     if (error) throw new Error(error.message);
