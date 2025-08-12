@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import AppLayout from "@/components/layout/AppLayout";
 import DealDetailsHeader from "@/components/deal-details/DealDetailsHeader";
 import DealDetailsContent from "@/components/deal-details/DealDetailsContent";
+import CopilotWidget from "@/components/copilot/CopilotWidget";
 import { Loader2 } from "lucide-react";
 
 interface Deal {
@@ -135,20 +136,21 @@ const DealDetailsPage = () => {
     }
   };
 
-  return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-6">
-        <DealDetailsHeader deal={deal} />
-        <DealDetailsContent 
-          deal={deal} 
-          activeTab={activeTab} 
-          setActiveTab={handleTabChange}
-          dealId={dealId!}
-          selectedParticipantId={selectedParticipantId}
-        />
-      </div>
-    </AppLayout>
-  );
+return (
+  <AppLayout>
+    <div className="container mx-auto px-4 py-6">
+      <DealDetailsHeader deal={deal} />
+      <DealDetailsContent 
+        deal={deal} 
+        activeTab={activeTab} 
+        setActiveTab={handleTabChange}
+        dealId={dealId!}
+        selectedParticipantId={selectedParticipantId}
+      />
+    </div>
+    <CopilotWidget dealId={dealId!} />
+  </AppLayout>
+);
 };
 
 export default DealDetailsPage;

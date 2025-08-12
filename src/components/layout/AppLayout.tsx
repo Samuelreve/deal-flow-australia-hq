@@ -1,7 +1,7 @@
 
 import React from 'react';
 import NavBar from './NavBar';
-import CopilotWidget from '@/components/copilot/CopilotWidget';
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,9 +19,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
-      
-      {/* Global Deal Copilot (fixed bottom-right) */}
-      <CopilotWidget />
       
       {/* Footer - Always at bottom */}
       <footer className="bg-white border-t py-6 mt-auto">

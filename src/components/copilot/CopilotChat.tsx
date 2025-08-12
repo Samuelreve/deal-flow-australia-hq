@@ -30,8 +30,8 @@ const QuickActions: React.FC<{
   </div>
 );
 
-const CopilotChat: React.FC = () => {
-  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth } = useCopilot();
+const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
+  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth } = useCopilot({ initialDealId: dealId });
   const [input, setInput] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
 

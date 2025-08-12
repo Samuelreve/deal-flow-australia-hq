@@ -6,10 +6,11 @@ import CopilotChat from "./CopilotChat";
 import CopilotSuggestions from "./CopilotSuggestions";
 import { useDealsCount } from "./useDealsCount";
 
-const CopilotWidget: React.FC = () => {
+interface CopilotWidgetProps { dealId?: string }
+const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   const [open, setOpen] = useState(false);
   const { count } = useDealsCount();
-  const isPreDeal = (count ?? 0) === 0;
+  const isPreDeal = !dealId && (count ?? 0) === 0;
 
   return (
     <div className="pointer-events-none">
@@ -37,7 +38,7 @@ const CopilotWidget: React.FC = () => {
                 ×
               </Button>
             </div>
-            {isPreDeal ? <CopilotSuggestions /> : <CopilotChat />}
+            {isPreDeal ? <CopilotSuggestions /> : <CopilotChat dealId={dealId} />}
           </div>
         </div>
       )}
