@@ -5,6 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -152,12 +154,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (["deal_chat_query", "suggest_next_action", "generate_milestones", "summarize_deal", "create_checklist_items"].includes(operation) && !dealId) {
+    if (["deal_chat_query", "suggest_next_action", "generate_milestones", "summarize_deal", "predict_deal_health", "create_checklist_items"].includes(operation) && !dealId) {
       return new Response(JSON.stringify({ error: "Missing dealId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // RBAC check for deal-scoped ops
-    if (["deal_chat_query", "suggest_next_action", "generate_milestones", "summarize_deal", "create_checklist_items"].includes(operation)) {
+    if (["deal_chat_query", "suggest_next_action", "generate_milestones", "summarize_deal", "predict_deal_health", "create_checklist_items"].includes(operation)) {
       const allowed = await isParticipant(dealId, userId);
       if (!allowed) {
         return new Response(JSON.stringify({ error: "Authorization error" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -256,6 +258,36 @@ serve(async (req) => {
       (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "assistant", operation, content: summary, usage, latency }));
 
       return new Response(JSON.stringify({ success: true, summary }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (operation === "predict_deal_health") {
+      const d = (context as any)?.deal || null;
+      const counts = (context as any)?.summary?.milestone_counts || { total: 0, completed: 0, in_progress: 0, blocked: 0 };
+      let score: number;
+      if (typeof d?.health_score === "number") {
+        score = d.health_score;
+      } else if (counts.total === 0) {
+        score = 50;
+      } else {
+        score = Math.round(
+          Math.min(100, Math.max(0,
+            (counts.completed / counts.total) * 70 +
+            (counts.in_progress / counts.total) * 20 -
+            (counts.blocked / counts.total) * 30
+          ))
+        );
+      }
+      const confidenceVal = counts.total > 0 ? Math.min(1, 0.5 + (counts.completed / counts.total) * 0.5) : 0.6;
+      const confidence = `${Math.round(confidenceVal * 100)}%`;
+      const suggestions: Array<{area:string; recommendation:string; impact:string}> = [];
+      if (counts.blocked > 0) suggestions.push({ area: "Milestones", recommendation: "Resolve blocked milestones first", impact: "high" });
+      if (counts.in_progress === 0 && counts.total > 0) suggestions.push({ area: "Momentum", recommendation: "Start the next priority milestone", impact: "medium" });
+      if (d?.status === "draft") suggestions.push({ area: "Status", recommendation: "Move deal from Draft to Active to kick off workflows", impact: "medium" });
+
+      const msg = `Predicted health score: ${score}% (confidence ${confidence}). Blocked=${counts.blocked}, In progress=${counts.in_progress}, Completed=${counts.completed}.`;
+      (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "assistant", operation, content: msg, metadata: { counts } }));
+
+      return new Response(JSON.stringify({ success: true, probability_of_success_percentage: score, confidence_level: confidence, suggested_improvements: suggestions }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Invalid operation" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
