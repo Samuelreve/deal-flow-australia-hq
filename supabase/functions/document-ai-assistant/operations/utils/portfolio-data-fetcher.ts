@@ -48,7 +48,7 @@ export async function fetchUserDealPortfolio(userId: string) {
           id,
           user_id,
           role,
-          profiles:profiles(name, email)
+          profiles:profiles(name, avatar_url)
         ),
         documents:documents(
           id,

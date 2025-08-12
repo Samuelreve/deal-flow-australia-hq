@@ -1842,6 +1842,14 @@ export type Database = {
           replies: Json
         }[]
       }
+      get_public_profile: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["CompositeTypes"]["public_profile"]
+      }
+      get_public_profiles_for_deal: {
+        Args: { p_deal_id: string }
+        Returns: Database["public"]["CompositeTypes"]["public_profile"][]
+      }
       get_recovery_plans: {
         Args: { p_user_id: string }
         Returns: {
@@ -1919,6 +1927,10 @@ export type Database = {
           user_id: string
         }
       }
+      shares_deal_with: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       update_deal_status: {
         Args: { p_deal_id: string; p_new_status: string }
         Returns: Json
@@ -1946,6 +1958,16 @@ export type Database = {
         | "browsing"
     }
     CompositeTypes: {
+      public_profile: {
+        id: string | null
+        name: string | null
+        role: string | null
+        avatar_url: string | null
+        professional_headline: string | null
+        professional_firm_name: string | null
+        professional_location: string | null
+        professional_website: string | null
+      }
       timeline_event: {
         id: string | null
         type: string | null
