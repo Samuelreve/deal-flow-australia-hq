@@ -148,7 +148,8 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { operation, dealId, userId, content, chatHistory = [], items } = payload || {};
+    const { operation, dealId, userId, content, chatHistory = [], items, context } = payload || {};
+    const uploadedDocument = context?.uploadedDocument;
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -194,16 +195,25 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Missing content" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      let systemPrompt = system;
+      let userPrompt = `Deal Context:\n${contextText}\n\nUser Question: ${content}`;
+      
+      // If there's an uploaded document, include it in the context
+      if (uploadedDocument) {
+        systemPrompt += `\n\nYou have access to an uploaded document "${uploadedDocument.name}" with the following content:\n\n${uploadedDocument.content.slice(0, 8000)}\n\nWhen answering questions, prioritize information from this document and reference it when relevant.`;
+        userPrompt = `User Question: ${content}`;  // Simplify when document is present
+      }
+
       const messages = [
-        { role: "system", content: system },
+        { role: "system", content: systemPrompt },
         ...chatHistory.slice(-6).map((m: any) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
-        { role: "user", content: `Deal Context:\n${contextText}\n\nUser Question: ${content}` },
+        { role: "user", content: userPrompt },
       ];
 
       const { content: answer, usage, latency } = await callOpenAI(messages);
 
       // Background logging
-      (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "user", operation, content }));
+      (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "user", operation, content, metadata: uploadedDocument ? { documentName: uploadedDocument.name } : {} }));
       (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "assistant", operation, content: answer, usage, latency }));
 
       return new Response(JSON.stringify({ success: true, answer, disclaimer: "This is assistive guidance, not legal advice." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

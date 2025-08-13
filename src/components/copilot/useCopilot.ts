@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { tempDealService } from "@/services/tempDealService";
+import { DocumentTextExtractionService } from "@/services/documentTextExtraction";
+import { toast } from "sonner";
 
 export type CopilotMessage = {
   id: string;
@@ -20,6 +22,7 @@ export function useCopilot(options: UseCopilotOptions = {}) {
   const [loading, setLoading] = useState(false);
   const [dealId, setDealId] = useState<string | null>(initialDealId || null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [uploadedDocument, setUploadedDocument] = useState<{ name: string; content: string } | null>(null);
   const initializedRef = useRef(false);
 
   // Init auth user
@@ -74,7 +77,8 @@ export function useCopilot(options: UseCopilotOptions = {}) {
         operation: 'deal_chat_query',
         dealId: activeDealId,
         content: text,
-        chatHistory: messages.map(m => ({ role: m.role, content: m.content }))
+        chatHistory: messages.map(m => ({ role: m.role, content: m.content })),
+        context: uploadedDocument ? { uploadedDocument } : undefined
       });
       const aiText = data.answer || data.response || data.suggestion || 'I have noted that.';
       addMessage("assistant", aiText);
@@ -83,7 +87,7 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [addMessage, callAssistant, ensureDealContext, messages]);
+  }, [addMessage, callAssistant, ensureDealContext, messages, uploadedDocument]);
 
   const suggestNextAction = useCallback(async () => {
     setLoading(true);
@@ -157,6 +161,35 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     }
   }, [addMessage, callAssistant, ensureDealContext]);
 
+  const uploadAndAnalyzeDocument = useCallback(async (file: File) => {
+    if (!DocumentTextExtractionService.isSupportedFileType(file)) {
+      toast.error("Unsupported file type. Please upload a PDF, DOC, DOCX, or TXT file.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await DocumentTextExtractionService.extractTextFromFile(file);
+      if (result.success && result.text) {
+        setUploadedDocument({ name: file.name, content: result.text });
+        addMessage("assistant", `✅ Document "${file.name}" uploaded successfully! I can now answer questions about this document.`);
+        toast.success(`Document "${file.name}" uploaded and analyzed successfully!`);
+      } else {
+        throw new Error(result.error || "Failed to extract text from document");
+      }
+    } catch (e: any) {
+      toast.error("Failed to process document: " + (e.message || "Unknown error"));
+      addMessage("assistant", "Sorry, I couldn't process that document. Please try again with a different file.");
+    } finally {
+      setLoading(false);
+    }
+  }, [addMessage]);
+
+  const clearUploadedDocument = useCallback(() => {
+    setUploadedDocument(null);
+    addMessage("assistant", "Document removed. I'm back to general assistance mode.");
+  }, [addMessage]);
+
   return {
     messages,
     loading,
@@ -167,5 +200,8 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     summarizeDeal,
     predictDealHealth,
     ensureDealContext,
+    uploadAndAnalyzeDocument,
+    uploadedDocument,
+    clearUploadedDocument,
   };
 }

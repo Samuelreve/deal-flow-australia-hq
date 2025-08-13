@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Loader2, Send, Compass, ListChecks, FileText, Activity } from "lucide-react";
+import { Brain, Loader2, Send, Compass, ListChecks, FileText, Activity, Upload, X } from "lucide-react";
 import { useCopilot } from "./useCopilot";
 
 const QuickActions: React.FC<{
@@ -31,9 +31,10 @@ const QuickActions: React.FC<{
 );
 
 const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
-  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth } = useCopilot({ initialDealId: dealId });
+  const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth, uploadAndAnalyzeDocument, uploadedDocument, clearUploadedDocument } = useCopilot({ initialDealId: dealId });
   const [input, setInput] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollerRef.current) {
@@ -47,6 +48,13 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
     const text = input.trim();
     setInput("");
     sendMessage(text);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadAndAnalyzeDocument(file);
+    }
   };
 
   return (
@@ -67,6 +75,21 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
           onHealth={predictDealHealth}
           loading={loading}
         />
+
+        {uploadedDocument && (
+          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+            <FileText className="h-4 w-4 text-green-600" />
+            <span className="text-sm text-green-700 flex-1">{uploadedDocument.name}</span>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={clearUploadedDocument}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
 
         <div ref={scrollerRef} className="flex-1 rounded-md border bg-background/60 p-3 overflow-y-auto">
           <div className="space-y-3">
@@ -92,7 +115,7 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
 
         <form onSubmit={onSubmit} className="flex gap-2">
           <Input
-            placeholder="Type a question..."
+            placeholder={uploadedDocument ? "Ask me about the document..." : "Type a question..."}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -101,10 +124,26 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
               }
             }}
           />
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
           <Button type="submit" disabled={loading || !input.trim()}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
       </CardContent>
     </Card>
   );
