@@ -148,8 +148,8 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { operation, dealId, userId, content, chatHistory = [], items, context } = payload || {};
-    const uploadedDocument = context?.uploadedDocument;
+    const { operation, dealId, userId, content, chatHistory = [], items, context: requestContext } = payload || {};
+    const uploadedDocument = requestContext?.uploadedDocument;
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
