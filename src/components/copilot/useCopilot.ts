@@ -25,6 +25,62 @@ export function useCopilot(options: UseCopilotOptions = {}) {
   const [uploadedDocument, setUploadedDocument] = useState<{ name: string; content: string } | null>(null);
   const initializedRef = useRef(false);
 
+  // Storage key for persisting messages
+  const storageKey = useMemo(() => `copilot_messages_${dealId || 'default'}`, [dealId]);
+
+  // Load messages from localStorage and clean up old ones
+  const loadPersistedMessages = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed: CopilotMessage[] = JSON.parse(stored);
+        const now = Date.now();
+        const oneDayInMs = 24 * 60 * 60 * 1000; // 24 hours
+        
+        // Filter out messages older than 24 hours
+        const validMessages = parsed.filter(msg => (now - msg.timestamp) < oneDayInMs);
+        
+        // Update localStorage if we removed any messages
+        if (validMessages.length !== parsed.length) {
+          localStorage.setItem(storageKey, JSON.stringify(validMessages));
+        }
+        
+        return validMessages;
+      }
+    } catch (error) {
+      console.warn('Failed to load persisted copilot messages:', error);
+      localStorage.removeItem(storageKey);
+    }
+    return [];
+  }, [storageKey]);
+
+  // Save messages to localStorage
+  const saveMessages = useCallback((msgs: CopilotMessage[]) => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(msgs));
+    } catch (error) {
+      console.warn('Failed to save copilot messages:', error);
+    }
+  }, [storageKey]);
+
+  // Load persisted messages on mount
+  useEffect(() => {
+    if (!initializedRef.current) {
+      const persistedMessages = loadPersistedMessages();
+      if (persistedMessages.length > 0) {
+        setMessages(persistedMessages);
+      }
+      initializedRef.current = true;
+    }
+  }, [loadPersistedMessages]);
+
+  // Save messages whenever they change
+  useEffect(() => {
+    if (initializedRef.current && messages.length > 0) {
+      saveMessages(messages);
+    }
+  }, [messages, saveMessages]);
+
   // Init auth user
   useEffect(() => {
     let mounted = true;
@@ -48,10 +104,16 @@ export function useCopilot(options: UseCopilotOptions = {}) {
   }, [dealId]);
 
   const addMessage = useCallback((role: "user" | "assistant", content: string) => {
-    setMessages(prev => [
-      ...prev,
-      { id: crypto.randomUUID(), role, content, timestamp: Date.now() }
-    ]);
+    setMessages(prev => {
+      const newMessages = [
+        ...prev,
+        { id: crypto.randomUUID(), role, content, timestamp: Date.now() }
+      ];
+      // Auto-cleanup: remove messages older than 24 hours
+      const now = Date.now();
+      const oneDayInMs = 24 * 60 * 60 * 1000;
+      return newMessages.filter(msg => (now - msg.timestamp) < oneDayInMs);
+    });
   }, []);
 
   // Helper to call the AI assistant edge function
