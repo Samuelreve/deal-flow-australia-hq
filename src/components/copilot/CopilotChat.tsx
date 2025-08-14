@@ -58,107 +58,133 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
   };
 
   return (
-    <Card className="w-[400px] h-[600px] shadow-xl overflow-hidden border-0">
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-4">
+    <Card className="w-[420px] h-[640px] copilot-card overflow-hidden border-0 bg-card/95">
+      <div className="copilot-gradient text-primary-foreground px-6 py-5">
         <div className="flex items-center gap-3">
-          <Brain className="h-6 w-6" />
-          <span className="text-lg font-semibold">Copilot</span>
+          <div className="p-2 bg-primary-foreground/10 rounded-lg backdrop-blur-sm">
+            <Brain className="h-5 w-5" />
+          </div>
+          <div>
+            <span className="text-lg font-semibold tracking-tight">AI Copilot</span>
+            <p className="text-xs text-primary-foreground/80 mt-0.5">Your intelligent deal assistant</p>
+          </div>
         </div>
       </div>
       
-      <CardContent className="flex flex-col h-[540px] p-4 gap-4">
-        <div className="grid grid-cols-2 gap-2">
+      <CardContent className="flex flex-col h-[580px] p-6 gap-6">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             size="sm" 
-            variant="outline" 
+            variant="ghost" 
             onClick={summarizeDeal} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
+            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3"
           >
-            <FileText className="h-4 w-4" />
-            <span className="text-sm">Summarize deal</span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-medium">Summarize deal</span>
           </Button>
           <Button 
             size="sm" 
-            variant="outline" 
+            variant="ghost" 
             onClick={suggestNextAction} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
+            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3"
           >
-            <Compass className="h-4 w-4" />
-            <span className="text-sm">Next steps</span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/10">
+              <Compass className="h-4 w-4 text-accent" />
+            </div>
+            <span className="text-sm font-medium">Next steps</span>
           </Button>
           <Button 
             size="sm" 
-            variant="outline" 
+            variant="ghost" 
             onClick={generateMilestones} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700 col-span-1"
+            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3"
           >
-            <ListChecks className="h-4 w-4" />
-            <span className="text-sm">Generate milestones</span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <ListChecks className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-medium">Generate milestones</span>
           </Button>
           <Button 
             size="sm" 
-            variant="outline" 
+            variant="ghost" 
             onClick={predictDealHealth} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
+            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3"
           >
-            <Activity className="h-4 w-4" />
-            <span className="text-sm">Show health</span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/10">
+              <Activity className="h-4 w-4 text-accent" />
+            </div>
+            <span className="text-sm font-medium">Show health</span>
           </Button>
         </div>
 
         {uploadedDocument && (
-          <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <FileText className="h-5 w-5 text-green-600" />
-            <span className="text-sm text-green-800 flex-1 font-medium">{uploadedDocument.name}</span>
+          <div className="flex items-center gap-3 p-4 bg-secondary/50 border border-border rounded-xl backdrop-blur-sm">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-medium text-foreground">{uploadedDocument.name}</span>
+              <p className="text-xs text-muted-foreground">Document ready for analysis</p>
+            </div>
             <Button 
               size="sm" 
               variant="ghost" 
               onClick={clearUploadedDocument}
-              className="h-7 w-7 p-0 hover:bg-green-100"
+              className="h-8 w-8 p-0 hover:bg-secondary"
             >
-              <X className="h-4 w-4 text-green-600" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
         )}
 
-        <ScrollArea className="flex-1 rounded-lg border bg-gray-50/50 p-4">
+        <ScrollArea className="flex-1 rounded-xl border bg-secondary/20 p-5 custom-scrollbar">
           <div className="space-y-4">
             {messages.length === 0 && !uploadedDocument && (
-              <div className="text-sm text-gray-500 text-center py-8">
-                Ask me anything about your deal. I can suggest next steps, generate milestones, and summarise progress.
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
+                  <Brain className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-sm font-medium text-foreground mb-2">Ready to assist</h3>
+                <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+                  I can help analyze your deal, suggest next steps, generate milestones, and provide insights.
+                </p>
               </div>
             )}
             {messages.map(m => (
               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[280px] rounded-lg px-3 py-2 text-sm ${
+                <div className={`max-w-[300px] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                   m.role === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-white border border-gray-200 text-gray-800'
+                    ? 'copilot-message-user text-primary-foreground' 
+                    : 'copilot-message-assistant text-foreground'
                 }`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-sm text-gray-500 justify-center py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Thinking...</span>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground justify-center py-4">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                </div>
+                <span className="font-medium">Analyzing...</span>
               </div>
             )}
           </div>
         </ScrollArea>
 
-        <form onSubmit={onSubmit} className="flex gap-2 items-center">
+        <form onSubmit={onSubmit} className="flex gap-3 items-end">
           <div className="flex-1 relative">
             <Input
-              placeholder={uploadedDocument ? "Ask me about the document..." : "Type a question..."}
+              placeholder={uploadedDocument ? "Ask about the document..." : "Ask me anything..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="pr-12 bg-white border-2 border-gray-200 focus:border-blue-400"
+              className="h-12 bg-background border border-border rounded-xl px-4 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
             />
           </div>
           <Button 
@@ -167,14 +193,14 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
             size="icon"
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            className="border-2 border-gray-200 hover:bg-gray-50"
+            className="h-12 w-12 rounded-xl border-border hover:bg-secondary transition-all"
           >
             <Upload className="h-4 w-4" />
           </Button>
           <Button 
             type="submit" 
             disabled={loading || !input.trim()}
-            className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+            className="h-12 w-12 rounded-xl copilot-gradient text-primary-foreground border-0 hover:scale-105 transition-all"
             size="icon"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

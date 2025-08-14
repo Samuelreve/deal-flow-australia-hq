@@ -35,6 +35,14 @@
 
     --radius: 0.75rem;
 
+    /* Enhanced shadows and gradients */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -1px hsl(222 47% 11% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -2px hsl(222 47% 11% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(222 47% 11% / 0.1), 0 10px 10px -5px hsl(222 47% 11% / 0.04);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-muted: linear-gradient(135deg, hsl(var(--muted)), hsl(var(--secondary)));
+
     --sidebar-background: 222 47% 15%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 201 89% 48%;
@@ -148,5 +156,39 @@
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Professional Copilot Styling */
+  .copilot-gradient {
+    background: var(--gradient-primary);
+  }
+  
+  .copilot-card {
+    backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: var(--shadow-xl);
+  }
+  
+  .copilot-button {
+    @apply transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .copilot-button:hover {
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--primary) / 0.2);
+  }
+  
+  .copilot-message-user {
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .copilot-message-assistant {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-sm);
   }
 }
