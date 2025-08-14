@@ -39,46 +39,187 @@ async function isParticipant(dealId: string, userId: string) {
 }
 
 async function getDealContext(dealId: string) {
-  const [dealRes, milestonesRes, partsRes, sigsRes] = await Promise.all([
-    supabase.from("deals").select("id,title,status,health_score,deal_type,price,currency,created_at,updated_at").eq("id", dealId).maybeSingle(),
-    supabase.from("milestones").select("id,title,status,order_index,assigned_to,due_date").eq("deal_id", dealId).order("order_index", { ascending: true }),
-    supabase.from("deal_participants").select("user_id,role").eq("deal_id", dealId),
-    supabase.from("document_signatures").select("status,signer_email,signer_role,signed_at").eq("deal_id", dealId),
+  const [
+    dealRes, 
+    milestonesRes, 
+    partsRes, 
+    sigsRes, 
+    documentsRes, 
+    commentsRes, 
+    checklistRes
+  ] = await Promise.all([
+    supabase
+      .from("deals")
+      .select(`
+        id, title, status, health_score, deal_type, price, currency, 
+        created_at, updated_at, description, asking_price, closing_date,
+        target_completion_date, business_industry, business_legal_name,
+        business_trading_names, reason_for_selling, cross_border,
+        counterparty_name, counterparty_country
+      `)
+      .eq("id", dealId)
+      .maybeSingle(),
+      
+    supabase
+      .from("milestones")
+      .select("id, title, status, order_index, assigned_to, due_date, description")
+      .eq("deal_id", dealId)
+      .order("order_index", { ascending: true }),
+      
+    supabase
+      .from("deal_participants")
+      .select(`
+        user_id, role, joined_at,
+        profiles:user_id(name, email, professional_headline)
+      `)
+      .eq("deal_id", dealId),
+      
+    supabase
+      .from("document_signatures")
+      .select("status, signer_email, signer_role, signed_at, created_at")
+      .eq("deal_id", dealId),
+      
+    supabase
+      .from("documents")
+      .select(`
+        id, name, type, category, status, size, created_at, updated_at,
+        description, version, uploaded_by,
+        profiles:uploaded_by(name, email)
+      `)
+      .eq("deal_id", dealId)
+      .order("created_at", { ascending: false }),
+      
+    supabase
+      .from("comments")
+      .select(`
+        id, content, created_at, user_id, milestone_id, document_id,
+        profiles:user_id(name, email)
+      `)
+      .eq("deal_id", dealId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+      
+    supabase
+      .from("checklist_items")
+      .select("id, title, status, due_date, assigned_to, description, source")
+      .eq("deal_id", dealId)
+      .order("created_at", { ascending: false })
   ]);
 
   const deal = dealRes.data ?? null;
   const milestones = milestonesRes.data ?? [];
   const participants = partsRes.data ?? [];
   const signatures = sigsRes.data ?? [];
+  const documents = documentsRes.data ?? [];
+  const comments = commentsRes.data ?? [];
+  const checklist = checklistRes.data ?? [];
 
-  // Basic context string for LLM
+  // Calculate milestone statistics
   const blocked = milestones.filter((m: any) => m.status === "blocked").map((m: any) => m.title);
   const inProgress = milestones.filter((m: any) => m.status === "in_progress").map((m: any) => m.title);
   const completed = milestones.filter((m: any) => m.status === "completed").map((m: any) => m.title);
+
+  // Calculate document statistics
+  const documentStats = {
+    total: documents.length,
+    by_type: documents.reduce((acc: any, doc: any) => {
+      acc[doc.type] = (acc[doc.type] || 0) + 1;
+      return acc;
+    }, {}),
+    by_category: documents.reduce((acc: any, doc: any) => {
+      const cat = doc.category || 'uncategorized';
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {}),
+    by_status: documents.reduce((acc: any, doc: any) => {
+      acc[doc.status] = (acc[doc.status] || 0) + 1;
+      return acc;
+    }, {}),
+    total_size_mb: Math.round(documents.reduce((acc: any, doc: any) => acc + (doc.size || 0), 0) / (1024 * 1024) * 100) / 100
+  };
+
+  // Calculate signature statistics  
+  const signatureStats = {
+    total: signatures.length,
+    completed: signatures.filter((s: any) => s.status === 'signed').length,
+    pending: signatures.filter((s: any) => s.status === 'sent').length,
+    by_role: signatures.reduce((acc: any, sig: any) => {
+      acc[sig.signer_role] = (acc[sig.signer_role] || 0) + 1;
+      return acc;
+    }, {})
+  };
+
+  // Calculate checklist statistics
+  const checklistStats = {
+    total: checklist.length,
+    completed: checklist.filter((c: any) => c.status === 'completed').length,
+    open: checklist.filter((c: any) => c.status === 'open').length,
+    in_progress: checklist.filter((c: any) => c.status === 'in_progress').length
+  };
 
   const context = {
     deal,
     milestones,
     participants,
     signatures,
-    summary: {
+    documents,
+    comments,
+    checklist,
+    stats: {
       milestone_counts: {
         total: milestones.length,
         completed: completed.length,
         in_progress: inProgress.length,
         blocked: blocked.length,
       },
+      document_stats: documentStats,
+      signature_stats: signatureStats,
+      checklist_stats: checklistStats,
+      participant_count: participants.length
+    },
+    summary: {
       blocked,
       in_progress: inProgress,
       completed,
     },
   };
 
+  // Build comprehensive context text for AI
   const contextText = [
-    `Deal: ${deal?.title ?? "N/A"} | Status: ${deal?.status ?? "N/A"} | Health: ${deal?.health_score ?? "N/A"}`,
-    `Type: ${deal?.deal_type ?? "N/A"} | Price: ${deal?.price ?? "N/A"} ${deal?.currency ?? ""}`,
-    `Milestones: total=${milestones.length}, completed=${completed.length}, in_progress=${inProgress.length}, blocked=${blocked.length}`,
-    blocked.length ? `Blocked: ${blocked.join(", ")}` : "",
+    `=== DEAL OVERVIEW ===`,
+    `Title: ${deal?.title ?? "N/A"}`,
+    `Status: ${deal?.status ?? "N/A"} | Health Score: ${deal?.health_score ?? "N/A"}%`,
+    `Type: ${deal?.deal_type ?? "N/A"} | Industry: ${deal?.business_industry ?? "N/A"}`,
+    `Price: ${deal?.price ?? deal?.asking_price ?? "N/A"} ${deal?.currency ?? ""}`,
+    `Description: ${deal?.description ?? "N/A"}`,
+    deal?.target_completion_date ? `Target Date: ${deal.target_completion_date}` : "",
+    deal?.cross_border ? "Cross-border transaction: Yes" : "",
+    deal?.counterparty_name ? `Counterparty: ${deal.counterparty_name}` : "",
+    
+    `\n=== PARTICIPANTS (${participants.length}) ===`,
+    ...participants.map((p: any) => `${(p.profiles as any)?.name || 'Unknown'} (${p.role})`),
+    
+    `\n=== MILESTONES (${milestones.length} total) ===`,
+    `Completed: ${completed.length} | In Progress: ${inProgress.length} | Blocked: ${blocked.length}`,
+    blocked.length ? `🚫 Blocked: ${blocked.join(", ")}` : "",
+    inProgress.length ? `🔄 In Progress: ${inProgress.join(", ")}` : "",
+    completed.length ? `✅ Completed: ${completed.slice(0, 3).join(", ")}${completed.length > 3 ? ` +${completed.length - 3} more` : ""}` : "",
+    
+    `\n=== DOCUMENTS (${documents.length} total, ${documentStats.total_size_mb}MB) ===`,
+    Object.keys(documentStats.by_category).length ? `By Category: ${Object.entries(documentStats.by_category).map(([cat, count]) => `${cat}: ${count}`).join(", ")}` : "",
+    Object.keys(documentStats.by_type).length ? `By Type: ${Object.entries(documentStats.by_type).map(([type, count]) => `${type}: ${count}`).join(", ")}` : "",
+    Object.keys(documentStats.by_status).length ? `By Status: ${Object.entries(documentStats.by_status).map(([status, count]) => `${status}: ${count}`).join(", ")}` : "",
+    documents.length ? `Recent: ${documents.slice(0, 3).map((d: any) => d.name).join(", ")}${documents.length > 3 ? ` +${documents.length - 3} more` : ""}` : "No documents uploaded",
+    
+    `\n=== SIGNATURES (${signatures.length} total) ===`,
+    signatureStats.completed ? `✅ Signed: ${signatureStats.completed}` : "",
+    signatureStats.pending ? `⏳ Pending: ${signatureStats.pending}` : "",
+    
+    `\n=== CHECKLIST (${checklist.length} items) ===`,
+    `Completed: ${checklistStats.completed} | Open: ${checklistStats.open} | In Progress: ${checklistStats.in_progress}`,
+    
+    comments.length ? `\n=== RECENT ACTIVITY ===` : "",
+    comments.length ? `${comments.length} recent comments/updates` : "",
   ].filter(Boolean).join("\n");
 
   return { context, contextText };
