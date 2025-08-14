@@ -161,25 +161,67 @@
   /* Professional Copilot Styling */
   .copilot-gradient {
     background: var(--gradient-primary);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .copilot-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 3s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
   
   .copilot-card {
-    backdrop-filter: blur(10px);
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: var(--shadow-xl);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 
+      0 25px 50px -12px hsl(var(--foreground) / 0.25),
+      0 0 0 1px hsl(var(--border) / 0.05);
+    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   .copilot-button {
-    @apply transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
+    @apply transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-sm);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 
+      0 1px 3px hsl(var(--foreground) / 0.1),
+      0 1px 2px hsl(var(--foreground) / 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .copilot-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .copilot-button:hover::before {
+    left: 100%;
   }
   
   .copilot-button:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: 
+      0 10px 25px -5px hsl(var(--primary) / 0.2),
+      0 4px 6px -2px hsl(var(--foreground) / 0.05);
     border-color: hsl(var(--primary) / 0.3);
-    background: hsl(var(--primary) / 0.05);
+    background: hsl(var(--primary) / 0.02);
   }
   
   .copilot-button:hover .text-primary {
@@ -192,12 +234,50 @@
   
   .copilot-message-user {
     background: var(--gradient-primary);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 
+      0 4px 6px -1px hsl(var(--primary) / 0.2),
+      0 2px 4px -1px hsl(var(--primary) / 0.1);
+    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   .copilot-message-assistant {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-sm);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 
+      0 1px 3px hsl(var(--foreground) / 0.1),
+      0 1px 2px hsl(var(--foreground) / 0.06);
+    animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .copilot-fab {
+    @apply transition-all duration-300;
+    box-shadow: 
+      0 10px 25px -5px hsl(var(--primary) / 0.4),
+      0 4px 6px -2px hsl(var(--primary) / 0.1);
+    animation: bounce-gentle 2s ease-in-out infinite;
+  }
+  
+  .copilot-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 
+      0 20px 40px -8px hsl(var(--primary) / 0.5),
+      0 8px 16px -4px hsl(var(--primary) / 0.2);
+    animation: glow 1s ease-in-out infinite alternate;
+  }
+  
+  .copilot-content-enter {
+    animation: fade-in 0.5s ease-out 0.2s both;
+  }
+  
+  .copilot-content-enter:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+  
+  .copilot-content-enter:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  .copilot-content-enter:nth-child(4) {
+    animation-delay: 0.5s;
   }
 }

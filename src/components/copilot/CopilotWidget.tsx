@@ -104,14 +104,14 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
           <Button
             variant="default"
             size="lg"
-            className="shadow-md copilot-gradient text-primary-foreground hover:scale-105 transition-transform"
+            className="copilot-fab copilot-gradient text-primary-foreground border-0 rounded-full w-14 h-14"
             onClick={() => {
               setOpen(true);
               setPosition(getInitialPosition());
             }}
             aria-label="Open Deal Copilot"
           >
-            <Brain className="h-5 w-5" />
+            <Brain className="h-6 w-6" />
           </Button>
         )}
       </div>
@@ -128,15 +128,15 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
         >
           <div className="relative">
             {/* Close button */}
-            <div className="absolute -top-2 -right-2 z-10">
+            <div className="absolute -top-3 -right-3 z-10">
               <Button 
                 variant="outline" 
                 size="icon" 
                 onClick={() => setOpen(false)} 
                 aria-label="Close Copilot"
-                className="h-8 w-8 bg-card hover:bg-secondary border-border shadow-md"
+                className="h-9 w-9 bg-card hover:bg-secondary border-border shadow-lg rounded-full transition-all duration-300 hover:scale-110"
               >
-                ×
+                <span className="text-lg leading-none">×</span>
               </Button>
             </div>
             
