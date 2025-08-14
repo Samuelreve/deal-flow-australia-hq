@@ -178,13 +178,16 @@
   
   .copilot-button:hover {
     box-shadow: var(--shadow-md);
-    border-color: hsl(var(--primary) / 0.2);
-    background: hsl(var(--secondary) / 0.8);
+    border-color: hsl(var(--primary) / 0.3);
+    background: hsl(var(--primary) / 0.05);
   }
   
-  .copilot-button:hover .text-primary,
+  .copilot-button:hover .text-primary {
+    color: hsl(var(--primary));
+  }
+  
   .copilot-button:hover .text-accent {
-    opacity: 1;
+    color: hsl(var(--accent));
   }
   
   .copilot-message-user {

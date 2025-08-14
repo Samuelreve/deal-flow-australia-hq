@@ -91,16 +91,17 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
             cursor: isDragging ? 'grabbing' : 'default'
           }}
           ref={dragRef}
+          onMouseDown={(e) => {
+            // Only start dragging if clicking on the header area
+            const target = e.target as HTMLElement;
+            if (target.closest('.copilot-gradient')) {
+              handleMouseDown(e);
+            }
+          }}
         >
           <div className="relative">
-            {/* Drag handle and close button */}
-            <div className="absolute -top-2 -right-2 z-10 flex gap-2">
-              <div 
-                className="bg-card border border-border rounded-lg px-3 py-1 cursor-grab active:cursor-grabbing shadow-md hover:bg-secondary/50 transition-colors"
-                onMouseDown={handleMouseDown}
-              >
-                <span className="text-xs text-muted-foreground font-medium">Drag</span>
-              </div>
+            {/* Close button only */}
+            <div className="absolute -top-2 -right-2 z-10">
               <Button 
                 variant="outline" 
                 size="icon" 
