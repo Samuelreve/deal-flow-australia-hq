@@ -73,7 +73,7 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
             variant="outline" 
             onClick={summarizeDeal} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
           >
             <FileText className="h-4 w-4" />
             <span className="text-sm">Summarize deal</span>
@@ -83,7 +83,7 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
             variant="outline" 
             onClick={suggestNextAction} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
           >
             <Compass className="h-4 w-4" />
             <span className="text-sm">Next steps</span>
@@ -93,7 +93,7 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
             variant="outline" 
             onClick={generateMilestones} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200 col-span-1"
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700 col-span-1"
           >
             <ListChecks className="h-4 w-4" />
             <span className="text-sm">Generate milestones</span>
@@ -103,7 +103,7 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
             variant="outline" 
             onClick={predictDealHealth} 
             disabled={loading}
-            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border-gray-200 text-gray-700"
           >
             <Activity className="h-4 w-4" />
             <span className="text-sm">Show health</span>
