@@ -186,7 +186,7 @@ serve(async (req) => {
     }
 
     // Build context for AI operations
-    const { context, contextText } = dealId ? await getDealContext(dealId) : { context: {}, contextText: "" } as any;
+    const { context: dealContext, contextText } = dealId ? await getDealContext(dealId) : { context: {}, contextText: "" } as any;
 
     const system = buildSystemPrompt();
 
@@ -271,8 +271,8 @@ serve(async (req) => {
     }
 
     if (operation === "predict_deal_health") {
-      const d = (context as any)?.deal || null;
-      const counts = (context as any)?.summary?.milestone_counts || { total: 0, completed: 0, in_progress: 0, blocked: 0 };
+      const d = (dealContext as any)?.deal || null;
+      const counts = (dealContext as any)?.summary?.milestone_counts || { total: 0, completed: 0, in_progress: 0, blocked: 0 };
       let score: number;
       if (typeof d?.health_score === "number") {
         score = d.health_score;
