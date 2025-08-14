@@ -179,6 +179,12 @@
   .copilot-button:hover {
     box-shadow: var(--shadow-md);
     border-color: hsl(var(--primary) / 0.2);
+    background: hsl(var(--secondary) / 0.8);
+  }
+  
+  .copilot-button:hover .text-primary,
+  .copilot-button:hover .text-accent {
+    opacity: 1;
   }
   
   .copilot-message-user {
