@@ -58,82 +58,125 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
   };
 
   return (
-    <Card className="w-[360px] h-[520px] shadow-lg overflow-hidden">
-      <div className="bg-primary text-primary-foreground px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            <span className="font-semibold">Copilot</span>
-          </div>
+    <Card className="w-[400px] h-[600px] shadow-xl overflow-hidden border-0">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-4">
+        <div className="flex items-center gap-3">
+          <Brain className="h-6 w-6" />
+          <span className="text-lg font-semibold">Copilot</span>
         </div>
       </div>
-      <CardContent className="flex flex-col h-[420px] gap-3">
-        <QuickActions
-          onNext={suggestNextAction}
-          onMilestones={generateMilestones}
-          onSummary={summarizeDeal}
-          onHealth={predictDealHealth}
-          loading={loading}
-        />
+      
+      <CardContent className="flex flex-col h-[540px] p-4 gap-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={summarizeDeal} 
+            disabled={loading}
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="text-sm">Summarize deal</span>
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={suggestNextAction} 
+            disabled={loading}
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+          >
+            <Compass className="h-4 w-4" />
+            <span className="text-sm">Next steps</span>
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={generateMilestones} 
+            disabled={loading}
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200 col-span-1"
+          >
+            <ListChecks className="h-4 w-4" />
+            <span className="text-sm">Generate milestones</span>
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={predictDealHealth} 
+            disabled={loading}
+            className="flex items-center gap-2 justify-start bg-gray-50 hover:bg-gray-100 border-gray-200"
+          >
+            <Activity className="h-4 w-4" />
+            <span className="text-sm">Show health</span>
+          </Button>
+        </div>
 
         {uploadedDocument && (
-          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-            <FileText className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-green-700 flex-1">{uploadedDocument.name}</span>
+          <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <FileText className="h-5 w-5 text-green-600" />
+            <span className="text-sm text-green-800 flex-1 font-medium">{uploadedDocument.name}</span>
             <Button 
               size="sm" 
               variant="ghost" 
               onClick={clearUploadedDocument}
-              className="h-6 w-6 p-0"
+              className="h-7 w-7 p-0 hover:bg-green-100"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4 text-green-600" />
             </Button>
           </div>
         )}
 
-        <div ref={scrollerRef} className="flex-1 rounded-md border bg-background/60 p-3 overflow-y-auto">
-          <div className="space-y-3">
-            {messages.length === 0 && (
-              <div className="text-sm text-muted-foreground">
+        <ScrollArea className="flex-1 rounded-lg border bg-gray-50/50 p-4">
+          <div className="space-y-4">
+            {messages.length === 0 && !uploadedDocument && (
+              <div className="text-sm text-gray-500 text-center py-8">
                 Ask me anything about your deal. I can suggest next steps, generate milestones, and summarise progress.
               </div>
             )}
             {messages.map(m => (
-              <div key={m.id} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-                <div className={`inline-block rounded-md px-3 py-2 text-sm ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[280px] rounded-lg px-3 py-2 text-sm ${
+                  m.role === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-white border border-gray-200 text-gray-800'
+                }`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Thinking...
+              <div className="flex items-center gap-2 text-sm text-gray-500 justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Thinking...</span>
               </div>
             )}
           </div>
-        </div>
+        </ScrollArea>
 
-        <form onSubmit={onSubmit} className="flex gap-2">
-          <Input
-            placeholder={uploadedDocument ? "Ask me about the document..." : "Type a question..."}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                // submit on Enter
-              }
-            }}
-          />
+        <form onSubmit={onSubmit} className="flex gap-2 items-center">
+          <div className="flex-1 relative">
+            <Input
+              placeholder={uploadedDocument ? "Ask me about the document..." : "Type a question..."}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="pr-12 bg-white border-2 border-gray-200 focus:border-blue-400"
+            />
+          </div>
           <Button 
             type="button" 
             variant="outline" 
             size="icon"
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
+            className="border-2 border-gray-200 hover:bg-gray-50"
           >
             <Upload className="h-4 w-4" />
           </Button>
-          <Button type="submit" disabled={loading || !input.trim()}>
+          <Button 
+            type="submit" 
+            disabled={loading || !input.trim()}
+            className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+            size="icon"
+          >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
