@@ -23,7 +23,7 @@ interface DragState {
 
 const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<Position>({ x: 16, y: 16 });
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     startX: 0,
@@ -33,6 +33,18 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   });
   const { count } = useDealsCount();
   const isPreDeal = !dealId && (count ?? 0) === 0;
+
+  // Calculate initial bottom-right position
+  const getInitialPosition = (): Position => {
+    const copilotWidth = 420;
+    const copilotHeight = 640;
+    const padding = 16;
+    
+    return {
+      x: window.innerWidth - copilotWidth - padding,
+      y: window.innerHeight - copilotHeight - padding
+    };
+  };
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -95,7 +107,7 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
             className="shadow-md copilot-gradient text-primary-foreground hover:scale-105 transition-transform"
             onClick={() => {
               setOpen(true);
-              setPosition({ x: 16, y: 16 }); // Reset position when opening
+              setPosition(getInitialPosition());
             }}
             aria-label="Open Deal Copilot"
           >
