@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_copilot_logs: {
+        Row: {
+          audience: string | null
+          completion_tokens: number | null
+          content: string
+          created_at: string
+          deal_id: string | null
+          id: string
+          latency_ms: number | null
+          metadata: Json | null
+          operation: string | null
+          prompt_tokens: number | null
+          role: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          audience?: string | null
+          completion_tokens?: number | null
+          content: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          operation?: string | null
+          prompt_tokens?: number | null
+          role: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          audience?: string | null
+          completion_tokens?: number | null
+          content?: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          latency_ms?: number | null
+          metadata?: Json | null
+          operation?: string | null
+          prompt_tokens?: number | null
+          role?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           created_at: string
@@ -35,6 +83,51 @@ export type Database = {
           id?: string
           metadata?: Json | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deal_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          milestone_id: string | null
+          source: Database["public"]["Enums"]["checklist_source"]
+          status: Database["public"]["Enums"]["checklist_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          deal_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          source?: Database["public"]["Enums"]["checklist_source"]
+          status?: Database["public"]["Enums"]["checklist_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          source?: Database["public"]["Enums"]["checklist_source"]
+          status?: Database["public"]["Enums"]["checklist_status"]
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1953,6 +2046,8 @@ export type Database = {
       }
     }
     Enums: {
+      checklist_source: "manual" | "copilot"
+      checklist_status: "open" | "in_progress" | "done" | "blocked"
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"
       document_status: "draft" | "final" | "signed"
       milestone_status:
@@ -2114,6 +2209,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      checklist_source: ["manual", "copilot"],
+      checklist_status: ["open", "in_progress", "done", "blocked"],
       deal_status: ["draft", "active", "pending", "completed", "cancelled"],
       document_status: ["draft", "final", "signed"],
       milestone_status: [
