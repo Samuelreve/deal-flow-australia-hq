@@ -1,27 +1,26 @@
-
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Upload, Sparkles } from "lucide-react";
+import { CheckCircle2, Upload, Sparkles, Brain } from "lucide-react";
 import { useCopilot } from "./useCopilot";
 
 const SuggestionCard: React.FC<{ title: string; description?: string; cta?: string; onClick?: () => void; icon?: React.ReactNode; }>
 = ({ title, description, cta, onClick, icon }) => (
-  <div className="rounded-md border bg-card p-3 flex items-start gap-3">
+  <div className="rounded-xl border bg-card p-4 flex items-start gap-3 copilot-button">
     <div className="mt-1 text-primary">{icon || <CheckCircle2 className="h-4 w-4" />}</div>
     <div className="flex-1">
       <div className="text-sm font-medium">{title}</div>
       {description && <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{description}</div>}
       {cta && (
-        <div className="mt-2">
-          <Button size="sm" variant="outline" onClick={onClick}>{cta}</Button>
+        <div className="mt-3">
+          <Button size="sm" variant="outline" onClick={onClick} className="text-xs">{cta}</Button>
         </div>
       )}
     </div>
   </div>
 );
 
-const CopilotSuggestions: React.FC = () => {
+const CopilotSuggestions: React.FC<{ onHeaderMouseDown?: (e: React.MouseEvent) => void }> = ({ onHeaderMouseDown }) => {
   const { suggestNextAction, generateMilestones } = useCopilot();
   const [nextAction, setNextAction] = useState<string>("");
   const [milestones, setMilestones] = useState<string[]>([]);
@@ -85,49 +84,64 @@ const CopilotSuggestions: React.FC = () => {
   };
 
   return (
-    <Card className="w-[360px] shadow-lg">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <div className="h-6 w-6 rounded-full bg-primary/10 text-primary grid place-items-center">
-            <Sparkles className="h-4 w-4" />
+    <Card className="w-[420px] h-[640px] copilot-card overflow-hidden border-0 bg-card/95">
+      <div 
+        className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={onHeaderMouseDown}
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-foreground/10 rounded-lg backdrop-blur-sm">
+            <Brain className="h-5 w-5" />
           </div>
-          Trustroom Copilot
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="text-sm text-muted-foreground">
-          I’ll monitor your deal and provide proactive tips here.
+          <div>
+            <span className="text-lg font-semibold tracking-tight">AI Copilot</span>
+            <p className="text-xs text-primary-foreground/80 mt-0.5">Your intelligent deal assistant</p>
+          </div>
+        </div>
+      </div>
+      
+      <CardContent className="flex flex-col h-[580px] p-6 gap-6">
+        <div className="text-center py-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground mb-2">Deal Suggestions</h3>
+          <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
+            I'll monitor your deal and provide proactive tips here.
+          </p>
         </div>
 
-        {/* Next action */}
-        <SuggestionCard
-          title={nextAction ? nextAction.split('\n')[0].replace(/^\*\*Recommendation:\*\*\s*/i, '') : 'Getting your next best step...'}
-          description={nextAction}
-          cta="Apply suggestion"
-          onClick={() => { /* hook into flows later */ }}
-        />
+        <div className="space-y-4 flex-1">
+          {/* Next action */}
+          <SuggestionCard
+            title={nextAction ? nextAction.split('\n')[0].replace(/^\*\*Recommendation:\*\*\s*/i, '') : 'Getting your next best step...'}
+            description={nextAction}
+            cta="Apply suggestion"
+            onClick={() => { /* hook into flows later */ }}
+          />
 
-        {/* Milestones */}
-        <SuggestionCard
-          title="Generate milestones"
-          description={milestones.length ? `Suggested milestones:\n- ${milestones.join('\n- ')}` : 'Drafting suggested milestones for your deal...'}
-          cta="Create milestones"
-          onClick={() => { /* hook into milestone creation later */ }}
-          icon={<CheckCircle2 className="h-4 w-4" />}
-        />
+          {/* Milestones */}
+          <SuggestionCard
+            title="Generate milestones"
+            description={milestones.length ? `Suggested milestones:\n- ${milestones.join('\n- ')}` : 'Drafting suggested milestones for your deal...'}
+            cta="Create milestones"
+            onClick={() => { /* hook into milestone creation later */ }}
+            icon={<CheckCircle2 className="h-4 w-4" />}
+          />
 
-        {/* Upload example CTA */}
-        <SuggestionCard
-          title="Upload your key document"
-          description="Add a cap table, SPA draft, or financials to kickstart analysis."
-          cta="Upload document"
-          onClick={() => { /* integrate with uploader later */ }}
-          icon={<Upload className="h-4 w-4" />}
-        />
+          {/* Upload example CTA */}
+          <SuggestionCard
+            title="Upload your key document"
+            description="Add a cap table, SPA draft, or financials to kickstart analysis."
+            cta="Upload document"
+            onClick={() => { /* integrate with uploader later */ }}
+            icon={<Upload className="h-4 w-4" />}
+          />
 
-        {loading && (
-          <div className="text-xs text-muted-foreground">Loading suggestions…</div>
-        )}
+          {loading && (
+            <div className="text-xs text-muted-foreground text-center">Loading suggestions…</div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

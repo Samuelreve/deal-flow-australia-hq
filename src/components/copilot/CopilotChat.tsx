@@ -30,7 +30,7 @@ const QuickActions: React.FC<{
   </div>
 );
 
-const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
+const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.MouseEvent) => void }> = ({ dealId, onHeaderMouseDown }) => {
   const { messages, loading, sendMessage, suggestNextAction, generateMilestones, summarizeDeal, predictDealHealth, uploadAndAnalyzeDocument, uploadedDocument, clearUploadedDocument } = useCopilot({ initialDealId: dealId });
   const [input, setInput] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,10 @@ const CopilotChat: React.FC<{ dealId?: string }> = ({ dealId }) => {
 
   return (
     <Card className="w-[420px] h-[640px] copilot-card overflow-hidden border-0 bg-card/95">
-      <div className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none">
+      <div 
+        className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none"
+        onMouseDown={onHeaderMouseDown}
+      >
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary-foreground/10 rounded-lg backdrop-blur-sm">
             <Brain className="h-5 w-5" />
