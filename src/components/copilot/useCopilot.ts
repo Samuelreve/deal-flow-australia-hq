@@ -63,6 +63,19 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     }
   }, [storageKey]);
 
+  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
+    setMessages(prev => {
+      const newMessages = [
+        ...prev,
+        { id: crypto.randomUUID(), role, content, timestamp: Date.now() }
+      ];
+      // Auto-cleanup: remove messages older than 24 hours
+      const now = Date.now();
+      const oneDayInMs = 24 * 60 * 60 * 1000;
+      return newMessages.filter(msg => (now - msg.timestamp) < oneDayInMs);
+    });
+  }, []);
+
   // Load persisted messages on mount
   useEffect(() => {
     if (!initializedRef.current) {
@@ -80,6 +93,58 @@ export function useCopilot(options: UseCopilotOptions = {}) {
       saveMessages(messages);
     }
   }, [messages, saveMessages]);
+
+  // Real-time monitoring for deal updates
+  useEffect(() => {
+    if (!dealId || dealId.startsWith('temp-')) return;
+
+    const channel = supabase
+      .channel(`deal_updates_${dealId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'deals',
+        filter: `id=eq.${dealId}`
+      }, () => {
+        addMessage("assistant", "📊 I've detected updates to the deal. My knowledge has been refreshed with the latest information.");
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'documents',
+        filter: `deal_id=eq.${dealId}`
+      }, () => {
+        addMessage("assistant", "📄 New documents or document changes detected. I've updated my knowledge about the deal's documents.");
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'milestones',
+        filter: `deal_id=eq.${dealId}`
+      }, () => {
+        addMessage("assistant", "🎯 Milestone updates detected. I've refreshed my understanding of the project progress.");
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'deal_participants'
+      }, () => {
+        addMessage("assistant", "👥 Deal participant changes detected. I've updated my knowledge about who's involved in this deal.");
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'comments',
+        filter: `deal_id=eq.${dealId}`
+      }, () => {
+        addMessage("assistant", "💬 New comments detected. I've updated my understanding of the latest discussions.");
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, addMessage]);
 
   // Init auth user
   useEffect(() => {
@@ -102,19 +167,6 @@ export function useCopilot(options: UseCopilotOptions = {}) {
     setDealId(temp.dealId);
     return temp.dealId;
   }, [dealId]);
-
-  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
-    setMessages(prev => {
-      const newMessages = [
-        ...prev,
-        { id: crypto.randomUUID(), role, content, timestamp: Date.now() }
-      ];
-      // Auto-cleanup: remove messages older than 24 hours
-      const now = Date.now();
-      const oneDayInMs = 24 * 60 * 60 * 1000;
-      return newMessages.filter(msg => (now - msg.timestamp) < oneDayInMs);
-    });
-  }, []);
 
   // Helper to call the AI assistant edge function
   const callAssistant = useCallback(async (payload: any) => {
