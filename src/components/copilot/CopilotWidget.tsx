@@ -37,7 +37,7 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   // Calculate initial bottom-right position
   const getInitialPosition = (): Position => {
     const copilotWidth = 420;
-    const copilotHeight = 700;
+    const copilotHeight = 760;
     const padding = 16;
     
     return {
@@ -70,7 +70,7 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
     
     // Keep within viewport bounds with some padding
     const maxX = window.innerWidth - 420 - 16; // copilot width + padding
-    const maxY = window.innerHeight - 700 - 16; // copilot height + padding
+    const maxY = window.innerHeight - 760 - 16; // copilot height + padding
     
     setPosition({
       x: Math.max(16, Math.min(maxX, newX)),

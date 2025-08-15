@@ -58,7 +58,7 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
   };
 
   return (
-    <Card className="w-[420px] h-[700px] copilot-card overflow-hidden border-0 bg-card/95">
+    <Card className="w-[420px] h-[760px] copilot-card overflow-hidden border-0 bg-card/95">
       <div 
         className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none relative"
         onMouseDown={onHeaderMouseDown}
@@ -74,7 +74,7 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
         </div>
       </div>
       
-      <CardContent className="flex flex-col h-[640px] p-6 gap-6">
+      <CardContent className="flex flex-col h-[700px] p-6 gap-6">
         <div className="grid grid-cols-2 gap-3">
           <Button 
             size="sm" 
