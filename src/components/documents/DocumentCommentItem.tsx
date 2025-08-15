@@ -3,6 +3,7 @@ import { Reply } from 'lucide-react';
 import { DocumentComment } from '@/types/documentComment';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DocumentCommentItemProps {
   comment: DocumentComment;
@@ -21,6 +22,7 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
   isActive = false,
   isReply = false
 }) => {
+  const { user } = useAuth();
   // Generate consistent color theme for each user
   const getUserColorTheme = (userId: string) => {
     const colors = [
@@ -94,6 +96,9 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">
                 {userName}
+                {user?.id === comment.user_id && (
+                  <span className="ml-1 text-xs text-muted-foreground">(me)</span>
+                )}
               </span>
               {isReply && (
                 <span className="text-xs text-muted-foreground">replied</span>
@@ -127,18 +132,20 @@ const DocumentCommentItem: React.FC<DocumentCommentItemProps> = ({
               </div>
             )}
 
-            {/* Reply button */}
-            <div className="flex items-center justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleReplyClick}
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Reply className="h-3 w-3 mr-1" />
-                Reply
-              </Button>
-            </div>
+            {/* Reply button - only show if user is not the author */}
+            {user?.id !== comment.user_id && (
+              <div className="flex items-center justify-end">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleReplyClick}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Reply className="h-3 w-3 mr-1" />
+                  Reply
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

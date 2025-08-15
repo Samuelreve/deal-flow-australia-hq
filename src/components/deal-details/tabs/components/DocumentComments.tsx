@@ -113,18 +113,20 @@ const NestedReplies: React.FC<NestedRepliesProps> = ({
                     {reply.content}
                   </div>
                   
-                  {/* Reply button */}
-                  <div className="flex items-center justify-end">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setReplyingToId(reply.id)}
-                    >
-                      <Reply className="h-3 w-3 mr-1" />
-                      Reply
-                    </Button>
-                  </div>
+                  {/* Reply button - only show if user is not the author */}
+                  {user?.id !== reply.user_id && (
+                    <div className="flex items-center justify-end">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setReplyingToId(reply.id)}
+                      >
+                        <Reply className="h-3 w-3 mr-1" />
+                        Reply
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -390,18 +392,20 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                       {comment.content}
                     </div>
                     
-                    {/* Reply button */}
-                    <div className="flex items-center justify-end">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setReplyingToId(comment.id)}
-                      >
-                        <Reply className="h-3 w-3 mr-1" />
-                        Reply
-                      </Button>
-                    </div>
+                    {/* Reply button - only show if user is not the author */}
+                    {user?.id !== comment.user_id && (
+                      <div className="flex items-center justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => setReplyingToId(comment.id)}
+                        >
+                          <Reply className="h-3 w-3 mr-1" />
+                          Reply
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
