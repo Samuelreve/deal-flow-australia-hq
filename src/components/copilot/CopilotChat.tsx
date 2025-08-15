@@ -81,48 +81,48 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
             variant="ghost" 
             onClick={summarizeDeal} 
             disabled={loading}
-            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3 copilot-content-enter"
+            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 relative overflow-hidden">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/15 relative overflow-hidden shrink-0">
               <FileText className="h-4 w-4 text-primary relative z-10" />
             </div>
-            <span className="text-sm font-medium">Summarize deal</span>
+            <span className="text-sm font-medium text-foreground truncate">Summarize deal</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={suggestNextAction} 
             disabled={loading}
-            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3 copilot-content-enter"
+            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-accent/10 relative overflow-hidden">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/15 relative overflow-hidden shrink-0">
               <Compass className="h-4 w-4 text-accent relative z-10" />
             </div>
-            <span className="text-sm font-medium">Next steps</span>
+            <span className="text-sm font-medium text-foreground truncate">Next steps</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={generateMilestones} 
             disabled={loading}
-            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3 copilot-content-enter"
+            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 relative overflow-hidden">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/15 relative overflow-hidden shrink-0">
               <ListChecks className="h-4 w-4 text-primary relative z-10" />
             </div>
-            <span className="text-sm font-medium">Generate milestones</span>
+            <span className="text-sm font-medium text-foreground truncate">Generate milestones</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={predictDealHealth} 
             disabled={loading}
-            className="copilot-button h-12 flex items-center gap-3 justify-start text-left p-3 copilot-content-enter"
+            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-accent/10 relative overflow-hidden">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/15 relative overflow-hidden shrink-0">
               <Activity className="h-4 w-4 text-accent relative z-10" />
             </div>
-            <span className="text-sm font-medium">Show health</span>
+            <span className="text-sm font-medium text-foreground truncate">Show health</span>
           </Button>
         </div>
 
