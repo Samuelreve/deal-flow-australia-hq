@@ -9,7 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ArrowLeft, HandHeart, Lightbulb, Sparkles, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { StepProps, DEAL_TYPES, SELLING_REASONS } from '../types';
+import { StepProps, DEAL_TYPES, SELLING_REASONS, DEAL_CATEGORIES } from '../types';
+import { IPTransferFields } from './category-specific/IPTransferFields';
+import { RealEstateFields } from './category-specific/RealEstateFields';
+import { MicroDealFields } from './category-specific/MicroDealFields';
+import { CrossBorderFields } from './category-specific/CrossBorderFields';
 
 const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -28,6 +32,10 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
     
     if (!data.dealType) {
       newErrors.dealType = 'Deal type is required';
+    }
+    
+    if (!data.dealCategory) {
+      newErrors.dealCategory = 'Deal category is required';
     }
 
     setErrors(newErrors);
@@ -85,6 +93,34 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
           Be clear and comprehensive - it's your chance to make a great first impression.
         </AlertDescription>
       </Alert>
+
+      {/* Deal Category Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="dealCategory">
+          Deal Category *
+        </Label>
+        <Select 
+          value={data.dealCategory} 
+          onValueChange={(value) => updateData({ dealCategory: value })}
+        >
+          <SelectTrigger className={errors.dealCategory ? 'border-red-500' : ''}>
+            <SelectValue placeholder="Select deal category" />
+          </SelectTrigger>
+          <SelectContent>
+            {DEAL_CATEGORIES.map((category) => (
+              <SelectItem key={category.value} value={category.value}>
+                <div className="flex flex-col items-start">
+                  <span>{category.label}</span>
+                  <span className="text-xs text-muted-foreground">{category.description}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.dealCategory && (
+          <p className="text-sm text-red-500">{errors.dealCategory}</p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2 space-y-2">
@@ -268,6 +304,23 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Category-specific fields */}
+      {data.dealCategory === 'ip_transfer' && (
+        <IPTransferFields data={data} updateData={updateData} />
+      )}
+      
+      {data.dealCategory === 'real_estate' && (
+        <RealEstateFields data={data} updateData={updateData} />
+      )}
+      
+      {data.dealCategory === 'micro_deals' && (
+        <MicroDealFields data={data} updateData={updateData} />
+      )}
+      
+      {data.dealCategory === 'cross_border' && (
+        <CrossBorderFields data={data} updateData={updateData} />
+      )}
 
       <div className="flex justify-between pt-6">
         <Button onClick={onPrev} variant="outline" size="lg">

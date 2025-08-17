@@ -2,9 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useDocumentUploadWizard } from '@/hooks/deals/useDocumentUploadWizard';
+import { useDocumentAutoExtraction } from '@/hooks/useDocumentAutoExtraction';
 
 import { DocumentRequirements } from '../document-upload/DocumentRequirements';
 import { DocumentUploadArea } from '../document-upload/DocumentUploadArea';
@@ -25,7 +28,9 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
 }) => {
   const { toast } = useToast();
   const { uploading, uploadFile, deleteFile } = useDocumentUploadWizard();
+  const { extractDataFromDocument, isExtracting } = useDocumentAutoExtraction();
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+  const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
 
   // Use real deal ID if available, otherwise fall back to temporary ID for creation flow
   const currentDealId = dealId || `temp-${data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'deal'}-${Date.now()}`;
@@ -63,6 +68,29 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
         const uploadedDoc = await uploadFile(file, currentDealId);
         if (uploadedDoc) {
           newDocuments.push(uploadedDoc);
+          
+          // Auto-extract data if enabled and it's a PDF
+          if (autoExtractEnabled && file.type === 'application/pdf' && data.dealCategory) {
+            try {
+              // Convert file to base64 for extraction
+              const fileBase64 = await fileToBase64(file);
+              await extractDataFromDocument(
+                fileBase64,
+                file.name,
+                file.type,
+                {
+                  dealCategory: data.dealCategory,
+                  onDataExtracted: (extractedData) => {
+                    // Merge extracted data with current form data
+                    updateData(extractedData);
+                  }
+                }
+              );
+            } catch (extractionError) {
+              console.error('Auto-extraction error for file:', file.name, extractionError);
+              // Don't add to errors array as extraction is optional
+            }
+          }
         } else {
           errors.push(`${file.name}: Upload failed`);
         }
@@ -124,6 +152,18 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
     });
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove data URL prefix
+      };
+      reader.onerror = reject;
+    });
+  };
+
   const hasRequiredDocuments = () => {
     return true; // Remove required document validation
   };
@@ -140,11 +180,40 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
 
       <DocumentRequirements uploadedDocuments={data.uploadedDocuments} />
 
+      {/* Auto-extraction toggle */}
+      {data.dealCategory && data.dealCategory !== 'business_sale' && (
+        <div className="flex items-center space-x-2 p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/5">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <div className="flex-1">
+            <Label htmlFor="auto-extract" className="text-sm font-medium">
+              Auto-extract deal information from PDFs
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Automatically extract {data.dealCategory?.replace('_', ' ')} specific details from uploaded documents
+            </p>
+          </div>
+          <Switch
+            id="auto-extract"
+            checked={autoExtractEnabled}
+            onCheckedChange={setAutoExtractEnabled}
+          />
+        </div>
+      )}
+
       <DocumentUploadArea 
-        uploading={uploading}
+        uploading={uploading || isExtracting}
         uploadErrors={uploadErrors}
         onFileUpload={handleFileUpload}
       />
+      
+      {isExtracting && (
+        <Alert>
+          <Sparkles className="h-4 w-4 animate-pulse" />
+          <AlertDescription>
+            Analyzing document and extracting deal information...
+          </AlertDescription>
+        </Alert>
+      )}
 
       <UploadedDocumentsList
         uploadedDocuments={data.uploadedDocuments}
@@ -162,9 +231,9 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
           onClick={onNext} 
           size="lg" 
           className="min-w-[160px]"
-          disabled={!hasRequiredDocuments() || uploading}
+          disabled={!hasRequiredDocuments() || uploading || isExtracting}
         >
-          {uploading ? 'Uploading...' : 'Review & Submit'}
+          {uploading ? 'Uploading...' : isExtracting ? 'Extracting data...' : 'Review & Submit'}
         </Button>
       </div>
     </div>

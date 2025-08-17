@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -730,15 +730,20 @@ export type Database = {
           counterparty_name: string | null
           created_at: string
           cross_border: boolean | null
+          cross_border_details: Json | null
           currency: string | null
+          deal_category: Database["public"]["Enums"]["deal_category"] | null
           deal_type: string | null
           description: string | null
           health_score: number
           id: string
+          ip_assets: Json | null
           key_assets_excluded: string | null
           key_assets_included: string | null
+          micro_deal_details: Json | null
           price: number | null
           primary_seller_contact_name: string | null
+          property_details: Json | null
           reason_for_selling: string | null
           seller_id: string
           status: Database["public"]["Enums"]["deal_status"]
@@ -764,15 +769,20 @@ export type Database = {
           counterparty_name?: string | null
           created_at?: string
           cross_border?: boolean | null
+          cross_border_details?: Json | null
           currency?: string | null
+          deal_category?: Database["public"]["Enums"]["deal_category"] | null
           deal_type?: string | null
           description?: string | null
           health_score?: number
           id?: string
+          ip_assets?: Json | null
           key_assets_excluded?: string | null
           key_assets_included?: string | null
+          micro_deal_details?: Json | null
           price?: number | null
           primary_seller_contact_name?: string | null
+          property_details?: Json | null
           reason_for_selling?: string | null
           seller_id: string
           status?: Database["public"]["Enums"]["deal_status"]
@@ -798,15 +808,20 @@ export type Database = {
           counterparty_name?: string | null
           created_at?: string
           cross_border?: boolean | null
+          cross_border_details?: Json | null
           currency?: string | null
+          deal_category?: Database["public"]["Enums"]["deal_category"] | null
           deal_type?: string | null
           description?: string | null
           health_score?: number
           id?: string
+          ip_assets?: Json | null
           key_assets_excluded?: string | null
           key_assets_included?: string | null
+          micro_deal_details?: Json | null
           price?: number | null
           primary_seller_contact_name?: string | null
+          property_details?: Json | null
           reason_for_selling?: string | null
           seller_id?: string
           status?: Database["public"]["Enums"]["deal_status"]
@@ -1773,10 +1788,10 @@ export type Database = {
       accept_invitation: {
         Args: { p_token: string; p_user_id: string }
         Returns: {
-          success: boolean
           deal_id: string
           invitee_role: Database["public"]["Enums"]["user_role"]
           message: string
+          success: boolean
         }[]
       }
       check_deal_participation: {
@@ -1785,13 +1800,13 @@ export type Database = {
       }
       create_custom_metric: {
         Args: {
+          p_current_value: number
           p_deal_id: string
-          p_user_id: string
+          p_is_active: boolean
           p_metric_name: string
           p_metric_weight: number
-          p_current_value: number
           p_target_value: number
-          p_is_active: boolean
+          p_user_id: string
         }
         Returns: {
           created_at: string
@@ -1817,6 +1832,14 @@ export type Database = {
       get_allowed_deal_statuses: {
         Args: { p_deal_id: string }
         Returns: Json
+      }
+      get_allowed_status_transitions: {
+        Args: {
+          p_current_status: Database["public"]["Enums"]["deal_status"]
+          p_deal_category: Database["public"]["Enums"]["deal_category"]
+          p_user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: string[]
       }
       get_auth_user_role: {
         Args: Record<PropertyKey, never>
@@ -1871,19 +1894,19 @@ export type Database = {
       get_document_comments_with_nested_structure: {
         Args: { p_document_version_id: string }
         Returns: {
-          id: string
           content: string
-          document_version_id: string
-          user_id: string
           created_at: string
-          updated_at: string
-          page_number: number
+          document_version_id: string
+          id: string
           location_data: Json
-          resolved: boolean
+          page_number: number
           parent_comment_id: string
           profiles: Json
-          user: Json
           replies: Json
+          resolved: boolean
+          updated_at: string
+          user: Json
+          user_id: string
         }[]
       }
       get_health_comparisons: {
@@ -1932,19 +1955,19 @@ export type Database = {
       get_nested_document_comments: {
         Args: { p_document_version_id: string }
         Returns: {
-          id: string
-          content: string
-          document_version_id: string
-          user_id: string
-          created_at: string
-          updated_at: string
-          page_number: number
-          location_data: Json
-          resolved: boolean
-          parent_comment_id: string
-          author_name: string
           author_avatar_url: string
+          author_name: string
+          content: string
+          created_at: string
+          document_version_id: string
+          id: string
+          location_data: Json
+          page_number: number
+          parent_comment_id: string
           replies: Json
+          resolved: boolean
+          updated_at: string
+          user_id: string
         }[]
       }
       get_public_profile: {
@@ -2003,21 +2026,21 @@ export type Database = {
       }
       migrate_temp_documents_to_deal: {
         Args: {
-          p_temp_deal_id: string
           p_real_deal_id: string
+          p_temp_deal_id: string
           p_user_id: string
         }
         Returns: undefined
       }
       save_notification_settings: {
         Args: {
-          p_user_id: string
           p_email_deal_updates: boolean
-          p_email_messages: boolean
           p_email_document_comments: boolean
+          p_email_messages: boolean
           p_inapp_deal_updates: boolean
-          p_inapp_messages: boolean
           p_inapp_document_comments: boolean
+          p_inapp_messages: boolean
+          p_user_id: string
         }
         Returns: {
           created_at: string
@@ -2041,14 +2064,32 @@ export type Database = {
         Returns: Json
       }
       update_document_storage_paths: {
-        Args: { temp_deal_id: string; real_deal_id: string }
+        Args: { real_deal_id: string; temp_deal_id: string }
         Returns: undefined
       }
     }
     Enums: {
       checklist_source: "manual" | "copilot"
       checklist_status: "open" | "in_progress" | "done" | "blocked"
+      deal_category:
+        | "ip_transfer"
+        | "real_estate"
+        | "cross_border"
+        | "micro_deals"
+        | "business_sale"
+        | "other"
       deal_status: "draft" | "active" | "pending" | "completed" | "cancelled"
+      deal_status_enhanced:
+        | "draft"
+        | "active"
+        | "due_diligence"
+        | "contract_negotiation"
+        | "settlement"
+        | "ip_transfer_pending"
+        | "regulatory_approval"
+        | "pending"
+        | "completed"
+        | "cancelled"
       document_status: "draft" | "final" | "signed"
       milestone_status:
         | "not_started"
@@ -2211,7 +2252,27 @@ export const Constants = {
     Enums: {
       checklist_source: ["manual", "copilot"],
       checklist_status: ["open", "in_progress", "done", "blocked"],
+      deal_category: [
+        "ip_transfer",
+        "real_estate",
+        "cross_border",
+        "micro_deals",
+        "business_sale",
+        "other",
+      ],
       deal_status: ["draft", "active", "pending", "completed", "cancelled"],
+      deal_status_enhanced: [
+        "draft",
+        "active",
+        "due_diligence",
+        "contract_negotiation",
+        "settlement",
+        "ip_transfer_pending",
+        "regulatory_approval",
+        "pending",
+        "completed",
+        "cancelled",
+      ],
       document_status: ["draft", "final", "signed"],
       milestone_status: [
         "not_started",
