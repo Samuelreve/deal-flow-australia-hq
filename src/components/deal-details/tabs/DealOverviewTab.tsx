@@ -104,77 +104,199 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
               <p className="font-medium">{deal.reason_for_selling || 'Not specified'}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Business Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Business Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">Legal Name</p>
-            <p className="font-medium">{deal.business_legal_name || 'Not specified'}</p>
-          </div>
-          
-          {deal.business_trading_names && (
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Trading Names</p>
-              <p className="font-medium">{deal.business_trading_names}</p>
+          {/* Category-specific Deal Information */}
+          {deal.deal_category === 'real_estate' && deal.property_details && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Property Information
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Property Type</p>
+                  <p className="font-medium">{deal.property_details.propertyType || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Size (sqm)</p>
+                  <p className="font-medium">{deal.property_details.size || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Bedrooms</p>
+                  <p className="font-medium">{deal.property_details.bedrooms || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Bathrooms</p>
+                  <p className="font-medium">{deal.property_details.bathrooms || 'Not specified'}</p>
+                </div>
+              </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">ABN</p>
-              <p className="font-medium">{deal.business_abn || 'Not specified'}</p>
+          {deal.deal_category === 'ip_transfer' && deal.ip_assets && deal.ip_assets.assets && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Copyright className="h-4 w-4" />
+                IP Assets ({deal.ip_assets.assets.length})
+              </h4>
+              <div className="space-y-3">
+                {deal.ip_assets.assets.slice(0, 2).map((asset: any, index: number) => (
+                  <div key={index} className="border rounded p-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Asset Name</p>
+                        <p className="font-medium text-sm">{asset.name || 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Type</p>
+                        <p className="font-medium text-sm">{asset.type || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {deal.ip_assets.assets.length > 2 && (
+                  <p className="text-sm text-muted-foreground">+{deal.ip_assets.assets.length - 2} more assets</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">ACN</p>
-              <p className="font-medium">{deal.business_acn || 'Not specified'}</p>
-            </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Industry</p>
-              <p className="font-medium">{deal.business_industry || 'Not specified'}</p>
+          {deal.deal_category === 'cross_border' && deal.cross_border_details && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Cross-Border Details
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Origin Country</p>
+                  <p className="font-medium">{deal.cross_border_details.originCountry || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Target Country</p>
+                  <p className="font-medium">{deal.cross_border_details.targetCountry || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Currency</p>
+                  <p className="font-medium">{deal.cross_border_details.currency || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Exchange Rate</p>
+                  <p className="font-medium">{deal.cross_border_details.exchangeRate || 'Not specified'}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Years in Operation</p>
-              <p className="font-medium">{deal.business_years_in_operation || 'Not specified'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          )}
 
-      {/* Addresses */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Addresses
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">Registered Address</p>
-            <p className="font-medium">{deal.business_registered_address || 'Not specified'}</p>
-          </div>
-          
-          {deal.business_principal_place_address && (
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Principal Place of Business</p>
-              <p className="font-medium">{deal.business_principal_place_address}</p>
+          {deal.deal_category === 'micro_deals' && deal.micro_deal_details && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Item Details
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Item Name</p>
+                  <p className="font-medium">{deal.micro_deal_details.itemName || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Category</p>
+                  <p className="font-medium">{deal.micro_deal_details.category || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Condition</p>
+                  <p className="font-medium">{deal.micro_deal_details.condition || 'Not specified'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Rarity</p>
+                  <p className="font-medium">{deal.micro_deal_details.rarity || 'Not specified'}</p>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Business Information - Conditional based on category */}
+      {(deal.deal_category === 'business_sale' || !deal.deal_category) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Business Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Legal Name</p>
+              <p className="font-medium">{deal.business_legal_name || 'Not specified'}</p>
+            </div>
+            
+            {deal.business_trading_names && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Trading Names</p>
+                <p className="font-medium">{deal.business_trading_names}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">ABN</p>
+                <p className="font-medium">{deal.business_abn || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">ACN</p>
+                <p className="font-medium">{deal.business_acn || 'Not specified'}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Industry</p>
+                <p className="font-medium">{deal.business_industry || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Years in Operation</p>
+                <p className="font-medium">{deal.business_years_in_operation || 'Not specified'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Address Information - Show for Real Estate and Business Sales */}
+      {(deal.deal_category === 'real_estate' || deal.deal_category === 'business_sale' || !deal.deal_category) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              {deal.deal_category === 'real_estate' ? 'Property Address' : 'Addresses'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {deal.deal_category === 'real_estate' && deal.property_details?.address ? (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Property Address</p>
+                <p className="font-medium">{deal.property_details.address}</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Registered Address</p>
+                  <p className="font-medium">{deal.business_registered_address || 'Not specified'}</p>
+                </div>
+                
+                {deal.business_principal_place_address && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Principal Place of Business</p>
+                    <p className="font-medium">{deal.business_principal_place_address}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {/* Seller Details */}
       <Card>
         <CardHeader>
@@ -199,18 +321,105 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
         </CardContent>
       </Card>
 
-      {/* Category-Specific Information */}
-      {deal.deal_category === 'ip_transfer' && deal.ip_assets && (
+      {/* Additional Category-specific Information Cards */}
+      {deal.deal_category === 'real_estate' && deal.property_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5" />
+              Additional Property Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {deal.property_details.zoning && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Zoning</p>
+                <p className="font-medium">{deal.property_details.zoning}</p>
+              </div>
+            )}
+            {deal.property_details.landSize && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Land Size (sqm)</p>
+                <p className="font-medium">{deal.property_details.landSize}</p>
+              </div>
+            )}
+            {deal.property_details.parking && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Parking</p>
+                <p className="font-medium">{deal.property_details.parking}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'cross_border' && deal.cross_border_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Regulatory & Tax Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {deal.cross_border_details.regulatoryRequirements && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Regulatory Requirements</p>
+                <p className="font-medium">{deal.cross_border_details.regulatoryRequirements}</p>
+              </div>
+            )}
+            {deal.cross_border_details.taxImplications && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Tax Implications</p>
+                <p className="font-medium">{deal.cross_border_details.taxImplications}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'micro_deals' && deal.micro_deal_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Item Authentication & Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {deal.micro_deal_details.year && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Year</p>
+                <p className="font-medium">{deal.micro_deal_details.year}</p>
+              </div>
+            )}
+            {deal.micro_deal_details.authentication && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Authentication</p>
+                <p className="font-medium">{deal.micro_deal_details.authentication}</p>
+              </div>
+            )}
+            {deal.micro_deal_details.description && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
+                <p className="font-medium">{deal.micro_deal_details.description}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'ip_transfer' && deal.ip_assets && deal.ip_assets.assets && deal.ip_assets.assets.length > 2 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Copyright className="h-5 w-5" />
-              IP Assets
+              Additional IP Assets
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {deal.ip_assets.assets && deal.ip_assets.assets.map((asset: any, index: number) => (
-              <div key={index} className="border rounded p-3">
+            {deal.ip_assets.assets.slice(2).map((asset: any, index: number) => (
+              <div key={index + 2} className="border rounded p-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">Asset Name</p>
@@ -231,127 +440,6 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {deal.deal_category === 'real_estate' && deal.property_details && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Property Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Property Type</p>
-                <p className="font-medium">{deal.property_details.propertyType || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Size (sqm)</p>
-                <p className="font-medium">{deal.property_details.size || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Bedrooms</p>
-                <p className="font-medium">{deal.property_details.bedrooms || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Bathrooms</p>
-                <p className="font-medium">{deal.property_details.bathrooms || 'Not specified'}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
-              <p className="font-medium">{deal.property_details.address || 'Not specified'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Zoning</p>
-              <p className="font-medium">{deal.property_details.zoning || 'Not specified'}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {deal.deal_category === 'cross_border' && deal.cross_border_details && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Cross-Border Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Origin Country</p>
-                <p className="font-medium">{deal.cross_border_details.originCountry || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Target Country</p>
-                <p className="font-medium">{deal.cross_border_details.targetCountry || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Currency</p>
-                <p className="font-medium">{deal.cross_border_details.currency || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Exchange Rate</p>
-                <p className="font-medium">{deal.cross_border_details.exchangeRate || 'Not specified'}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Regulatory Requirements</p>
-              <p className="font-medium">{deal.cross_border_details.regulatoryRequirements || 'Not specified'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Tax Implications</p>
-              <p className="font-medium">{deal.cross_border_details.taxImplications || 'Not specified'}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {deal.deal_category === 'micro_deals' && deal.micro_deal_details && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Item Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Item Name</p>
-                <p className="font-medium">{deal.micro_deal_details.itemName || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Category</p>
-                <p className="font-medium">{deal.micro_deal_details.category || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Condition</p>
-                <p className="font-medium">{deal.micro_deal_details.condition || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Rarity</p>
-                <p className="font-medium">{deal.micro_deal_details.rarity || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Year</p>
-                <p className="font-medium">{deal.micro_deal_details.year || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Authentication</p>
-                <p className="font-medium">{deal.micro_deal_details.authentication || 'Not specified'}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
-              <p className="font-medium">{deal.micro_deal_details.description || 'Not specified'}</p>
-            </div>
           </CardContent>
         </Card>
       )}
