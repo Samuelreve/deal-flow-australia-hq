@@ -1,8 +1,9 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building, MapPin, Calendar, DollarSign, User, FileText } from "lucide-react";
+import { Building, MapPin, Calendar, DollarSign, User, FileText, Tags, Copyright, Home, Globe, Star } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
+import { DEAL_CATEGORIES } from "@/components/deals/deal-creation/types";
 
 interface Deal {
   id: string;
@@ -14,6 +15,7 @@ interface Deal {
   buyer_id?: string;
   asking_price?: number;
   deal_type?: string;
+  deal_category?: string;
   business_legal_name?: string;
   business_trading_names?: string;
   business_abn?: string;
@@ -25,6 +27,10 @@ interface Deal {
   reason_for_selling?: string;
   primary_seller_contact_name?: string;
   target_completion_date?: string;
+  ip_assets?: any;
+  property_details?: any;
+  cross_border_details?: any;
+  micro_deal_details?: any;
   created_at: string;
   updated_at: string;
 }
@@ -44,7 +50,22 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
     }).format(price);
   };
 
-  // Use centralized formatDate from utils
+  const getCategoryLabel = (categoryValue?: string) => {
+    if (!categoryValue) return 'Not specified';
+    const category = DEAL_CATEGORIES.find(cat => cat.value === categoryValue);
+    return category ? category.label : categoryValue;
+  };
+
+  const getCategoryIcon = (categoryValue?: string) => {
+    const iconMap = {
+      'ip_transfer': Copyright,
+      'real_estate': Home,
+      'cross_border': Globe,
+      'micro_deals': Star,
+      'business_sale': Building
+    };
+    return iconMap[categoryValue as keyof typeof iconMap] || Tags;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -57,6 +78,14 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {deal.deal_category && (
+            <div className="flex items-center gap-2 mb-4">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                {React.createElement(getCategoryIcon(deal.deal_category), { className: "h-3 w-3" })}
+                {getCategoryLabel(deal.deal_category)}
+              </Badge>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Deal Type</p>
@@ -169,6 +198,163 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Category-Specific Information */}
+      {deal.deal_category === 'ip_transfer' && deal.ip_assets && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Copyright className="h-5 w-5" />
+              IP Assets
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {deal.ip_assets.assets && deal.ip_assets.assets.map((asset: any, index: number) => (
+              <div key={index} className="border rounded p-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Asset Name</p>
+                    <p className="font-medium">{asset.name || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Type</p>
+                    <p className="font-medium">{asset.type || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Registration Number</p>
+                    <p className="font-medium">{asset.registrationNumber || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Expiry Date</p>
+                    <p className="font-medium">{asset.expiryDate ? formatDate(asset.expiryDate) : 'Not specified'}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'real_estate' && deal.property_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5" />
+              Property Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Property Type</p>
+                <p className="font-medium">{deal.property_details.propertyType || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Size (sqm)</p>
+                <p className="font-medium">{deal.property_details.size || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Bedrooms</p>
+                <p className="font-medium">{deal.property_details.bedrooms || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Bathrooms</p>
+                <p className="font-medium">{deal.property_details.bathrooms || 'Not specified'}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
+              <p className="font-medium">{deal.property_details.address || 'Not specified'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Zoning</p>
+              <p className="font-medium">{deal.property_details.zoning || 'Not specified'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'cross_border' && deal.cross_border_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Cross-Border Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Origin Country</p>
+                <p className="font-medium">{deal.cross_border_details.originCountry || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Target Country</p>
+                <p className="font-medium">{deal.cross_border_details.targetCountry || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Currency</p>
+                <p className="font-medium">{deal.cross_border_details.currency || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Exchange Rate</p>
+                <p className="font-medium">{deal.cross_border_details.exchangeRate || 'Not specified'}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Regulatory Requirements</p>
+              <p className="font-medium">{deal.cross_border_details.regulatoryRequirements || 'Not specified'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Tax Implications</p>
+              <p className="font-medium">{deal.cross_border_details.taxImplications || 'Not specified'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {deal.deal_category === 'micro_deals' && deal.micro_deal_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Item Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Item Name</p>
+                <p className="font-medium">{deal.micro_deal_details.itemName || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Category</p>
+                <p className="font-medium">{deal.micro_deal_details.category || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Condition</p>
+                <p className="font-medium">{deal.micro_deal_details.condition || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Rarity</p>
+                <p className="font-medium">{deal.micro_deal_details.rarity || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Year</p>
+                <p className="font-medium">{deal.micro_deal_details.year || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Authentication</p>
+                <p className="font-medium">{deal.micro_deal_details.authentication || 'Not specified'}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
+              <p className="font-medium">{deal.micro_deal_details.description || 'Not specified'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
