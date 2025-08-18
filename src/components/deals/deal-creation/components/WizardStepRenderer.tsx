@@ -34,7 +34,7 @@ export const WizardStepRenderer: React.FC<WizardStepRendererProps> = ({
   const StepComponent = step.component;
   
   // Pass the temp deal ID to DocumentUploadStep for real uploads
-  const additionalProps = currentStep === 4 && tempDealId ? { dealId: tempDealId } : {};
+  const additionalProps = currentStep === 5 && tempDealId ? { dealId: tempDealId } : {};
   
   return (
     <StepComponent

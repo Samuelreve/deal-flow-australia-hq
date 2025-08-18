@@ -35,7 +35,7 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
     }
     
     if (!data.dealCategory) {
-      newErrors.dealCategory = 'Deal category is required';
+      newErrors.dealCategory = 'Deal category should be selected in the previous step';
     }
 
     setErrors(newErrors);
@@ -94,33 +94,16 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
         </AlertDescription>
       </Alert>
 
-      {/* Deal Category Selection */}
-      <div className="space-y-2">
-        <Label htmlFor="dealCategory">
-          Deal Category *
-        </Label>
-        <Select 
-          value={data.dealCategory} 
-          onValueChange={(value) => updateData({ dealCategory: value })}
-        >
-          <SelectTrigger className={errors.dealCategory ? 'border-red-500' : ''}>
-            <SelectValue placeholder="Select deal category" />
-          </SelectTrigger>
-          <SelectContent>
-            {DEAL_CATEGORIES.map((category) => (
-              <SelectItem key={category.value} value={category.value}>
-                <div className="flex flex-col items-start">
-                  <span>{category.label}</span>
-                  <span className="text-xs text-muted-foreground">{category.description}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.dealCategory && (
-          <p className="text-sm text-red-500">{errors.dealCategory}</p>
-        )}
-      </div>
+      {/* Category Display */}
+      <Alert>
+        <HandHeart className="h-4 w-4" />
+        <AlertDescription>
+          Deal Category: <strong>{DEAL_CATEGORIES.find(c => c.value === data.dealCategory)?.label || 'Not selected'}</strong>
+          {data.dealCategory && (
+            <span className="text-muted-foreground"> - {DEAL_CATEGORIES.find(c => c.value === data.dealCategory)?.description}</span>
+          )}
+        </AlertDescription>
+      </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2 space-y-2">
