@@ -50,10 +50,16 @@ export const useDealSubmission = () => {
             business_state: formData.businessState,
             business_years_in_operation: formData.yearsInOperation,
             deal_type: formData.dealType,
+            deal_category: formData.dealCategory as any,
             key_assets_included: formData.keyAssetsIncluded,
             key_assets_excluded: formData.keyAssetsExcluded,
             reason_for_selling: formData.reasonForSelling,
             primary_seller_contact_name: formData.primarySellerName,
+            // Category-specific fields
+            ip_assets: formData.dealCategory === 'ip_transfer' && formData.ipAssets?.length > 0 ? { assets: formData.ipAssets } as any : null,
+            property_details: formData.dealCategory === 'real_estate' && formData.propertyDetails ? formData.propertyDetails as any : null,
+            cross_border_details: formData.dealCategory === 'cross_border' && formData.crossBorderDetails ? formData.crossBorderDetails as any : null,
+            micro_deal_details: formData.dealCategory === 'micro_deals' && formData.microDealDetails ? formData.microDealDetails as any : null,
             updated_at: new Date().toISOString()
           })
           .eq('id', tempDealId)
@@ -90,10 +96,16 @@ export const useDealSubmission = () => {
             business_state: formData.businessState,
             business_years_in_operation: formData.yearsInOperation,
             deal_type: formData.dealType,
+            deal_category: formData.dealCategory as any,
             key_assets_included: formData.keyAssetsIncluded,
             key_assets_excluded: formData.keyAssetsExcluded,
             reason_for_selling: formData.reasonForSelling,
-            primary_seller_contact_name: formData.primarySellerName
+            primary_seller_contact_name: formData.primarySellerName,
+            // Category-specific fields
+            ip_assets: formData.dealCategory === 'ip_transfer' && formData.ipAssets?.length > 0 ? { assets: formData.ipAssets } as any : null,
+            property_details: formData.dealCategory === 'real_estate' && formData.propertyDetails ? formData.propertyDetails as any : null,
+            cross_border_details: formData.dealCategory === 'cross_border' && formData.crossBorderDetails ? formData.crossBorderDetails as any : null,
+            micro_deal_details: formData.dealCategory === 'micro_deals' && formData.microDealDetails ? formData.microDealDetails as any : null
           })
           .select()
           .single();

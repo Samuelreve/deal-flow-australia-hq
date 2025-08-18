@@ -20,6 +20,7 @@ interface Deal {
   buyer_id?: string;
   asking_price?: number;
   deal_type?: string;
+  deal_category?: string;
   business_legal_name?: string;
   business_trading_names?: string;
   business_abn?: string;
@@ -31,6 +32,10 @@ interface Deal {
   reason_for_selling?: string;
   primary_seller_contact_name?: string;
   target_completion_date?: string;
+  ip_assets?: any;
+  property_details?: any;
+  cross_border_details?: any;
+  micro_deal_details?: any;
   created_at: string;
   updated_at: string;
 }
