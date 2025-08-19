@@ -217,8 +217,9 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
         </CardContent>
       </Card>
 
-      {/* Business Information - Conditional based on category */}
-      {(deal.deal_category === 'business_sale' || !deal.deal_category) && (
+      {/* Business Information - Show for all categories if business info exists */}
+      {(deal.deal_category === 'business_sale' || !deal.deal_category || 
+        (deal.business_legal_name || deal.business_trading_names || deal.business_abn || deal.business_acn || deal.business_industry)) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -264,35 +265,72 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
         </Card>
       )}
 
-      {/* Address Information - Show for Real Estate and Business Sales */}
-      {(deal.deal_category === 'real_estate' || deal.deal_category === 'business_sale' || !deal.deal_category) && (
+      {/* Combined Property Address & Additional Details for Real Estate */}
+      {deal.deal_category === 'real_estate' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              {deal.deal_category === 'real_estate' ? 'Property Address' : 'Addresses'}
+              Property Address
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {deal.deal_category === 'real_estate' && deal.property_details?.address ? (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Property Address</p>
-                <p className="font-medium">{deal.property_details.address}</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Registered Address</p>
-                  <p className="font-medium">{deal.business_registered_address || 'Not specified'}</p>
-                </div>
-                
-                {deal.business_principal_place_address && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Property Address</p>
+              <p className="font-medium">{deal.property_details?.address || 'Not specified'}</p>
+            </div>
+            
+            {/* Additional Property Details */}
+            <div className="pt-4 border-t">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Additional Property Details
+              </h4>
+              <div className="space-y-3">
+                {deal.property_details?.zoning && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Principal Place of Business</p>
-                    <p className="font-medium">{deal.business_principal_place_address}</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Zoning</p>
+                    <p className="font-medium">{deal.property_details.zoning}</p>
                   </div>
                 )}
-              </>
+                {deal.property_details?.landSize && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Land Size (sqm)</p>
+                    <p className="font-medium">{deal.property_details.landSize}</p>
+                  </div>
+                )}
+                {deal.property_details?.parking && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Parking</p>
+                    <p className="font-medium">{deal.property_details.parking}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Address Information for Non-Real Estate deals */}
+      {(deal.deal_category === 'business_sale' || (!deal.deal_category && (deal.business_registered_address || deal.business_principal_place_address))) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Addresses
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Registered Address</p>
+              <p className="font-medium">{deal.business_registered_address || 'Not specified'}</p>
+            </div>
+            
+            {deal.business_principal_place_address && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Principal Place of Business</p>
+                <p className="font-medium">{deal.business_principal_place_address}</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -322,36 +360,6 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
       </Card>
 
       {/* Additional Category-specific Information Cards */}
-      {deal.deal_category === 'real_estate' && deal.property_details && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Additional Property Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {deal.property_details.zoning && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Zoning</p>
-                <p className="font-medium">{deal.property_details.zoning}</p>
-              </div>
-            )}
-            {deal.property_details.landSize && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Land Size (sqm)</p>
-                <p className="font-medium">{deal.property_details.landSize}</p>
-              </div>
-            )}
-            {deal.property_details.parking && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Parking</p>
-                <p className="font-medium">{deal.property_details.parking}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {deal.deal_category === 'cross_border' && deal.cross_border_details && (
         <Card>
