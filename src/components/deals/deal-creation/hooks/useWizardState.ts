@@ -25,6 +25,7 @@ export const useWizardState = () => {
     dealType: '',
     dealCategory: 'business_sale',
     askingPrice: '',
+    currency: 'AUD', // Default to AUD
     targetCompletionDate: '',
     dealDescription: '',
     keyAssetsIncluded: '',
@@ -54,11 +55,13 @@ export const useWizardState = () => {
     },
     microDealDetails: {
       itemType: '',
-      condition: 'good',
+      itemName: '',
+      condition: 'new',
       authenticity: 'unknown',
       rarity: 'common',
-      provenance: '',
-      certifications: []
+      authenticityNotes: '',
+      certifications: [],
+      escrowOptIn: false
     },
     
     // Seller Details - Initialize with user data
@@ -67,6 +70,10 @@ export const useWizardState = () => {
     legalRepName: '',
     legalRepEmail: '',
     legalRepPhone: '',
+    jurisdiction: '',
+    counterpartyCountry: '',
+    buyerName: '',
+    buyerEmail: '',
     
     // Documents
     uploadedDocuments: []

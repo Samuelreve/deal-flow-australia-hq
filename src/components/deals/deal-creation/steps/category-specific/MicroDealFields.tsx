@@ -109,8 +109,8 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
         <div className="space-y-2">
           <Label>Provenance/History</Label>
           <Textarea
-            value={data.microDealDetails.provenance || ''}
-            onChange={(e) => updateMicroDealDetails({ provenance: e.target.value })}
+            value={data.microDealDetails.authenticityNotes || ''}
+            onChange={(e) => updateMicroDealDetails({ authenticityNotes: e.target.value })}
             placeholder="Describe the item's history, previous owners, or origin story"
             rows={3}
           />

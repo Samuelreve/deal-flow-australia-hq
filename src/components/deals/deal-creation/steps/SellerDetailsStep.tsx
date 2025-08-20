@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ArrowLeft, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,6 +44,21 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
       newErrors.sellerEntityType = 'Seller entity type is required';
     }
 
+    // Jurisdiction is required for IP Transfer and Real Estate
+    if ((data.dealCategory === 'ip_transfer' || data.dealCategory === 'real_estate') && !data.jurisdiction) {
+      newErrors.jurisdiction = 'Jurisdiction is required for this deal type';
+    }
+
+    // Counterparty country is required for Cross Border
+    if (data.dealCategory === 'cross_border' && !data.counterpartyCountry) {
+      newErrors.counterpartyCountry = 'Counterparty country is required for cross-border deals';
+    }
+
+    // Validate buyer email format if provided
+    if (data.buyerEmail && !/\S+@\S+\.\S+/.test(data.buyerEmail)) {
+      newErrors.buyerEmail = 'Please enter a valid email address';
+    }
+
     if (showLegalRep && data.legalRepName) {
       if (data.legalRepEmail && !/\S+@\S+\.\S+/.test(data.legalRepEmail)) {
         newErrors.legalRepEmail = 'Please enter a valid email address';
@@ -78,6 +95,88 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
         onUpdateSellerEntityType={(type) => updateData({ sellerEntityType: type })}
         isAutoFilled={isAutoFilled}
       />
+
+      {/* Jurisdiction - Required for IP Transfer and Real Estate */}
+      {(data.dealCategory === 'ip_transfer' || data.dealCategory === 'real_estate') && (
+        <div className="space-y-2">
+          <Label htmlFor="jurisdiction">
+            Jurisdiction *
+          </Label>
+          <Input
+            id="jurisdiction"
+            value={data.jurisdiction}
+            onChange={(e) => updateData({ jurisdiction: e.target.value })}
+            placeholder="e.g., New South Wales, Australia"
+            className={errors.jurisdiction ? 'border-red-500' : ''}
+          />
+          {errors.jurisdiction && (
+            <p className="text-sm text-red-500">{errors.jurisdiction}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Legal jurisdiction for this {data.dealCategory === 'ip_transfer' ? 'IP transfer' : 'property transaction'}
+          </p>
+        </div>
+      )}
+
+      {/* Counterparty Country - Required for Cross Border */}
+      {data.dealCategory === 'cross_border' && (
+        <div className="space-y-2">
+          <Label htmlFor="counterpartyCountry">
+            Counterparty Country *
+          </Label>
+          <Input
+            id="counterpartyCountry"
+            value={data.counterpartyCountry}
+            onChange={(e) => updateData({ counterpartyCountry: e.target.value })}
+            placeholder="e.g., United States"
+            className={errors.counterpartyCountry ? 'border-red-500' : ''}
+          />
+          {errors.counterpartyCountry && (
+            <p className="text-sm text-red-500">{errors.counterpartyCountry}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Country of the other party in this cross-border transaction
+          </p>
+        </div>
+      )}
+
+      {/* Optional Buyer Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="buyerName">
+            Buyer Name (Optional)
+          </Label>
+          <Input
+            id="buyerName"
+            value={data.buyerName || ''}
+            onChange={(e) => updateData({ buyerName: e.target.value })}
+            placeholder="Buyer's full name or company name"
+          />
+          <p className="text-xs text-muted-foreground">
+            Can be added later if not known at creation
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="buyerEmail">
+            Buyer Email (Optional)
+          </Label>
+          <Input
+            id="buyerEmail"
+            type="email"
+            value={data.buyerEmail || ''}
+            onChange={(e) => updateData({ buyerEmail: e.target.value })}
+            placeholder="buyer@example.com"
+            className={errors.buyerEmail ? 'border-red-500' : ''}
+          />
+          {errors.buyerEmail && (
+            <p className="text-sm text-red-500">{errors.buyerEmail}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Contact email for the buyer (if known)
+          </p>
+        </div>
+      </div>
 
       <Collapsible open={showLegalRep} onOpenChange={setShowLegalRep}>
         <CollapsibleTrigger asChild>

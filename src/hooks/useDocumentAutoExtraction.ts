@@ -157,10 +157,11 @@ export const useDocumentAutoExtraction = () => {
           const microDeal = extractedData.microDealInfo;
           mappedData.microDealDetails = {
             itemType: microDeal.itemType || '',
-            condition: microDeal.condition?.toLowerCase().replace(' ', '_') || 'good',
+            itemName: microDeal.itemName || '',
+            condition: microDeal.condition?.toLowerCase().replace(' ', '_') || 'new',
             authenticity: microDeal.authenticity?.toLowerCase() || 'unknown',
             rarity: microDeal.rarity?.toLowerCase().replace(' ', '_') || 'common',
-            provenance: '',
+            authenticityNotes: '',
             certifications: []
           };
         }

@@ -18,6 +18,10 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
   errors,
   onUpdateData
 }) => {
+  // Determine which fields are required based on deal category
+  const categoryRequiresLegalName = ['business_sale', 'ip_transfer', 'cross_border'].includes(data.dealCategory);
+  const isMicroDeal = data.dealCategory === 'micro_deals';
+  
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -40,9 +44,10 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
           </p>
         </div>
 
+        {/* Legal Name - required for business_sale, ip_transfer, cross_border; optional for micro_deal */}
         <div className="space-y-2">
           <Label htmlFor="businessLegalName">
-            Business Legal Name *
+            Business Legal Name {categoryRequiresLegalName ? '*' : '(Optional)'}
           </Label>
           <Input
             id="businessLegalName"
@@ -55,7 +60,10 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
             <p className="text-sm text-red-500">{errors.businessLegalName}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            The official registered legal name
+            {categoryRequiresLegalName 
+              ? 'The official registered legal name (required for this deal type)'
+              : 'The official registered legal name'
+            }
           </p>
         </div>
 
@@ -105,7 +113,7 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
 
         <div className="space-y-2">
           <Label htmlFor="abn">
-            ABN (Australian Business Number)
+            ABN (Australian Business Number) {!isMicroDeal ? '(Recommended)' : ''}
           </Label>
           <Input
             id="abn"
@@ -118,6 +126,9 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
           {errors.abn && (
             <p className="text-sm text-red-500">{errors.abn}</p>
           )}
+          <p className="text-xs text-muted-foreground">
+            Optional but recommended for Australian businesses
+          </p>
         </div>
 
         {data.legalEntityType === 'Pty Ltd' && (
@@ -136,6 +147,9 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
             {errors.acn && (
               <p className="text-sm text-red-500">{errors.acn}</p>
             )}
+            <p className="text-xs text-muted-foreground">
+              9 digits in format: 123 456 789
+            </p>
           </div>
         )}
 
@@ -177,17 +191,38 @@ export const BusinessInformationForm: React.FC<BusinessInformationFormProps> = (
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="registeredAddress">
-          Registered Business Address
-        </Label>
-        <Textarea
-          id="registeredAddress"
-          value={data.registeredAddress}
-          onChange={(e) => onUpdateData({ registeredAddress: e.target.value })}
-          placeholder="123 Business Street, City, State, Postcode"
-          rows={2}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="registeredAddress">
+            Registered Business Address
+          </Label>
+          <Textarea
+            id="registeredAddress"
+            value={data.registeredAddress}
+            onChange={(e) => onUpdateData({ registeredAddress: e.target.value })}
+            placeholder="123 Business Street, City, State, Postcode"
+            rows={2}
+          />
+          <p className="text-xs text-muted-foreground">
+            Official registered address
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="principalAddress">
+            Principal Business Address
+          </Label>
+          <Textarea
+            id="principalAddress"
+            value={data.principalAddress}
+            onChange={(e) => onUpdateData({ principalAddress: e.target.value })}
+            placeholder="456 Trading Street, City, State, Postcode"
+            rows={2}
+          />
+          <p className="text-xs text-muted-foreground">
+            Primary operating address (if different from registered)
+          </p>
+        </div>
       </div>
     </>
   );

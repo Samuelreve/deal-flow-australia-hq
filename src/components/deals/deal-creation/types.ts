@@ -17,6 +17,7 @@ export interface DealCreationData {
   dealType: string;
   dealCategory: string;
   askingPrice: string;
+  currency: string; // Added currency field (ISO 4217)
   targetCompletionDate: string;
   dealDescription: string;
   keyAssetsIncluded: string;
@@ -35,6 +36,10 @@ export interface DealCreationData {
   legalRepName: string;
   legalRepEmail: string;
   legalRepPhone: string;
+  jurisdiction: string; // Added for ip_transfer and real_estate
+  counterpartyCountry: string; // Added for cross_border
+  buyerName?: string; // Optional at creation
+  buyerEmail?: string; // Optional at creation
   
   // Documents
   uploadedDocuments: UploadedDocument[];
@@ -59,6 +64,7 @@ export interface PropertyDetails {
   proposedUse?: string;
   settlementDate?: string;
   contractConditions?: string[];
+  stage?: 'offer' | 'cooling_off' | 'finance' | 'building_pest' | 'exchange' | 'settlement';
 }
 
 export interface CrossBorderDetails {
@@ -68,15 +74,22 @@ export interface CrossBorderDetails {
   taxImplications: string;
   currencyExchange: string;
   complianceRequirements: string[];
+  incoterms?: string; // Added incoterms
+  regulatoryFlags?: {
+    sanctionsCheck?: boolean;
+    exportLicenseRequired?: boolean;
+  };
 }
 
 export interface MicroDealDetails {
-  itemType: string;
-  condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
+  itemName: string; // Changed from itemType to itemName
+  itemType: string; // Keep itemType for category
+  condition: 'new' | 'used';
   authenticity: 'verified' | 'unverified' | 'unknown';
   rarity: 'common' | 'uncommon' | 'rare' | 'ultra_rare';
-  provenance?: string;
+  authenticityNotes?: string; // Changed from provenance to authenticityNotes
   certifications?: string[];
+  escrowOptIn?: boolean; // Added escrow option
 }
 
 export interface UploadedDocument {

@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { StepProps, DEAL_TYPES, SELLING_REASONS, DEAL_CATEGORIES } from '../types';
 import { IPTransferFields } from './category-specific/IPTransferFields';
+import { BusinessSaleFields } from './category-specific/BusinessSaleFields';
 import { RealEstateFields } from './category-specific/RealEstateFields';
 import { MicroDealFields } from './category-specific/MicroDealFields';
 import { CrossBorderFields } from './category-specific/CrossBorderFields';
@@ -187,7 +188,7 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
         {shouldShowField('askingPrice') && (
           <div className="space-y-2">
             <Label htmlFor="askingPrice">
-              Asking Price (AUD)
+              Asking Price
             </Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -207,6 +208,34 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
                 </AlertDescription>
               </Alert>
             )}
+          </div>
+        )}
+
+        {/* Currency - Show for all deal types */}
+        {shouldShowField('askingPrice') && (
+          <div className="space-y-2">
+            <Label htmlFor="currency">
+              Currency (ISO 4217)
+            </Label>
+            <Select 
+              value={data.currency || 'AUD'} 
+              onValueChange={(value) => updateData({ currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                <SelectItem value="USD">USD - US Dollar</SelectItem>
+                <SelectItem value="EUR">EUR - Euro</SelectItem>
+                <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                <SelectItem value="NZD">NZD - New Zealand Dollar</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Currency for the asking price (defaults to AUD)
+            </p>
           </div>
         )}
 
@@ -328,6 +357,10 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
       )}
 
       {/* Category-specific fields */}
+      {data.dealCategory === 'business_sale' && (
+        <BusinessSaleFields data={data} updateData={updateData} />
+      )}
+      
       {data.dealCategory === 'ip_transfer' && (
         <IPTransferFields data={data} updateData={updateData} />
       )}
