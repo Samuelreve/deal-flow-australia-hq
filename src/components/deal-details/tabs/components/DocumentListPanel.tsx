@@ -2,10 +2,12 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Share, FileText, Sparkles } from "lucide-react";
+import { Upload, Download, FileText, Sparkles } from "lucide-react";
 import { getFileIconByType } from "@/lib/fileIcons";
 import DocumentUploadForm from "@/components/deals/document/DocumentUploadForm";
 import { Document } from "@/types/deal";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface DocumentListPanelProps {
   documents: Document[];
@@ -28,6 +30,71 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   onShowTemplateModal,
   onDocumentUpload,
 }) => {
+  const { toast } = useToast();
+
+  const handleDownloadDocument = async (document: Document, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent selecting the document when clicking download
+    
+    try {
+      const { data: storageData, error: storageError } = await supabase
+        .from('documents')
+        .select('storage_path')
+        .eq('id', document.id)
+        .single();
+
+      if (storageError || !storageData?.storage_path) {
+        toast({
+          title: "Error",
+          description: "Document metadata not found. The file may need to be re-uploaded.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const storagePath = storageData.storage_path;
+      let fullStoragePath: string;
+      
+      if (storagePath.startsWith(dealId + '/') || storagePath.includes('/')) {
+        fullStoragePath = storagePath;
+      } else {
+        fullStoragePath = `${dealId}/${storagePath}`;
+      }
+
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('deal_documents')
+        .createSignedUrl(fullStoragePath, 60);
+      
+      if (urlError || !urlData?.signedUrl) {
+        console.error('Error creating signed URL:', urlError);
+        toast({
+          title: "Error",
+          description: "Unable to generate download link. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create and trigger download
+      const link = window.document.createElement('a');
+      link.href = urlData.signedUrl;
+      link.download = document.name;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "Document download started"
+      });
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   const formatFileSize = (bytes: number) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Bytes';
@@ -121,8 +188,14 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-sm truncate">{doc.name}</h4>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <Share className="h-3 w-3" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0 hover:bg-primary/10"
+                            onClick={(e) => handleDownloadDocument(doc, e)}
+                            title="Download document"
+                          >
+                            <Download className="h-3 w-3" />
                           </Button>
                         </div>
                         
