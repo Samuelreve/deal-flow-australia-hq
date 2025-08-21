@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Document, DocumentVersion } from "@/types/documentVersion";
-import { ChevronRight, ChevronDown, FileCog } from "lucide-react";
+import { ChevronRight, ChevronDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDocumentSize } from "@/utils/documentTypeAdapter";
@@ -70,6 +70,29 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
       console.error('Error fetching signature info:', error);
     }
   };
+
+  const handleDownloadDocument = async () => {
+    if (!document.latestVersion) return;
+    
+    try {
+      const { data: urlData, error } = await supabase.storage
+        .from(`deal-${dealId}`)
+        .createSignedUrl(document.latestVersion.url, 60);
+      
+      if (error) throw error;
+      
+      if (urlData?.signedUrl) {
+        const link = window.document.createElement('a');
+        link.href = urlData.signedUrl;
+        link.download = document.name;
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error);
+    }
+  };
   
   return (
     <div className="bg-muted/20 rounded-md overflow-hidden">
@@ -109,11 +132,11 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({
               className="ml-2 h-8 w-8 p-0"
               onClick={(e) => {
                 e.stopPropagation();
-                onAnalyze(document, document.latestVersionId);
+                handleDownloadDocument();
               }}
-              title="Analyze document"
+              title="Download document"
             >
-              <FileCog className="h-4 w-4" />
+              <Download className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex items-center text-xs text-muted-foreground mt-1">
