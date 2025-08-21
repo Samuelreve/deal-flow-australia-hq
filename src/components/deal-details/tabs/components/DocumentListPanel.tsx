@@ -60,27 +60,31 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
         fullStoragePath = `${dealId}/${storagePath}`;
       }
 
-      const { data: urlData, error: urlError } = await supabase.storage
+      // Download the file as blob instead of creating signed URL
+      const { data: fileBlob, error: downloadError } = await supabase.storage
         .from('deal_documents')
-        .createSignedUrl(fullStoragePath, 60);
+        .download(fullStoragePath);
       
-      if (urlError || !urlData?.signedUrl) {
-        console.error('Error creating signed URL:', urlError);
+      if (downloadError || !fileBlob) {
+        console.error('Error downloading file:', downloadError);
         toast({
           title: "Error",
-          description: "Unable to generate download link. Please try again.",
+          description: "Unable to download document. Please try again.",
           variant: "destructive"
         });
         return;
       }
       
-      // Create and trigger download
+      // Create blob URL and trigger download
+      const url = window.URL.createObjectURL(fileBlob);
       const link = window.document.createElement('a');
-      link.href = urlData.signedUrl;
+      link.href = url;
       link.download = document.name;
+      link.style.display = 'none';
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
       toast({
         title: "Success",
