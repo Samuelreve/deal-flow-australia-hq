@@ -74,6 +74,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     (!milestone.assigned_to && ['seller'].includes(userRole.toLowerCase()))
   );
   
+  // Permission to START milestones (admins only)
+  const canStartMilestone = isParticipant && ['admin'].includes(userRole.toLowerCase());
+  
   // Permission to assign/unassign milestones (sellers and admins only)
   const canAssignMilestone = isParticipant && ['admin', 'seller'].includes(userRole.toLowerCase());
   
@@ -961,8 +964,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               </button>
             )}
             
-            {/* "Start Milestone" button - only for not_started milestones if previous milestone is completed */}
-            {milestone.status === 'not_started' && (
+            {/* "Start Milestone" button - only for admins and not_started milestones if previous milestone is completed */}
+            {milestone.status === 'not_started' && canStartMilestone && (
               <button
                 onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
                 disabled={updatingMilestoneId === milestone.id || !canStart}
@@ -1051,25 +1054,29 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <div className="text-sm text-emerald-600 font-medium">
                 ✓ Document signed by all parties
               </div>
-              {userRole === 'admin' && (
-                <button
-                  onClick={handleSaveSignedDocumentToDealRoom}
-                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
-                    downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
-                      ? 'text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                      : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-300'
-                  }`}
-                  disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {downloadingSignedDoc 
-                    ? 'Saving...' 
-                    : savedSignedDocuments.has(milestone.id)
-                      ? 'Saved' 
-                      : 'Save to Deal Room'
-                  }
-                </button>
-              )}
+            </div>
+          )}
+
+          {/* Save Document Button - Always show for admins when documents are fully signed */}
+          {milestoneSigningStatus === 'completed' && userRole.toLowerCase() === 'admin' && (
+            <div className="mt-2">
+              <button
+                onClick={handleSaveSignedDocumentToDealRoom}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
+                  downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
+                    ? 'text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                    : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-300'
+                }`}
+                disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {downloadingSignedDoc 
+                  ? 'Saving...' 
+                  : savedSignedDocuments.has(milestone.id)
+                    ? 'Saved to Deal Room' 
+                    : 'Save Document'
+                }
+              </button>
             </div>
           )}
 
