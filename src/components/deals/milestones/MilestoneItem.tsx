@@ -1058,27 +1058,38 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           )}
 
           {/* Save Document Button - Always show for admins when documents are fully signed */}
-          {milestoneSigningStatus === 'completed' && userRole.toLowerCase() === 'admin' && (
-            <div className="mt-2">
-              <button
-                onClick={handleSaveSignedDocumentToDealRoom}
-                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
-                  downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
-                    ? 'text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                    : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-300'
-                }`}
-                disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {downloadingSignedDoc 
-                  ? 'Saving...' 
-                  : savedSignedDocuments.has(milestone.id)
-                    ? 'Saved to Deal Room' 
-                    : 'Save Document'
-                }
-              </button>
-            </div>
-          )}
+          {(() => {
+            // Debug logging
+            console.log('🐛 Debug Save Button:', {
+              milestoneSigningStatus,
+              userRole: userRole.toLowerCase(),
+              isAdmin: userRole.toLowerCase() === 'admin',
+              shouldShowSaveButton: milestoneSigningStatus === 'completed' && userRole.toLowerCase() === 'admin',
+              milestoneTitle: milestone.title
+            });
+            
+            return milestoneSigningStatus === 'completed' && userRole.toLowerCase() === 'admin' && (
+              <div className="mt-2">
+                <button
+                  onClick={handleSaveSignedDocumentToDealRoom}
+                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
+                    downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
+                      ? 'text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed' 
+                      : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-300'
+                  }`}
+                  disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {downloadingSignedDoc 
+                    ? 'Saving...' 
+                    : savedSignedDocuments.has(milestone.id)
+                      ? 'Saved to Deal Room' 
+                      : 'Save Document'
+                  }
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Partially Signed State */}
           {milestoneSigningStatus === 'sent' && (
