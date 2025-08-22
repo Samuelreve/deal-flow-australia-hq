@@ -113,6 +113,10 @@ export interface StepProps {
   isLastStep: boolean;
   onSubmit?: () => void;
   isSubmitting?: boolean;
+  documentContext?: {
+    extractedText?: string;
+    extractedData?: any;
+  };
 }
 
 // Enhanced constants for the new wizard

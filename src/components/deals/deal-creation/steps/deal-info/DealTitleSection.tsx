@@ -4,17 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DealCreationData } from '../../types';
+import { AIDocumentSuggestion } from '../../components/AIDocumentSuggestion';
 
 interface DealTitleSectionProps {
   data: DealCreationData;
   updateData: (updates: Partial<DealCreationData>) => void;
   error?: string;
+  documentText?: string;
+  extractedData?: any;
 }
 
 export const DealTitleSection: React.FC<DealTitleSectionProps> = ({
   data,
   updateData,
-  error
+  error,
+  documentText,
+  extractedData
 }) => {
   const generateDealTitle = () => {
     if (data.businessTradingName && data.dealType) {
@@ -44,6 +49,14 @@ export const DealTitleSection: React.FC<DealTitleSectionProps> = ({
         >
           Auto-generate
         </Button>
+        <AIDocumentSuggestion
+          documentText={documentText}
+          extractedData={extractedData}
+          fieldType="title"
+          currentValue={data.dealTitle}
+          onSuggestion={(suggestion) => updateData({ dealTitle: suggestion })}
+          dealCategory={data.dealCategory}
+        />
       </div>
       {error && (
         <p className="text-sm text-red-500">{error}</p>

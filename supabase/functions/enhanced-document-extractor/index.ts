@@ -129,6 +129,32 @@ const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
   return allText.replace(/\s+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 };
 
+const detectDealCategory = (text: string): string => {
+  const categories = {
+    ip_transfer: ['assignment of ip', 'license', 'trademark no.', 'tm', 'patent app', 'ipo', 'intellectual property', 'copyright', 'trade secret', 'patent', 'trademark', 'ip rights'],
+    real_estate: ['conveyancing', 'settlement', 'exchange', 'property', 'real estate', 'title deed', 'council rates', 'zoning', 'strata'],
+    cross_border: ['cross-border', 'overseas', 'incoterms', 'fob', 'cif', 'exw', 'international', 'export', 'import', 'customs'],
+    micro_deals: ['pokémon', 'trading card', 'psa grade', 'collectible', 'mint condition', 'graded', 'authentication', 'rare card']
+  };
+
+  const lowerText = text.toLowerCase();
+  let categoryScores: Record<string, number> = {};
+
+  for (const [category, keywords] of Object.entries(categories)) {
+    categoryScores[category] = 0;
+    for (const keyword of keywords) {
+      const matches = (lowerText.match(new RegExp(keyword, 'g')) || []).length;
+      categoryScores[category] += matches;
+    }
+  }
+
+  // Find category with highest score
+  const detectedCategory = Object.entries(categoryScores)
+    .sort(([,a], [,b]) => b - a)[0];
+
+  return detectedCategory[1] > 0 ? detectedCategory[0] : 'business_sale';
+};
+
 const extractCategorySpecificData = async (text: string, category: string): Promise<CategorySpecificData> => {
   if (!OPENAI_API_KEY) {
     console.log('No OpenAI API key available - returning basic extraction');
@@ -310,8 +336,18 @@ const serve_handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Auto-detect deal category if not specified or if specified as business_sale
+    let finalCategory = dealCategory;
+    if (dealCategory === 'business_sale' || !dealCategory) {
+      const detectedCategory = detectDealCategory(extractedText);
+      if (detectedCategory !== 'business_sale') {
+        finalCategory = detectedCategory;
+        console.log(`🎯 Auto-detected category: ${detectedCategory} based on keywords`);
+      }
+    }
+
     // Extract category-specific data using AI
-    const extractedData = await extractCategorySpecificData(extractedText, dealCategory);
+    const extractedData = await extractCategorySpecificData(extractedText, finalCategory);
 
     console.log(`✅ Enhanced extraction completed for ${fileName}`);
 
@@ -319,7 +355,8 @@ const serve_handler = async (req: Request): Promise<Response> => {
       success: true, 
       text: extractedText,
       extractedData: extractedData,
-      category: dealCategory
+      category: finalCategory,
+      detectedCategory: finalCategory !== dealCategory ? finalCategory : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

@@ -89,6 +89,60 @@ export const useDocumentAutoExtraction = () => {
 
     const mappedData: Partial<DealCreationData> = {};
 
+    // Auto-generate deal title based on extracted data
+    if (extractedData.businessInfo?.businessName || extractedData.propertyDetails?.address || extractedData.microDealInfo?.itemName) {
+      let title = '';
+      switch (category) {
+        case 'business_sale':
+          title = `Sale of ${extractedData.businessInfo?.businessName || 'Business'} - Business Sale`;
+          break;
+        case 'real_estate':
+          title = `Property Sale - ${extractedData.propertyDetails?.address || 'Property'}`;
+          break;
+        case 'ip_transfer':
+          const ipAsset = extractedData.ipAssets?.[0];
+          title = `IP Transfer - ${ipAsset?.name || 'Intellectual Property'}`;
+          break;
+        case 'cross_border':
+          title = `Cross-Border Transaction - ${extractedData.businessInfo?.businessName || 'International Deal'}`;
+          break;
+        case 'micro_deals':
+          title = `Sale of ${extractedData.microDealInfo?.itemName || 'Collectible Item'}`;
+          break;
+      }
+      if (title) mappedData.dealTitle = title;
+    }
+
+    // Auto-generate deal description based on extracted data
+    let description = '';
+    switch (category) {
+      case 'business_sale':
+        if (extractedData.businessInfo) {
+          const b = extractedData.businessInfo;
+          description = `${b.businessName ? `${b.businessName} is ` : ''}${b.industry ? `a ${b.industry} business ` : ''}${b.yearsInOperation ? `with ${b.yearsInOperation} years of operation` : ''}. ${b.assetsIncluded ? `Key assets include: ${b.assetsIncluded}` : ''}`;
+        }
+        break;
+      case 'real_estate':
+        if (extractedData.propertyDetails) {
+          const p = extractedData.propertyDetails;
+          description = `${p.propertyType ? `${p.propertyType.charAt(0).toUpperCase() + p.propertyType.slice(1)} property ` : 'Property '}located at ${p.address || 'prime location'}${p.sqm ? ` with ${p.sqm} sqm` : ''}${p.zoning ? ` in ${p.zoning} zoning` : ''}.`;
+        }
+        break;
+      case 'ip_transfer':
+        if (extractedData.ipAssets?.[0]) {
+          const ip = extractedData.ipAssets[0];
+          description = `${ip.type ? `${ip.type.charAt(0).toUpperCase() + ip.type.slice(1)} ` : ''}${ip.name ? `"${ip.name}"` : 'intellectual property'} ${ip.registrationNumber ? `(Registration: ${ip.registrationNumber})` : ''}${ip.jurisdiction ? ` registered in ${ip.jurisdiction}` : ''}.`;
+        }
+        break;
+      case 'micro_deals':
+        if (extractedData.microDealInfo) {
+          const m = extractedData.microDealInfo;
+          description = `${m.itemName || 'Collectible item'}${m.condition ? ` in ${m.condition} condition` : ''}${m.rarity ? ` (${m.rarity} rarity)` : ''}${m.authenticity === 'verified' ? ' - Authenticity verified' : ''}.`;
+        }
+        break;
+    }
+    if (description.trim()) mappedData.dealDescription = description.trim();
+
     // Map common business information
     if (extractedData.businessInfo) {
       const business = extractedData.businessInfo;
@@ -120,6 +174,34 @@ export const useDocumentAutoExtraction = () => {
     // Map financial information
     if (extractedData.financialInfo?.askingPrice) {
       mappedData.askingPrice = extractedData.financialInfo.askingPrice;
+    }
+
+    // Set deal type based on category
+    switch (category) {
+      case 'business_sale':
+        mappedData.dealType = 'Asset Sale';
+        break;
+      case 'ip_transfer':
+        mappedData.dealType = 'IP Assignment';
+        break;
+      case 'real_estate':
+        mappedData.dealType = 'Property Sale';
+        break;
+      case 'cross_border':
+        mappedData.dealType = 'Cross-Border Transaction';
+        break;
+      case 'micro_deals':
+        mappedData.dealType = 'Item Sale';
+        break;
+    }
+
+    // Map reason for selling based on extracted information
+    if (category === 'business_sale' && extractedData.businessInfo) {
+      mappedData.reasonForSelling = 'Business Expansion';
+    } else if (category === 'real_estate') {
+      mappedData.reasonForSelling = 'Investment';
+    } else if (category === 'micro_deals') {
+      mappedData.reasonForSelling = 'Personal Collection';
     }
 
     // Map category-specific data

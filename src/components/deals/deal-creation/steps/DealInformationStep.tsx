@@ -10,7 +10,7 @@ import { DealDescriptionSection } from './deal-info/DealDescriptionSection';
 import { DealAssetsSection } from './deal-info/DealAssetsSection';
 import { validateDealInfoStep } from './deal-info/DealInfoValidation';
 
-const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
+const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev, documentContext }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -35,6 +35,8 @@ const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, on
           data={data}
           updateData={updateData}
           error={errors.dealTitle}
+          documentText={documentContext?.extractedText}
+          extractedData={documentContext?.extractedData}
         />
       </div>
 
@@ -42,12 +44,16 @@ const DealInformationStep: React.FC<StepProps> = ({ data, updateData, onNext, on
         data={data}
         updateData={updateData}
         errors={errors}
+        documentText={documentContext?.extractedText}
+        extractedData={documentContext?.extractedData}
       />
 
       <DealDescriptionSection 
         data={data}
         updateData={updateData}
         error={errors.dealDescription}
+        documentText={documentContext?.extractedText}
+        extractedData={documentContext?.extractedData}
       />
 
       <DealAssetsSection 

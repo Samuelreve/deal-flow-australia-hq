@@ -4,17 +4,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DealCreationData, DEAL_TYPES, SELLING_REASONS } from '../../types';
+import { AIDocumentSuggestion } from '../../components/AIDocumentSuggestion';
 
 interface DealBasicDetailsFormProps {
   data: DealCreationData;
   updateData: (updates: Partial<DealCreationData>) => void;
   errors: Record<string, string>;
+  documentText?: string;
+  extractedData?: any;
 }
 
 export const DealBasicDetailsForm: React.FC<DealBasicDetailsFormProps> = ({
   data,
   updateData,
-  errors
+  errors,
+  documentText,
+  extractedData
 }) => {
   const formatPrice = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -46,9 +51,25 @@ export const DealBasicDetailsForm: React.FC<DealBasicDetailsFormProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="askingPrice">
-          Asking Price (Optional)
-        </Label>
+        <div className="flex justify-between items-center">
+          <Label htmlFor="askingPrice">
+            Asking Price (Optional)
+          </Label>
+          <AIDocumentSuggestion
+            documentText={documentText}
+            extractedData={extractedData}
+            fieldType="valuation"
+            currentValue={data.askingPrice}
+            onSuggestion={(suggestion) => {
+              // Extract price from suggestion if possible, otherwise show as tip
+              const priceMatch = suggestion.match(/\$[\d,]+/);
+              if (priceMatch) {
+                updateData({ askingPrice: priceMatch[0].replace('$', '').replace(/,/g, '') });
+              }
+            }}
+            dealCategory={data.dealCategory}
+          />
+        </div>
         <div className="relative">
           <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
           <Input
@@ -59,6 +80,14 @@ export const DealBasicDetailsForm: React.FC<DealBasicDetailsFormProps> = ({
             className="pl-8"
           />
         </div>
+        {extractedData?.businessInfo?.yearsInOperation && (
+          <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex-shrink-0 w-4 h-4 bg-blue-500 rounded-full mt-0.5"></div>
+            <div className="text-sm text-blue-800">
+              <strong>AI Valuation Tip:</strong> Based on {data.businessIndustry || 'business'} with {extractedData.businessInfo.yearsInOperation} years of operation, typical asking prices range from 2-5x annual revenue. Consider getting a professional valuation.
+            </div>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           You can set this as 'Price on Application' or provide a range
         </p>
