@@ -71,8 +71,12 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
         if (uploadedDoc) {
           newDocuments.push(uploadedDoc);
           
-          // Auto-extract data if enabled and it's a PDF
-          if (autoExtractEnabled && file.type === 'application/pdf' && data.dealCategory) {
+          // Auto-extract data if enabled and it's a supported document type
+          if (autoExtractEnabled && 
+              (file.type === 'application/pdf' || 
+               file.type === 'application/msword' || 
+               file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') && 
+              data.dealCategory) {
             try {
               // Convert file to base64 for extraction
               const fileBase64 = await fileToBase64(file);
