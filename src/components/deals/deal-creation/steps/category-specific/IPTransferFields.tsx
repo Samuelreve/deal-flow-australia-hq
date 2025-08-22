@@ -20,6 +20,9 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
       name: '',
       description: '',
       registrationNumber: '',
+      identifier: '', // required default
+      jurisdiction: '', // required default
+      transferType: 'assignment', // required default
       expiryDate: '',
       value: ''
     };
@@ -76,7 +79,7 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>IP Type</Label>
+                    <Label>IP Type *</Label>
                     <Select
                       value={asset.type}
                       onValueChange={(value: any) => updateIPAsset(index, { type: value })}
@@ -101,6 +104,41 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
                       onChange={(e) => updateIPAsset(index, { name: e.target.value })}
                       placeholder="e.g., MyApp Mobile Application"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>IP Identifier</Label>
+                    <Input
+                      value={asset.identifier || ''}
+                      onChange={(e) => updateIPAsset(index, { identifier: e.target.value })}
+                      placeholder="e.g., AU TM number, patent app no."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Jurisdiction *</Label>
+                    <Input
+                      value={asset.jurisdiction || ''}
+                      onChange={(e) => updateIPAsset(index, { jurisdiction: e.target.value })}
+                      placeholder="e.g., Australia, United States"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Transfer Type *</Label>
+                    <Select
+                      value={asset.transferType}
+                      onValueChange={(value: any) => updateIPAsset(index, { transferType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="assignment">Assignment</SelectItem>
+                        <SelectItem value="exclusive_license">Exclusive License</SelectItem>
+                        <SelectItem value="non_exclusive_license">Non-Exclusive License</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">

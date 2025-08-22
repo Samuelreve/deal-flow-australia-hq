@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,21 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
     updateData({
       crossBorderDetails: { ...data.crossBorderDetails, ...updates }
     });
+  };
+
+  const addRegulatoryFlag = (flag: string) => {
+    if (!flag.trim()) return;
+    const current = data.crossBorderDetails.regulatoryFlags || [];
+    if (!current.includes(flag)) {
+      updateCrossBorderDetails({ 
+        regulatoryFlags: [...current, flag] 
+      });
+    }
+  };
+
+  const removeRegulatoryFlag = (flag: string) => {
+    const updated = (data.crossBorderDetails.regulatoryFlags || []).filter(f => f !== flag);
+    updateCrossBorderDetails({ regulatoryFlags: updated });
   };
 
   const addRegulatoryApproval = (approval: string) => {
@@ -56,6 +72,57 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <Label>Counterparty Country *</Label>
+            <Input
+              value={data.crossBorderDetails.counterpartyCountry}
+              onChange={(e) => updateCrossBorderDetails({ counterpartyCountry: e.target.value })}
+              placeholder="e.g., United States"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Currency *</Label>
+            <Select
+              value={data.crossBorderDetails.currency}
+              onValueChange={(value: any) => updateCrossBorderDetails({ currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                <SelectItem value="USD">USD - US Dollar</SelectItem>
+                <SelectItem value="EUR">EUR - Euro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Incoterms</Label>
+            <Select
+              value={data.crossBorderDetails.incoterms || ''}
+              onValueChange={(value: any) => updateCrossBorderDetails({ incoterms: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Incoterms" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EXW">EXW - Ex Works</SelectItem>
+                <SelectItem value="FCA">FCA - Free Carrier</SelectItem>
+                <SelectItem value="CPT">CPT - Carriage Paid To</SelectItem>
+                <SelectItem value="CIP">CIP - Carriage and Insurance Paid To</SelectItem>
+                <SelectItem value="DAP">DAP - Delivered At Place</SelectItem>
+                <SelectItem value="DPU">DPU - Delivered At Place Unloaded</SelectItem>
+                <SelectItem value="DDP">DDP - Delivered Duty Paid</SelectItem>
+                <SelectItem value="FAS">FAS - Free Alongside Ship</SelectItem>
+                <SelectItem value="FOB">FOB - Free On Board</SelectItem>
+                <SelectItem value="CFR">CFR - Cost and Freight</SelectItem>
+                <SelectItem value="CIF">CIF - Cost, Insurance and Freight</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label>Buyer Country</Label>
             <Input
               value={data.crossBorderDetails.buyerCountry}
@@ -72,6 +139,27 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
               placeholder="e.g., Australia"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Regulatory Flags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {(data.crossBorderDetails.regulatoryFlags || []).map((flag, index) => (
+              <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeRegulatoryFlag(flag)}>
+                {flag} ×
+              </Badge>
+            ))}
+          </div>
+          <Input
+            placeholder="Add regulatory flag (e.g., Export controlled, Sanctions check) - Press Enter to add"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addRegulatoryFlag(e.currentTarget.value);
+                e.currentTarget.value = '';
+              }
+            }}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

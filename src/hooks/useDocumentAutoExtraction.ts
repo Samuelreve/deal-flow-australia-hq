@@ -133,7 +133,8 @@ export const useDocumentAutoExtraction = () => {
             currentUse: '',
             proposedUse: '',
             settlementDate: '',
-            contractConditions: []
+            contractConditions: [],
+            stage: 'offer' // required default
           };
         }
         break;
@@ -144,10 +145,12 @@ export const useDocumentAutoExtraction = () => {
           mappedData.crossBorderDetails = {
             buyerCountry: crossBorder.buyerCountry || '',
             sellerCountry: crossBorder.sellerCountry || '',
+            counterpartyCountry: crossBorder.counterpartyCountry || '', // required
             regulatoryApprovals: crossBorder.regulatoryRequirements || [],
             taxImplications: '',
             currencyExchange: '',
-            complianceRequirements: []
+            complianceRequirements: [],
+            currency: 'AUD' // required default
           };
         }
         break;
@@ -156,13 +159,14 @@ export const useDocumentAutoExtraction = () => {
         if (extractedData.microDealInfo) {
           const microDeal = extractedData.microDealInfo;
           mappedData.microDealDetails = {
+            itemName: microDeal.itemName || '', // required
             itemType: microDeal.itemType || '',
-            itemName: microDeal.itemName || '',
             condition: microDeal.condition?.toLowerCase().replace(' ', '_') || 'new',
             authenticity: microDeal.authenticity?.toLowerCase() || 'unknown',
             rarity: microDeal.rarity?.toLowerCase().replace(' ', '_') || 'common',
             authenticityNotes: '',
-            certifications: []
+            certifications: [],
+            escrowOptIn: false // required default
           };
         }
         break;

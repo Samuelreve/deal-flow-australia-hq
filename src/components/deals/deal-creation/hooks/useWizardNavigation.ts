@@ -17,11 +17,11 @@ export const useWizardNavigation = ({
 
   const nextStep = async () => {
     if (currentStep < WIZARD_STEPS.length) {
-      // Create temp deal before moving to document upload step (step 4)
-      if (currentStep === 3) {
+      // Create temp deal before moving to document upload step (step 3)
+      if (currentStep === 2) {
         const dealId = await createTempDealIfNeeded(
-          formData.dealTitle || 'Draft Deal', 
-          formData.dealDescription || 'Deal in progress'
+          formData.businessName || 'Draft Deal', 
+          formData.businessName ? `Deal for ${formData.businessName}` : 'Deal in progress'
         );
         console.log('Temp deal created/retrieved for document upload:', dealId);
       }

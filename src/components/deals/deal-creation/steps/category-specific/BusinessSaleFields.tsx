@@ -53,8 +53,15 @@ export const BusinessSaleFields: React.FC<BusinessSaleFieldsProps> = ({ data, up
           <CardTitle className="text-lg">Business Sale Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Business Industry - Already captured in Business Info step */}
-          
+          {/* Business Industry Display */}
+          <div className="space-y-2">
+            <Label>Business Industry</Label>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm">{data.businessIndustry || 'Not specified'}</p>
+              <p className="text-xs text-muted-foreground">From business information</p>
+            </div>
+          </div>
+
           {/* Assets Included */}
           <div className="space-y-3">
             <Label>Assets Included</Label>

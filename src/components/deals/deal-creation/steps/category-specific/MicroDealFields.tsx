@@ -42,6 +42,15 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <Label>Item Name *</Label>
+            <Input
+              value={data.microDealDetails.itemName}
+              onChange={(e) => updateMicroDealDetails({ itemName: e.target.value })}
+              placeholder="e.g., Charizard Base Set Card, Vintage Rolex Watch"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label>Item Type</Label>
             <Input
               value={data.microDealDetails.itemType}
@@ -51,7 +60,7 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
           </div>
 
           <div className="space-y-2">
-            <Label>Condition</Label>
+            <Label>Item Condition</Label>
             <Select
               value={data.microDealDetails.condition}
               onValueChange={(value: any) => updateMicroDealDetails({ condition: value })}
@@ -60,11 +69,11 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MICRO_DEAL_CONDITIONS.map((condition) => (
-                  <SelectItem key={condition} value={condition.toLowerCase().replace(' ', '_')}>
-                    {condition}
-                  </SelectItem>
-                ))}
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="like_new">Like New</SelectItem>
+                <SelectItem value="good">Good</SelectItem>
+                <SelectItem value="fair">Fair</SelectItem>
+                <SelectItem value="poor">Poor</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -107,13 +116,29 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
         </div>
 
         <div className="space-y-2">
-          <Label>Provenance/History</Label>
+          <Label>Authenticity Notes</Label>
           <Textarea
             value={data.microDealDetails.authenticityNotes || ''}
             onChange={(e) => updateMicroDealDetails({ authenticityNotes: e.target.value })}
-            placeholder="Describe the item's history, previous owners, or origin story"
+            placeholder="Describe the item's history, previous owners, or authenticity details"
             rows={3}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Escrow Opt-In</Label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="escrowOptIn"
+              checked={data.microDealDetails.escrowOptIn}
+              onChange={(e) => updateMicroDealDetails({ escrowOptIn: e.target.checked })}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="escrowOptIn" className="text-sm font-normal">
+              Use escrow service for this transaction (recommended for high-value items)
+            </Label>
+          </div>
         </div>
 
         <div className="space-y-2">

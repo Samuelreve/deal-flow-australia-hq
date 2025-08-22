@@ -50,46 +50,48 @@ export interface IPAsset {
   name: string;
   description: string;
   registrationNumber?: string;
+  identifier?: string; // IP identifier (e.g., AU TM number, patent app no.)
+  jurisdiction: string; // required
+  transferType: 'assignment' | 'exclusive_license' | 'non_exclusive_license'; // required
   expiryDate?: string;
   value?: string;
 }
 
 export interface PropertyDetails {
   propertyType: 'residential' | 'commercial' | 'industrial' | 'land' | 'other';
-  address: string;
+  address: string; // required
   sqm?: number;
-  zoning?: string;
+  zoning?: string; // optional
   council?: string;
   currentUse?: string;
   proposedUse?: string;
-  settlementDate?: string;
+  settlementDate?: string; // optional
   contractConditions?: string[];
-  stage?: 'offer' | 'cooling_off' | 'finance' | 'building_pest' | 'exchange' | 'settlement';
+  stage: 'offer' | 'cooling_off' | 'finance' | 'building_pest' | 'exchange' | 'settlement'; // required enum
 }
 
 export interface CrossBorderDetails {
   buyerCountry: string;
   sellerCountry: string;
+  counterpartyCountry: string; // required
   regulatoryApprovals: string[];
   taxImplications: string;
   currencyExchange: string;
   complianceRequirements: string[];
-  incoterms?: string; // Added incoterms
-  regulatoryFlags?: {
-    sanctionsCheck?: boolean;
-    exportLicenseRequired?: boolean;
-  };
+  incoterms?: string; // incoterms
+  currency: 'AUD' | 'USD' | 'EUR'; // default AUD, allow USD/EUR
+  regulatoryFlags?: string[]; // regulatory flags
 }
 
 export interface MicroDealDetails {
-  itemName: string; // Changed from itemType to itemName
-  itemType: string; // Keep itemType for category
-  condition: 'new' | 'used';
+  itemName: string; // required
+  itemType: string; // keep itemType for category
+  condition: 'new' | 'used' | 'like_new' | 'good' | 'fair' | 'poor'; // item condition
   authenticity: 'verified' | 'unverified' | 'unknown';
   rarity: 'common' | 'uncommon' | 'rare' | 'ultra_rare';
-  authenticityNotes?: string; // Changed from provenance to authenticityNotes
+  authenticityNotes?: string; // authenticity notes
   certifications?: string[];
-  escrowOptIn?: boolean; // Added escrow option
+  escrowOptIn: boolean; // escrow opt in (bool placeholder)
 }
 
 export interface UploadedDocument {
@@ -190,6 +192,41 @@ export const MICRO_DEAL_CONDITIONS = [
   'Good',
   'Fair',
   'Poor'
+];
+
+export const PROPERTY_STAGES = [
+  'Offer',
+  'Cooling Off', 
+  'Finance',
+  'Building & Pest',
+  'Exchange',
+  'Settlement'
+];
+
+export const INCOTERMS = [
+  'EXW - Ex Works',
+  'FCA - Free carrier',
+  'CPT - Carriage paid to',
+  'CIP - Carriage and insurance paid to',
+  'DAP - Delivered at place',
+  'DPU - Delivered at place unloaded',
+  'DDP - Delivered duty paid',
+  'FAS - Free alongside ship',
+  'FOB - Free on board',
+  'CFR - Cost and freight',
+  'CIF - Cost, insurance and freight'
+];
+
+export const TRANSFER_TYPES = [
+  'Assignment',
+  'Exclusive License',
+  'Non-Exclusive License'
+];
+
+export const CROSS_BORDER_CURRENCIES = [
+  'AUD',
+  'USD', 
+  'EUR'
 ];
 
 export const MICRO_DEAL_RARITIES = [

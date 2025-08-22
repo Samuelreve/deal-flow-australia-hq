@@ -24,24 +24,24 @@ export const WIZARD_STEPS = [
   },
   { 
     id: 3, 
+    title: 'Upload Documents', 
+    icon: FileText,
+    component: DocumentUploadStep,
+    description: 'Secure document upload'
+  },
+  { 
+    id: 4, 
     title: 'Deal Information', 
     icon: HandHeart,
     component: DealInfoStep,
     description: 'Define your deal terms'
   },
   { 
-    id: 4, 
+    id: 5, 
     title: 'Seller & Legal Details', 
     icon: User,
     component: SellerDetailsStep,
     description: 'Your contact information'
-  },
-  { 
-    id: 5, 
-    title: 'Upload Documents', 
-    icon: FileText,
-    component: DocumentUploadStep,
-    description: 'Secure document upload'
   },
   { 
     id: 6, 

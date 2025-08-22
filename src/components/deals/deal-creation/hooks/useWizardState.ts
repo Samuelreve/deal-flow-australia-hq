@@ -43,15 +43,20 @@ export const useWizardState = () => {
       currentUse: '',
       proposedUse: '',
       settlementDate: '',
-      contractConditions: []
+      contractConditions: [],
+      stage: 'offer' // required field
     },
     crossBorderDetails: {
       buyerCountry: '',
       sellerCountry: '',
+      counterpartyCountry: '', // required field
       regulatoryApprovals: [],
       taxImplications: '',
       currencyExchange: '',
-      complianceRequirements: []
+      complianceRequirements: [],
+      incoterms: '',
+      currency: 'AUD', // required field with default
+      regulatoryFlags: []
     },
     microDealDetails: {
       itemType: '',

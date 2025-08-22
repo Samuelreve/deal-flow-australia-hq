@@ -45,12 +45,32 @@ export const RealEstateFields: React.FC<RealEstateFieldsProps> = ({ data, update
           </div>
 
           <div className="space-y-2">
-            <Label>Property Address</Label>
+            <Label>Property Address *</Label>
             <Input
               value={data.propertyDetails.address}
               onChange={(e) => updatePropertyDetails({ address: e.target.value })}
               placeholder="Full property address"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Stage *</Label>
+            <Select
+              value={data.propertyDetails.stage}
+              onValueChange={(value: any) => updatePropertyDetails({ stage: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="offer">Offer</SelectItem>
+                <SelectItem value="cooling_off">Cooling Off</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
+                <SelectItem value="building_pest">Building & Pest</SelectItem>
+                <SelectItem value="exchange">Exchange</SelectItem>
+                <SelectItem value="settlement">Settlement</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -64,7 +84,7 @@ export const RealEstateFields: React.FC<RealEstateFieldsProps> = ({ data, update
           </div>
 
           <div className="space-y-2">
-            <Label>Zoning</Label>
+            <Label>Zoning (optional)</Label>
             <Input
               value={data.propertyDetails.zoning || ''}
               onChange={(e) => updatePropertyDetails({ zoning: e.target.value })}
@@ -73,16 +93,7 @@ export const RealEstateFields: React.FC<RealEstateFieldsProps> = ({ data, update
           </div>
 
           <div className="space-y-2">
-            <Label>Council/Local Authority</Label>
-            <Input
-              value={data.propertyDetails.council || ''}
-              onChange={(e) => updatePropertyDetails({ council: e.target.value })}
-              placeholder="e.g., City of Melbourne"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Proposed Settlement Date</Label>
+            <Label>Settlement Date (optional)</Label>
             <Input
               type="date"
               value={data.propertyDetails.settlementDate || ''}
