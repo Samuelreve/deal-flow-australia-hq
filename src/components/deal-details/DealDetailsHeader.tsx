@@ -61,7 +61,11 @@ const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
             )}
           </div>
           {deal.description && (
-            <p className="text-muted-foreground max-w-2xl">{deal.description}</p>
+            <div className="text-muted-foreground max-w-4xl">
+              <p className="text-justify leading-relaxed whitespace-pre-wrap">
+                {deal.description}
+              </p>
+            </div>
           )}
         </div>
         <div className="text-right">
