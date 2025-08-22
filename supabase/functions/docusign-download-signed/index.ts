@@ -53,13 +53,58 @@ interface DocuSignUserInfo {
   }>;
 }
 
-async function getDocuSignAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  console.log('🔐 Getting DocuSign access token...');
+async function getDocuSignAccessToken(userId: string): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+  console.log('🔐 Getting DocuSign access token for user:', userId);
   
-  // Skip OAuth token check - get fresh JWT token directly
-  console.log('🔐 Getting fresh JWT access token...');
-  
-  // Auto-configure from environment variables
+  // SECURITY: Use secure token retrieval function
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Audit log token access
+  await supabase.from('token_access_audit').insert({
+    user_id: userId,
+    action: 'docusign_token_access',
+    ip_address: '127.0.0.1',
+    user_agent: 'docusign-download-signed-function'
+  });
+
+  // Get user token using secure function (service role only)
+  const { data: tokenData, error: tokenError } = await supabase.rpc('get_docusign_token_for_service', {
+    p_user_id: userId
+  });
+
+  if (tokenError || !tokenData) {
+    console.log('No valid DocuSign token found for user, falling back to JWT');
+    return await getJWTAccessToken();
+  }
+
+  // Check if token is still valid
+  if (new Date(tokenData.expires_at) > new Date()) {
+    return {
+      access_token: tokenData.access_token,
+      base_uri: tokenData.base_uri,
+      account_id: tokenData.account_id
+    };
+  }
+
+  // Token expired, try to refresh if we have refresh token
+  if (tokenData.refresh_token) {
+    console.log('Token expired, attempting refresh...');
+    const refreshed = await refreshOAuthToken(tokenData.refresh_token, userId);
+    if (refreshed) {
+      return await getDocuSignAccessToken(userId); // Retry after refresh
+    }
+  }
+
+  // Fallback to JWT if refresh failed
+  console.log('Token refresh failed, falling back to JWT');
+  return await getJWTAccessToken();
+}
+
+async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   const userId = Deno.env.get('DOCUSIGN_USER_ID');
   const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
@@ -110,7 +155,7 @@ async function getDocuSignAccessToken(): Promise<{ access_token: string; base_ur
   };
 }
 
-async function getValidAccessToken(): Promise<string | null> {
+async function getValidAccessToken(userId: string): Promise<string | null> {
   if (!docusignTokenData) {
     return null;
   }
@@ -126,7 +171,7 @@ async function getValidAccessToken(): Promise<string | null> {
     
     try {
       // Refresh the token
-      const refreshed = await refreshOAuthToken(docusignTokenData.refresh_token);
+      const refreshed = await refreshOAuthToken(docusignTokenData.refresh_token, userId);
       if (refreshed) {
         return docusignTokenData.access_token;
       }
@@ -139,7 +184,7 @@ async function getValidAccessToken(): Promise<string | null> {
   return docusignTokenData.access_token;
 }
 
-async function refreshOAuthToken(refreshToken: string): Promise<boolean> {
+async function refreshOAuthToken(refreshToken: string, userId: string): Promise<boolean> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
 
@@ -168,14 +213,19 @@ async function refreshOAuthToken(refreshToken: string): Promise<boolean> {
 
     const oAuthToken: OAuthTokenResponse = await response.json();
     
-    // Update stored token data
-    const expiresAt = Date.now() + (oAuthToken.expires_in * 1000);
-    docusignTokenData = {
-      ...docusignTokenData!,
+    // Update token in database
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    await supabase.from('docusign_tokens').update({
       access_token: oAuthToken.access_token,
-      refresh_token: oAuthToken.refresh_token || docusignTokenData!.refresh_token,
-      expires_at: expiresAt
-    };
+      refresh_token: oAuthToken.refresh_token || refreshToken,
+      expires_at: new Date(Date.now() + (oAuthToken.expires_in * 1000)).toISOString(),
+      updated_at: new Date().toISOString()
+    }).eq('user_id', userId);
 
     console.log('✅ OAuth token refreshed successfully');
     return true;
@@ -479,7 +529,7 @@ serve(async (req: Request) => {
 
     // Step 1: Get fresh DocuSign access token
     console.log('🔐 Step 1: Getting fresh DocuSign access token...');
-    const { access_token, base_uri, account_id } = await getDocuSignAccessToken();
+    const { access_token, base_uri, account_id } = await getDocuSignAccessToken(currentUserId);
     console.log('✅ Successfully obtained fresh access token');
 
     // Step 2: Download document from DocuSign

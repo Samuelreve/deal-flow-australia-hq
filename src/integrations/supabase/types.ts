@@ -1780,6 +1780,33 @@ export type Database = {
           },
         ]
       }
+      token_access_audit: {
+        Row: {
+          accessed_at: string | null
+          action: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string | null
+          action: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string | null
+          action?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1909,6 +1936,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_docusign_token_for_service: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_health_comparisons: {
         Args: { p_user_id: string }
         Returns: {
@@ -2007,6 +2038,10 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+      }
+      has_valid_docusign_token: {
+        Args: { p_user_id?: string }
+        Returns: Json
       }
       is_deal_owner_or_participant: {
         Args: { p_deal_id: string; p_user_id?: string }
