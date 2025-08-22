@@ -204,7 +204,7 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
           Back
         </Button>
         <Button onClick={handleNext} size="lg" className="min-w-[160px]">
-          Continue to Documents
+          Review & Submit
         </Button>
       </div>
     </div>

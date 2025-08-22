@@ -233,7 +233,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
           className="min-w-[160px]"
           disabled={!hasRequiredDocuments() || uploading || isExtracting}
         >
-          {uploading ? 'Uploading...' : isExtracting ? 'Extracting data...' : 'Review & Submit'}
+          {uploading ? 'Uploading...' : isExtracting ? 'Extracting data...' : 'Continue to Deal Information'}
         </Button>
       </div>
     </div>
