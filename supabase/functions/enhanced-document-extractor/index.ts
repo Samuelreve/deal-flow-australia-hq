@@ -97,7 +97,7 @@ const extractTextFromDocument = async (fileBase64: string, mimeType: string, fil
 
   if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     return await extractTextFromPDF(fileBase64);
-  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx')) {
+  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx') || mimeType === 'application/msword' || fileName.toLowerCase().endsWith('.doc')) {
     return await extractTextFromWord(fileBase64);
   } else {
     throw new Error(`Unsupported file type: ${mimeType}`);
