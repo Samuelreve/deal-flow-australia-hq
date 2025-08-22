@@ -50,11 +50,53 @@ export const useDocumentAutoExtraction = () => {
       // Map extracted data to form data structure
       const mappedData = mapExtractedDataToFormData(data.extractedData, options.dealCategory);
       
+      // Auto-generate AI title and description using document content
+      if (data.text && mappedData.businessTradingName) {
+        try {
+          console.log('🤖 Generating AI-powered title and description...');
+          
+          // Generate AI title
+          const titleResponse = await supabase.functions.invoke('ai-document-suggestion', {
+            body: {
+              documentText: data.text,
+              extractedData: data.extractedData,
+              fieldType: 'title',
+              currentValue: mappedData.dealTitle || '',
+              dealCategory: options.dealCategory
+            }
+          });
+
+          if (titleResponse.data?.suggestion) {
+            mappedData.dealTitle = titleResponse.data.suggestion;
+            console.log('✅ AI title generated:', titleResponse.data.suggestion);
+          }
+
+          // Generate AI description
+          const descriptionResponse = await supabase.functions.invoke('ai-document-suggestion', {
+            body: {
+              documentText: data.text,
+              extractedData: data.extractedData,
+              fieldType: 'description',
+              currentValue: mappedData.dealDescription || '',
+              dealCategory: options.dealCategory
+            }
+          });
+
+          if (descriptionResponse.data?.suggestion) {
+            mappedData.dealDescription = descriptionResponse.data.suggestion;
+            console.log('✅ AI description generated');
+          }
+        } catch (aiError) {
+          console.error('❌ Error generating AI suggestions:', aiError);
+          // Continue with extracted data even if AI suggestions fail
+        }
+      }
+      
       if (options.onDataExtracted && Object.keys(mappedData).length > 0) {
         options.onDataExtracted(mappedData);
         toast({
-          title: "Data Extracted Successfully",
-          description: `Automatically extracted information from ${fileName}`,
+          title: "Data Extracted Successfully", 
+          description: `Automatically extracted and generated AI content from ${fileName}`,
         });
       }
 
