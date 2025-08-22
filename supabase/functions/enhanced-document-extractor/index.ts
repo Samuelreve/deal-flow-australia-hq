@@ -97,8 +97,10 @@ const extractTextFromDocument = async (fileBase64: string, mimeType: string, fil
 
   if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     return await extractTextFromPDF(fileBase64);
-  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx') || mimeType === 'application/msword' || fileName.toLowerCase().endsWith('.doc')) {
-    return await extractTextFromWord(fileBase64);
+  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx')) {
+    return await extractTextFromWord(fileBase64, 'docx');
+  } else if (mimeType === 'application/msword' || fileName.toLowerCase().endsWith('.doc')) {
+    return await extractTextFromWord(fileBase64, 'doc');
   } else {
     throw new Error(`Unsupported file type: ${mimeType}`);
   }
@@ -143,9 +145,9 @@ const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
   return allText.replace(/\s+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 };
 
-const extractTextFromWord = async (fileBase64: string): Promise<string> => {
+const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'): Promise<string> => {
   try {
-    console.log('🔍 Starting Word document text extraction...');
+    console.log(`🔍 Starting Word document text extraction (${fileType})...`);
     
     // Clean up base64 format
     let cleanBase64 = fileBase64;
@@ -165,25 +167,48 @@ const extractTextFromWord = async (fileBase64: string): Promise<string> => {
 
     // Extract text using mammoth (same as public-ai-analyzer)
     console.log('🔄 Extracting text using mammoth...');
-    const result = await mammoth.extractRawText({ arrayBuffer });
     
-    if (!result.value || result.value.trim().length === 0) {
-      console.warn('⚠️ Mammoth extracted no text content');
-      throw new Error('No text could be extracted from the Word document');
+    try {
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      
+      if (!result.value || result.value.trim().length === 0) {
+        // If mammoth fails to extract text, provide a meaningful fallback
+        if (fileType === 'doc') {
+          throw new Error('Legacy DOC files may have limited text extraction support. Please convert to DOCX format for better results.');
+        } else {
+          throw new Error('No text could be extracted from the Word document');
+        }
+      }
+
+      console.log(`✅ Word text extraction successful: ${result.value.length} characters`);
+
+      // Clean up the extracted text (following public-ai-analyzer pattern)
+      const cleanedText = String(result.value || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      return cleanedText;
+    } catch (mammothError) {
+      console.error('❌ Mammoth extraction error:', mammothError);
+      
+      // Provide specific error message for DOC files
+      if (fileType === 'doc') {
+        throw new Error('Legacy DOC file format detected. This older format has limited text extraction capabilities. Please convert your document to DOCX format for better AI analysis results.');
+      } else {
+        throw new Error(`Failed to extract text from Word document: ${mammothError.message}`);
+      }
     }
-
-    console.log(`✅ Word text extraction successful: ${result.value.length} characters`);
-
-    // Clean up the extracted text (following public-ai-analyzer pattern)
-    const cleanedText = String(result.value || '')
-      .replace(/\s+/g, ' ')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-
-    return cleanedText;
       
   } catch (error) {
     console.error('❌ Word extraction error:', error);
+    
+    // If it's already our custom error, re-throw it
+    if (error.message.includes('Legacy DOC file') || error.message.includes('convert to DOCX')) {
+      throw error;
+    }
+    
+    // Otherwise, provide a generic error
     throw new Error(`Failed to extract text from Word document: ${error.message}`);
   }
 };
