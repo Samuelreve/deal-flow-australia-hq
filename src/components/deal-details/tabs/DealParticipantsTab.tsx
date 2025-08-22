@@ -50,13 +50,10 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
   const fetchParticipants = useCallback(async () => {
     try {
-      // Fetch accepted participants
+      // Fetch accepted participants using secure public profile function
       const { data: participantsData, error: participantsError } = await supabase
         .from('deal_participants')
-        .select(`
-          *,
-          profiles!deal_participants_user_id_fkey(name, avatar_url, email)
-        `)
+        .select('*')
         .eq('deal_id', dealId)
         .order('joined_at', { ascending: false });
 
@@ -68,6 +65,31 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         });
         return;
       }
+
+      // Get public profiles for all participants securely
+      const { data: publicProfiles, error: profilesError } = await supabase
+        .rpc('get_public_profiles_for_deal', { p_deal_id: dealId });
+
+      if (profilesError) {
+        console.warn('Could not fetch public profiles:', profilesError);
+      }
+
+      // Map participants with their public profile data
+      const participantsWithProfiles = participantsData?.map(participant => {
+        const publicProfile = publicProfiles?.find(p => p.id === participant.user_id);
+        return {
+          ...participant,
+          profiles: publicProfile ? {
+            name: publicProfile.name,
+            avatar_url: publicProfile.avatar_url,
+            role: publicProfile.role,
+            professional_headline: publicProfile.professional_headline,
+            professional_firm_name: publicProfile.professional_firm_name,
+            professional_location: publicProfile.professional_location,
+            professional_website: publicProfile.professional_website
+          } : null
+        };
+      }) || [];
 
       // Fetch pending invitations
       const { data: invitationsData, error: invitationsError } = await supabase
@@ -86,10 +108,15 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         return;
       }
 
-      setParticipants(participantsData || []);
+      setParticipants(participantsWithProfiles);
       setPendingInvitations(invitationsData || []);
     } catch (error) {
-      // Error already handled above
+      console.error('Error fetching participants:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load participants data",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
