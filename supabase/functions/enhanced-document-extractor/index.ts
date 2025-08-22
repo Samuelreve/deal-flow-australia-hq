@@ -5,6 +5,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Import PDF.js for direct text extraction
 import { getDocument } from "https://esm.sh/pdf.mjs";
 
+// Import mammoth for Word document extraction
+import mammoth from "https://esm.sh/mammoth@1.7.2";
+
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 interface ExtractionRequest {
@@ -89,6 +92,15 @@ interface CategorySpecificData {
   };
 }
 
+const extractTextFromDocument = async (fileBase64: string, mimeType: string): Promise<string> => {
+  if (mimeType === 'application/pdf') {
+    return await extractTextFromPDF(fileBase64);
+  } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return await extractTextFromWord(fileBase64);
+  } else {
+    throw new Error(`Unsupported file type: ${mimeType}`);
+  }
+};
 const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
   // Clean up base64 format
   let cleanBase64 = fileBase64;
@@ -127,6 +139,42 @@ const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
   }
 
   return allText.replace(/\s+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+};
+
+const extractTextFromWord = async (fileBase64: string): Promise<string> => {
+  try {
+    // Clean up base64 format
+    let cleanBase64 = fileBase64;
+    if (fileBase64.includes(',')) {
+      cleanBase64 = fileBase64.split(',')[1];
+    }
+
+    // Convert base64 to ArrayBuffer
+    const binaryString = atob(cleanBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const arrayBuffer = bytes.buffer;
+
+    // Extract text using mammoth
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    if (!result.value || result.value.trim().length === 0) {
+      throw new Error('No text could be extracted from the Word document');
+    }
+
+    // Clean up the extracted text
+    return result.value
+      .replace(/\s+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+      
+  } catch (error) {
+    console.error('Word extraction error:', error);
+    throw new Error(`Failed to extract text from Word document: ${error.message}`);
+  }
 };
 
 const detectDealCategory = (text: string): string => {
@@ -332,8 +380,8 @@ const serve_handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔍 Starting enhanced extraction for: ${fileName} (Category: ${dealCategory})`);
 
-    // Extract text from PDF
-    const extractedText = await extractTextFromPDF(fileBase64);
+    // Extract text from document (PDF or Word)
+    const extractedText = await extractTextFromDocument(fileBase64, mimeType);
     
     if (!extractedText.trim()) {
       return new Response(JSON.stringify({ 
