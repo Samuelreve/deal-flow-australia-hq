@@ -7,6 +7,13 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 interface SuggestionRequest {
   documentText: string;
   extractedData: any;
+  businessContext?: {
+    businessTradingName?: string;
+    businessLegalName?: string;
+    businessIndustry?: string;
+    yearsInOperation?: number;
+    primarySellerName?: string;
+  };
   fieldType: 'title' | 'description' | 'valuation' | 'assets';
   currentValue: string;
   dealCategory: string;
@@ -17,14 +24,23 @@ const generateSuggestion = async (request: SuggestionRequest): Promise<string> =
     throw new Error('OpenAI API key not configured');
   }
 
-  const { documentText, extractedData, fieldType, currentValue, dealCategory } = request;
+  const { documentText, extractedData, businessContext, fieldType, currentValue, dealCategory } = request;
+
+  // Build context for AI
+  let context = `Document content: ${documentText}\n`;
+  if (extractedData && Object.keys(extractedData).length > 0) {
+    context += `\nExtracted data: ${JSON.stringify(extractedData, null, 2)}\n`;
+  }
+  if (businessContext && Object.keys(businessContext).length > 0) {
+    context += `\nBusiness context: ${JSON.stringify(businessContext, null, 2)}\n`;
+  }
 
   const prompts = {
-    title: `Based on the following document and extracted data, suggest a professional deal title:
+    title: `Based on the following information, suggest a professional deal title:
 
 Document Category: ${dealCategory}
 Current Title: ${currentValue}
-Extracted Data: ${JSON.stringify(extractedData, null, 2)}
+${context}
 
 Generate a concise, professional deal title that accurately represents this transaction. Examples:
 - Business Sale: "Sale of [Business Name] - [Deal Type]"
@@ -35,19 +51,18 @@ Generate a concise, professional deal title that accurately represents this tran
 
 Respond with just the suggested title, no explanation.`,
 
-    description: `Based on the following document and extracted data, enhance the deal description:
+    description: `Based on the following information, enhance the deal description:
 
 Document Category: ${dealCategory}
 Current Description: ${currentValue}
-Extracted Data: ${JSON.stringify(extractedData, null, 2)}
-Document Text Excerpt: ${documentText.substring(0, 1000)}...
+${context}
 
 Generate a compelling, professional deal description that includes:
 - What is being sold/transferred
 - Key value propositions and strengths
 - Important business/property/asset details
 - Growth opportunities or strategic value
-- Any unique selling points from the document
+- Any unique selling points from the available information
 
 Keep it professional and buyer-focused. Maximum 300 words.`,
 

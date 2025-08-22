@@ -69,26 +69,42 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
         if (uploadedDoc) {
           newDocuments.push(uploadedDoc);
           
-          // Auto-extract data if enabled and it's a PDF
-          if (autoExtractEnabled && file.type === 'application/pdf' && data.dealCategory) {
-            try {
-              // Convert file to base64 for extraction
-              const fileBase64 = await fileToBase64(file);
-              await extractDataFromDocument(
-                fileBase64,
-                file.name,
-                file.type,
-                {
-                  dealCategory: data.dealCategory,
-                  onDataExtracted: (extractedData) => {
-                    // Merge extracted data with current form data
-                    updateData(extractedData);
+          // Auto-extract data if enabled and it's a supported document type
+          if (autoExtractEnabled && data.dealCategory) {
+            const supportedTypes = [
+              'application/pdf',
+              'application/msword',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            
+            if (supportedTypes.includes(file.type)) {
+              try {
+                // Convert file to base64 for extraction
+                const fileBase64 = await fileToBase64(file);
+                await extractDataFromDocument(
+                  fileBase64,
+                  file.name,
+                  file.type,
+                  {
+                    dealCategory: data.dealCategory,
+                    // Pass current business context for better AI generation
+                    businessContext: {
+                      businessTradingName: data.businessTradingName,
+                      businessLegalName: data.businessLegalName,
+                      businessIndustry: data.businessIndustry,
+                      yearsInOperation: data.yearsInOperation,
+                      primarySellerName: data.primarySellerName
+                    },
+                    onDataExtracted: (extractedData) => {
+                      // Merge extracted data with current form data
+                      updateData(extractedData);
+                    }
                   }
-                }
-              );
-            } catch (extractionError) {
-              console.error('Auto-extraction error for file:', file.name, extractionError);
-              // Don't add to errors array as extraction is optional
+                );
+              } catch (extractionError) {
+                console.error('Auto-extraction error for file:', file.name, extractionError);
+                // Don't add to errors array as extraction is optional
+              }
             }
           }
         } else {

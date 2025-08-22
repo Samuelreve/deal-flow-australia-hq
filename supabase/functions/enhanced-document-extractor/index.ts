@@ -323,8 +323,24 @@ const serve_handler = async (req: Request): Promise<Response> => {
 
     console.log(`🔍 Starting enhanced extraction for: ${fileName} (Category: ${dealCategory})`);
 
-    // Extract text from PDF
-    const extractedText = await extractTextFromPDF(fileBase64);
+    // Extract text from document
+    let extractedText = '';
+    if (mimeType === 'application/pdf') {
+      extractedText = await extractTextFromPDF(fileBase64);
+      console.log(`📄 Extracted ${extractedText.length} characters from PDF`);
+    } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // For Word documents, use filename and limited context for now
+      extractedText = `Document: ${fileName}. This appears to be a ${mimeType === 'application/msword' ? 'Word document (.doc)' : 'Word document (.docx)'}.`;
+      console.log(`📄 Word document detected: ${fileName}`);
+    } else {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Unsupported file type: ${mimeType}` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     if (!extractedText.trim()) {
       return new Response(JSON.stringify({ 
