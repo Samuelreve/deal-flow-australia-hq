@@ -9,6 +9,7 @@ import { AITip } from './components/AITip';
 import { useWizardState } from './hooks/useWizardState';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useDealSubmission } from './hooks/useDealSubmission';
+import { DocumentExtractionProvider } from '@/contexts/DocumentExtractionContext';
 
 const DealCreationWizard: React.FC = () => {
   const { currentStep, setCurrentStep, formData, updateFormData } = useWizardState();
@@ -27,26 +28,28 @@ const DealCreationWizard: React.FC = () => {
 
   return (
     <WizardAuthGuard>
-      <div className="max-w-5xl mx-auto">
-        <WizardProgress steps={WIZARD_STEPS} currentStep={currentStep} />
-        
-        {currentStepInfo && (
-          <WizardStepCard step={currentStepInfo}>
-            <WizardStepRenderer
-              currentStep={currentStep}
-              formData={formData}
-              updateFormData={updateFormData}
-              onNext={nextStep}
-              onPrev={prevStep}
-              onSubmit={handleFinalSubmit}
-              isSubmitting={isSubmitting}
-              tempDealId={tempDealId}
-            />
-          </WizardStepCard>
-        )}
+      <DocumentExtractionProvider>
+        <div className="max-w-5xl mx-auto">
+          <WizardProgress steps={WIZARD_STEPS} currentStep={currentStep} />
+          
+          {currentStepInfo && (
+            <WizardStepCard step={currentStepInfo}>
+              <WizardStepRenderer
+                currentStep={currentStep}
+                formData={formData}
+                updateFormData={updateFormData}
+                onNext={nextStep}
+                onPrev={prevStep}
+                onSubmit={handleFinalSubmit}
+                isSubmitting={isSubmitting}
+                tempDealId={tempDealId}
+              />
+            </WizardStepCard>
+          )}
 
-        <AITip step={currentStep} />
-      </div>
+          <AITip step={currentStep} />
+        </div>
+      </DocumentExtractionProvider>
     </WizardAuthGuard>
   );
 };

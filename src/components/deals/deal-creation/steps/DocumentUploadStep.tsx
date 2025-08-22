@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useDocumentUploadWizard } from '@/hooks/deals/useDocumentUploadWizard';
 import { useDocumentAutoExtraction } from '@/hooks/useDocumentAutoExtraction';
+import { useDocumentExtraction } from '@/contexts/DocumentExtractionContext';
 
 import { DocumentRequirements } from '../document-upload/DocumentRequirements';
 import { DocumentUploadArea } from '../document-upload/DocumentUploadArea';
@@ -29,6 +30,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
   const { toast } = useToast();
   const { uploading, uploadFile, deleteFile } = useDocumentUploadWizard();
   const { extractDataFromDocument, isExtracting } = useDocumentAutoExtraction();
+  const { setExtractedData } = useDocumentExtraction();
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
 
@@ -74,7 +76,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
             try {
               // Convert file to base64 for extraction
               const fileBase64 = await fileToBase64(file);
-              await extractDataFromDocument(
+              const extractionResult = await extractDataFromDocument(
                 fileBase64,
                 file.name,
                 file.type,
@@ -86,6 +88,17 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
                   }
                 }
               );
+
+              // Store extraction result in context for next step
+              if (extractionResult.success) {
+                setExtractedData({
+                  text: extractionResult.text,
+                  extractedData: extractionResult.extractedData,
+                  fileName: file.name,
+                  extractedAt: new Date()
+                });
+                console.log('Document extraction stored in context for', file.name);
+              }
             } catch (extractionError) {
               console.error('Auto-extraction error for file:', file.name, extractionError);
               // Don't add to errors array as extraction is optional
@@ -186,10 +199,10 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
           <Sparkles className="h-5 w-5 text-primary" />
           <div className="flex-1">
             <Label htmlFor="auto-extract" className="text-sm font-medium">
-              Auto-extract deal information from PDFs
+              Auto-extract deal information from documents
             </Label>
             <p className="text-xs text-muted-foreground">
-              Automatically extract {data.dealCategory?.replace('_', ' ')} specific details from uploaded documents
+              Automatically extract {data.dealCategory?.replace('_', ' ')} specific details from PDFs and Word documents
             </p>
           </div>
           <Switch

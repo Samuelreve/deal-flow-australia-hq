@@ -292,9 +292,18 @@ Text: ${text}`
     const extractedText = data.choices[0].message.content;
 
     try {
-      return JSON.parse(extractedText);
+      // Clean the response text - remove markdown code blocks if present
+      let cleanedText = extractedText.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      return JSON.parse(cleanedText);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', extractedText);
+      console.error('Parse error:', parseError);
       return { dealCategory: category };
     }
   } catch (error) {

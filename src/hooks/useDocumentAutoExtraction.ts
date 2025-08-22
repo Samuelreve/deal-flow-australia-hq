@@ -105,7 +105,7 @@ export const useDocumentAutoExtraction = () => {
       return {
         success: true,
         text: data.text,
-        extractedData: data.extractedData
+        extractedData: mappedData // Return the mapped data instead of raw data
       };
 
     } catch (error: any) {
