@@ -12,7 +12,7 @@ export class DocumentMapperService {
     return {
       id: documentData.id,
       name: documentData.name,
-      url: '', // Will be populated with signed URL when needed
+      url: documentData.storage_path || '', // Use storage_path from database
       uploadedBy: documentData.uploaded_by,
       uploadedAt: new Date(documentData.created_at),
       size: documentData.size,
@@ -25,7 +25,7 @@ export class DocumentMapperService {
         id: versionData.id,
         documentId: versionData.document_id,
         versionNumber: versionData.version_number,
-        url: '',
+        url: versionData.storage_path || '', // Use storage_path from database
         uploadedBy: versionData.uploaded_by,
         uploadedAt: new Date(versionData.created_at),
         size: versionData.size,
