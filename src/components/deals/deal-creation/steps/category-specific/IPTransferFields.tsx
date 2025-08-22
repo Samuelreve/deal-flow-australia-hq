@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Copyright, Shield, Lightbulb } from 'lucide-react';
 import { DealCreationData, IPAsset, IP_ASSET_TYPES } from '../../types';
 
 interface IPTransferFieldsProps {
@@ -43,28 +44,47 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Intellectual Property Assets</h3>
-        <Button type="button" variant="outline" onClick={addIPAsset}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add IP Asset
-        </Button>
+      {/* Prominent IP Transfer Header */}
+      <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-blue-500/10 p-2 rounded-lg">
+            <Copyright className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-blue-600">Intellectual Property Assets</h3>
+            <p className="text-sm text-muted-foreground">Manage your intellectual property portfolio for transfer</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+            IP Transfer Deal
+          </Badge>
+          <Button type="button" variant="outline" onClick={addIPAsset} className="border-blue-500/20 hover:bg-blue-500/5">
+            <Plus className="mr-2 h-4 w-4" />
+            Add IP Asset
+          </Button>
+        </div>
       </div>
 
       {data.ipAssets.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <p className="text-muted-foreground text-center">
-              No IP assets added yet. Click "Add IP Asset" to get started.
+        <Card className="border-blue-500/20">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="bg-blue-500/10 p-4 rounded-full mb-4">
+              <Lightbulb className="h-8 w-8 text-blue-600" />
+            </div>
+            <h4 className="font-semibold text-blue-600 mb-2">No IP Assets Added Yet</h4>
+            <p className="text-muted-foreground text-center text-sm">
+              Click "Add IP Asset" above to start building your intellectual property portfolio for transfer.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {data.ipAssets.map((asset, index) => (
-            <Card key={index}>
+            <Card key={index} className="border-blue-500/20 hover:border-blue-500/30 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <CardTitle className="text-base">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-blue-600" />
                   {asset.name || `IP Asset ${index + 1}`}
                 </CardTitle>
                 <Button

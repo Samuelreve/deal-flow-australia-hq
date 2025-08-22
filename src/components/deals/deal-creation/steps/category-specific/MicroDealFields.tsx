@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Gem, Star, Award, Shield } from 'lucide-react';
 import { DealCreationData, MICRO_DEAL_CONDITIONS, MICRO_DEAL_RARITIES } from '../../types';
 
 interface MicroDealFieldsProps {
@@ -35,10 +36,30 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Item Details</CardTitle>
-      </CardHeader>
+    <div className="space-y-6">
+      {/* Prominent Micro Deal Header */}
+      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-purple-500/10 p-2 rounded-lg">
+            <Gem className="h-6 w-6 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-purple-600">Collectible Item Details</h3>
+            <p className="text-sm text-muted-foreground">Showcase your collectible or unique item for sale</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="bg-purple-500/10 text-purple-600">
+          Micro Deal
+        </Badge>
+      </div>
+      
+      <Card className="border-purple-500/20 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Star className="h-5 w-5 text-purple-600" />
+            Item Information
+          </CardTitle>
+        </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -142,7 +163,10 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
         </div>
 
         <div className="space-y-2">
-          <Label>Certifications & Authentication</Label>
+          <Label className="flex items-center gap-2">
+            <Award className="h-4 w-4 text-purple-600" />
+            Certifications & Authentication
+          </Label>
           <div className="flex flex-wrap gap-2 mb-2">
             {(data.microDealDetails.certifications || []).map((cert, index) => (
               <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeCertification(cert)}>
@@ -165,6 +189,7 @@ export const MicroDealFields: React.FC<MicroDealFieldsProps> = ({ data, updateDa
           </p>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 };

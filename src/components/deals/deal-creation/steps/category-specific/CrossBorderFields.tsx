@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Globe, Banknote, Shield, Flag } from 'lucide-react';
 import { DealCreationData } from '../../types';
 
 interface CrossBorderFieldsProps {
@@ -65,10 +66,30 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cross-Border Transaction Details</CardTitle>
-      </CardHeader>
+    <div className="space-y-6">
+      {/* Prominent Cross-Border Header */}
+      <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-orange-500/10 p-2 rounded-lg">
+            <Globe className="h-6 w-6 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-orange-600">Cross-Border Transaction Details</h3>
+            <p className="text-sm text-muted-foreground">International transaction compliance and regulatory requirements</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600">
+          Cross-Border Deal
+        </Badge>
+      </div>
+      
+      <Card className="border-orange-500/20 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Flag className="h-5 w-5 text-orange-600" />
+            International Requirements
+          </CardTitle>
+        </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -142,7 +163,10 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
         </div>
 
         <div className="space-y-2">
-          <Label>Regulatory Flags</Label>
+          <Label className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-orange-600" />
+            Regulatory Flags
+          </Label>
           <div className="flex flex-wrap gap-2 mb-2">
             {(data.crossBorderDetails.regulatoryFlags || []).map((flag, index) => (
               <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeRegulatoryFlag(flag)}>
@@ -174,7 +198,10 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
           </div>
 
           <div className="space-y-2">
-            <Label>Currency Exchange Details</Label>
+            <Label className="flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-orange-600" />
+              Currency Exchange Details
+            </Label>
             <Textarea
               value={data.crossBorderDetails.currencyExchange}
               onChange={(e) => updateCrossBorderDetails({ currencyExchange: e.target.value })}
@@ -226,6 +253,7 @@ export const CrossBorderFields: React.FC<CrossBorderFieldsProps> = ({ data, upda
           />
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 };

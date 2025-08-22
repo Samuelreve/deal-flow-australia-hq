@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Building2, Package, TrendingUp } from 'lucide-react';
 import { DealCreationData } from '../../types';
 
 interface BusinessSaleFieldsProps {
@@ -48,9 +48,28 @@ export const BusinessSaleFields: React.FC<BusinessSaleFieldsProps> = ({ data, up
 
   return (
     <div className="space-y-6">
-      <Card>
+      {/* Prominent Business Sale Header */}
+      <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-green-500/10 p-2 rounded-lg">
+            <Building2 className="h-6 w-6 text-green-600" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-green-600">Business Sale Details</h3>
+            <p className="text-sm text-muted-foreground">Define what's included in your business transaction</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="bg-green-500/10 text-green-600">
+          Business Sale Deal
+        </Badge>
+      </div>
+      
+      <Card className="border-green-500/20 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Business Sale Details</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-600" />
+            Assets & Liabilities
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Business Industry Display */}
@@ -64,7 +83,10 @@ export const BusinessSaleFields: React.FC<BusinessSaleFieldsProps> = ({ data, up
 
           {/* Assets Included */}
           <div className="space-y-3">
-            <Label>Assets Included</Label>
+            <Label className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-green-600" />
+              Assets Included
+            </Label>
             <div className="flex flex-wrap gap-2 mb-2">
               {assetsIncluded.map((asset, index) => (
                 <Badge key={index} variant="secondary" className="flex items-center gap-1">
