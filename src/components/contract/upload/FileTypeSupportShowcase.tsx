@@ -16,7 +16,7 @@ const FileTypeSupportShowcase: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <File className="h-4 w-4 text-blue-600" />
-          <span><strong>Word Files</strong> - .docx and .doc support</span>
+          <span><strong>Word Files</strong> - .docx support</span>
         </div>
         <div className="flex items-center gap-2">
           <File className="h-4 w-4 text-green-600" />

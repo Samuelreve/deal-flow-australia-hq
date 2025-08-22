@@ -15,7 +15,7 @@ export const useDocumentUpload = () => {
     if (!file) return;
 
     // Check file type
-    const allowedTypes = ['.txt', '.pdf', '.doc', '.docx'];
+    const allowedTypes = ['.txt', '.pdf', '.docx'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
     if (!allowedTypes.includes(fileExtension)) {

@@ -170,8 +170,6 @@ function getFileTypeLabel(mimeType: string): string {
       return 'PDF document';
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
       return 'Word document (.docx)';
-    case 'application/msword':
-      return 'Word document (.doc)';
     case 'application/rtf':
     case 'text/rtf':
       return 'RTF document';

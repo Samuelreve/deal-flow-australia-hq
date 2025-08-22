@@ -60,7 +60,7 @@ const DocumentDetails: React.FC<DocumentDetailsProps> = ({
               type="file" 
               id="document-upload" 
               className="hidden" 
-              accept=".pdf,.docx,.doc" 
+              accept=".pdf,.docx" 
               onChange={onFileUpload} 
               disabled={isAnalyzing}
             />

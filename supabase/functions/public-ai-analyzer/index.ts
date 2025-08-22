@@ -45,8 +45,8 @@ async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: str
       } else {
         return String(text || '');
       }
-    } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx') || contentType.includes('msword') || fileName.toLowerCase().endsWith('.doc')) {
-      // Extract text from DOCX/DOC using mammoth
+    } else if (contentType.includes('officedocument.wordprocessingml') || fileName.toLowerCase().endsWith('.docx')) {
+      // Extract text from DOCX using mammoth
       const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
       return String(result.value || '');
     } else if (contentType.includes('rtf') || fileName.toLowerCase().endsWith('.rtf')) {
@@ -158,12 +158,11 @@ serve(async (req) => {
       );
     }
 
-    // Validate file type - support text, PDF, DOC/DOCX, and RTF files
+    // Validate file type - support text, PDF, DOCX, and RTF files
     const supportedTypes = [
       "text/plain",
       "application/pdf", 
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword", // Support for .DOC files
       "application/rtf",
       "text/rtf",
       "text/richtext",
@@ -175,7 +174,7 @@ serve(async (req) => {
     
     // Get file extension as fallback
     const fileExtension = file?.name?.split('.').pop()?.toLowerCase();
-    const supportedExtensions = ['txt', 'pdf', 'doc', 'docx', 'rtf'];
+    const supportedExtensions = ['txt', 'pdf', 'docx', 'rtf'];
     
     console.log("🔍 DETAILED FILE ANALYSIS:", {
       fileName: file.name,
@@ -207,7 +206,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .doc/.docx (Word documents), .rtf (Rich Text Format)",
+          error: "Unsupported file type. Supported formats: .txt (text), .pdf (PDF documents), .docx (Word documents), .rtf (Rich Text Format)",
           receivedType: file.type,
           receivedExtension: fileExtension,
           supportedTypes,

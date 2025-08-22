@@ -104,12 +104,12 @@ This is a comprehensive demo contract for testing AI analysis capabilities with 
               Enhanced support for multiple file formats with AI-powered analysis
             </p>
             <p className="text-xs text-gray-400">
-              Now supports PDF and Word (.docx, .doc) files up to 25MB
+              Now supports PDF and Word (.docx) files up to 25MB
             </p>
             <input
               id="file-upload"
               type="file"
-              accept=".pdf,.docx,.doc"
+              accept=".pdf,.docx"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -142,7 +142,7 @@ This is a comprehensive demo contract for testing AI analysis capabilities with 
               </div>
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4 text-blue-600" />
-                <span><strong>Word documents</strong> (.docx, .doc)</span>
+                <span><strong>Word documents</strong> (.docx)</span>
               </div>
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4 text-green-600" />

@@ -99,10 +99,8 @@ const extractTextFromDocument = async (fileBase64: string, mimeType: string, fil
     return await extractTextFromPDF(fileBase64);
   } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx')) {
     return await extractTextFromWord(fileBase64, 'docx');
-  } else if (mimeType === 'application/msword' || fileName.toLowerCase().endsWith('.doc')) {
-    return await extractTextFromWord(fileBase64, 'doc');
   } else {
-    throw new Error(`Unsupported file type: ${mimeType}`);
+    throw new Error(`Unsupported file type: ${mimeType}. Only PDF and DOCX files are supported.`);
   }
 };
 const extractTextFromPDF = async (fileBase64: string): Promise<string> => {

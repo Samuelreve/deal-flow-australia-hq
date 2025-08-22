@@ -57,7 +57,6 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
         'application/pdf', 
         'image/jpeg', 
         'image/png', 
-        'application/msword', 
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       ];
       if (!allowedTypes.includes(file.type)) {
@@ -74,7 +73,6 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
           // Auto-extract data if enabled and it's a supported document type
           if (autoExtractEnabled && 
               (file.type === 'application/pdf' || 
-               file.type === 'application/msword' || 
                file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') && 
               data.dealCategory) {
             try {

@@ -6,7 +6,7 @@ const FileRequirements: React.FC = () => {
     <div className="text-xs text-muted-foreground space-y-1 bg-gray-50 p-3 rounded">
       <p><strong>File Requirements:</strong></p>
       <p>• Maximum file size: 25MB</p>
-      <p>• Supported formats: PDF, Word (.docx/.doc), RTF, Text (.txt)</p>
+      <p>• Supported formats: PDF, Word (.docx), RTF, Text (.txt)</p>
       <p>• Advanced text extraction for all file types</p>
       <p>• Secure storage with user-specific access</p>
     </div>

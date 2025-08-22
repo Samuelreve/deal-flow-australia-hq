@@ -74,7 +74,7 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
 };
 
 export const validateFileType = (file: File): boolean => {
-  const allowedTypes = ['text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const allowedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
   return allowedTypes.includes(file.type);
 };
 
