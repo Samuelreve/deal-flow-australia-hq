@@ -5,8 +5,8 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Import PDF.js for direct text extraction
 import { getDocument } from "https://esm.sh/pdf.mjs";
 
-// Import mammoth for Word document extraction (using the same version as other functions)
-import mammoth from "npm:mammoth@1.8.0";
+// Import mammoth for Word document extraction
+import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
@@ -92,10 +92,12 @@ interface CategorySpecificData {
   };
 }
 
-const extractTextFromDocument = async (fileBase64: string, mimeType: string): Promise<string> => {
-  if (mimeType === 'application/pdf') {
+const extractTextFromDocument = async (fileBase64: string, mimeType: string, fileName: string): Promise<string> => {
+  console.log("🔧 Extracting text from:", { fileName, mimeType });
+
+  if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     return await extractTextFromPDF(fileBase64);
-  } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+  } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.toLowerCase().endsWith('.docx')) {
     return await extractTextFromWord(fileBase64);
   } else {
     throw new Error(`Unsupported file type: ${mimeType}`);
@@ -151,7 +153,7 @@ const extractTextFromWord = async (fileBase64: string): Promise<string> => {
       cleanBase64 = fileBase64.split(',')[1];
     }
 
-    // Convert base64 to ArrayBuffer (same pattern as public-ai-analyzer)
+    // Convert base64 to ArrayBuffer (following public-ai-analyzer pattern)
     const binaryString = atob(cleanBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
@@ -159,7 +161,6 @@ const extractTextFromWord = async (fileBase64: string): Promise<string> => {
     }
     
     const arrayBuffer = bytes.buffer;
-    
     console.log(`📄 Word document buffer created: ${arrayBuffer.byteLength} bytes`);
 
     // Extract text using mammoth (same as public-ai-analyzer)
@@ -173,8 +174,8 @@ const extractTextFromWord = async (fileBase64: string): Promise<string> => {
 
     console.log(`✅ Word text extraction successful: ${result.value.length} characters`);
 
-    // Clean up the extracted text (same pattern as PDF extraction)
-    const cleanedText = result.value
+    // Clean up the extracted text (following public-ai-analyzer pattern)
+    const cleanedText = String(result.value || '')
       .replace(/\s+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
@@ -391,7 +392,7 @@ const serve_handler = async (req: Request): Promise<Response> => {
     console.log(`🔍 Starting enhanced extraction for: ${fileName} (Category: ${dealCategory})`);
 
     // Extract text from document (PDF or Word)
-    const extractedText = await extractTextFromDocument(fileBase64, mimeType);
+    const extractedText = await extractTextFromDocument(fileBase64, mimeType, fileName);
     
     if (!extractedText.trim()) {
       return new Response(JSON.stringify({ 
