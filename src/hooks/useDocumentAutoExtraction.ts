@@ -12,13 +12,6 @@ interface ExtractionResult {
 
 interface AutoExtractOptions {
   dealCategory: string;
-  businessContext?: {
-    businessTradingName?: string;
-    businessLegalName?: string;
-    businessIndustry?: string;
-    yearsInOperation?: number;
-    primarySellerName?: string;
-  };
   onDataExtracted?: (extractedData: Partial<DealCreationData>) => void;
 }
 
@@ -57,18 +50,16 @@ export const useDocumentAutoExtraction = () => {
       // Map extracted data to form data structure
       const mappedData = mapExtractedDataToFormData(data.extractedData, options.dealCategory);
       
-      // Auto-generate AI title and description using document content and business context
-      const hasBusinessContext = options.businessContext?.businessTradingName || mappedData.businessTradingName;
-      if ((data.text || hasBusinessContext) && options.businessContext) {
+      // Auto-generate AI title and description using document content
+      if (data.text && mappedData.businessTradingName) {
         try {
           console.log('🤖 Generating AI-powered title and description...');
           
-          // Generate AI title with business context
+          // Generate AI title
           const titleResponse = await supabase.functions.invoke('ai-document-suggestion', {
             body: {
-              documentText: data.text || `Document: ${fileName}`,
-              extractedData: data.extractedData || {},
-              businessContext: options.businessContext,
+              documentText: data.text,
+              extractedData: data.extractedData,
               fieldType: 'title',
               currentValue: mappedData.dealTitle || '',
               dealCategory: options.dealCategory
@@ -80,12 +71,11 @@ export const useDocumentAutoExtraction = () => {
             console.log('✅ AI title generated:', titleResponse.data.suggestion);
           }
 
-          // Generate AI description with business context
+          // Generate AI description
           const descriptionResponse = await supabase.functions.invoke('ai-document-suggestion', {
             body: {
-              documentText: data.text || `Document: ${fileName}`,
-              extractedData: data.extractedData || {},
-              businessContext: options.businessContext,
+              documentText: data.text,
+              extractedData: data.extractedData,
               fieldType: 'description',
               currentValue: mappedData.dealDescription || '',
               dealCategory: options.dealCategory
