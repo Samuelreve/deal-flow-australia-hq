@@ -31,6 +31,8 @@ interface CategorySpecificData {
     industry?: string;
     yearsInOperation?: number;
     address?: string;
+    assetsIncluded?: string;
+    liabilitiesIncluded?: string;
   };
   financialInfo?: {
     askingPrice?: string;
@@ -39,11 +41,24 @@ interface CategorySpecificData {
     assets?: string;
     liabilities?: string;
   };
+  sellerInfo?: {
+    primarySellerName?: string;
+    sellerEntityType?: string;
+    legalRepName?: string;
+    legalRepEmail?: string;
+    legalRepPhone?: string;
+    jurisdiction?: string;
+    counterpartyCountry?: string;
+    buyerName?: string;
+    buyerEmail?: string;
+  };
   ipAssets?: Array<{
     type: string;
     name: string;
     registrationNumber?: string;
     expiryDate?: string;
+    jurisdiction?: string;
+    transferType?: string;
   }>;
   propertyDetails?: {
     propertyType?: string;
@@ -51,17 +66,26 @@ interface CategorySpecificData {
     sqm?: number;
     zoning?: string;
     council?: string;
+    stage?: string;
+    settlementDate?: string;
   };
   crossBorderInfo?: {
     buyerCountry?: string;
     sellerCountry?: string;
+    counterpartyCountry?: string;
     regulatoryRequirements?: string[];
+    incoterms?: string;
+    currency?: string;
+    regulatoryFlags?: string[];
   };
   microDealInfo?: {
+    itemName?: string;
     itemType?: string;
     condition?: string;
     rarity?: string;
     authenticity?: string;
+    authenticityNotes?: string;
+    escrowOptIn?: boolean;
   };
 }
 
@@ -112,68 +136,98 @@ const extractCategorySpecificData = async (text: string, category: string): Prom
   }
 
   const prompts = {
-    business_sale: `Extract business sale information from this document:
+    business_sale: `Extract business sale information from this document. Look for these specific details:
 - Business name and legal name
 - ABN/ACN if mentioned
 - Industry/sector
 - Years in operation
 - Financial information (revenue, profit, asking price)
-- Key assets
+- Assets included and liabilities included
 - Address/location
+- Seller details (names, contact info, entity types)
+- Legal representative information
 
-Text: ${text}
+Return JSON with structure: {
+  "businessInfo": { "businessName": "", "legalName": "", "abn": "", "acn": "", "industry": "", "yearsInOperation": 0, "address": "", "assetsIncluded": "", "liabilitiesIncluded": "" },
+  "financialInfo": { "askingPrice": "" },
+  "sellerInfo": { "primarySellerName": "", "sellerEntityType": "", "legalRepName": "", "legalRepEmail": "", "legalRepPhone": "", "jurisdiction": "", "buyerName": "", "buyerEmail": "" }
+}
 
-Respond with JSON only.`,
+Text: ${text}`,
 
-    ip_transfer: `Extract intellectual property information from this document:
-- IP assets (patents, trademarks, copyrights, domains)
+    ip_transfer: `Extract intellectual property information from this document. Look for these specific keywords and phrases:
+- "assignment of IP", "license", "trademark no.", "TM", "patent app", "IPO"
+- IP assets (patents, trademarks, copyrights, trade secrets)
 - Registration numbers and expiry dates
 - Asset names and descriptions
-- Transfer conditions
-- Financial terms
+- Transfer type (assignment, exclusive license, non-exclusive license)
+- Jurisdiction information
+- Seller and legal representative details
 
-Text: ${text}
+Return JSON with structure: {
+  "ipAssets": [{ "type": "", "name": "", "registrationNumber": "", "expiryDate": "", "jurisdiction": "", "transferType": "" }],
+  "financialInfo": { "askingPrice": "" },
+  "sellerInfo": { "primarySellerName": "", "sellerEntityType": "", "legalRepName": "", "legalRepEmail": "", "legalRepPhone": "", "jurisdiction": "", "buyerName": "", "buyerEmail": "" }
+}
 
-Respond with JSON only.`,
+Text: ${text}`,
 
-    real_estate: `Extract property information from this document:
+    real_estate: `Extract property information from this document. Look for these specific keywords:
+- Address lines, "conveyancing", "settlement", "exchange"
 - Property type (residential/commercial/industrial)
 - Address and location details
 - Square meters/area
 - Zoning information
 - Council/local authority
-- Current and proposed use
-- Financial terms
-- Settlement details
+- Settlement and exchange details
+- Stage information (offer, cooling off, finance, building pest, exchange, settlement)
+- Seller and legal representative details
 
-Text: ${text}
+Return JSON with structure: {
+  "propertyDetails": { "propertyType": "", "address": "", "sqm": 0, "zoning": "", "council": "", "stage": "", "settlementDate": "" },
+  "financialInfo": { "askingPrice": "" },
+  "sellerInfo": { "primarySellerName": "", "sellerEntityType": "", "legalRepName": "", "legalRepEmail": "", "legalRepPhone": "", "jurisdiction": "", "buyerName": "", "buyerEmail": "" }
+}
 
-Respond with JSON only.`,
+Text: ${text}`,
 
-    cross_border: `Extract cross-border transaction information:
+    cross_border: `Extract cross-border transaction information. Look for these specific keywords:
+- "cross-border", "overseas", "Incoterms", "FOB/CIF/EXW"
 - Buyer and seller countries
-- Regulatory requirements
+- Counterparty country information
+- Regulatory requirements and flags
 - Compliance obligations
 - Tax implications
-- Currency exchange details
+- Currency exchange details (AUD, USD, EUR)
 - International law considerations
+- Seller and legal representative details
 
-Text: ${text}
+Return JSON with structure: {
+  "crossBorderInfo": { "buyerCountry": "", "sellerCountry": "", "counterpartyCountry": "", "regulatoryRequirements": [], "incoterms": "", "currency": "", "regulatoryFlags": [] },
+  "financialInfo": { "askingPrice": "" },
+  "sellerInfo": { "primarySellerName": "", "sellerEntityType": "", "legalRepName": "", "legalRepEmail": "", "legalRepPhone": "", "jurisdiction": "", "counterpartyCountry": "", "buyerName": "", "buyerEmail": "" }
+}
 
-Respond with JSON only.`,
+Text: ${text}`,
 
-    micro_deals: `Extract collectible/item information from this document:
-- Item type and description
+    micro_deals: `Extract collectible/item information from this document. Look for these specific keywords:
+- "Pokémon", "trading card", "PSA grade"
+- Item name and type
 - Condition assessment
 - Rarity level
-- Authenticity verification
+- Authenticity verification and notes
 - Provenance/history
 - Certifications
-- Market value
+- Escrow information
+- Seller and legal representative details
 
-Text: ${text}
+Return JSON with structure: {
+  "microDealInfo": { "itemName": "", "itemType": "", "condition": "", "rarity": "", "authenticity": "", "authenticityNotes": "", "escrowOptIn": false },
+  "financialInfo": { "askingPrice": "" },
+  "sellerInfo": { "primarySellerName": "", "sellerEntityType": "", "legalRepName": "", "legalRepEmail": "", "legalRepPhone": "", "jurisdiction": "", "buyerName": "", "buyerEmail": "" }
+}
 
-Respond with JSON only.`
+Text: ${text}`
   };
 
   const prompt = prompts[category as keyof typeof prompts] || prompts.business_sale;

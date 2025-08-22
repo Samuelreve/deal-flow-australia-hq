@@ -99,6 +99,22 @@ export const useDocumentAutoExtraction = () => {
       if (business.industry) mappedData.businessIndustry = business.industry;
       if (business.yearsInOperation) mappedData.yearsInOperation = business.yearsInOperation;
       if (business.address) mappedData.registeredAddress = business.address;
+      if (business.assetsIncluded) mappedData.keyAssetsIncluded = business.assetsIncluded;
+      if (business.liabilitiesIncluded) mappedData.keyAssetsExcluded = business.liabilitiesIncluded;
+    }
+
+    // Map seller and legal information
+    if (extractedData.sellerInfo) {
+      const seller = extractedData.sellerInfo;
+      if (seller.primarySellerName) mappedData.primarySellerName = seller.primarySellerName;
+      if (seller.sellerEntityType) mappedData.sellerEntityType = seller.sellerEntityType;
+      if (seller.legalRepName) mappedData.legalRepName = seller.legalRepName;
+      if (seller.legalRepEmail) mappedData.legalRepEmail = seller.legalRepEmail;
+      if (seller.legalRepPhone) mappedData.legalRepPhone = seller.legalRepPhone;
+      if (seller.jurisdiction) mappedData.jurisdiction = seller.jurisdiction;
+      if (seller.counterpartyCountry) mappedData.counterpartyCountry = seller.counterpartyCountry;
+      if (seller.buyerName) mappedData.buyerName = seller.buyerName;
+      if (seller.buyerEmail) mappedData.buyerEmail = seller.buyerEmail;
     }
 
     // Map financial information
@@ -108,15 +124,21 @@ export const useDocumentAutoExtraction = () => {
 
     // Map category-specific data
     switch (category) {
+      case 'business_sale':
+        // Business sale specific fields are already mapped above
+        break;
+
       case 'ip_transfer':
         if (extractedData.ipAssets && Array.isArray(extractedData.ipAssets)) {
           mappedData.ipAssets = extractedData.ipAssets.map((asset: any) => ({
             type: asset.type?.toLowerCase().replace(' ', '_') || 'other',
             name: asset.name || '',
-            description: asset.description || '',
+            description: '',
             registrationNumber: asset.registrationNumber || '',
             expiryDate: asset.expiryDate || '',
-            value: ''
+            value: '',
+            jurisdiction: asset.jurisdiction || '',
+            transferType: asset.transferType?.toLowerCase().replace(' ', '_') || 'assignment'
           }));
         }
         break;
@@ -132,9 +154,9 @@ export const useDocumentAutoExtraction = () => {
             council: property.council || '',
             currentUse: '',
             proposedUse: '',
-            settlementDate: '',
+            settlementDate: property.settlementDate || '',
             contractConditions: [],
-            stage: 'offer' // required default
+            stage: (property.stage?.toLowerCase().replace(' ', '_') as any) || 'offer'
           };
         }
         break;
@@ -145,12 +167,14 @@ export const useDocumentAutoExtraction = () => {
           mappedData.crossBorderDetails = {
             buyerCountry: crossBorder.buyerCountry || '',
             sellerCountry: crossBorder.sellerCountry || '',
-            counterpartyCountry: crossBorder.counterpartyCountry || '', // required
+            counterpartyCountry: crossBorder.counterpartyCountry || '',
             regulatoryApprovals: crossBorder.regulatoryRequirements || [],
             taxImplications: '',
             currencyExchange: '',
             complianceRequirements: [],
-            currency: 'AUD' // required default
+            incoterms: crossBorder.incoterms || '',
+            currency: crossBorder.currency || 'AUD',
+            regulatoryFlags: crossBorder.regulatoryFlags || []
           };
         }
         break;
@@ -159,14 +183,14 @@ export const useDocumentAutoExtraction = () => {
         if (extractedData.microDealInfo) {
           const microDeal = extractedData.microDealInfo;
           mappedData.microDealDetails = {
-            itemName: microDeal.itemName || '', // required
+            itemName: microDeal.itemName || '',
             itemType: microDeal.itemType || '',
             condition: microDeal.condition?.toLowerCase().replace(' ', '_') || 'new',
             authenticity: microDeal.authenticity?.toLowerCase() || 'unknown',
             rarity: microDeal.rarity?.toLowerCase().replace(' ', '_') || 'common',
-            authenticityNotes: '',
+            authenticityNotes: microDeal.authenticityNotes || '',
             certifications: [],
-            escrowOptIn: false // required default
+            escrowOptIn: microDeal.escrowOptIn || false
           };
         }
         break;
