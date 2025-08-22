@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ArrowLeft, HandHeart, Lightbulb, Sparkles, DollarSign } from 'lucide-react';
+import { ChevronDown, ArrowLeft, HandHeart, Lightbulb, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { StepProps, DEAL_TYPES, SELLING_REASONS, DEAL_CATEGORIES } from '../types';
@@ -15,10 +15,13 @@ import { BusinessSaleFields } from './category-specific/BusinessSaleFields';
 import { RealEstateFields } from './category-specific/RealEstateFields';
 import { MicroDealFields } from './category-specific/MicroDealFields';
 import { CrossBorderFields } from './category-specific/CrossBorderFields';
+import { useDocumentExtraction } from '@/contexts/DocumentExtractionContext';
+import { AIDocumentSuggestion } from '../components/AIDocumentSuggestion';
 
 const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { extractedData } = useDocumentExtraction();
 
   // Helper function to check if a field should be shown for the current category
   const shouldShowField = (field: string): boolean => {
@@ -72,29 +75,6 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
     return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  const generateDealTitle = () => {
-    if (data.businessTradingName && data.dealType) {
-      const title = `Sale of ${data.businessTradingName} - ${data.dealType}`;
-      updateData({ dealTitle: title });
-    }
-  };
-
-  const generateDescription = () => {
-    // AI-powered description generation placeholder
-    if (data.businessTradingName && data.businessIndustry) {
-      const suggestion = `Established ${data.businessIndustry.toLowerCase()} business offering excellent growth opportunities. ${data.businessTradingName} has built a strong reputation and customer base over ${data.yearsInOperation || 'several'} years of operation.
-
-Key Features:
-• Proven business model with consistent revenue
-• Strong market position in ${data.businessIndustry.toLowerCase()}
-• Experienced team and established operations
-• Excellent opportunity for growth and expansion
-
-This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a well-established business with significant potential for the right buyer.`;
-      
-      updateData({ dealDescription: suggestion });
-    }
-  };
 
   const getValuationTip = () => {
     if (!data.askingPrice && data.businessIndustry && data.yearsInOperation > 0) {
@@ -139,16 +119,14 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
                 placeholder="e.g., Sale of Smith's Coffee Shop - Asset Sale"
                 className={`flex-1 ${errors.dealTitle ? 'border-red-500' : ''}`}
               />
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={generateDealTitle}
-                disabled={!data.businessTradingName || !data.dealType}
-                className="shrink-0"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Auto-generate
-              </Button>
+              <AIDocumentSuggestion
+                documentText={extractedData?.text}
+                extractedData={extractedData?.extractedData}
+                fieldType="title"
+                currentValue={data.dealTitle}
+                onSuggestion={(suggestion) => updateData({ dealTitle: suggestion })}
+                dealCategory={data.dealCategory}
+              />
             </div>
             {errors.dealTitle && (
               <p className="text-sm text-red-500">{errors.dealTitle}</p>
@@ -287,16 +265,14 @@ This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a w
             <Label htmlFor="dealDescription">
               Deal Description *
             </Label>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              onClick={generateDescription}
-              disabled={!data.businessTradingName || !data.businessIndustry}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              AI Suggest
-            </Button>
+            <AIDocumentSuggestion
+              documentText={extractedData?.text}
+              extractedData={extractedData?.extractedData}
+              fieldType="description"
+              currentValue={data.dealDescription}
+              onSuggestion={(suggestion) => updateData({ dealDescription: suggestion })}
+              dealCategory={data.dealCategory}
+            />
           </div>
           <Textarea
             id="dealDescription"
