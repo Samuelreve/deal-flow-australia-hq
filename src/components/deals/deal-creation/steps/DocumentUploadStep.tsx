@@ -181,7 +181,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
       <DocumentRequirements uploadedDocuments={data.uploadedDocuments} />
 
       {/* Auto-extraction toggle */}
-      {data.dealCategory && data.dealCategory !== 'business_sale' && (
+      {data.dealCategory && (
         <div className="flex items-center space-x-2 p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-secondary/5">
           <Sparkles className="h-5 w-5 text-primary" />
           <div className="flex-1">
