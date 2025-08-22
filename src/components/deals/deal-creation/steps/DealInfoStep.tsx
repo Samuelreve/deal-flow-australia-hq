@@ -15,16 +15,8 @@ import { BusinessSaleFields } from './category-specific/BusinessSaleFields';
 import { RealEstateFields } from './category-specific/RealEstateFields';
 import { MicroDealFields } from './category-specific/MicroDealFields';
 import { CrossBorderFields } from './category-specific/CrossBorderFields';
-import { AIDocumentSuggestion } from '../components/AIDocumentSuggestion';
 
-interface DealInfoStepProps extends StepProps {
-  documentContext?: {
-    extractedText?: string;
-    extractedData?: any;
-  };
-}
-
-const DealInfoStep: React.FC<DealInfoStepProps> = ({ data, updateData, onNext, onPrev, documentContext }) => {
+const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -80,6 +72,30 @@ const DealInfoStep: React.FC<DealInfoStepProps> = ({ data, updateData, onNext, o
     return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
+  const generateDealTitle = () => {
+    if (data.businessTradingName && data.dealType) {
+      const title = `Sale of ${data.businessTradingName} - ${data.dealType}`;
+      updateData({ dealTitle: title });
+    }
+  };
+
+  const generateDescription = () => {
+    // AI-powered description generation placeholder
+    if (data.businessTradingName && data.businessIndustry) {
+      const suggestion = `Established ${data.businessIndustry.toLowerCase()} business offering excellent growth opportunities. ${data.businessTradingName} has built a strong reputation and customer base over ${data.yearsInOperation || 'several'} years of operation.
+
+Key Features:
+• Proven business model with consistent revenue
+• Strong market position in ${data.businessIndustry.toLowerCase()}
+• Experienced team and established operations
+• Excellent opportunity for growth and expansion
+
+This ${data.dealType.toLowerCase()} represents a rare opportunity to acquire a well-established business with significant potential for the right buyer.`;
+      
+      updateData({ dealDescription: suggestion });
+    }
+  };
+
   const getValuationTip = () => {
     if (!data.askingPrice && data.businessIndustry && data.yearsInOperation > 0) {
       return `Based on ${data.businessIndustry} businesses with ${data.yearsInOperation} years of operation, typical asking prices range from 2-5x annual revenue. Consider getting a professional valuation.`;
@@ -123,20 +139,16 @@ const DealInfoStep: React.FC<DealInfoStepProps> = ({ data, updateData, onNext, o
                 placeholder="e.g., Sale of Smith's Coffee Shop - Asset Sale"
                 className={`flex-1 ${errors.dealTitle ? 'border-red-500' : ''}`}
               />
-              <AIDocumentSuggestion
-                documentText={documentContext?.extractedText}
-                extractedData={documentContext?.extractedData}
-                fieldType="title"
-                currentValue={data.dealTitle}
-                dealCategory={data.dealCategory}
-                businessData={{
-                  businessTradingName: data.businessTradingName,
-                  dealType: data.dealType,
-                  businessIndustry: data.businessIndustry,
-                  yearsInOperation: data.yearsInOperation
-                }}
-                onSuggestion={(suggestion) => updateData({ dealTitle: suggestion })}
-              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={generateDealTitle}
+                disabled={!data.businessTradingName || !data.dealType}
+                className="shrink-0"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Auto-generate
+              </Button>
             </div>
             {errors.dealTitle && (
               <p className="text-sm text-red-500">{errors.dealTitle}</p>
@@ -271,24 +283,20 @@ const DealInfoStep: React.FC<DealInfoStepProps> = ({ data, updateData, onNext, o
       {/* Deal Description - Always shown */}
       {shouldShowField('dealDescription') && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between">
             <Label htmlFor="dealDescription">
               Deal Description *
             </Label>
-            <AIDocumentSuggestion
-              documentText={documentContext?.extractedText}
-              extractedData={documentContext?.extractedData}
-              fieldType="description"
-              currentValue={data.dealDescription}
-              dealCategory={data.dealCategory}
-              businessData={{
-                businessTradingName: data.businessTradingName,
-                dealType: data.dealType,
-                businessIndustry: data.businessIndustry,
-                yearsInOperation: data.yearsInOperation
-              }}
-              onSuggestion={(suggestion) => updateData({ dealDescription: suggestion })}
-            />
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={generateDescription}
+              disabled={!data.businessTradingName || !data.businessIndustry}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI Suggest
+            </Button>
           </div>
           <Textarea
             id="dealDescription"
