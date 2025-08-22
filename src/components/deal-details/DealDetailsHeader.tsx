@@ -40,12 +40,38 @@ const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
     }).format(price);
   };
 
+  // Clean up title to remove placeholder text
+  const cleanTitle = (title: string): string => {
+    return title
+      .replace(/\[([^\]]+)\]/g, '') // Remove content in brackets like [Property Address]
+      .replace(/\{([^}]+)\}/g, '') // Remove content in braces like {propertyAddress}  
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/\s*-\s*$/, '') // Remove trailing dash
+      .replace(/^\s*-\s*/, '') // Remove leading dash
+      .trim();
+  };
+
+  // Clean up description to remove placeholder text
+  const cleanDescription = (description: string): string => {
+    return description
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove markdown bold formatting
+      .replace(/\[([^\]]+)\]/g, '') // Remove content in brackets
+      .replace(/\{([^}]+)\}/g, '') // Remove content in braces
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+  };
+
+  const displayTitle = cleanTitle(deal.title);
+  const displayDescription = deal.description ? cleanDescription(deal.description) : '';
+
   return (
-    <div className="mb-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{deal.title}</h1>
-          <div className="flex items-center gap-4 mb-4">
+    <div className="mb-8 border-b border-border pb-6">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-3xl font-bold text-foreground mb-3 leading-tight break-words">
+            {displayTitle || 'Untitled Deal'}
+          </h1>
+          <div className="flex items-center flex-wrap gap-4 mb-4">
             <Badge className={getStatusColor(deal.status)}>
               {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
             </Badge>
@@ -60,13 +86,15 @@ const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
               </span>
             )}
           </div>
-          {deal.description && (
-            <p className="text-muted-foreground max-w-2xl">{deal.description}</p>
+          {displayDescription && (
+            <p className="text-muted-foreground max-w-4xl leading-relaxed">
+              {displayDescription}
+            </p>
           )}
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <div className="text-sm text-muted-foreground mb-1">Health Score</div>
-          <div className="text-2xl font-bold">{deal.health_score}/100</div>
+          <div className="text-3xl font-bold text-foreground">{deal.health_score}/100</div>
         </div>
       </div>
     </div>
