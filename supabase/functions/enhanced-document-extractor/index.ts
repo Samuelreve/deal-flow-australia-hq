@@ -5,8 +5,8 @@ import { corsHeaders } from "../_shared/cors.ts";
 // Import PDF.js for direct text extraction
 import { getDocument } from "https://esm.sh/pdf.mjs";
 
-// Import mammoth for Word document extraction
-import mammoth from "https://esm.sh/mammoth@1.7.2";
+// Import mammoth for Word document extraction (using the same version as other functions)
+import mammoth from "npm:mammoth@1.8.0";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
@@ -143,13 +143,15 @@ const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
 
 const extractTextFromWord = async (fileBase64: string): Promise<string> => {
   try {
+    console.log('🔍 Starting Word document text extraction...');
+    
     // Clean up base64 format
     let cleanBase64 = fileBase64;
     if (fileBase64.includes(',')) {
       cleanBase64 = fileBase64.split(',')[1];
     }
 
-    // Convert base64 to ArrayBuffer
+    // Convert base64 to ArrayBuffer (same pattern as public-ai-analyzer)
     const binaryString = atob(cleanBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
@@ -157,22 +159,30 @@ const extractTextFromWord = async (fileBase64: string): Promise<string> => {
     }
     
     const arrayBuffer = bytes.buffer;
+    
+    console.log(`📄 Word document buffer created: ${arrayBuffer.byteLength} bytes`);
 
-    // Extract text using mammoth
+    // Extract text using mammoth (same as public-ai-analyzer)
+    console.log('🔄 Extracting text using mammoth...');
     const result = await mammoth.extractRawText({ arrayBuffer });
     
     if (!result.value || result.value.trim().length === 0) {
+      console.warn('⚠️ Mammoth extracted no text content');
       throw new Error('No text could be extracted from the Word document');
     }
 
-    // Clean up the extracted text
-    return result.value
+    console.log(`✅ Word text extraction successful: ${result.value.length} characters`);
+
+    // Clean up the extracted text (same pattern as PDF extraction)
+    const cleanedText = result.value
       .replace(/\s+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+
+    return cleanedText;
       
   } catch (error) {
-    console.error('Word extraction error:', error);
+    console.error('❌ Word extraction error:', error);
     throw new Error(`Failed to extract text from Word document: ${error.message}`);
   }
 };
