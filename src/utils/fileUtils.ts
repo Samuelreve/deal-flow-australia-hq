@@ -3,6 +3,13 @@
  */
 
 /**
+ * Sanitize a filename by replacing characters not allowed in file names.
+ */
+export function sanitizeFilename(filename: string): string {
+  return filename.replace(/[\/\\:*?<>|]+/g, '-');
+}
+
+/**
  * Format file size in human readable format
  */
 export function formatFileSize(bytes: number): string {
