@@ -1,12 +1,18 @@
 
-import React from 'react';
-import { 
-  ContractSkipLinks, 
-  useContractKeyboardNavigation, 
-  useContractFocusManagement, 
-  useKeyboardHelp, 
-  ContractKeyboardHelp 
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ContractSkipLinks,
+  useContractKeyboardNavigation,
+  useContractFocusManagement,
+  useKeyboardHelp,
+  ContractKeyboardHelp
 } from '@/components/contract/accessibility/EnhancedAccessibility';
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandInput,
+  CommandList
+} from '@/components/ui/command';
 
 interface ContractAccessibilityWrapperProps {
   children: React.ReactNode;
@@ -15,6 +21,38 @@ interface ContractAccessibilityWrapperProps {
 const ContractAccessibilityWrapper: React.FC<ContractAccessibilityWrapperProps> = ({ children }) => {
   const { announceToScreenReader } = useContractFocusManagement();
   const { isOpen: isKeyboardHelpOpen, setIsOpen: setKeyboardHelpOpen } = useKeyboardHelp();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+  }, [isSearchOpen]);
+
+  const handleSave = useCallback(() => {
+    const editable = document.querySelector('[data-contract-editor]') as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+
+    if (editable) {
+      localStorage.setItem('contract-draft', editable.value);
+      announceToScreenReader('Contract changes saved');
+    } else {
+      announceToScreenReader('No editable contract content found');
+    }
+  }, [announceToScreenReader]);
+
+  const handleSearch = useCallback(() => {
+    if (isSearchOpen) {
+      searchInputRef.current?.focus();
+      announceToScreenReader('Search input focused');
+    } else {
+      setIsSearchOpen(true);
+      announceToScreenReader('Search dialog opened');
+    }
+  }, [isSearchOpen, announceToScreenReader]);
 
   // Enhanced keyboard navigation
   useContractKeyboardNavigation(
@@ -22,16 +60,11 @@ const ContractAccessibilityWrapper: React.FC<ContractAccessibilityWrapperProps> 
       document.getElementById('contract-upload-input')?.click();
       announceToScreenReader('Opening file upload dialog');
     },
-    () => {
-      // TODO: Save functionality
-      announceToScreenReader('Save function not yet implemented');
-    },
-    () => {
-      // TODO: Search functionality
-      announceToScreenReader('Search function not yet implemented');
-    },
+    handleSave,
+    handleSearch,
     () => {
       setKeyboardHelpOpen(false);
+      setIsSearchOpen(false);
     }
   );
 
@@ -48,8 +81,19 @@ const ContractAccessibilityWrapper: React.FC<ContractAccessibilityWrapperProps> 
         className="sr-only"
       />
 
+      {/* Search dialog */}
+      <CommandDialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <CommandInput
+          ref={searchInputRef}
+          placeholder="Search contracts..."
+        />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+        </CommandList>
+      </CommandDialog>
+
       {/* Keyboard help overlay */}
-      <ContractKeyboardHelp 
+      <ContractKeyboardHelp
         isOpen={isKeyboardHelpOpen}
         onClose={() => setKeyboardHelpOpen(false)}
       />
