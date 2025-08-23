@@ -1,5 +1,12 @@
-
 import { DealCreationData } from '@/components/deals/deal-creation/types';
+
+// Helper to escape text before inserting into the PDF
+const escape = (value: unknown): string =>
+  String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
 
 /**
  * Generate and download a PDF summary of deal creation data
@@ -11,33 +18,35 @@ DEAL SUMMARY
 ============
 
 Business Information:
-- Legal Name: ${data.businessLegalName || 'Not specified'}
-- Trading Name: ${data.businessTradingName || 'Not specified'}
-- Industry: ${data.businessIndustry || 'Not specified'}
-- Years in Operation: ${data.yearsInOperation || 'Not specified'}
-- Legal Entity: ${data.legalEntityType || 'Not specified'}
-- ABN: ${data.abn || 'Not specified'}
-- ACN: ${data.acn || 'Not specified'}
+- Legal Name: ${escape(data.businessLegalName || 'Not specified')}
+- Trading Name: ${escape(data.businessTradingName || 'Not specified')}
+- Industry: ${escape(data.businessIndustry || 'Not specified')}
+- Years in Operation: ${escape(data.yearsInOperation || 'Not specified')}
+- Legal Entity: ${escape(data.legalEntityType || 'Not specified')}
+- ABN: ${escape(data.abn || 'Not specified')}
+- ACN: ${escape(data.acn || 'Not specified')}
 
 Deal Information:
-- Title: ${data.dealTitle || 'Not specified'}
-- Description: ${data.dealDescription || 'Not specified'}
-- Asking Price: ${data.askingPrice ? `$${data.askingPrice}` : 'Not specified'}
-- Deal Type: ${data.dealType || 'Not specified'}
-- Target Completion: ${data.targetCompletionDate || 'Not specified'}
+- Title: ${escape(data.dealTitle || 'Not specified')}
+- Description: ${escape(data.dealDescription || 'Not specified')}
+- Asking Price: ${escape(data.askingPrice ? `$${data.askingPrice}` : 'Not specified')}
+- Deal Type: ${escape(data.dealType || 'Not specified')}
+- Target Completion: ${escape(data.targetCompletionDate || 'Not specified')}
 
 Assets:
-- Included: ${data.keyAssetsIncluded || 'Not specified'}
-- Excluded: ${data.keyAssetsExcluded || 'Not specified'}
+- Included: ${escape(data.keyAssetsIncluded || 'Not specified')}
+- Excluded: ${escape(data.keyAssetsExcluded || 'Not specified')}
 
 Seller Information:
-- Primary Contact: ${data.primarySellerName || 'Not specified'}
-- Reason for Selling: ${data.reasonForSelling || 'Not specified'}
+- Primary Contact: ${escape(data.primarySellerName || 'Not specified')}
+- Reason for Selling: ${escape(data.reasonForSelling || 'Not specified')}
 
-Documents Uploaded: ${data.uploadedDocuments.length}
-${data.uploadedDocuments.map(doc => `- ${doc.filename} (${doc.category})`).join('\n')}
+Documents Uploaded: ${escape(data.uploadedDocuments.length)}
+${data.uploadedDocuments
+  .map(doc => `- ${escape(doc.filename)} (${escape(doc.category)})`)
+  .join('\\n')}
 
-Generated on: ${new Date().toLocaleDateString()}
+Generated on: ${escape(new Date().toLocaleDateString())}
   `.trim();
 
   // Create and download the file
@@ -45,7 +54,7 @@ Generated on: ${new Date().toLocaleDateString()}
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `deal-summary-${data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'untitled'}.txt`;
+  link.download = `deal-summary-${escape(data.dealTitle?.replace(/\s+/g, '-').toLowerCase() || 'untitled')}.txt`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
