@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, Briefcase, Home, Globe, Gamepad2, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StepProps, DEAL_CATEGORIES } from '../types';
+import { toast } from 'sonner';
 
 const categoryIcons = {
   business_sale: Building2,
@@ -31,6 +32,14 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
 
   const handleNext = () => {
     if (validateStep()) {
+      // Check if "Other" category is selected and show alert
+      if (data.dealCategory === 'other') {
+        toast.info("Coming Soon! 🚀", {
+          description: "The 'Other' deal category will be enabled in the future with AI prompts for custom deal creation. Stay tuned!",
+          duration: 4000,
+        });
+        return;
+      }
       onNext();
     }
   };
