@@ -16,7 +16,39 @@ interface IPTransferFieldsProps {
 }
 
 export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, updateData }) => {
-  const { extractedData, clearExtractedData } = useDocumentExtraction();
+  const { extractedData } = useDocumentExtraction();
+  
+  // Ensure there's always at least one IP asset and pre-fill with extracted data
+  React.useEffect(() => {
+    if (!data.ipAssets || data.ipAssets.length === 0) {
+      const extractedIPAssets = extractedData?.extractedData?.ipAssets;
+      const firstAsset: IPAsset = extractedIPAssets && extractedIPAssets.length > 0 
+        ? {
+            type: extractedIPAssets[0].type || 'patent',
+            name: extractedIPAssets[0].name || '',
+            description: extractedIPAssets[0].description || '',
+            registrationNumber: extractedIPAssets[0].registrationNumber || '',
+            identifier: extractedIPAssets[0].identifier || '',
+            jurisdiction: extractedIPAssets[0].jurisdiction || '',
+            transferType: extractedIPAssets[0].transferType || 'assignment',
+            expiryDate: extractedIPAssets[0].expiryDate || '',
+            value: extractedIPAssets[0].value || ''
+          }
+        : {
+            type: 'patent',
+            name: '',
+            description: '',
+            registrationNumber: '',
+            identifier: '',
+            jurisdiction: '',
+            transferType: 'assignment',
+            expiryDate: '',
+            value: ''
+          };
+      
+      updateData({ ipAssets: [firstAsset] });
+    }
+  }, [extractedData, data.ipAssets, updateData]);
   
   const addIPAsset = () => {
     // Check if there are unused extracted IP assets to pre-fill
@@ -54,7 +86,7 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
       };
     }
     
-    updateData({ ipAssets: [...data.ipAssets, newAsset] });
+    updateData({ ipAssets: [...(data.ipAssets || []), newAsset] });
   };
 
   const updateIPAsset = (index: number, updatedAsset: Partial<IPAsset>) => {
@@ -65,6 +97,9 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
   };
 
   const removeIPAsset = (index: number) => {
+    // Don't allow removing the first asset to keep it stable
+    if (index === 0 && data.ipAssets.length === 1) return;
+    
     const updatedAssets = data.ipAssets.filter((_, i) => i !== index);
     updateData({ ipAssets: updatedAssets });
   };
@@ -93,27 +128,16 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
         </div>
       </div>
 
-      {data.ipAssets.length === 0 ? (
-        <Card className="border-blue-500/20">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="bg-blue-500/10 p-4 rounded-full mb-4">
-              <Lightbulb className="h-8 w-8 text-blue-600" />
-            </div>
-            <h4 className="font-semibold text-blue-600 mb-2">No IP Assets Added Yet</h4>
-            <p className="text-muted-foreground text-center text-sm">
-              Click "Add IP Asset" above to start building your intellectual property portfolio for transfer.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {data.ipAssets.map((asset, index) => (
-            <Card key={index} className="border-blue-500/20 hover:border-blue-500/30 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-blue-600" />
-                  {asset.name || `IP Asset ${index + 1}`}
-                </CardTitle>
+      <div className="space-y-4">
+        {data.ipAssets.map((asset, index) => (
+          <Card key={index} className="border-blue-500/20 hover:border-blue-500/30 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-blue-600" />
+                {asset.name || `IP Asset ${index + 1}`}
+              </CardTitle>
+              {/* Only show delete button if not the first asset or if there are multiple assets */}
+              {(index > 0 || data.ipAssets.length > 1) && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -122,7 +146,8 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              </CardHeader>
+              )}
+            </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -228,8 +253,7 @@ export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, update
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 };
