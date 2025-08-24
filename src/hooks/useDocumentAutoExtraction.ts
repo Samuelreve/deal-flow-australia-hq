@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DealCreationData } from '@/components/deals/deal-creation/types';
 import { useToast } from '@/components/ui/use-toast';
+import { useDocumentExtraction } from '@/contexts/DocumentExtractionContext';
 
 interface ExtractionResult {
   success: boolean;
@@ -18,6 +19,7 @@ interface AutoExtractOptions {
 export const useDocumentAutoExtraction = () => {
   const [isExtracting, setIsExtracting] = useState(false);
   const { toast } = useToast();
+  const { setExtractedData, extractedData } = useDocumentExtraction();
 
   const extractDataFromDocument = async (
     fileBase64: string,
@@ -254,7 +256,7 @@ export const useDocumentAutoExtraction = () => {
 
       case 'ip_transfer':
         if (extractedData.ipAssets && Array.isArray(extractedData.ipAssets)) {
-          mappedData.ipAssets = extractedData.ipAssets.map((asset: any) => ({
+          const processedIPAssets = extractedData.ipAssets.map((asset: any) => ({
             type: asset.type?.toLowerCase().replace(' ', '_') || 'patent',
             name: asset.name || '',
             description: asset.description || `${asset.type || 'IP Asset'} - ${asset.name || 'Untitled'}${asset.registrationNumber ? ` (${asset.registrationNumber})` : ''}`,
@@ -265,6 +267,17 @@ export const useDocumentAutoExtraction = () => {
             expiryDate: asset.expiryDate || '',
             value: asset.value || asset.estimatedValue || ''
           }));
+          
+          mappedData.ipAssets = processedIPAssets;
+          
+          // Save IP assets to document extraction context for later use
+          setExtractedData({
+            ...extractedData,
+            extractedData: {
+              ...extractedData?.extractedData,
+              ipAssets: processedIPAssets
+            }
+          });
         }
         break;
 

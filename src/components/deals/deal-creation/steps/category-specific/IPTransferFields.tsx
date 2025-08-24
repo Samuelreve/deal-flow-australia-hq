@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Copyright, Shield, Lightbulb } from 'lucide-react';
 import { DealCreationData, IPAsset, IP_ASSET_TYPES } from '../../types';
+import { useDocumentExtraction } from '@/contexts/DocumentExtractionContext';
 
 interface IPTransferFieldsProps {
   data: DealCreationData;
@@ -15,18 +16,44 @@ interface IPTransferFieldsProps {
 }
 
 export const IPTransferFields: React.FC<IPTransferFieldsProps> = ({ data, updateData }) => {
+  const { extractedData, clearExtractedData } = useDocumentExtraction();
+  
   const addIPAsset = () => {
-    const newAsset: IPAsset = {
-      type: 'patent',
-      name: '',
-      description: '',
-      registrationNumber: '',
-      identifier: '', // required default
-      jurisdiction: '', // required default
-      transferType: 'assignment', // required default
-      expiryDate: '',
-      value: ''
-    };
+    // Check if there are unused extracted IP assets to pre-fill
+    const extractedIPAssets = extractedData?.extractedData?.ipAssets;
+    const currentIPAssetsCount = data.ipAssets?.length || 0;
+    
+    let newAsset: IPAsset;
+    
+    if (extractedIPAssets && currentIPAssetsCount < extractedIPAssets.length) {
+      // Use the next available extracted IP asset
+      const extractedAsset = extractedIPAssets[currentIPAssetsCount];
+      newAsset = {
+        type: extractedAsset.type || 'patent',
+        name: extractedAsset.name || '',
+        description: extractedAsset.description || '',
+        registrationNumber: extractedAsset.registrationNumber || '',
+        identifier: extractedAsset.identifier || '',
+        jurisdiction: extractedAsset.jurisdiction || '',
+        transferType: extractedAsset.transferType || 'assignment',
+        expiryDate: extractedAsset.expiryDate || '',
+        value: extractedAsset.value || ''
+      };
+    } else {
+      // Use empty default asset
+      newAsset = {
+        type: 'patent',
+        name: '',
+        description: '',
+        registrationNumber: '',
+        identifier: '',
+        jurisdiction: '',
+        transferType: 'assignment',
+        expiryDate: '',
+        value: ''
+      };
+    }
+    
     updateData({ ipAssets: [...data.ipAssets, newAsset] });
   };
 
