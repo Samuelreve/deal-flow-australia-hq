@@ -162,7 +162,7 @@ export const DEAL_CATEGORIES = [
   { value: 'real_estate', label: 'Real Estate', description: 'Property transactions' },
   { value: 'cross_border', label: 'Cross-Border', description: 'International transactions' },
   { value: 'micro_deals', label: 'Micro Deals', description: 'Small value collectibles & items' },
-  { value: 'other', label: 'Other', description: 'Other deal types' }
+  { value: 'other', label: 'Deal Prompt', description: 'Other deal types' }
 ];
 
 export const DEAL_TYPES = [
