@@ -255,14 +255,15 @@ export const useDocumentAutoExtraction = () => {
       case 'ip_transfer':
         if (extractedData.ipAssets && Array.isArray(extractedData.ipAssets)) {
           mappedData.ipAssets = extractedData.ipAssets.map((asset: any) => ({
-            type: asset.type?.toLowerCase().replace(' ', '_') || 'other',
+            type: asset.type?.toLowerCase().replace(' ', '_') || 'patent',
             name: asset.name || '',
-            description: '',
+            description: asset.description || `${asset.type || 'IP Asset'} - ${asset.name || 'Untitled'}${asset.registrationNumber ? ` (${asset.registrationNumber})` : ''}`,
             registrationNumber: asset.registrationNumber || '',
-            expiryDate: asset.expiryDate || '',
-            value: '',
+            identifier: asset.registrationNumber || asset.applicationNumber || '',
             jurisdiction: asset.jurisdiction || '',
-            transferType: asset.transferType?.toLowerCase().replace(' ', '_') || 'assignment'
+            transferType: asset.transferType?.toLowerCase().replace(' ', '_') || 'assignment',
+            expiryDate: asset.expiryDate || '',
+            value: asset.value || asset.estimatedValue || ''
           }));
         }
         break;
