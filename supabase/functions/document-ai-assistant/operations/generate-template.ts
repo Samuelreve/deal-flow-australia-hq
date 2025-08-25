@@ -156,11 +156,15 @@ CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\pa
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
       // Handle underscores: preserve signature lines, remove other placeholders
-      // First, temporarily protect signature lines
-      .replace(/(signature|sign|name|date|witness)[\s:]*_{3,}/gi, '$1: ____________________')
-      // Remove remaining underscores that aren't for signatures
+      // First, temporarily protect signature lines with a unique marker
+      .replace(/(signature|sign)[\s:]*_{3,}/gi, '$1: %%SIGNATURE_LINE%%')
+      .replace(/(date)[\s:]*_{3,}/gi, '$1: %%DATE_LINE%%')
+      // Remove remaining underscores that aren't for signatures  
       .replace(/_{3,}/g, '[INSERT INFORMATION]')
       .replace(/\b_+\b/g, '[INSERT]')
+      // Restore protected signature and date lines
+      .replace(/%%SIGNATURE_LINE%%/g, '_____________________')
+      .replace(/%%DATE_LINE%%/g, '_____________________')
       // Clean up RTF/LaTeX commands that might slip through
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
@@ -182,8 +186,8 @@ CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\pa
       .replace(/[ \t]+$/gm, '')
       // Ensure single space after periods in the middle of sentences
       .replace(/\.([A-Z])/g, '. $1')
-      // Remove any remaining unwanted characters or formatting (but keep brackets)
-      .replace(/[^\w\s\.\,\;\:\!\?\(\)\[\]\-\'\"\n]/g, '');
+      // Remove any remaining unwanted characters or formatting (but keep brackets and underscores for signatures)
+      .replace(/[^\w\s\.\,\;\:\!\?\(\)\[\]\-\'\"\n_]/g, '');
     
     // Ensure the template starts with proper formatting
     template = template.trim();
