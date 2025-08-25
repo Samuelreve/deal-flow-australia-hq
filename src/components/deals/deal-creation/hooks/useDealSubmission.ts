@@ -227,7 +227,7 @@ export const useDealSubmission = () => {
 
       toast({
         title: "Deal Created Successfully!",
-        description: "Generating contract document...",
+        description: "Your deal has been created. Now generating contract document...",
       });
 
       // Generate contract document using AI
@@ -248,6 +248,11 @@ export const useDealSubmission = () => {
   const generateContractDocument = async (dealId: string, formData: DealCreationData) => {
     try {
       console.log('Generating contract document for deal:', dealId);
+      
+      toast({
+        title: "Generating Contract",
+        description: "Please wait while we generate your contract document...",
+      });
       
       // Build context from deal data and uploaded documents
       const dealContext = {
