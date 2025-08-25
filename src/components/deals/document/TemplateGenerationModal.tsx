@@ -8,6 +8,8 @@ import { Loader2, Save, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import jsPDF from 'jspdf';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 interface TemplateGenerationModalProps {
   isOpen: boolean;
@@ -28,7 +30,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [disclaimer, setDisclaimer] = useState('');
-  const [selectedFileType, setSelectedFileType] = useState('txt');
+  const [selectedFileType, setSelectedFileType] = useState('docx');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -123,10 +125,61 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       let mimeType: string;
       
       switch (selectedFileType) {
+        case 'docx':
+          // Create DOCX document
+          const paragraphs = generatedTemplate.split('\n').map(line => 
+            new Paragraph({
+              children: [new TextRun(line || ' ')], // Empty lines need space
+            })
+          );
+          
+          const doc = new Document({
+            sections: [{
+              properties: {},
+              children: paragraphs,
+            }],
+          });
+          
+          fileContent = await Packer.toBuffer(doc);
+          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+          
+        case 'pdf':
+          // Create PDF document
+          const pdf = new jsPDF();
+          const lines = generatedTemplate.split('\n');
+          let yPosition = 20;
+          const pageHeight = pdf.internal.pageSize.height;
+          const lineHeight = 6;
+          
+          lines.forEach((line) => {
+            // Check if we need a new page
+            if (yPosition > pageHeight - 20) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            
+            // Handle long lines by splitting them
+            const splitLines = pdf.splitTextToSize(line || ' ', 180);
+            splitLines.forEach((splitLine: string) => {
+              if (yPosition > pageHeight - 20) {
+                pdf.addPage();
+                yPosition = 20;
+              }
+              pdf.text(splitLine, 10, yPosition);
+              yPosition += lineHeight;
+            });
+          });
+          
+          fileContent = new Uint8Array(pdf.output('arraybuffer'));
+          mimeType = 'application/pdf';
+          break;
+          
         case 'txt':
           fileContent = generatedTemplate;
           mimeType = 'text/plain';
           break;
+          
         case 'rtf':
           // Create proper RTF format preserving clean formatting
           const rtfContent = generatedTemplate
@@ -148,6 +201,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
           fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}} \\f0\\fs24\n${rtfContent}\n}`;
           mimeType = 'application/rtf';
           break;
+          
         default:
           fileContent = generatedTemplate;
           mimeType = 'text/plain';
@@ -225,7 +279,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
     setRequirements('');
     setGeneratedTemplate('');
     setDisclaimer('');
-    setSelectedFileType('txt');
+    setSelectedFileType('docx');
     onClose();
   };
 
@@ -282,6 +336,9 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="docx">Word Document (.docx)</SelectItem>
+                      <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
+                      <SelectItem value="txt">Text Document (.txt)</SelectItem>
+                      <SelectItem value="rtf">Rich Text Format (.rtf)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
