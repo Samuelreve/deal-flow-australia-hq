@@ -30,6 +30,7 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
     isSaving,
     disclaimer,
     handleGenerateMilestones,
+    handleGenerateWithoutModal,
     handleUpdateMilestone,
     handleToggleMilestone,
     handleSelectAll,
@@ -49,12 +50,13 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
     <>
       <Button 
         variant="outline" 
-        onClick={() => setIsDialogOpen(true)}
+        onClick={handleGenerateWithoutModal}
         className={`gap-2 ${className || ''}`}
         size="sm"
+        disabled={isGenerating}
       >
         <Sparkles className="h-4 w-4" />
-        Generate Milestones
+        {isGenerating ? 'Generating...' : 'Generate Milestones'}
       </Button>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

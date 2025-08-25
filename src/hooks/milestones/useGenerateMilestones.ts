@@ -57,6 +57,54 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
       });
     }
   };
+
+  const handleGenerateWithoutModal = async () => {
+    console.log('🚀 Starting automatic milestone generation...');
+    try {
+      // Fetch deal data to get the deal type and other information
+      const { data: dealData, error: dealError } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('id', dealId)
+        .single();
+
+      if (dealError) throw dealError;
+
+      // Use the deal's category/type or default to Asset Sale
+      const dealTypeToUse = dealData?.deal_type || 'Asset Sale';
+      console.log('📡 Using deal type from database:', dealTypeToUse);
+      
+      const result = await generateMilestones(dealTypeToUse);
+      console.log('📋 AI Response received:', result);
+      
+      if (result && result.success && 'milestones' in result && result.milestones) {
+        console.log('✅ Valid milestones received, count:', result.milestones.length);
+        // Convert to our internal format with all milestones selected
+        const milestoneItems = result.milestones.map(m => ({
+          ...m,
+          selected: true // Auto-select all milestones
+        }));
+        
+        // Automatically save the milestones
+        await autoSaveMilestones(milestoneItems);
+        
+      } else {
+        console.error('❌ Invalid response format:', result);
+        toast({
+          title: "Milestone Generation Failed",
+          description: "Could not generate milestones. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("💥 Automatic milestone generation error:", error);
+      toast({
+        title: "Milestone Generation Failed",
+        description: error.message || "An error occurred while generating milestones.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const autoSaveMilestones = async (milestoneItems: MilestoneItem[]) => {
     try {
@@ -206,6 +254,7 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
     isSaving,
     disclaimer,
     handleGenerateMilestones,
+    handleGenerateWithoutModal,
     handleUpdateMilestone,
     handleToggleMilestone,
     handleSelectAll,
