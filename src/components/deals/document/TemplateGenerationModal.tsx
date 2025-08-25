@@ -127,13 +127,8 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
             return 'application/pdf';
           case 'docx':
             return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          case 'doc':
-            return 'application/msword';
-          case 'rtf':
-            return 'application/rtf';
-          case 'txt':
           default:
-            return 'text/plain';
+            return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         }
       };
 
@@ -211,29 +206,39 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         });
         
         contentBlob = await Packer.toBlob(doc);
-      } else if (selectedFileType === 'rtf') {
-        // Create proper RTF format preserving clean formatting
-        const rtfContent = generatedTemplate
-          // Escape RTF special characters first
-          .replace(/\\/g, '\\\\')
-          .replace(/{/g, '\\{')
-          .replace(/}/g, '\\}')
-          // Preserve paragraph breaks and indentation structure
-          .replace(/\n\n/g, '\\par\\par\n')
-          .replace(/\n/g, '\\par\n')
-          // Preserve underlines for titles
-          .replace(/^__(.+?)__$/gm, '\\ul $1\\ul0')
-          .replace(/^_(.+?)_$/gm, '\\ul $1\\ul0')
-          // Handle tabbed/indented content (preserve structure)
-          .replace(/^    /gm, '\\tab ')
-          .replace(/^  ([A-Z]\.)/gm, '\\tab $1')
-          .replace(/^  (\d+\))/gm, '\\tab $1');
-        
-        const rtfDocument = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}} \\f0\\fs24\n${rtfContent}\n}`;
-        contentBlob = new Blob([rtfDocument], { type: mimeType });
       } else {
-        // Text content
-        contentBlob = new Blob([generatedTemplate], { type: mimeType });
+        // Default to DOCX if not recognized
+        const { Document, Packer, Paragraph, TextRun } = await import('docx');
+        
+        const lines = generatedTemplate.split('\n');
+        const paragraphs: any[] = [];
+        
+        lines.forEach((line) => {
+          const trimmedLine = line.trim();
+          
+          if (trimmedLine === '') {
+            paragraphs.push(new Paragraph({ text: '' }));
+            return;
+          }
+          
+          const textRuns: any[] = [];
+          const parts = trimmedLine.split(/(\b[A-Z]{2,}\b)/);
+          parts.forEach((part) => {
+            if (/^[A-Z]{2,}$/.test(part)) {
+              textRuns.push(new TextRun({ text: part, bold: true }));
+            } else {
+              textRuns.push(new TextRun({ text: part }));
+            }
+          });
+          
+          paragraphs.push(new Paragraph({ children: textRuns }));
+        });
+        
+        const doc = new Document({
+          sections: [{ properties: {}, children: paragraphs }],
+        });
+        
+        contentBlob = await Packer.toBlob(doc);
       }
 
       // Create document record in database (same as automated contract generation)
@@ -359,8 +364,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
                     <SelectContent>
                       <SelectItem value="docx">Word Document (.docx)</SelectItem>
                       <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
-                      <SelectItem value="txt">Text Document (.txt)</SelectItem>
-                      <SelectItem value="rtf">Rich Text Format (.rtf)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
