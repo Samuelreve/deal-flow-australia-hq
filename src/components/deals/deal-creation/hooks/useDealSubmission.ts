@@ -351,6 +351,103 @@ export const useDealSubmission = () => {
     
     setIsSavingDocument(true);
     try {
+      // Get the file extension from filename
+      const fileExtension = filename.split('.').pop()?.toLowerCase() || 'txt';
+      
+      // Determine MIME type based on file extension
+      const getMimeType = (extension: string) => {
+        switch (extension) {
+          case 'pdf':
+            return 'application/pdf';
+          case 'docx':
+            return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          case 'doc':
+            return 'application/msword';
+          case 'txt':
+          default:
+            return 'text/plain';
+        }
+      };
+
+      const mimeType = getMimeType(fileExtension);
+      let contentBlob: Blob;
+
+      // Generate appropriate content based on file type
+      if (fileExtension === 'pdf') {
+        // Generate PDF content
+        const jsPDF = (await import('jspdf')).default;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margins = 20;
+        const maxLineWidth = pageWidth - (margins * 2);
+        
+        const lines = content.split('\n');
+        let yPosition = margins;
+        const lineHeight = 7;
+        
+        doc.setFontSize(10);
+        
+        lines.forEach((line) => {
+          if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+            doc.addPage();
+            yPosition = margins;
+          }
+          
+          if (line.trim() === '') {
+            yPosition += lineHeight;
+            return;
+          }
+          
+          const wrappedLines = doc.splitTextToSize(line, maxLineWidth);
+          wrappedLines.forEach((wrappedLine: string) => {
+            if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+              doc.addPage();
+              yPosition = margins;
+            }
+            doc.text(wrappedLine, margins, yPosition);
+            yPosition += lineHeight;
+          });
+        });
+        
+        contentBlob = doc.output('blob');
+      } else if (fileExtension === 'docx') {
+        // Generate DOCX content
+        const { Document, Packer, Paragraph, TextRun } = await import('docx');
+        
+        const lines = content.split('\n');
+        const paragraphs: any[] = [];
+        
+        lines.forEach((line) => {
+          const trimmedLine = line.trim();
+          
+          if (trimmedLine === '') {
+            paragraphs.push(new Paragraph({ text: '' }));
+            return;
+          }
+          
+          const textRuns: any[] = [];
+          const parts = trimmedLine.split(/(\b[A-Z]{2,}\b)/);
+          parts.forEach((part) => {
+            if (/^[A-Z]{2,}$/.test(part)) {
+              textRuns.push(new TextRun({ text: part, bold: true }));
+            } else {
+              textRuns.push(new TextRun({ text: part }));
+            }
+          });
+          
+          paragraphs.push(new Paragraph({ children: textRuns }));
+        });
+        
+        const doc = new Document({
+          sections: [{ properties: {}, children: paragraphs }],
+        });
+        
+        contentBlob = await Packer.toBlob(doc);
+      } else {
+        // Text content
+        contentBlob = new Blob([content], { type: mimeType });
+      }
+
       // Create document record in database
       const { data: document, error: docError } = await supabase
         .from('documents')
@@ -360,8 +457,8 @@ export const useDealSubmission = () => {
           category: category,
           uploaded_by: user?.id,
           storage_path: `${currentDealId}/${filename}`,
-          size: new Blob([content]).size,
-          type: 'text/plain'
+          size: contentBlob.size,
+          type: mimeType
         })
         .select()
         .single();
@@ -375,8 +472,8 @@ export const useDealSubmission = () => {
           document_id: document.id,
           version_number: 1,
           storage_path: `${currentDealId}/${filename}`,
-          size: new Blob([content]).size,
-          type: 'text/plain',
+          size: contentBlob.size,
+          type: mimeType,
           uploaded_by: user?.id,
           description: 'AI-generated contract document'
         });
@@ -386,7 +483,7 @@ export const useDealSubmission = () => {
       // Upload the actual file content to storage
       const { error: uploadError } = await supabase.storage
         .from('deal_documents')
-        .upload(`${currentDealId}/${filename}`, new Blob([content], { type: 'text/plain' }));
+        .upload(`${currentDealId}/${filename}`, contentBlob);
 
       if (uploadError) throw uploadError;
 

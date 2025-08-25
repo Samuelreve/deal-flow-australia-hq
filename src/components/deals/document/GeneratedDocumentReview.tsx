@@ -10,6 +10,7 @@ import { AlertCircle, Download, FileText, File } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { generatePDF, generateDocx, generateTextFile } from "@/utils/pdfGenerator";
 import { toast } from "sonner";
+import jsPDF from 'jspdf';
 
 // Define document categories - these should match the ones in DocumentUploadForm
 const documentCategories = [
@@ -49,23 +50,16 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
   const handleSave = async () => {
     try {
       const cleanFilename = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      const finalFilename = `${cleanFilename}.${fileType}`;
       
-      if (fileType === 'pdf') {
-        generatePDF(editedText, cleanFilename);
-        toast.success("PDF downloaded successfully");
-      } else if (fileType === 'docx') {
-        await generateDocx(editedText, cleanFilename);
-        toast.success("DOCX downloaded successfully");
-      } else {
-        generateTextFile(editedText, cleanFilename);
-        toast.success("Text file downloaded successfully");
-      }
+      // For text files, just save the content as is
+      // For binary files (PDF/DOCX), the actual conversion will happen in handleDocumentSave
+      onSave(editedText, finalFilename, category);
       
-      // Still call the original onSave for database storage
-      onSave(editedText, `${cleanFilename}.${fileType}`, category);
+      toast.success(`Contract will be saved as ${fileType.toUpperCase()}`);
     } catch (error) {
-      toast.error(`Failed to generate ${fileType.toUpperCase()} file`);
-      console.error("File generation error:", error);
+      toast.error(`Failed to save ${fileType.toUpperCase()} file`);
+      console.error("File save error:", error);
     }
   };
 
