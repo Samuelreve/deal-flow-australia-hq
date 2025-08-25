@@ -37,16 +37,36 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
   onSave,
 }) => {
   const [editedText, setEditedText] = useState(initialText);
-  const [filename, setFilename] = useState(`Generated_Document_${new Date().toISOString().split('T')[0]}.txt`);
+  const [filename, setFilename] = useState(`Generated_Document_${new Date().toISOString().split('T')[0]}`);
   const [category, setCategory] = useState('Legal');
+  const [fileType, setFileType] = useState('txt');
 
   // Update state when initialText changes
   useEffect(() => {
     setEditedText(initialText);
   }, [initialText]);
 
-  const handleSave = () => {
-    onSave(editedText, filename, category);
+  const handleSave = async () => {
+    try {
+      const cleanFilename = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      
+      if (fileType === 'pdf') {
+        generatePDF(editedText, cleanFilename);
+        toast.success("PDF downloaded successfully");
+      } else if (fileType === 'docx') {
+        await generateDocx(editedText, cleanFilename);
+        toast.success("DOCX downloaded successfully");
+      } else {
+        generateTextFile(editedText, cleanFilename);
+        toast.success("Text file downloaded successfully");
+      }
+      
+      // Still call the original onSave for database storage
+      onSave(editedText, `${cleanFilename}.${fileType}`, category);
+    } catch (error) {
+      toast.error(`Failed to generate ${fileType.toUpperCase()} file`);
+      console.error("File generation error:", error);
+    }
   };
 
   const handleExportPDF = () => {
@@ -97,7 +117,7 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
         </Alert>
         
         <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="document-name">Document Name</Label>
               <Input
@@ -117,6 +137,20 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
                   {documentCategories.map(cat => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="file-type">File Type</Label>
+              <Select value={fileType} onValueChange={setFileType}>
+                <SelectTrigger id="file-type">
+                  <SelectValue placeholder="Select file type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="txt">TXT</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="docx">DOCX</SelectItem>
                 </SelectContent>
               </Select>
             </div>
