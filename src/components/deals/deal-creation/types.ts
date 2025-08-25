@@ -111,7 +111,7 @@ export interface StepProps {
   onNext: () => void;
   onPrev: () => void;
   isLastStep: boolean;
-  onSubmit?: () => void;
+  onSubmit?: (autoGenerateContract?: boolean) => void;
   isSubmitting?: boolean;
   documentContext?: {
     extractedText?: string;

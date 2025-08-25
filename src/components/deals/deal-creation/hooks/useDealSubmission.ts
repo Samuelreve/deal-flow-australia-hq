@@ -21,7 +21,7 @@ export const useDealSubmission = () => {
     dealId: currentDealId || ''
   });
 
-  const handleSubmit = async (formData: DealCreationData, tempDealId?: string) => {
+  const handleSubmit = async (formData: DealCreationData, tempDealId?: string, autoGenerateContract: boolean = true) => {
     if (!isAuthenticated || !user) {
       toast({
         title: "Authentication Required",
@@ -227,12 +227,19 @@ export const useDealSubmission = () => {
 
       toast({
         title: "Deal Created Successfully!",
-        description: "Your deal has been created. Now generating contract document...",
+        description: autoGenerateContract 
+          ? "Your deal has been created. Now generating contract document..." 
+          : "Your deal has been created successfully.",
       });
 
-      // Generate contract document using AI
-      setCurrentDealId(finalDealId);
-      await generateContractDocument(finalDealId, formData);
+      // Generate contract document using AI only if enabled
+      if (autoGenerateContract) {
+        setCurrentDealId(finalDealId);
+        await generateContractDocument(finalDealId, formData);
+      } else {
+        // Navigate directly to deal room without generating contract
+        navigate(`/deals/${finalDealId}`);
+      }
     } catch (error: any) {
       console.error('Error submitting deal:', error);
       toast({

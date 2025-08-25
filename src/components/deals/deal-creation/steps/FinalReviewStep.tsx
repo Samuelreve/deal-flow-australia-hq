@@ -23,13 +23,18 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
   const [checklist, setChecklist] = useState({
     reviewedDetails: false,
     uploadedDocs: false,
-    readyToCreate: false
+    readyToCreate: false,
+    autoGenerateContract: true // Default to enabled
   });
 
-  const allChecked = Object.values(checklist).every(Boolean);
+  const allChecked = checklist.reviewedDetails && checklist.uploadedDocs && checklist.readyToCreate;
 
   const handleChecklistChange = (key: keyof typeof checklist) => {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSwitchChange = (key: keyof typeof checklist, value: boolean) => {
+    setChecklist(prev => ({ ...prev, [key]: value }));
   };
 
   const downloadPDF = () => {
@@ -40,7 +45,8 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
   const handleSubmit = () => {
     if (onSubmit) {
       console.log('Submitting final deal with temp ID:', tempDealId);
-      onSubmit();
+      console.log('Auto-generate contract:', checklist.autoGenerateContract);
+      onSubmit(checklist.autoGenerateContract);
     }
   };
 
@@ -59,6 +65,7 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
       <FinalChecklist 
         checklist={checklist}
         onChecklistChange={handleChecklistChange}
+        onSwitchChange={handleSwitchChange}
       />
 
       <ReviewSubmissionActions

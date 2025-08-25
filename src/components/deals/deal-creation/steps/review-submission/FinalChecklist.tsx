@@ -2,19 +2,27 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ChecklistState {
   reviewedDetails: boolean;
   uploadedDocs: boolean;
   readyToCreate: boolean;
+  autoGenerateContract: boolean;
 }
 
 interface FinalChecklistProps {
   checklist: ChecklistState;
   onChecklistChange: (key: keyof ChecklistState) => void;
+  onSwitchChange: (key: keyof ChecklistState, value: boolean) => void;
 }
 
-export const FinalChecklist: React.FC<FinalChecklistProps> = ({ checklist, onChecklistChange }) => {
+export const FinalChecklist: React.FC<FinalChecklistProps> = ({ 
+  checklist, 
+  onChecklistChange, 
+  onSwitchChange 
+}) => {
   return (
     <Card>
       <CardHeader>
@@ -64,6 +72,23 @@ export const FinalChecklist: React.FC<FinalChecklistProps> = ({ checklist, onChe
           >
             I'm ready to create this deal
           </label>
+        </div>
+
+        {/* Automated Contract Generation Switch */}
+        <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-muted/20">
+          <div className="flex-1">
+            <Label htmlFor="auto-contract" className="text-sm font-medium">
+              Generate contract automatically
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              AI will generate a contract document after deal creation using your business details and uploaded documents
+            </p>
+          </div>
+          <Switch
+            id="auto-contract"
+            checked={checklist.autoGenerateContract}
+            onCheckedChange={(value) => onSwitchChange('autoGenerateContract', value)}
+          />
         </div>
       </CardContent>
     </Card>

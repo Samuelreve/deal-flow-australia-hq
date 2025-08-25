@@ -30,8 +30,8 @@ const DealCreationWizard: React.FC = () => {
 
   const currentStepInfo = WIZARD_STEPS.find(s => s.id === currentStep);
 
-  const handleFinalSubmit = () => {
-    handleSubmit(formData, tempDealId);
+  const handleFinalSubmit = (autoGenerateContract?: boolean) => {
+    handleSubmit(formData, tempDealId, autoGenerateContract);
   };
 
   return (
