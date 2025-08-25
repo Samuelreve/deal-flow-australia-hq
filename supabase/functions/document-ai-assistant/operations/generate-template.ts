@@ -110,20 +110,20 @@ CONTENT STRUCTURE:
 
 SIGNATURE BLOCK REQUIREMENTS:
 - Must include signature blocks for both SELLER and BUYER
-- Use underscores for actual signature lines: "Signature: ____________________"
+- Use underscores directly in signature lines: "Signature: _____________________"
 - Include Name, Title, and Date fields for each party
 - Format example:
   SELLER:
-  Signature: ____________________
+  Signature: _____________________
   Name: [INSERT SELLER NAME]
   Title: [INSERT TITLE]
-  Date: ____________________
+  Date: _____________________
 
   BUYER:
-  Signature: ____________________
+  Signature: _____________________
   Name: [INSERT BUYER NAME]  
   Title: [INSERT TITLE]
-  Date: ____________________
+  Date: _____________________
 
 CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. Use only bracketed placeholders like [INSERT NAME] except for signature lines which should use underscores like "Signature: ____________________". The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
