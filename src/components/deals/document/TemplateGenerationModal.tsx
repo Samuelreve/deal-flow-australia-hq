@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save, X } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import jsPDF from 'jspdf';
@@ -31,6 +32,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [disclaimer, setDisclaimer] = useState('');
   const [selectedFileType, setSelectedFileType] = useState('docx');
+  const [customFileName, setCustomFileName] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -93,6 +95,8 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       if (result?.success) {
         setGeneratedTemplate(result.template);
         setDisclaimer(result.disclaimer || '');
+        // Set default filename based on template type
+        setCustomFileName(`${templateType.replace(/\s+/g, '_')}_Template`);
         toast({
           title: "Template generated successfully",
           description: "You can now review and edit the template before saving",
@@ -117,8 +121,9 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
     setIsSaving(true);
     try {
-      // Create file name based on selected type
-      const fileName = `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}.${selectedFileType}`;
+      // Create file name from custom input or fallback to generated name
+      const baseFileName = customFileName.trim() || `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}`;
+      const fileName = `${baseFileName}.${selectedFileType}`;
       
       // Determine MIME type based on file extension (same as automated contract generation)
       const getMimeType = (extension: string) => {
@@ -307,6 +312,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
     setGeneratedTemplate('');
     setDisclaimer('');
     setSelectedFileType('docx');
+    setCustomFileName('');
     onClose();
   };
 
@@ -367,6 +373,20 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="fileName">File Name</Label>
+                <Input
+                  id="fileName"
+                  value={customFileName}
+                  onChange={(e) => setCustomFileName(e.target.value)}
+                  placeholder="Enter filename (without extension)"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  File will be saved as: {customFileName || 'Generated_Template'}.{selectedFileType}
+                </p>
               </div>
               
               <div>
