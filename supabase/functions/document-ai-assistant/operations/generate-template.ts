@@ -89,13 +89,13 @@ FORMATTING REQUIREMENTS:
 - Clear section titles like "DUTIES", "COMPENSATION", "TERMS AND CONDITIONS"
 - NO asterisks (*), hash symbols (#), or markdown formatting
 - NO RTF commands like \\par or \\par\\par - use standard text formatting only
-- NO underlines or underscore placeholders (___) - use clear bracketed placeholders instead
+- NO underlines or underscore placeholders (___) except for signature lines - use clear bracketed placeholders instead
 - Professional spacing with blank lines between major sections
 
 TEXT FORMATTING:
 - Use proper legal language and terminology
 - Include placeholders in brackets like [INSERT BUYER NAME] or [INSERT AMOUNT]
-- NO underscores or underscore placeholders (____) - use bracketed placeholders only
+- NO underscores or underscore placeholders except for signature lines - use bracketed placeholders for everything else
 - Proper capitalization for defined terms throughout the document
 - Include reference to exhibits where applicable (e.g., "as specified in Exhibit A")
 - Use "shall" for obligations and "may" for permissions
@@ -108,7 +108,7 @@ CONTENT STRUCTURE:
 4. Proper legal clauses and provisions
 5. Signature blocks at the end
 
-CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. NO underscores or underscore placeholders (___). Use only bracketed placeholders like [INSERT NAME]. The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
+CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. Use only bracketed placeholders like [INSERT NAME] except for signature lines which should use underscores like "Signature: ____________________". The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -138,9 +138,12 @@ CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\pa
       .replace(/\*{2,}/g, '')
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
-      // Remove all underscores and underscore placeholders
-      .replace(/_{3,}/g, '[INSERT INFORMATION]') // Replace multiple underscores with bracketed placeholder
-      .replace(/\b_+\b/g, '[INSERT]') // Replace standalone underscores
+      // Handle underscores: preserve signature lines, remove other placeholders
+      // First, temporarily protect signature lines
+      .replace(/(signature|sign|name|date|witness)[\s:]*_{3,}/gi, '$1: ____________________')
+      // Remove remaining underscores that aren't for signatures
+      .replace(/_{3,}/g, '[INSERT INFORMATION]')
+      .replace(/\b_+\b/g, '[INSERT]')
       // Clean up RTF/LaTeX commands that might slip through
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
