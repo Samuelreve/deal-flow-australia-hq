@@ -106,7 +106,24 @@ CONTENT STRUCTURE:
 2. Opening paragraph identifying the parties
 3. Main sections covering duties, terms, compensation, etc.
 4. Proper legal clauses and provisions
-5. Signature blocks at the end
+5. Signature blocks at the end with underscores for signatures
+
+SIGNATURE BLOCK REQUIREMENTS:
+- Must include signature blocks for both SELLER and BUYER
+- Use underscores for actual signature lines: "Signature: ____________________"
+- Include Name, Title, and Date fields for each party
+- Format example:
+  SELLER:
+  Signature: ____________________
+  Name: [INSERT SELLER NAME]
+  Title: [INSERT TITLE]
+  Date: ____________________
+
+  BUYER:
+  Signature: ____________________
+  Name: [INSERT BUYER NAME]  
+  Title: [INSERT TITLE]
+  Date: ____________________
 
 CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. Use only bracketed placeholders like [INSERT NAME] except for signature lines which should use underscores like "Signature: ____________________". The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
