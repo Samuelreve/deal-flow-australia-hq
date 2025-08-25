@@ -10,23 +10,67 @@ export async function handleGenerateTemplate(
   try {
     console.log('Generating template for deal:', dealId, 'type:', templateType);
     
-    // Build enhanced prompt with context
+    // Build enhanced prompt with comprehensive deal context
     let prompt = `Generate a comprehensive ${templateType.toLowerCase()} template based on the following requirements:\n\n${content}\n\n`;
     
-    if (context.dealTitle) {
-      prompt += `Deal Title: ${context.dealTitle}\n`;
+    // Add comprehensive deal information
+    prompt += "DEAL INFORMATION:\n";
+    if (context.dealTitle) prompt += `Deal Title: ${context.dealTitle}\n`;
+    if (context.businessLegalName) prompt += `Business Legal Name: ${context.businessLegalName}\n`;
+    if (context.businessTradingName) prompt += `Business Trading Name: ${context.businessTradingName}\n`;
+    if (context.businessIndustry) prompt += `Industry: ${context.businessIndustry}\n`;
+    if (context.businessState) prompt += `Business State: ${context.businessState}\n`;
+    if (context.legalEntityType) prompt += `Legal Entity: ${context.legalEntityType}\n`;
+    if (context.abn) prompt += `ABN: ${context.abn}\n`;
+    if (context.acn) prompt += `ACN: ${context.acn}\n`;
+    if (context.yearsInOperation) prompt += `Years in Operation: ${context.yearsInOperation}\n`;
+    if (context.askingPrice) prompt += `Asking Price: $${context.askingPrice}\n`;
+    if (context.dealType) prompt += `Deal Type: ${context.dealType}\n`;
+    if (context.targetCompletionDate) prompt += `Target Completion: ${context.targetCompletionDate}\n`;
+    if (context.keyAssetsIncluded) prompt += `Key Assets Included: ${context.keyAssetsIncluded}\n`;
+    if (context.keyAssetsExcluded) prompt += `Key Assets Excluded: ${context.keyAssetsExcluded}\n`;
+    if (context.reasonForSelling) prompt += `Reason for Selling: ${context.reasonForSelling}\n`;
+    if (context.primarySellerName) prompt += `Primary Seller: ${context.primarySellerName}\n`;
+
+    // Add uploaded documents information
+    if (context.uploadedDocuments && context.uploadedDocuments.length > 0) {
+      prompt += `\nUPLOADED DOCUMENTS (${context.uploadedDocuments.length} total):\n`;
+      context.uploadedDocuments.forEach((doc: any, index: number) => {
+        prompt += `${index + 1}. ${doc.filename} (Category: ${doc.category})\n`;
+      });
     }
-    if (context.businessName) {
-      prompt += `Business Name: ${context.businessName}\n`;
+
+    // Add category-specific information
+    if (context.ipAssets && context.ipAssets.length > 0) {
+      prompt += `\nIP ASSETS:\n`;
+      context.ipAssets.forEach((ip: any, index: number) => {
+        prompt += `${index + 1}. ${ip.name} - ${ip.type} (${ip.description})\n`;
+      });
     }
-    if (context.askingPrice) {
-      prompt += `Asking Price: $${context.askingPrice}\n`;
+    
+    if (context.propertyDetails) {
+      prompt += `\nPROPERTY DETAILS:\n`;
+      prompt += `Type: ${context.propertyDetails.propertyType}\n`;
+      prompt += `Address: ${context.propertyDetails.address}\n`;
+      if (context.propertyDetails.landSize) prompt += `Land Size: ${context.propertyDetails.landSize}\n`;
+      if (context.propertyDetails.buildingArea) prompt += `Building Area: ${context.propertyDetails.buildingArea}\n`;
     }
-    if (context.dealType) {
-      prompt += `Deal Type: ${context.dealType}\n`;
+
+    if (context.crossBorderDetails) {
+      prompt += `\nCROSS-BORDER DETAILS:\n`;
+      prompt += `Seller Country: ${context.crossBorderDetails.sellerCountry}\n`;
+      prompt += `Buyer Country: ${context.crossBorderDetails.buyerCountry}\n`;
+      if (context.crossBorderDetails.regulatoryApprovals) {
+        prompt += `Regulatory Approvals Required: ${context.crossBorderDetails.regulatoryApprovals.join(', ')}\n`;
+      }
     }
-    if (context.businessIndustry) {
-      prompt += `Industry: ${context.businessIndustry}\n`;
+
+    if (context.microDealDetails) {
+      prompt += `\nITEM DETAILS:\n`;
+      prompt += `Item Name: ${context.microDealDetails.itemName}\n`;
+      prompt += `Condition: ${context.microDealDetails.condition}\n`;
+      if (context.microDealDetails.authenticity) prompt += `Authenticity: ${context.microDealDetails.authenticity}\n`;
+      if (context.microDealDetails.provenance) prompt += `Provenance: ${context.microDealDetails.provenance}\n`;
     }
     
     prompt += `\nPlease generate a professional, legally-structured ${templateType.toLowerCase()} template following this exact format:
@@ -45,12 +89,13 @@ FORMATTING REQUIREMENTS:
 - Clear section titles like "DUTIES", "COMPENSATION", "TERMS AND CONDITIONS"
 - NO asterisks (*), hash symbols (#), or markdown formatting
 - NO RTF commands like \\par or \\par\\par - use standard text formatting only
-- Use underlines for document titles and section headers where appropriate
+- NO underlines or underscore placeholders (___) - use clear bracketed placeholders instead
 - Professional spacing with blank lines between major sections
 
 TEXT FORMATTING:
 - Use proper legal language and terminology
 - Include placeholders in brackets like [INSERT BUYER NAME] or [INSERT AMOUNT]
+- NO underscores or underscore placeholders (____) - use bracketed placeholders only
 - Proper capitalization for defined terms throughout the document
 - Include reference to exhibits where applicable (e.g., "as specified in Exhibit A")
 - Use "shall" for obligations and "may" for permissions
@@ -63,7 +108,7 @@ CONTENT STRUCTURE:
 4. Proper legal clauses and provisions
 5. Signature blocks at the end
 
-CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
+CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\par, or other markup. NO underscores or underscore placeholders (___). Use only bracketed placeholders like [INSERT NAME]. The template should look professional and match the formatting style of formal legal documents with proper spacing, indentation, and legal terminology.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -93,6 +138,9 @@ CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\pa
       .replace(/\*{2,}/g, '')
       .replace(/#{1,}/g, '')
       .replace(/\*([^*]+)\*/g, '$1') // Remove single asterisks around text
+      // Remove all underscores and underscore placeholders
+      .replace(/_{3,}/g, '[INSERT INFORMATION]') // Replace multiple underscores with bracketed placeholder
+      .replace(/\b_+\b/g, '[INSERT]') // Replace standalone underscores
       // Clean up RTF/LaTeX commands that might slip through
       .replace(/\\par\\par/g, '\n\n')
       .replace(/\\par/g, '\n')
@@ -114,7 +162,7 @@ CRITICAL: Generate clean text without any formatting codes like \\par, \\par\\pa
       .replace(/[ \t]+$/gm, '')
       // Ensure single space after periods in the middle of sentences
       .replace(/\.([A-Z])/g, '. $1')
-      // Remove any remaining unwanted characters or formatting
+      // Remove any remaining unwanted characters or formatting (but keep brackets)
       .replace(/[^\w\s\.\,\;\:\!\?\(\)\[\]\-\'\"\n]/g, '');
     
     // Ensure the template starts with proper formatting

@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download, FileText, File } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { generatePDF, generateDocx, generateTextFile } from "@/utils/pdfGenerator";
+import { toast } from "sonner";
 
 // Define document categories - these should match the ones in DocumentUploadForm
 const documentCategories = [
@@ -45,6 +47,39 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
 
   const handleSave = () => {
     onSave(editedText, filename, category);
+  };
+
+  const handleExportPDF = () => {
+    try {
+      const cleanFilename = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      generatePDF(editedText, cleanFilename);
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate PDF");
+      console.error("PDF generation error:", error);
+    }
+  };
+
+  const handleExportDocx = async () => {
+    try {
+      const cleanFilename = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      await generateDocx(editedText, cleanFilename);
+      toast.success("DOCX downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate DOCX");
+      console.error("DOCX generation error:", error);
+    }
+  };
+
+  const handleExportText = () => {
+    try {
+      const cleanFilename = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      generateTextFile(editedText, cleanFilename);
+      toast.success("Text file downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate text file");
+      console.error("Text file generation error:", error);
+    }
   };
 
   return (
@@ -98,11 +133,42 @@ const GeneratedDocumentReview: React.FC<GeneratedDocumentReviewProps> = ({
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save as Document'}
-          </Button>
+        <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportText}
+              className="flex items-center space-x-1"
+            >
+              <FileText className="h-4 w-4" />
+              <span>Export TXT</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              className="flex items-center space-x-1"
+            >
+              <File className="h-4 w-4" />
+              <span>Export PDF</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportDocx}
+              className="flex items-center space-x-1"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export DOCX</span>
+            </Button>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save as Document'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
