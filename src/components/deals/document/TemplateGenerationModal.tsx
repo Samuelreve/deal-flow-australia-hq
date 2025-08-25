@@ -120,139 +120,161 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       // Create file name based on selected type
       const fileName = `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}.${selectedFileType}`;
       
-      // Create different content based on file type
-      let fileContent: string | Uint8Array;
-      let mimeType: string;
-      
-      switch (selectedFileType) {
-        case 'docx':
-          // Create DOCX document
-          const paragraphs = generatedTemplate.split('\n').map(line => 
-            new Paragraph({
-              children: [new TextRun(line || ' ')], // Empty lines need space
-            })
-          );
+      // Determine MIME type based on file extension (same as automated contract generation)
+      const getMimeType = (extension: string) => {
+        switch (extension) {
+          case 'pdf':
+            return 'application/pdf';
+          case 'docx':
+            return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          case 'doc':
+            return 'application/msword';
+          case 'rtf':
+            return 'application/rtf';
+          case 'txt':
+          default:
+            return 'text/plain';
+        }
+      };
+
+      const mimeType = getMimeType(selectedFileType);
+      let contentBlob: Blob;
+
+      // Generate appropriate content based on file type (same as automated contract generation)
+      if (selectedFileType === 'pdf') {
+        // Generate PDF content using jsPDF
+        const jsPDF = (await import('jspdf')).default;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margins = 20;
+        const maxLineWidth = pageWidth - (margins * 2);
+        
+        const lines = generatedTemplate.split('\n');
+        let yPosition = margins;
+        const lineHeight = 7;
+        
+        doc.setFontSize(10);
+        
+        lines.forEach((line) => {
+          if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+            doc.addPage();
+            yPosition = margins;
+          }
           
-          const doc = new Document({
-            sections: [{
-              properties: {},
-              children: paragraphs,
-            }],
-          });
+          if (line.trim() === '') {
+            yPosition += lineHeight;
+            return;
+          }
           
-          fileContent = await Packer.toBuffer(doc);
-          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          break;
-          
-        case 'pdf':
-          // Create PDF document
-          const pdf = new jsPDF();
-          const lines = generatedTemplate.split('\n');
-          let yPosition = 20;
-          const pageHeight = pdf.internal.pageSize.height;
-          const lineHeight = 6;
-          
-          lines.forEach((line) => {
-            // Check if we need a new page
-            if (yPosition > pageHeight - 20) {
-              pdf.addPage();
-              yPosition = 20;
+          const wrappedLines = doc.splitTextToSize(line, maxLineWidth);
+          wrappedLines.forEach((wrappedLine: string) => {
+            if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+              doc.addPage();
+              yPosition = margins;
             }
-            
-            // Handle long lines by splitting them
-            const splitLines = pdf.splitTextToSize(line || ' ', 180);
-            splitLines.forEach((splitLine: string) => {
-              if (yPosition > pageHeight - 20) {
-                pdf.addPage();
-                yPosition = 20;
-              }
-              pdf.text(splitLine, 10, yPosition);
-              yPosition += lineHeight;
-            });
+            doc.text(wrappedLine, margins, yPosition);
+            yPosition += lineHeight;
+          });
+        });
+        
+        contentBlob = doc.output('blob');
+      } else if (selectedFileType === 'docx') {
+        // Generate DOCX content using docx library
+        const { Document, Packer, Paragraph, TextRun } = await import('docx');
+        
+        const lines = generatedTemplate.split('\n');
+        const paragraphs: any[] = [];
+        
+        lines.forEach((line) => {
+          const trimmedLine = line.trim();
+          
+          if (trimmedLine === '') {
+            paragraphs.push(new Paragraph({ text: '' }));
+            return;
+          }
+          
+          const textRuns: any[] = [];
+          const parts = trimmedLine.split(/(\b[A-Z]{2,}\b)/);
+          parts.forEach((part) => {
+            if (/^[A-Z]{2,}$/.test(part)) {
+              textRuns.push(new TextRun({ text: part, bold: true }));
+            } else {
+              textRuns.push(new TextRun({ text: part }));
+            }
           });
           
-          fileContent = new Uint8Array(pdf.output('arraybuffer'));
-          mimeType = 'application/pdf';
-          break;
-          
-        case 'txt':
-          fileContent = generatedTemplate;
-          mimeType = 'text/plain';
-          break;
-          
-        case 'rtf':
-          // Create proper RTF format preserving clean formatting
-          const rtfContent = generatedTemplate
-            // Escape RTF special characters first
-            .replace(/\\/g, '\\\\')
-            .replace(/{/g, '\\{')
-            .replace(/}/g, '\\}')
-            // Preserve paragraph breaks and indentation structure
-            .replace(/\n\n/g, '\\par\\par\n')
-            .replace(/\n/g, '\\par\n')
-            // Preserve underlines for titles
-            .replace(/^__(.+?)__$/gm, '\\ul $1\\ul0')
-            .replace(/^_(.+?)_$/gm, '\\ul $1\\ul0')
-            // Handle tabbed/indented content (preserve structure)
-            .replace(/^    /gm, '\\tab ')
-            .replace(/^  ([A-Z]\.)/gm, '\\tab $1')
-            .replace(/^  (\d+\))/gm, '\\tab $1');
-          
-          fileContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}} \\f0\\fs24\n${rtfContent}\n}`;
-          mimeType = 'application/rtf';
-          break;
-          
-        default:
-          fileContent = generatedTemplate;
-          mimeType = 'text/plain';
-      }
-      
-      // Create blob from template content
-      const blob = new Blob([fileContent], { type: mimeType });
-      const file = new File([blob], fileName, { type: mimeType });
-
-      // Upload the generated template as a document
-      const filePath = `${dealId}/generated-${user.id}-${Date.now()}.${selectedFileType}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('deal_documents')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
+          paragraphs.push(new Paragraph({ children: textRuns }));
+        });
+        
+        const doc = new Document({
+          sections: [{ properties: {}, children: paragraphs }],
+        });
+        
+        contentBlob = await Packer.toBlob(doc);
+      } else if (selectedFileType === 'rtf') {
+        // Create proper RTF format preserving clean formatting
+        const rtfContent = generatedTemplate
+          // Escape RTF special characters first
+          .replace(/\\/g, '\\\\')
+          .replace(/{/g, '\\{')
+          .replace(/}/g, '\\}')
+          // Preserve paragraph breaks and indentation structure
+          .replace(/\n\n/g, '\\par\\par\n')
+          .replace(/\n/g, '\\par\n')
+          // Preserve underlines for titles
+          .replace(/^__(.+?)__$/gm, '\\ul $1\\ul0')
+          .replace(/^_(.+?)_$/gm, '\\ul $1\\ul0')
+          // Handle tabbed/indented content (preserve structure)
+          .replace(/^    /gm, '\\tab ')
+          .replace(/^  ([A-Z]\.)/gm, '\\tab $1')
+          .replace(/^  (\d+\))/gm, '\\tab $1');
+        
+        const rtfDocument = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0\\froman Times New Roman;}} \\f0\\fs24\n${rtfContent}\n}`;
+        contentBlob = new Blob([rtfDocument], { type: mimeType });
+      } else {
+        // Text content
+        contentBlob = new Blob([generatedTemplate], { type: mimeType });
       }
 
-      // Create document record
+      // Create document record in database (same as automated contract generation)
       const { data: document, error: docError } = await supabase
         .from('documents')
         .insert({
           deal_id: dealId,
           name: fileName,
-          type: file.type,
-          size: file.size,
           category: 'contract',
           uploaded_by: user.id,
-          storage_path: filePath,
+          storage_path: `${dealId}/${fileName}`,
+          size: contentBlob.size,
+          type: mimeType,
           status: 'draft'
         })
         .select()
         .single();
 
-      if (docError) {
-        throw docError;
-      }
+      if (docError) throw docError;
 
-      // Create document version
-      await supabase
+      // Create document version (same as automated contract generation)
+      const { error: versionError } = await supabase
         .from('document_versions')
         .insert({
           document_id: document.id,
           version_number: 1,
-          size: file.size,
-          type: file.type,
-          storage_path: filePath,
-          uploaded_by: user.id
+          storage_path: `${dealId}/${fileName}`,
+          size: contentBlob.size,
+          type: mimeType,
+          uploaded_by: user.id,
+          description: 'AI-generated template document'
         });
+
+      if (versionError) throw versionError;
+
+      // Upload the actual file content to storage (same as automated contract generation)
+      const { error: uploadError } = await supabase.storage
+        .from('deal_documents')
+        .upload(`${dealId}/${fileName}`, contentBlob);
+
+      if (uploadError) throw uploadError;
 
       toast({
         title: "Template saved successfully",
