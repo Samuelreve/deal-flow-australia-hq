@@ -4,6 +4,21 @@ import jsPDF from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 /**
+ * Generate and download a text file
+ */
+export const generateTextFile = (content: string, filename: string = 'document') => {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+/**
  * Generate and download a PDF summary of deal creation data
  */
 export const generateDealSummaryPDF = (data: DealCreationData) => {
@@ -160,17 +175,3 @@ export const generateDocx = async (content: string, filename: string = 'document
   URL.revokeObjectURL(url);
 };
 
-/**
- * Generate and download a text file
- */
-export const generateTextFile = (content: string, filename: string = 'document') => {
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
