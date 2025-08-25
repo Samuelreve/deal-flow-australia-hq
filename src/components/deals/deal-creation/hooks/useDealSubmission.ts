@@ -261,14 +261,66 @@ export const useDealSubmission = () => {
         keyAssetsExcluded: formData.keyAssetsExcluded,
         reasonForSelling: formData.reasonForSelling,
         primarySellerName: formData.primarySellerName,
+        businessState: formData.businessState,
+        legalEntityType: formData.legalEntityType,
+        abn: formData.abn,
+        acn: formData.acn,
+        yearsInOperation: formData.yearsInOperation,
+        targetCompletionDate: formData.targetCompletionDate,
+        // Document information
         hasUploadedDocuments: formData.uploadedDocuments && formData.uploadedDocuments.length > 0,
-        documentCount: formData.uploadedDocuments?.length || 0
+        documentCount: formData.uploadedDocuments?.length || 0,
+        uploadedDocuments: formData.uploadedDocuments?.map(doc => ({
+          filename: doc.filename,
+          category: doc.category,
+          type: doc.type
+        })) || [],
+        // Category-specific data
+        ipAssets: formData.dealCategory === 'ip_transfer' ? formData.ipAssets : undefined,
+        propertyDetails: formData.dealCategory === 'real_estate' ? formData.propertyDetails : undefined,
+        crossBorderDetails: formData.dealCategory === 'cross_border' ? formData.crossBorderDetails : undefined,
+        microDealDetails: formData.dealCategory === 'micro_deals' ? formData.microDealDetails : undefined
       };
+
+      // Generate category-specific template type and prompt
+      const getTemplateTypeAndPrompt = (category: string) => {
+        switch (category) {
+          case 'ip_transfer':
+            return {
+              templateType: 'IP Transfer Agreement',
+              prompt: `Generate a comprehensive IP transfer agreement for ${formData.ipAssets?.map(ip => ip.name).join(', ') || 'intellectual property assets'}. Include specific IP transfer clauses, warranties, and jurisdiction-specific requirements.`
+            };
+          case 'real_estate':
+            return {
+              templateType: 'Property Sale Contract',
+              prompt: `Generate a property sale contract for ${formData.propertyDetails?.propertyType || 'property'} located at ${formData.propertyDetails?.address || 'the specified address'}. Include property-specific conditions, settlement terms, and regulatory compliance.`
+            };
+          case 'cross_border':
+            return {
+              templateType: 'Cross-Border Transaction Agreement',
+              prompt: `Generate a cross-border transaction agreement between ${formData.crossBorderDetails?.sellerCountry || 'Australia'} and ${formData.crossBorderDetails?.buyerCountry || 'the buyer country'}. Include regulatory approvals, tax implications, and compliance requirements.`
+            };
+          case 'micro_deals':
+            return {
+              templateType: 'Item Sale Agreement',
+              prompt: `Generate a sale agreement for ${formData.microDealDetails?.itemName || 'collectible item'}. Include condition details, authenticity verification, and escrow terms if applicable.`
+            };
+          case 'business_sale':
+          default:
+            return {
+              templateType: 'Business Sale Agreement',
+              prompt: `Generate a comprehensive business sale agreement for ${formData.businessLegalName || formData.businessTradingName} in the ${formData.businessIndustry} industry. Include asset transfer, liabilities, warranties, and completion terms.`
+            };
+        }
+      };
+
+      const { templateType, prompt } = getTemplateTypeAndPrompt(formData.dealCategory);
 
       const result = await generateSmartTemplate(
         dealId,
-        'Business Sale Contract',
-        'Generate a comprehensive business sale contract incorporating the deal information and any uploaded documents'
+        templateType,
+        prompt,
+        dealContext
       );
 
       if (result && result.template) {

@@ -20,14 +20,16 @@ export const useTemplateOperations = (props: UseDocumentAICoreProps) => {
   const generateSmartTemplate = async (
     dealId: string,
     templateType: string,
-    customRequirements?: string
+    customRequirements?: string,
+    additionalContext?: Record<string, any>
   ) => {
     return await processAIRequest('generate_smart_template', {
       content: customRequirements || '',
       context: { 
         dealId,
         templateType,
-        operationType: 'smart_template_generation'
+        operationType: 'smart_template_generation',
+        ...additionalContext
       }
     });
   };
