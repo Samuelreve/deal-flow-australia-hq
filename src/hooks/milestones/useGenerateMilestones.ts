@@ -85,8 +85,9 @@ export const useGenerateMilestones = ({ dealId, onMilestonesAdded }: UseGenerate
           selected: true // Auto-select all milestones
         }));
         
-        // Automatically save the milestones
-        await autoSaveMilestones(milestoneItems);
+        setGeneratedMilestones(milestoneItems);
+        setDisclaimer(result.disclaimer || '');
+        setIsDialogOpen(true); // Show the review modal
         
       } else {
         console.error('❌ Invalid response format:', result);

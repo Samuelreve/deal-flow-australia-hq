@@ -62,32 +62,19 @@ const GenerateMilestonesButton: React.FC<GenerateMilestonesButtonProps> = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Generate Deal Milestones</DialogTitle>
+            <DialogTitle>Review Generated Milestones</DialogTitle>
           </DialogHeader>
           
-          {!generatedMilestones.length ? (
-              <DealTypeSelectionForm 
-                dealType={dealType}
-                setDealType={setDealType}
-                onGenerate={() => {
-                  console.log('🎯 Generate button clicked!');
-                  handleGenerateMilestones();
-                }}
-                onClose={closeDialog}
-                isGenerating={isGenerating}
-              />
-          ) : (
-            <MilestoneReviewForm 
-              milestones={generatedMilestones}
-              onToggleMilestone={handleToggleMilestone}
-              onSelectAll={handleSelectAll}
-              onUpdateMilestone={handleUpdateMilestone}
-              onSave={handleSaveMilestones}
-              onBack={handleBackToSelection}
-              isSaving={isSaving}
-              disclaimer={disclaimer}
-            />
-          )}
+          <MilestoneReviewForm 
+            milestones={generatedMilestones}
+            onToggleMilestone={handleToggleMilestone}
+            onSelectAll={handleSelectAll}
+            onUpdateMilestone={handleUpdateMilestone}
+            onSave={handleSaveMilestones}
+            onBack={handleBackToSelection}
+            isSaving={isSaving}
+            disclaimer={disclaimer}
+          />
         </DialogContent>
       </Dialog>
     </>
