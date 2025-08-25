@@ -5,12 +5,21 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { DealCreationData } from '../types';
+import { useDocumentAI } from '@/hooks/useDocumentAI';
 
 export const useDealSubmission = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const [generatedDocument, setGeneratedDocument] = useState<string | null>(null);
+  const [isSavingDocument, setIsSavingDocument] = useState(false);
+  const [currentDealId, setCurrentDealId] = useState<string | null>(null);
+  
+  const { generateSmartTemplate } = useDocumentAI({
+    dealId: currentDealId || ''
+  });
 
   const handleSubmit = async (formData: DealCreationData, tempDealId?: string) => {
     if (!isAuthenticated || !user) {
@@ -218,10 +227,12 @@ export const useDealSubmission = () => {
 
       toast({
         title: "Deal Created Successfully!",
-        description: "Your business sale is now live and ready for collaboration.",
+        description: "Generating contract document...",
       });
-      
-      navigate(`/deals/${finalDealId}`);
+
+      // Generate contract document using AI
+      setCurrentDealId(finalDealId);
+      await generateContractDocument(finalDealId, formData);
     } catch (error: any) {
       console.error('Error submitting deal:', error);
       toast({
@@ -234,8 +245,119 @@ export const useDealSubmission = () => {
     }
   };
 
+  const generateContractDocument = async (dealId: string, formData: DealCreationData) => {
+    try {
+      console.log('Generating contract document for deal:', dealId);
+      
+      // Build context from deal data and uploaded documents
+      const dealContext = {
+        dealTitle: formData.dealTitle,
+        businessName: formData.businessLegalName || formData.businessTradingName,
+        askingPrice: formData.askingPrice,
+        dealType: formData.dealType,
+        businessIndustry: formData.businessIndustry,
+        dealCategory: formData.dealCategory,
+        keyAssetsIncluded: formData.keyAssetsIncluded,
+        keyAssetsExcluded: formData.keyAssetsExcluded,
+        reasonForSelling: formData.reasonForSelling,
+        primarySellerName: formData.primarySellerName,
+        hasUploadedDocuments: formData.uploadedDocuments && formData.uploadedDocuments.length > 0,
+        documentCount: formData.uploadedDocuments?.length || 0
+      };
+
+      const result = await generateSmartTemplate(
+        dealId,
+        'Business Sale Contract',
+        'Generate a comprehensive business sale contract incorporating the deal information and any uploaded documents'
+      );
+
+      if (result && result.template) {
+        setGeneratedDocument(result.template);
+        setShowDocumentPreview(true);
+      } else {
+        // If generation fails, continue to deal room
+        navigate(`/deals/${dealId}`);
+      }
+    } catch (error) {
+      console.error('Error generating contract document:', error);
+      toast({
+        title: "Contract Generation Info",
+        description: "Deal created successfully. You can generate documents from the deal room.",
+        variant: "default"
+      });
+      navigate(`/deals/${dealId}`);
+    }
+  };
+
+  const handleDocumentSave = async (content: string, filename: string, category: string) => {
+    if (!currentDealId) return;
+    
+    setIsSavingDocument(true);
+    try {
+      // Create document record in database
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          deal_id: currentDealId,
+          name: filename,
+          category: category,
+          uploaded_by: user?.id,
+          storage_path: `${currentDealId}/${filename}`,
+          size: new Blob([content]).size,
+          type: 'text/plain'
+        })
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      // Create document version with the content
+      const { error: versionError } = await supabase
+        .from('document_versions')
+        .insert({
+          document_id: document.id,
+          version_number: 1,
+          storage_path: `${currentDealId}/${filename}`,
+          size: new Blob([content]).size,
+          type: 'text/plain',
+          uploaded_by: user?.id,
+          description: 'AI-generated contract document'
+        });
+
+      if (versionError) throw versionError;
+
+      // Upload the actual file content to storage
+      const { error: uploadError } = await supabase.storage
+        .from('deal_documents')
+        .upload(`${currentDealId}/${filename}`, new Blob([content], { type: 'text/plain' }));
+
+      if (uploadError) throw uploadError;
+
+      toast({
+        title: "Contract Saved!",
+        description: "AI-generated contract has been added to your deal documents.",
+      });
+
+      setShowDocumentPreview(false);
+      navigate(`/deals/${currentDealId}`);
+    } catch (error: any) {
+      console.error('Error saving generated document:', error);
+      toast({
+        title: "Error Saving Document",
+        description: error.message || "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingDocument(false);
+    }
+  };
+
   return {
     isSubmitting,
-    handleSubmit
+    handleSubmit,
+    showDocumentPreview,
+    generatedDocument,
+    handleDocumentSave,
+    isSavingDocument
   };
 };

@@ -10,10 +10,18 @@ import { useWizardState } from './hooks/useWizardState';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useDealSubmission } from './hooks/useDealSubmission';
 import { DocumentExtractionProvider } from '@/contexts/DocumentExtractionContext';
+import GeneratedDocumentReview from '../document/GeneratedDocumentReview';
 
 const DealCreationWizard: React.FC = () => {
   const { currentStep, setCurrentStep, formData, updateFormData } = useWizardState();
-  const { isSubmitting, handleSubmit } = useDealSubmission();
+  const { 
+    isSubmitting, 
+    handleSubmit, 
+    showDocumentPreview, 
+    generatedDocument, 
+    handleDocumentSave,
+    isSavingDocument 
+  } = useDealSubmission();
   const { nextStep, prevStep, tempDealId } = useWizardNavigation({
     currentStep,
     onStepChange: setCurrentStep,
@@ -49,6 +57,14 @@ const DealCreationWizard: React.FC = () => {
 
           <AITip step={currentStep} />
         </div>
+
+        <GeneratedDocumentReview
+          open={showDocumentPreview}
+          onClose={() => {}}
+          initialText={generatedDocument || ''}
+          isSaving={isSavingDocument}
+          onSave={handleDocumentSave}
+        />
       </DocumentExtractionProvider>
     </WizardAuthGuard>
   );
