@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -10,61 +14,65 @@ serve(async (req: Request) => {
 
   try {
     const { token } = await req.json();
-    
+
     if (!token) {
       return new Response(
-        JSON.stringify({ status: 'invalid', error: 'Token is required' }),
+        JSON.stringify({ status: 'invalid', error: 'Missing token' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Initialize Supabase client with service role key for admin access
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Create Supabase client with service role key for database access
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Get invitation details with deal title
-    const { data: invitation, error } = await supabaseAdmin
+    // Query the deal_invitations table to find the invitation
+    const { data: invitation, error } = await supabase
       .from('deal_invitations')
       .select(`
         id,
         deal_id,
-        invitee_email,
-        invitee_role,
+        email,
+        role,
         status,
-        token_expires_at,
-        invited_by_user_id,
-        deals(title)
+        created_at,
+        deals (
+          id,
+          title
+        ),
+        profiles (
+          id,
+          name
+        )
       `)
-      .eq('invitation_token', token)
+      .eq('token', token)
       .eq('status', 'pending')
       .single();
 
     if (error || !invitation) {
+      console.error('Error finding invitation:', error);
       return new Response(
-        JSON.stringify({ status: 'invalid', error: 'Invalid or expired invitation' }),
+        JSON.stringify({ 
+          status: 'invalid', 
+          error: 'Invitation not found or has expired' 
+        }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get inviter name separately
-    const { data: inviterProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('name')
-      .eq('id', invitation.invited_by_user_id)
-      .single();
-
-    // Check if invitation has expired
-    if (invitation.token_expires_at && new Date(invitation.token_expires_at) < new Date()) {
-      // Update invitation status to expired
-      await supabaseAdmin
-        .from('deal_invitations')
-        .update({ status: 'expired' })
-        .eq('id', invitation.id);
-
+    // Check if invitation has expired (optional - add expiry logic if needed)
+    const createdAt = new Date(invitation.created_at);
+    const now = new Date();
+    const daysDiff = (now.getTime() - createdAt.getTime()) / (1000 * 3600 * 24);
+    
+    if (daysDiff > 30) { // Expire after 30 days
       return new Response(
-        JSON.stringify({ status: 'invalid', error: 'Invitation has expired' }),
+        JSON.stringify({ 
+          status: 'invalid', 
+          error: 'Invitation has expired' 
+        }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -74,18 +82,21 @@ serve(async (req: Request) => {
       JSON.stringify({
         status: 'valid',
         dealId: invitation.deal_id,
-        inviteeEmail: invitation.invitee_email,
-        inviteeRole: invitation.invitee_role,
+        inviteeEmail: invitation.email,
+        inviteeRole: invitation.role,
         dealTitle: invitation.deals?.title || 'Unknown Deal',
-        inviterName: inviterProfile?.name || 'Unknown',
+        inviterName: invitation.profiles?.name || 'Unknown User',
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Verify invitation error:", error);
+    console.error('Error verifying invitation:', error);
     return new Response(
-      JSON.stringify({ status: 'invalid', error: 'Internal server error' }),
+      JSON.stringify({ 
+        status: 'invalid', 
+        error: 'Internal server error' 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

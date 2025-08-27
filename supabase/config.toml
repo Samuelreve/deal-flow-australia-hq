@@ -1,121 +1,40 @@
 project_id = "wntmgfuclbdrezxcvzmw"
 
-[functions.accept-invitation]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.add-deal-participant]
-verify_jwt = false
+[db]
+port = 54322
 
-[functions.ai-assistant]
-verify_jwt = false
+[studio]
+enabled = true
+port = 54324
 
-[functions.contract-assistant]
-verify_jwt = false
+[inbucket]
+enabled = true
+port = 54325
 
-[functions.create-share-link]
-verify_jwt = false
+[storage]
+enabled = true
+port = 54326
 
-[functions.create-temp-deal]
+[auth]
+enabled = true
+port = 54327
+
+[edge_runtime]
+enabled = true
+port = 54329
+
+[functions.verify-invitation-token]
 verify_jwt = false
 
 [functions.decline-invitation]
 verify_jwt = false
 
-[functions.delete-comment]
-verify_jwt = false
-
-[functions.delete-document-version]
-verify_jwt = false
-
-[functions.delete-document]
-verify_jwt = false
-
-[functions.delete-milestone]
-verify_jwt = false
-
-[functions.document-ai-assistant]
-verify_jwt = false
-
-[functions.document-comments]
-verify_jwt = false
-
-[functions.document-content-retrieval]
-verify_jwt = false
-
-[functions.document-upload]
-verify_jwt = false
-
-[functions.document-version-operations]
-verify_jwt = false
-
-[functions.docusign-callback]
-verify_jwt = false
-
-[functions.docusign-oauth-callback]
-verify_jwt = false
-
-[functions.docusign-oauth]
-verify_jwt = false
-
-[functions.docusign-retrieve-signed]
-verify_jwt = false
-
-[functions.docusign-sign]
-verify_jwt = false
-
-[functions.enhanced-contract-assistant]
-verify_jwt = false
-
-[functions.explain-contract-clause]
-verify_jwt = false
-
-[functions.get-shared-document]
-verify_jwt = false
-
 [functions.invite-participant]
-verify_jwt = false
-
-[functions.manage-share-links]
-verify_jwt = false
-
-[functions.migrate-temp-documents]
-verify_jwt = false
-
-[functions.pdf-diagnostic]
-verify_jwt = false
-
-[functions.pdf-to-images]
-verify_jwt = false
-
-[functions.progress-nudging]
-verify_jwt = false
-
-[functions.public-ai-analyzer]
-verify_jwt = false
-
-[functions.remove-participant]
-verify_jwt = false
-
-[functions.restore-document-version]
-verify_jwt = false
-
-[functions.summarize-contract]
-verify_jwt = false
-
-[functions.test-pdf-extraction]
-verify_jwt = false
-
-[functions.text-extraction]
-verify_jwt = false
-
-[functions.text-extractor-ocr]
-verify_jwt = false
-
-[functions.text-extractor]
-verify_jwt = false
-
-[functions.update-milestone-status]
-verify_jwt = false
-
-[functions.verify-invitation-token]
-verify_jwt = false
+verify_jwt = true
