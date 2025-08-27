@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,8 +15,63 @@ export const useParticipantRemovalCheck = ({ dealId, enabled = true }: UsePartic
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
 
+  // Function to check if user is still a participant (for route protection)
+  const checkParticipantStatus = useCallback(async (): Promise<boolean> => {
+    if (!user || !dealId) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('deal_participants')
+        .select('id')
+        .eq('deal_id', dealId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking participant status:', error);
+        return false;
+      }
+
+      // Return true only if data exists
+      return !!data;
+    } catch (error) {
+      console.error('Error checking participant status:', error);
+      return false;
+    }
+  }, [user, dealId]);
+
   useEffect(() => {
     if (!enabled || !user || !dealId) return;
+
+    // Initial access verification
+    const verifyInitialAccess = async () => {
+      const isValid = await checkParticipantStatus();
+      if (!isValid) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have access to this deal or have been removed from it.",
+          variant: "destructive",
+        });
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+    };
+
+    verifyInitialAccess();
+
+    // Set up periodic access verification (every 30 seconds)
+    const verificationInterval = setInterval(async () => {
+      const isValid = await checkParticipantStatus();
+      if (!isValid) {
+        toast({
+          title: "Access Removed",
+          description: "You have been removed from this deal and no longer have access.",
+          variant: "destructive",
+        });
+        navigate('/dashboard', { replace: true });
+        clearInterval(verificationInterval);
+      }
+    }, 30000);
 
     // Set up real-time subscription to detect when current user is removed
     const channel = supabase
@@ -34,17 +89,16 @@ export const useParticipantRemovalCheck = ({ dealId, enabled = true }: UsePartic
           
           // Check if this deletion is for the current deal
           if (payload.old?.deal_id === dealId) {
-            // Show alert and redirect
+            // Clear interval and show alert
+            clearInterval(verificationInterval);
             toast({
               title: "Access Removed",
               description: "You have been removed from this deal and no longer have access.",
               variant: "destructive",
             });
 
-            // Redirect to dashboard after a short delay
-            setTimeout(() => {
-              navigate('/dashboard', { replace: true });
-            }, 2000);
+            // Immediate redirect
+            navigate('/dashboard', { replace: true });
           }
         }
       )
@@ -53,35 +107,13 @@ export const useParticipantRemovalCheck = ({ dealId, enabled = true }: UsePartic
     channelRef.current = channel;
 
     return () => {
+      clearInterval(verificationInterval);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [dealId, user, enabled, navigate, toast]);
-
-  // Function to check if user is still a participant (for route protection)
-  const checkParticipantStatus = async (): Promise<boolean> => {
-    if (!user || !dealId) return false;
-
-    try {
-      const { data, error } = await supabase
-        .from('deal_participants')
-        .select('id')
-        .eq('deal_id', dealId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (error || !data) {
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error checking participant status:', error);
-      return false;
-    }
-  };
+  }, [dealId, user, enabled, navigate, toast, checkParticipantStatus]);
 
   return { checkParticipantStatus };
 };

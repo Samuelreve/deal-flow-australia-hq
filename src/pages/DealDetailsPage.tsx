@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, Navigate, useSearchParams } from "react-router-dom";
+import { useParams, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +45,7 @@ const DealDetailsPage = () => {
   const { dealId } = useParams<{ dealId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   const [deal, setDeal] = useState<Deal | null>(null);
@@ -88,15 +89,16 @@ const DealDetailsPage = () => {
 
     try {
       // First check if user is a participant in the deal
-      const { data: participantData } = await supabase
+      const { data: participantData, error: participantError } = await supabase
         .from('deal_participants')
         .select('id, role')
         .eq('deal_id', dealId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!participantData) {
-        // User is not a participant - show access denied
+      // If there's an error or no participant data, deny access
+      if (participantError || !participantData) {
+        console.log('Access denied - user not a participant:', { participantError, participantData });
         setIsParticipant(false);
         setLoading(false);
         toast({
@@ -104,6 +106,10 @@ const DealDetailsPage = () => {
           description: "You don't have access to this deal or have been removed from it.",
           variant: "destructive"
         });
+        // Immediately redirect to dashboard
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1500);
         return;
       }
 
