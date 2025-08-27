@@ -46,6 +46,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [dealSellerId, setDealSellerId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -141,6 +142,23 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     handleInvitationsUpdate
   );
 
+  // Fetch deal seller ID
+  useEffect(() => {
+    const fetchDealInfo = async () => {
+      const { data: dealData } = await supabase
+        .from('deals')
+        .select('seller_id')
+        .eq('id', dealId)
+        .single();
+      
+      if (dealData) {
+        setDealSellerId(dealData.seller_id);
+      }
+    };
+    
+    fetchDealInfo();
+  }, [dealId]);
+
   useEffect(() => {
     fetchParticipants();
   }, [fetchParticipants]);
@@ -211,26 +229,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
 
   // Check if current user can invite participants (only admin and seller)
   const canInviteParticipants = currentUserRole && ['admin', 'seller'].includes(currentUserRole);
-  
-  // Get deal seller ID for remove participant functionality
-  const [dealSellerId, setDealSellerId] = useState<string | null>(null);
-  
-  // Fetch deal seller ID
-  useEffect(() => {
-    const fetchDealInfo = async () => {
-      const { data: dealData } = await supabase
-        .from('deals')
-        .select('seller_id')
-        .eq('id', dealId)
-        .single();
-      
-      if (dealData) {
-        setDealSellerId(dealData.seller_id);
-      }
-    };
-    
-    fetchDealInfo();
-  }, [dealId]);
 
   return (
     <div className="space-y-6">
