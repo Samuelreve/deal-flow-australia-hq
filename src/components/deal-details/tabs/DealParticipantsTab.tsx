@@ -265,8 +265,28 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
           <>
             {/* Active Participants (excluding current user) */}
             {otherParticipants.map((participant) => (
-              <Card key={participant.id} className="hover:shadow-md transition-shadow">
+              <Card key={participant.id} className="hover:shadow-md transition-shadow relative">
                 <CardContent className="p-6">
+                  {/* Remove button in top right corner */}
+                  <div className="absolute top-3 right-3">
+                    <RemoveParticipantButton
+                      participant={{
+                        user_id: participant.user_id,
+                        deal_id: dealId,
+                        role: participant.role as any,
+                        joined_at: participant.joined_at,
+                        profile_name: participant.profiles?.name || null,
+                        profile_avatar_url: participant.profiles?.avatar_url || null,
+                        profiles: participant.profiles
+                      }}
+                      dealId={dealId}
+                      currentUserRole={currentUserRole}
+                      dealSellerId={dealSellerId}
+                      onParticipantRemoved={handleParticipantRemoved}
+                      size="icon"
+                    />
+                  </div>
+
                   <div className="flex items-start space-x-4">
                     <Avatar className="h-12 w-12">
                       <AvatarImage 
@@ -278,7 +298,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-8">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold text-base truncate">
                           {participant.profiles?.name || 'Unknown User'}
@@ -297,7 +317,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                     </div>
                   </div>
                   
-                   {/* Action buttons */}
+                   {/* Action buttons - only Message and View Profile */}
                    <div className="mt-4 flex gap-2">
                      <Button 
                        variant="outline" 
@@ -317,22 +337,6 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                        <User className="h-4 w-4 mr-2" />
                        View Profile
                      </Button>
-                     <RemoveParticipantButton
-                       participant={{
-                         user_id: participant.user_id,
-                         deal_id: dealId,
-                         role: participant.role as any,
-                         joined_at: participant.joined_at,
-                         profile_name: participant.profiles?.name || null,
-                         profile_avatar_url: participant.profiles?.avatar_url || null,
-                         profiles: participant.profiles
-                       }}
-                       dealId={dealId}
-                       currentUserRole={currentUserRole}
-                       dealSellerId={dealSellerId}
-                       onParticipantRemoved={handleParticipantRemoved}
-                       size="sm"
-                     />
                    </div>
                 </CardContent>
               </Card>
