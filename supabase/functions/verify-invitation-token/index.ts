@@ -34,20 +34,13 @@ serve(async (req: Request) => {
       .select(`
         id,
         deal_id,
-        email,
-        role,
+        invitee_email,
+        invitee_role,
         status,
         created_at,
-        deals (
-          id,
-          title
-        ),
-        profiles (
-          id,
-          name
-        )
+        invited_by_user_id
       `)
-      .eq('token', token)
+      .eq('invitation_token', token)
       .eq('status', 'pending')
       .single();
 
@@ -61,6 +54,20 @@ serve(async (req: Request) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Get deal details separately
+    const { data: deal } = await supabase
+      .from('deals')
+      .select('id, title')
+      .eq('id', invitation.deal_id)
+      .single();
+
+    // Get inviter details separately  
+    const { data: inviter } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .eq('id', invitation.invited_by_user_id)
+      .single();
 
     // Check if invitation has expired (optional - add expiry logic if needed)
     const createdAt = new Date(invitation.created_at);
@@ -82,10 +89,10 @@ serve(async (req: Request) => {
       JSON.stringify({
         status: 'valid',
         dealId: invitation.deal_id,
-        inviteeEmail: invitation.email,
-        inviteeRole: invitation.role,
-        dealTitle: invitation.deals?.title || 'Unknown Deal',
-        inviterName: invitation.profiles?.name || 'Unknown User',
+        inviteeEmail: invitation.invitee_email,
+        inviteeRole: invitation.invitee_role,
+        dealTitle: deal?.title || 'Unknown Deal',
+        inviterName: inviter?.name || 'Unknown User',
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
