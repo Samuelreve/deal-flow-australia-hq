@@ -46,33 +46,106 @@ const AcceptInvitePage = () => {
     if (!token) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('verify-invitation-token', {
-        body: { token }
-      });
+      console.log('Attempting to verify invitation with token:', token);
+      
+      // First try the edge function
+      try {
+        const { data, error } = await supabase.functions.invoke('verify-invitation-token', {
+          body: { token }
+        });
 
-      if (error) {
-        throw error;
-      }
+        console.log('Function response:', { data, error });
 
-      if (data.status === 'valid') {
-        setInvitation(data);
-        
-        // Check if user exists for this email
-        try {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', data.inviteeEmail)
-            .maybeSingle();
+        if (!error && data && data.status === 'valid') {
+          setInvitation(data);
           
-          setUserExists(!!profiles);
-        } catch (error) {
-          console.error('Error checking if user exists:', error);
-          setUserExists(false);
+          // Check if user exists for this email
+          try {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', data.inviteeEmail)
+              .maybeSingle();
+            
+            setUserExists(!!profiles);
+          } catch (error) {
+            console.error('Error checking if user exists:', error);
+            setUserExists(false);
+          }
+          return;
         }
-      } else {
-        setError(data.error || 'Invalid invitation');
+      } catch (functionError) {
+        console.log('Edge function not available, falling back to direct query:', functionError);
       }
+
+      // Fallback: Direct database query
+      console.log('Using fallback method - direct database query');
+      
+      const { data: invitation, error: invitationError } = await supabase
+        .from('deal_invitations')
+        .select(`
+          id,
+          deal_id,
+          invitee_email,
+          invitee_role,
+          status,
+          created_at,
+          invited_by_user_id
+        `)
+        .eq('invitation_token', token)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (invitationError) {
+        console.error('Database error:', invitationError);
+        throw new Error('Failed to verify invitation');
+      }
+
+      if (!invitation) {
+        setError('Invitation not found or has expired');
+        return;
+      }
+
+      // Get deal details
+      const { data: deal } = await supabase
+        .from('deals')
+        .select('id, title')
+        .eq('id', invitation.deal_id)
+        .maybeSingle();
+
+      // Get inviter details
+      const { data: inviter } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', invitation.invited_by_user_id)
+        .maybeSingle();
+
+      // Set invitation details
+      const invitationDetails = {
+        dealId: invitation.deal_id,
+        inviteeEmail: invitation.invitee_email,
+        inviteeRole: invitation.invitee_role,
+        dealTitle: deal?.title || 'Unknown Deal',
+        inviterName: inviter?.name || 'Unknown User',
+        status: 'valid'
+      };
+
+      setInvitation(invitationDetails);
+      
+      // Check if user exists for this email
+      try {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', invitation.invitee_email)
+          .maybeSingle();
+        
+        setUserExists(!!profiles);
+      } catch (error) {
+        console.error('Error checking if user exists:', error);
+        setUserExists(false);
+      }
+
     } catch (error: any) {
       console.error('Error verifying invitation:', error);
       setError(error.message || 'Failed to verify invitation');
@@ -134,23 +207,53 @@ const AcceptInvitePage = () => {
     setAccepting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('decline-invitation', {
-        body: { token }
-      });
+      // First try the edge function
+      try {
+        const { data, error } = await supabase.functions.invoke('decline-invitation', {
+          body: { token }
+        });
+
+        if (!error && data && data.success) {
+          toast({
+            title: "Invitation Declined",
+            description: "You have declined the invitation.",
+          });
+          navigate('/');
+          return;
+        }
+      } catch (functionError) {
+        console.log('Edge function not available, falling back to direct update:', functionError);
+      }
+
+      // Fallback: Direct database update
+      console.log('Using fallback method for declining invitation');
+      
+      const { data, error } = await supabase
+        .from('deal_invitations')
+        .update({ 
+          status: 'declined',
+          updated_at: new Date().toISOString()
+        })
+        .eq('invitation_token', token)
+        .eq('status', 'pending')
+        .select()
+        .maybeSingle();
 
       if (error) {
-        throw error;
+        console.error('Error declining invitation:', error);
+        throw new Error('Failed to decline invitation');
       }
 
-      if (data.success) {
-        toast({
-          title: "Invitation Declined",
-          description: "You have declined the invitation.",
-        });
-        navigate('/');
-      } else {
-        throw new Error(data.error || 'Failed to decline invitation');
+      if (!data) {
+        throw new Error('Invitation not found or already processed');
       }
+
+      toast({
+        title: "Invitation Declined",
+        description: "You have declined the invitation.",
+      });
+      navigate('/');
+
     } catch (error: any) {
       console.error('Error declining invitation:', error);
       toast({

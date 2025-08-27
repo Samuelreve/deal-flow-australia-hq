@@ -42,10 +42,21 @@ serve(async (req: Request) => {
       `)
       .eq('invitation_token', token)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
-    if (error || !invitation) {
-      console.error('Error finding invitation:', error);
+    if (error) {
+      console.error('Database error finding invitation:', error);
+      return new Response(
+        JSON.stringify({ 
+          status: 'invalid', 
+          error: 'Database error occurred' 
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!invitation) {
+      console.log('No invitation found for token:', token);
       return new Response(
         JSON.stringify({ 
           status: 'invalid', 
@@ -60,14 +71,14 @@ serve(async (req: Request) => {
       .from('deals')
       .select('id, title')
       .eq('id', invitation.deal_id)
-      .single();
+      .maybeSingle();
 
     // Get inviter details separately  
     const { data: inviter } = await supabase
       .from('profiles')
       .select('id, name')
       .eq('id', invitation.invited_by_user_id)
-      .single();
+      .maybeSingle();
 
     // Check if invitation has expired (optional - add expiry logic if needed)
     const createdAt = new Date(invitation.created_at);
