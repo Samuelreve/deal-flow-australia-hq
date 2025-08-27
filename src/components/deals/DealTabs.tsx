@@ -111,6 +111,8 @@ const DealTabs = ({
           <DealParticipants 
             deal={deal} 
             onTabChange={setActiveTab}
+            currentUserDealRole={effectiveUserRole as 'seller' | 'buyer' | 'lawyer' | 'admin' | null}
+            dealStatus={deal.status}
           />
         )}
       </div>
