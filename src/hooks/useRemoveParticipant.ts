@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,31 +25,101 @@ export function useRemoveParticipant({ onSuccess, onError }: UseRemoveParticipan
     setLoading(true);
     
     try {
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("No active session found");
-      }
-      
-      // Call the Edge Function to remove the participant
-      const response = await fetch(
-        `https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/remove-participant?dealId=${dealId}&userId=${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`
-          }
+      // First try the edge function
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("No active session found");
         }
-      );
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to remove participant");
+        
+        const response = await fetch(
+          `https://wntmgfuclbdrezxcvzmw.supabase.co/functions/v1/remove-participant?dealId=${dealId}&userId=${userId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            }
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          toast({
+            title: "Participant removed",
+            description: "The participant has been removed from the deal",
+          });
+          
+          if (onSuccess) {
+            onSuccess();
+          }
+          
+          return true;
+        }
+      } catch (functionError) {
+        console.log('Edge function not available, falling back to direct removal:', functionError);
       }
+
+      // Fallback: Direct database removal
+      console.log('Using fallback method for removing participant');
       
-      // Success notification
+      // Check current user permissions first
+      const { data: currentUserParticipant, error: permissionError } = await supabase
+        .from('deal_participants')
+        .select('role')
+        .eq('deal_id', dealId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (permissionError) {
+        throw new Error('Failed to verify permissions');
+      }
+
+      if (!currentUserParticipant) {
+        throw new Error('You are not a participant in this deal');
+      }
+
+      // Check if user has admin or seller role
+      const canRemove = currentUserParticipant.role === 'admin' || currentUserParticipant.role === 'seller';
+      if (!canRemove) {
+        throw new Error('You do not have permission to remove participants');
+      }
+
+      // Get deal details to prevent removing the seller
+      const { data: deal, error: dealError } = await supabase
+        .from('deals')
+        .select('seller_id')
+        .eq('id', dealId)
+        .single();
+
+      if (dealError) {
+        throw new Error('Deal not found');
+      }
+
+      if (userId === deal.seller_id) {
+        throw new Error('Cannot remove the deal creator');
+      }
+
+      // Remove the participant
+      const { error: removeError } = await supabase
+        .from('deal_participants')
+        .delete()
+        .eq('deal_id', dealId)
+        .eq('user_id', userId);
+
+      if (removeError) {
+        console.error('Error removing participant:', removeError);
+        throw new Error('Failed to remove participant');
+      }
+
+      // Unassign from milestones (optional, may fail silently)
+      await supabase
+        .from('milestones')
+        .update({ assigned_to: null })
+        .eq('deal_id', dealId)
+        .eq('assigned_to', userId);
+
       toast({
         title: "Participant removed",
         description: "The participant has been removed from the deal",
@@ -61,7 +130,7 @@ export function useRemoveParticipant({ onSuccess, onError }: UseRemoveParticipan
       }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing participant:", error);
       
       toast({

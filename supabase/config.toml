@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.invite-participant]
 verify_jwt = true
+
+[functions.remove-participant]
+verify_jwt = true

@@ -1,251 +1,180 @@
-
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
-import { verifyAuth, getUserDealRole, getSupabaseAdmin } from "../_shared/rbac.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Main handler for the remove-participant endpoint
-serve(async (req) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    // 1. Parse URL and extract dealId and userId parameters
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
-    
-    // URL format: /remove-participant?dealId=123&userId=456
-    const dealId = url.searchParams.get("dealId");
-    const userIdToRemove = url.searchParams.get("userId");
+  // Only allow DELETE method
+  if (req.method !== "DELETE") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
-    if (!dealId || !userIdToRemove) {
+  try {
+    const url = new URL(req.url);
+    const dealId = url.searchParams.get('dealId');
+    const userId = url.searchParams.get('userId');
+
+    if (!dealId || !userId) {
       return new Response(
-        JSON.stringify({ error: "Missing dealId or userId parameters" }),
+        JSON.stringify({ error: 'Missing dealId or userId parameters' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 2. Authentication - verify the user making the request
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        JSON.stringify({ error: 'Authorization header required' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    const token = authHeader.split(" ")[1];
-    
-    try {
-      // Authenticate the user making the request
-      const authenticatedUser = await verifyAuth(token);
-      const authenticatedUserId = authenticatedUser.id;
-      
-      // 3. Initialize Supabase admin client for privileged operations
-      const supabaseAdmin = getSupabaseAdmin();
-      
-      // 4. Authorization - Check if authenticated user is a participant in the deal
-      try {
-        // Check if the authenticated user is a participant
-        const { data: actorParticipant, error: actorParticipantError } = await supabaseAdmin
-          .from('deal_participants')
-          .select('role')
-          .eq('deal_id', dealId)
-          .eq('user_id', authenticatedUserId)
-          .single();
-        
-        if (actorParticipantError || !actorParticipant) {
-          return new Response(
-            JSON.stringify({ error: "You are not a participant in this deal" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // Get the authenticated user's role in the deal
-        const actorRole = actorParticipant.role;
-        
-        // 5. Check if the target user is a participant in the deal
-        const { data: targetParticipant, error: targetParticipantError } = await supabaseAdmin
-          .from('deal_participants')
-          .select('role, user_id')
-          .eq('deal_id', dealId)
-          .eq('user_id', userIdToRemove)
-          .single();
-        
-        if (targetParticipantError || !targetParticipant) {
-          return new Response(
-            JSON.stringify({ error: "Target user is not a participant in this deal" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // Get the target user's role
-        const targetRole = targetParticipant.role;
-        
-        // 6. Check deal status
-        const { data: dealData, error: dealError } = await supabaseAdmin
-          .from('deals')
-          .select('status, seller_id')
-          .eq('id', dealId)
-          .single();
-        
-        if (dealError || !dealData) {
-          return new Response(
-            JSON.stringify({ error: "Deal not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // 7. Check if deal status allows participant removal
-        const dealStatus = dealData.status;
-        if (dealStatus === 'completed' || dealStatus === 'cancelled') {
-          return new Response(
-            JSON.stringify({ error: "Cannot remove participants from completed or cancelled deals" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // 8. Implement RBAC rules for participant removal
-        
-        // Rule 1: Cannot remove oneself (except admins)
-        if (authenticatedUserId === userIdToRemove && actorRole !== 'admin') {
-          return new Response(
-            JSON.stringify({ error: "You cannot remove yourself from a deal. Please contact an admin." }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // Rule 2: Cannot remove the primary seller (creator)
-        if (userIdToRemove === dealData.seller_id) {
-          return new Response(
-            JSON.stringify({ error: "Cannot remove the primary seller/creator of the deal" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // Rule 3: Check removal permissions based on roles
-        const canRemove = 
-          // Admins can remove anyone except the primary seller
-          actorRole === 'admin' ||
-          // Sellers can remove buyers and lawyers, but not admins or other sellers
-          (actorRole === 'seller' && ['buyer', 'lawyer'].includes(targetRole)) ||
-          // Lawyers cannot remove anyone
-          (actorRole === 'lawyer' && false) ||
-          // Buyers cannot remove anyone
-          (actorRole === 'buyer' && false);
-          
-        if (!canRemove) {
-          return new Response(
-            JSON.stringify({ error: `Your role (${actorRole}) does not allow you to remove ${targetRole} participants` }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // 9. All checks passed, perform the removal
-        
-        // 9.1. First, unassign user from any milestones in this deal
-        await supabaseAdmin
-          .from('milestone_assignments')
-          .delete()
-          .match({
-            user_id: userIdToRemove,
-          })
-          .in('milestone_id', (query) => 
-            query
-              .select('id')
-              .from('milestones')
-              .eq('deal_id', dealId)
-          );
-        
-        // 9.2. Remove the participant
-        const { error: removalError } = await supabaseAdmin
-          .from('deal_participants')
-          .delete()
-          .eq('deal_id', dealId)
-          .eq('user_id', userIdToRemove);
-        
-        if (removalError) {
-          throw new Error(`Failed to remove participant: ${removalError.message}`);
-        }
-        
-        // 10. Create notification for the removed user
-        try {
-          // Get actor's name for the notification
-          const { data: actorProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('name')
-            .eq('id', authenticatedUserId)
-            .single();
-            
-          const actorName = actorProfile?.name || 'A participant';
-          
-          // Get deal title for the notification
-          const { data: dealDetails } = await supabaseAdmin
-            .from('deals')
-            .select('title')
-            .eq('id', dealId)
-            .single();
-            
-          const dealTitle = dealDetails?.title || 'a deal';
-          
-          // Create notification for the removed user
-          await supabaseAdmin
-            .from('notifications')
-            .insert([
-              {
-                user_id: userIdToRemove,
-                title: "Removed from Deal",
-                message: `You were removed from "${dealTitle}" by ${actorName}`,
-                type: "info",
-                deal_id: dealId
-              }
-            ]);
-            
-          // Create notification for other participants
-          await supabaseAdmin
-            .from('notifications')
-            .insert([
-              {
-                user_id: authenticatedUserId,
-                title: "Participant Removed",
-                message: `You removed a participant from "${dealTitle}"`,
-                type: "info",
-                deal_id: dealId
-              }
-            ]);
-        } catch (notificationError) {
-          // Log but don't fail if notification creation fails
-          console.error("Failed to create notification:", notificationError);
-        }
-        
-        // 11. Return success response
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: "Participant successfully removed from the deal" 
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-        
-      } catch (error) {
-        console.error("Error in participant removal:", error);
-        return new Response(
-          JSON.stringify({ error: error.message || "Internal server error" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+
+    // Create Supabase client with the user's JWT
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            authorization: authHeader,
+          },
+        },
       }
-    } catch (authError) {
-      console.error("Authentication error:", authError);
+    );
+
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Authentication error:', userError);
       return new Response(
-        JSON.stringify({ error: "Authentication failed" }),
+        JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-  } catch (error) {
-    console.error("Unhandled error:", error);
+
+    // Check if the current user has permission to remove participants
+    const { data: currentUserParticipant, error: participantError } = await supabase
+      .from('deal_participants')
+      .select('role')
+      .eq('deal_id', dealId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error('Error fetching current user participant:', participantError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify permissions' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!currentUserParticipant) {
+      return new Response(
+        JSON.stringify({ error: 'You are not a participant in this deal' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user has admin or seller role (can remove participants)
+    const canRemove = currentUserParticipant.role === 'admin' || currentUserParticipant.role === 'seller';
+    if (!canRemove) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have permission to remove participants' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get deal details to check if trying to remove the seller
+    const { data: deal, error: dealError } = await supabase
+      .from('deals')
+      .select('seller_id')
+      .eq('id', dealId)
+      .single();
+
+    if (dealError) {
+      console.error('Error fetching deal:', dealError);
+      return new Response(
+        JSON.stringify({ error: 'Deal not found' }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Prevent removing the deal creator/seller
+    if (userId === deal.seller_id) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot remove the deal creator' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Start transaction: Remove participant and clean up related data
+    const { error: removeError } = await supabase
+      .from('deal_participants')
+      .delete()
+      .eq('deal_id', dealId)
+      .eq('user_id', userId);
+
+    if (removeError) {
+      console.error('Error removing participant:', removeError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to remove participant' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Also unassign from any milestones
+    const { error: milestoneError } = await supabase
+      .from('milestones')
+      .update({ assigned_to: null })
+      .eq('deal_id', dealId)
+      .eq('assigned_to', userId);
+
+    if (milestoneError) {
+      console.log('Warning: Could not unassign milestones:', milestoneError);
+    }
+
+    // Log the removal for audit trail
+    await supabase
+      .from('audit_log')
+      .insert({
+        user_id: user.id,
+        event: 'participant_removed',
+        metadata: {
+          deal_id: dealId,
+          removed_user_id: userId,
+          removed_by_role: currentUserParticipant.role
+        }
+      });
+
+    console.log(`Participant ${userId} removed from deal ${dealId} by ${user.id}`);
+
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Participant removed successfully' 
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error('Error in remove-participant function:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
