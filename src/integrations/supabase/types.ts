@@ -2001,10 +2001,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_public_profile: {
-        Args: { p_user_id: string }
-        Returns: Database["public"]["CompositeTypes"]["public_profile"]
-      }
       get_public_profiles_for_deal: {
         Args: { p_deal_id: string }
         Returns: Database["public"]["CompositeTypes"]["public_profile"][]
@@ -2038,6 +2034,10 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+      }
+      get_safe_public_profile: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       has_valid_docusign_token: {
         Args: { p_user_id?: string }
