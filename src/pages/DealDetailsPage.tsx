@@ -4,6 +4,7 @@ import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useParticipantRemovalCheck } from "@/hooks/useParticipantRemovalCheck";
 import AppLayout from "@/components/layout/AppLayout";
 import DealDetailsHeader from "@/components/deal-details/DealDetailsHeader";
 import DealDetailsContent from "@/components/deal-details/DealDetailsContent";
@@ -50,6 +51,13 @@ const DealDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | undefined>(undefined);
+  const [isParticipant, setIsParticipant] = useState<boolean>(false);
+
+  // Set up real-time participant removal detection
+  const { checkParticipantStatus } = useParticipantRemovalCheck({
+    dealId: dealId || '',
+    enabled: !!dealId && !!user && isParticipant
+  });
 
   useEffect(() => {
     if (dealId && user) {
@@ -79,6 +87,29 @@ const DealDetailsPage = () => {
     if (!dealId || !user) return;
 
     try {
+      // First check if user is a participant in the deal
+      const { data: participantData } = await supabase
+        .from('deal_participants')
+        .select('id, role')
+        .eq('deal_id', dealId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!participantData) {
+        // User is not a participant - show access denied
+        setIsParticipant(false);
+        setLoading(false);
+        toast({
+          title: "Access Denied",
+          description: "You don't have access to this deal or have been removed from it.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // User is a participant, set flag and continue
+      setIsParticipant(true);
+
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .select('*')
@@ -123,12 +154,17 @@ const DealDetailsPage = () => {
     );
   }
 
-  if (!deal) {
+  if (!deal || !isParticipant) {
     return (
       <AppLayout>
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold">Deal not found</h2>
-          <p className="text-muted-foreground mt-2">The deal you're looking for doesn't exist or you don't have access to it.</p>
+          <h2 className="text-2xl font-bold">Access Denied</h2>
+          <p className="text-muted-foreground mt-2">
+            {!isParticipant 
+              ? "You don't have access to this deal or have been removed from it."
+              : "The deal you're looking for doesn't exist."
+            }
+          </p>
         </div>
       </AppLayout>
     );
