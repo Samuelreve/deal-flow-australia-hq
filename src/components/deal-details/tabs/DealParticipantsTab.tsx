@@ -209,9 +209,17 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   };
 
   // Handle participant removal
-  const handleParticipantRemoved = () => {
-    fetchParticipants(); // Refresh the participants list
-  };
+  const handleParticipantRemoved = useCallback((removedUserId?: string) => {
+    console.log('🗑️ Participant removed, refreshing participants list...', removedUserId);
+    
+    // Immediately update local state to remove the participant for better UX
+    if (removedUserId) {
+      setParticipants(prev => prev.filter(p => p.user_id !== removedUserId));
+    }
+    
+    // Also fetch fresh data to ensure consistency
+    fetchParticipants();
+  }, [fetchParticipants]);
 
   if (loading) {
     return (
@@ -282,7 +290,7 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                       dealId={dealId}
                       currentUserRole={currentUserRole}
                       dealSellerId={dealSellerId}
-                      onParticipantRemoved={handleParticipantRemoved}
+                      onParticipantRemoved={() => handleParticipantRemoved(participant.user_id)}
                       size="icon"
                     />
                   </div>
