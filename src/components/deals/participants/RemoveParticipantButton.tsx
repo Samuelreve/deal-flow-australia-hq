@@ -64,14 +64,15 @@ const RemoveParticipantButton: React.FC<RemoveParticipantButtonProps> = ({
     return false;
   })();
 
-  if (!canRemove) {
-    return null; // Don't render anything if user can't remove this participant
-  }
-
   const handleRemove = async () => {
     await removeParticipant(dealId, participant.user_id);
     setShowConfirmDialog(false);
   };
+
+  // Don't render anything if user can't remove this participant
+  if (!canRemove) {
+    return null;
+  }
 
   return (
     <>
