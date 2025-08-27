@@ -82,7 +82,7 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
   };
 
   // Handle participant removed
-  const handleParticipantRemoved = () => {
+  const handleParticipantRemoved = (userId?: string) => {
     // Refresh participants list after participant is removed
     fetchParticipants();
   };

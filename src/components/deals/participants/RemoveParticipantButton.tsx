@@ -21,7 +21,7 @@ interface RemoveParticipantButtonProps {
   dealId: string;
   currentUserRole?: string;
   dealSellerId?: string;
-  onParticipantRemoved?: () => void;
+  onParticipantRemoved?: (userId: string) => void;
   size?: "sm" | "icon" | undefined;
 }
 
@@ -38,7 +38,7 @@ const RemoveParticipantButton: React.FC<RemoveParticipantButtonProps> = ({
   const { removeParticipant, loading } = useRemoveParticipant({
     onSuccess: () => {
       if (onParticipantRemoved) {
-        onParticipantRemoved();
+        onParticipantRemoved(participant.user_id);
       }
     }
   });

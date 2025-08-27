@@ -14,7 +14,7 @@ interface ParticipantsListProps {
   dealId: string;
   currentUserRole?: string;
   dealSellerId?: string;
-  onParticipantRemoved?: () => void;
+  onParticipantRemoved?: (userId: string) => void;
   onMessageClick?: (participantId: string) => void;
 }
 
