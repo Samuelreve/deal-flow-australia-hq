@@ -38,11 +38,6 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
   const { user } = useAuth();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  // Debug logging for role
-  console.log('DealParticipants: Current user role:', currentUserDealRole);
-  console.log('DealParticipants: Deal seller ID:', deal.sellerId);
-  console.log('DealParticipants: Current user ID:', user?.id);
-
   // Determine if the current user's role allows them to invite participants
   const canInviteParticipants = 
     deal.status === "draft" && 

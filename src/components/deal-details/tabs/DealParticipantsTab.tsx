@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
+import RemoveParticipantButton from "@/components/deals/participants/RemoveParticipantButton";
 import { formatParticipantDate } from "@/utils/dateUtils";
 import { useParticipantsRealtime } from "@/hooks/useParticipantsRealtime";
 
@@ -189,6 +190,11 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
     setSelectedParticipant(null);
   };
 
+  // Handle participant removal
+  const handleParticipantRemoved = () => {
+    fetchParticipants(); // Refresh the participants list
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -204,7 +210,27 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
   const totalParticipants = participants.length;
 
   // Check if current user can invite participants (only admin and seller)
-  const canInviteParticipants = currentUserRole && ['admin'].includes(currentUserRole);
+  const canInviteParticipants = currentUserRole && ['admin', 'seller'].includes(currentUserRole);
+  
+  // Get deal seller ID for remove participant functionality
+  const [dealSellerId, setDealSellerId] = useState<string | null>(null);
+  
+  // Fetch deal seller ID
+  useEffect(() => {
+    const fetchDealInfo = async () => {
+      const { data: dealData } = await supabase
+        .from('deals')
+        .select('seller_id')
+        .eq('id', dealId)
+        .single();
+      
+      if (dealData) {
+        setDealSellerId(dealData.seller_id);
+      }
+    };
+    
+    fetchDealInfo();
+  }, [dealId]);
 
   return (
     <div className="space-y-6">
@@ -273,27 +299,43 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
                     </div>
                   </div>
                   
-                  {/* Action buttons */}
-                  <div className="mt-4 flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleMessageClick(participant)}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Message
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleViewProfile(participant)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      View Profile
-                    </Button>
-                  </div>
+                   {/* Action buttons */}
+                   <div className="mt-4 flex gap-2">
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       className="flex-1"
+                       onClick={() => handleMessageClick(participant)}
+                     >
+                       <MessageCircle className="h-4 w-4 mr-2" />
+                       Message
+                     </Button>
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       className="flex-1"
+                       onClick={() => handleViewProfile(participant)}
+                     >
+                       <User className="h-4 w-4 mr-2" />
+                       View Profile
+                     </Button>
+                     <RemoveParticipantButton
+                       participant={{
+                         user_id: participant.user_id,
+                         deal_id: dealId,
+                         role: participant.role as any,
+                         joined_at: participant.joined_at,
+                         profile_name: participant.profiles?.name || null,
+                         profile_avatar_url: participant.profiles?.avatar_url || null,
+                         profiles: participant.profiles
+                       }}
+                       dealId={dealId}
+                       currentUserRole={currentUserRole}
+                       dealSellerId={dealSellerId}
+                       onParticipantRemoved={handleParticipantRemoved}
+                       size="sm"
+                     />
+                   </div>
                 </CardContent>
               </Card>
             ))}
