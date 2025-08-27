@@ -91,9 +91,14 @@ export function useRemoveParticipant({ onSuccess, onError }: UseRemoveParticipan
         .from('deals')
         .select('seller_id')
         .eq('id', dealId)
-        .single();
+        .maybeSingle();
 
       if (dealError) {
+        console.error('Error fetching deal:', dealError);
+        throw new Error('Deal not found');
+      }
+
+      if (!deal) {
         throw new Error('Deal not found');
       }
 
@@ -101,24 +106,46 @@ export function useRemoveParticipant({ onSuccess, onError }: UseRemoveParticipan
         throw new Error('Cannot remove the deal creator');
       }
 
+      console.log(`🗑️ Attempting to remove participant ${userId} from deal ${dealId}`);
+
       // Remove the participant
-      const { error: removeError } = await supabase
+      const { error: removeError, data: deletedData } = await supabase
         .from('deal_participants')
         .delete()
         .eq('deal_id', dealId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select();
 
       if (removeError) {
-        console.error('Error removing participant:', removeError);
-        throw new Error('Failed to remove participant');
+        console.error('❌ Error removing participant:', removeError);
+        throw new Error(`Failed to remove participant: ${removeError.message}`);
+      }
+
+      console.log('✅ Participant removal result:', deletedData);
+
+      if (!deletedData || deletedData.length === 0) {
+        console.warn('⚠️ No participant was removed - user may not be in deal');
+        throw new Error('No participant was found to remove');
       }
 
       // Unassign from milestones (optional, may fail silently)
-      await supabase
-        .from('milestones')
-        .update({ assigned_to: null })
-        .eq('deal_id', dealId)
-        .eq('assigned_to', userId);
+      try {
+        const { error: milestoneError } = await supabase
+          .from('milestones')
+          .update({ assigned_to: null })
+          .eq('deal_id', dealId)
+          .eq('assigned_to', userId);
+
+        if (milestoneError) {
+          console.warn('⚠️ Could not unassign milestones:', milestoneError);
+        } else {
+          console.log('✅ Unassigned participant from milestones');
+        }
+      } catch (milestoneError) {
+        console.warn('⚠️ Milestone unassignment failed:', milestoneError);
+      }
+
+      console.log('🗑️ Participant removed successfully:', userId);
 
       toast({
         title: "Participant removed",
