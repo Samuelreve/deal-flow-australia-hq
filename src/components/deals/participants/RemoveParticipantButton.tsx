@@ -46,25 +46,52 @@ const RemoveParticipantButton: React.FC<RemoveParticipantButtonProps> = ({
   // RBAC: Check if current user can remove this participant
   const canRemove = (() => {
     // Cannot remove if current user is not logged in
-    if (!user) return false;
-    
-    // Cannot remove oneself (except admins)
-    if (user.id === participant.user_id && currentUserRole !== 'admin') return false;
-    
-    // Cannot remove the primary seller/creator
-    if (participant.user_id === dealSellerId) return false;
-    
-    // Role-based permissions
-    if (currentUserRole === 'admin') return true; // Admin can remove anyone except seller
-    if (currentUserRole === 'seller') {
-      return ['buyer', 'lawyer'].includes(participant.role); // Seller can remove buyers and lawyers
+    if (!user) {
+      console.log('RemoveParticipantButton: No user logged in');
+      return false;
     }
     
+    // Cannot remove oneself (except admins)
+    if (user.id === participant.user_id && currentUserRole !== 'admin') {
+      console.log('RemoveParticipantButton: Cannot remove oneself unless admin');
+      return false;
+    }
+    
+    // Cannot remove the primary seller/creator
+    if (participant.user_id === dealSellerId) {
+      console.log('RemoveParticipantButton: Cannot remove deal creator/seller');
+      return false;
+    }
+    
+    console.log('RemoveParticipantButton: Checking permissions', {
+      currentUserRole,
+      participantRole: participant.role,
+      currentUserId: user.id,
+      participantUserId: participant.user_id
+    });
+    
+    // Role-based permissions  
+    if (currentUserRole === 'admin') {
+      console.log('RemoveParticipantButton: Admin can remove this participant');
+      return true; // Admin can remove anyone except seller
+    }
+    if (currentUserRole === 'seller') {
+      const canRemoveRole = ['buyer', 'lawyer'].includes(participant.role);
+      console.log('RemoveParticipantButton: Seller can remove?', canRemoveRole);
+      return canRemoveRole; // Seller can remove buyers and lawyers
+    }
+    
+    console.log('RemoveParticipantButton: Default deny for role:', currentUserRole);
     // By default, lawyers and buyers cannot remove anyone
     return false;
   })();
 
-  if (!canRemove) {
+  console.log('RemoveParticipantButton: canRemove result:', canRemove);
+
+  // TEMPORARY: Always show for debugging - remove this in production
+  const showForDebug = true;
+
+  if (!canRemove && !showForDebug) {
     return null; // Don't render anything if user can't remove this participant
   }
 
