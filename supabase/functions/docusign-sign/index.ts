@@ -129,11 +129,27 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   apiClient.setOAuthBasePath('account-d.docusign.com');
 
   try {
+    // Ensure the private key is properly formatted for RSA signing
+    let formattedPrivateKey = privateKey;
+    if (!privateKey.includes('-----BEGIN')) {
+      // If it's a raw key without headers, add them
+      formattedPrivateKey = `-----BEGIN RSA PRIVATE KEY-----\n${privateKey}\n-----END RSA PRIVATE KEY-----`;
+    }
+    
+    // Replace any literal \n with actual newlines
+    formattedPrivateKey = formattedPrivateKey.replace(/\\n/g, '\n');
+    
+    console.log('🔑 Private key format check:', {
+      hasBeginMarker: formattedPrivateKey.includes('-----BEGIN'),
+      hasEndMarker: formattedPrivateKey.includes('-----END'),
+      length: formattedPrivateKey.length
+    });
+
     const results = await apiClient.requestJWTUserToken(
       integrationKey,
       userId,
       'signature',
-      privateKey,
+      formattedPrivateKey,
       3600
     );
 
