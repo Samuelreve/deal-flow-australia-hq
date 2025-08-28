@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// Import DocuSign SDK using default export pattern for Deno
-const docusign = await import('npm:docusign-esign@8.2.0');
+// Import JWT library for robust token creation
+const { SignJWT } = await import('npm:jose@5.2.0');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,7 +79,7 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  // Force redeploy: v8.0 - Fixed JWT with node:crypto
+  // Force redeploy: v9.0 - Using JOSE library for robust JWT
   console.log('🔍 All available environment variables:');
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (key.includes('DOCUSIGN') || key.includes('SUPABASE') || key.includes('OPENAI')) {
@@ -155,60 +155,54 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   }
 }
 
-// Create JWT manually using a different approach that doesn't rely on Web Crypto API
+// Create JWT using robust JOSE library
 async function createJWT(clientId: string, userId: string, privateKeyPem: string): Promise<string> {
-  console.log('🔧 Starting JWT creation process with alternative method');
+  console.log('🔧 Starting JWT creation with JOSE library');
   
-  // Use Node.js crypto approach adapted for Deno
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  };
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: clientId,
-    sub: userId,
-    aud: 'account-d.docusign.com',
-    iat: now,
-    exp: now + 3600,
-    scope: 'signature'
-  };
-
-  console.log('🔧 JWT payload created:', { iss: clientId, sub: userId, iat: now, exp: now + 3600 });
-
-  // Base64 URL encode header and payload
-  const base64UrlEncode = (obj: any) => {
-    return btoa(JSON.stringify(obj))
-      .replace(/[+/]/g, c => c === '+' ? '-' : '_')
-      .replace(/=/g, '');
-  };
-
-  const encodedHeader = base64UrlEncode(header);
-  const encodedPayload = base64UrlEncode(payload);
-  const signingInput = `${encodedHeader}.${encodedPayload}`;
-
-  console.log('🔧 Signing input created, length:', signingInput.length);
-
   try {
-    // Use the node:crypto module for signing (available in Deno)
-    const crypto = await import('node:crypto');
+    // Import the private key
+    const { importPKCS8, importPKCS1 } = await import('npm:jose@5.2.0');
     
-    // Create signature using node crypto
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(signingInput);
-    const signature = sign.sign(privateKeyPem, 'base64');
+    let privateKey;
     
-    // Convert to base64url
-    const base64UrlSignature = signature
-      .replace(/[+/]/g, c => c === '+' ? '-' : '_')
-      .replace(/=/g, '');
+    // Try PKCS8 first, then PKCS1 if that fails
+    try {
+      console.log('🔧 Attempting to import as PKCS8...');
+      privateKey = await importPKCS8(privateKeyPem, 'RS256');
+      console.log('✅ Successfully imported private key as PKCS8');
+    } catch (pkcs8Error) {
+      console.log('🔧 PKCS8 failed, trying PKCS1...');
+      try {
+        privateKey = await importPKCS1(privateKeyPem, 'RS256');
+        console.log('✅ Successfully imported private key as PKCS1');
+      } catch (pkcs1Error) {
+        console.error('❌ Both PKCS8 and PKCS1 import failed:', {
+          pkcs8Error: pkcs8Error.message,
+          pkcs1Error: pkcs1Error.message
+        });
+        throw new Error(`Private key import failed: ${pkcs8Error.message}`);
+      }
+    }
 
-    const jwt = `${signingInput}.${base64UrlSignature}`;
-    console.log('✅ JWT created successfully using node:crypto, total length:', jwt.length);
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Create JWT using JOSE
+    const jwt = await new SignJWT({
+      scope: 'signature'
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setIssuer(clientId)
+      .setSubject(userId)
+      .setAudience('account-d.docusign.com')
+      .setIssuedAt(now)
+      .setExpirationTime(now + 3600)
+      .sign(privateKey);
+
+    console.log('✅ JWT created successfully with JOSE, length:', jwt.length);
     return jwt;
+
   } catch (error) {
-    console.error('❌ JWT creation failed:', error);
+    console.error('❌ JWT creation failed with JOSE:', error);
     throw error;
   }
 }
