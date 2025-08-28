@@ -41,3 +41,21 @@ verify_jwt = true
 
 [functions.remove-participant]
 verify_jwt = true
+
+[functions.docusign-sign]
+verify_jwt = true
+
+[functions.docusign-oauth]
+verify_jwt = true
+
+[functions.docusign-callback]
+verify_jwt = false
+
+[functions.docusign-oauth-callback]
+verify_jwt = false
+
+[functions.docusign-retrieve-signed]
+verify_jwt = true
+
+[functions.docusign-download-signed]
+verify_jwt = true
