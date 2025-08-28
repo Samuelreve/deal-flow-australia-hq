@@ -84,8 +84,22 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
   const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
 
+  console.log('🔍 DocuSign Environment Variables Check:');
+  console.log('DOCUSIGN_INTEGRATION_KEY:', integrationKey ? 'SET' : 'MISSING');
+  console.log('DOCUSIGN_USER_ID:', userId ? 'SET' : 'MISSING');
+  console.log('DOCUSIGN_PRIVATE_KEY:', privateKey ? 'SET (length: ' + (privateKey?.length || 0) + ')' : 'MISSING');
+  console.log('DOCUSIGN_ACCOUNT_ID:', accountId ? 'SET' : 'MISSING');
+
   if (!integrationKey || !userId || !privateKey || !accountId) {
-    throw new Error('DocuSign JWT not configured. Missing required environment variables.');
+    const missingVars = [];
+    if (!integrationKey) missingVars.push('DOCUSIGN_INTEGRATION_KEY');
+    if (!userId) missingVars.push('DOCUSIGN_USER_ID');
+    if (!privateKey) missingVars.push('DOCUSIGN_PRIVATE_KEY');
+    if (!accountId) missingVars.push('DOCUSIGN_ACCOUNT_ID');
+    
+    const errorMsg = `DocuSign JWT not configured. Missing: ${missingVars.join(', ')}`;
+    console.error('❌', errorMsg);
+    throw new Error(errorMsg);
   }
 
   // Use DocuSign SDK for JWT authentication
