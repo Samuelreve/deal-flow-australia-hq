@@ -377,16 +377,9 @@ serve(async (req: Request) => {
     const arrayBuffer = await fileData.arrayBuffer();
     const base64Doc = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-    // Create envelope using DocuSign SDK
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    const EnvelopesApi = docusign.EnvelopesApi || docusign.default?.EnvelopesApi;
+    // Create envelope using direct DocuSign REST API (no SDK)
+    console.log('🔧 Creating envelope via direct API call');
     
-    const apiClient = new ApiClient();
-    apiClient.setBasePath(base_uri);
-    apiClient.addDefaultHeader('Authorization', `Bearer ${access_token}`);
-
-    const envelopesApi = new EnvelopesApi(apiClient);
-
     // Create envelope definition
     const envelopeDefinition = {
       emailSubject: `Please sign: ${document.name}`,
@@ -421,13 +414,30 @@ serve(async (req: Request) => {
       status: 'sent'
     };
 
-    // Create envelope
-    const results = await envelopesApi.createEnvelope(account_id, {
-      envelopeDefinition
+    console.log('🔧 Envelope definition created, making API call...');
+
+    // Create envelope via direct HTTP request
+    const createEnvelopeResponse = await fetch(`${base_uri}/v2.1/accounts/${account_id}/envelopes`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(envelopeDefinition)
     });
 
-    if (!results || !results.envelopeId) {
-      throw new Error('Failed to create DocuSign envelope');
+    if (!createEnvelopeResponse.ok) {
+      const errorText = await createEnvelopeResponse.text();
+      console.error('❌ Envelope creation failed:', createEnvelopeResponse.status, errorText);
+      throw new Error(`Failed to create envelope: ${createEnvelopeResponse.status} - ${errorText}`);
+    }
+
+    const envelopeResult = await createEnvelopeResponse.json();
+    console.log('✅ Envelope created successfully:', envelopeResult.envelopeId);
+
+    if (!envelopeResult || !envelopeResult.envelopeId) {
+      throw new Error('Failed to create DocuSign envelope - no envelope ID returned');
     }
 
     // Store signature request in database
@@ -435,7 +445,7 @@ serve(async (req: Request) => {
       requestData.signers.map(signer => ({
         document_id: requestData.documentId,
         deal_id: requestData.dealId,
-        envelope_id: results.envelopeId,
+        envelope_id: envelopeResult.envelopeId,
         signer_email: signer.email,
         signer_role: 'signer',
         status: 'sent'
@@ -447,18 +457,37 @@ serve(async (req: Request) => {
     let signingUrl = null;
 
     if (currentUserSigner) {
-      const viewRequest = {
-        returnUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback`,
-        authenticationMethod: 'none'
-      };
-
+      console.log('🔧 Creating signing URL for current user...');
+      
       try {
-        const viewResults = await envelopesApi.createRecipientView(
-          account_id,
-          results.envelopeId,
-          { recipientViewRequest: viewRequest }
+        // Create recipient view via direct API call
+        const recipientViewResponse = await fetch(
+          `${base_uri}/v2.1/accounts/${account_id}/envelopes/${envelopeResult.envelopeId}/views/recipient`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${access_token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              returnUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback`,
+              authenticationMethod: 'none',
+              email: currentUserSigner.email,
+              userName: currentUserSigner.name,
+              recipientId: currentUserSigner.recipientId
+            })
+          }
         );
-        signingUrl = viewResults.url;
+
+        if (recipientViewResponse.ok) {
+          const viewResult = await recipientViewResponse.json();
+          signingUrl = viewResult.url;
+          console.log('✅ Signing URL created successfully');
+        } else {
+          const errorText = await recipientViewResponse.text();
+          console.error('❌ Failed to create signing URL:', recipientViewResponse.status, errorText);
+        }
       } catch (error) {
         console.error('Failed to create signing URL:', error);
       }
@@ -466,7 +495,7 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      envelopeId: results.envelopeId,
+      envelopeId: envelopeResult.envelopeId,
       signingUrl,
       message: 'Document sent for signing successfully'
     }), {
