@@ -79,7 +79,7 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  // Force redeploy: v4.0 - Trigger redeploy to pick up new secrets
+  // Force redeploy: v5.0 - Use Web Crypto API for JWT signing
   console.log('🔍 All available environment variables:');
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (key.includes('DOCUSIGN') || key.includes('SUPABASE') || key.includes('OPENAI')) {
@@ -92,7 +92,7 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
   const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
 
-  console.log('🔍 DocuSign Environment Variables Check (v3.0):');
+  console.log('🔍 DocuSign Environment Variables Check (v5.0):');
   console.log('DOCUSIGN_INTEGRATION_KEY:', integrationKey ? 'SET' : 'MISSING');
   console.log('DOCUSIGN_USER_ID:', userId ? 'SET' : 'MISSING');
   console.log('DOCUSIGN_PRIVATE_KEY:', privateKey ? 'SET (length: ' + (privateKey?.length || 0) + ')' : 'MISSING');
@@ -118,80 +118,34 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
     throw new Error(errorMsg);
   }
 
-  // Use DocuSign SDK for JWT authentication
-  const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-  if (!ApiClient) {
-    throw new Error('DocuSign SDK not properly loaded');
-  }
-
-  const apiClient = new ApiClient();
-  apiClient.setBasePath('https://demo.docusign.net/restapi');
-  apiClient.setOAuthBasePath('account-d.docusign.com');
-
   try {
-    // Ensure the private key is properly formatted for RSA signing
-    let formattedPrivateKey = privateKey;
-    
-    // Remove any extra whitespace and normalize line endings
-    formattedPrivateKey = formattedPrivateKey.trim().replace(/\\n/g, '\n');
-    
-    // Check if it needs PEM headers
-    if (!formattedPrivateKey.includes('-----BEGIN')) {
-      // Try to decode if it's base64 encoded
-      try {
-        const decoded = atob(formattedPrivateKey);
-        if (decoded.includes('-----BEGIN')) {
-          formattedPrivateKey = decoded;
-        } else {
-          // Add PEM headers if not present
-          formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${formattedPrivateKey}\n-----END PRIVATE KEY-----`;
-        }
-      } catch {
-        // Not base64, add headers
-        formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${formattedPrivateKey}\n-----END PRIVATE KEY-----`;
-      }
-    }
-    
-    // Ensure proper line breaks in PEM format (64 chars per line for the key content)
-    const lines = formattedPrivateKey.split('\n');
-    const beginLine = lines.find(line => line.includes('-----BEGIN'));
-    const endLine = lines.find(line => line.includes('-----END'));
-    
-    if (beginLine && endLine) {
-      const keyContent = formattedPrivateKey
-        .replace(beginLine, '')
-        .replace(endLine, '')
-        .replace(/\n/g, '')
-        .replace(/\s/g, '');
-      
-      // Split into 64-character lines
-      const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
-      formattedPrivateKey = `${beginLine}\n${formattedContent}\n${endLine}`;
-    }
-    
-    console.log('🔑 Private key format details:', {
-      hasBeginMarker: formattedPrivateKey.includes('-----BEGIN'),
-      hasEndMarker: formattedPrivateKey.includes('-----END'),
-      keyType: formattedPrivateKey.includes('RSA PRIVATE KEY') ? 'RSA' : 'PKCS8',
-      totalLength: formattedPrivateKey.length,
-      lineCount: formattedPrivateKey.split('\n').length
+    // Create JWT manually using Web Crypto API
+    const jwt = await createJWT(integrationKey, userId, privateKey);
+    console.log('✅ JWT created successfully');
+
+    // Request access token from DocuSign
+    const tokenResponse = await fetch('https://account-d.docusign.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
     });
 
-    const results = await apiClient.requestJWTUserToken(
-      integrationKey,
-      userId,
-      'signature',
-      formattedPrivateKey,
-      3600
-    );
-
-    if (!results || !results.body || !results.body.access_token) {
-      throw new Error('No access token received from DocuSign SDK');
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('DocuSign token request failed:', tokenResponse.status, errorText);
+      throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
     }
 
-    console.log('✅ Successfully obtained DocuSign JWT access token');
+    const tokenData = await tokenResponse.json();
+    
+    console.log('✅ Successfully obtained DocuSign access token via manual JWT');
     return {
-      access_token: results.body.access_token,
+      access_token: tokenData.access_token,
       base_uri: 'https://demo.docusign.net/restapi',
       account_id: accountId
     };
@@ -199,6 +153,69 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
     console.error('DocuSign JWT authentication failed:', error);
     throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
   }
+}
+
+// Create JWT manually using Web Crypto API
+async function createJWT(clientId: string, userId: string, privateKeyPem: string): Promise<string> {
+  // Prepare private key for Web Crypto API
+  let keyData = privateKeyPem.trim();
+  
+  // Remove PEM headers and whitespace
+  keyData = keyData
+    .replace(/-----BEGIN[^-]+-----/g, '')
+    .replace(/-----END[^-]+-----/g, '')
+    .replace(/\s/g, '');
+
+  // Decode base64
+  const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+
+  // Import the private key
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryKey,
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256',
+    },
+    false,
+    ['sign']
+  );
+
+  // Create JWT header and payload
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT'
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: clientId,
+    sub: userId,
+    aud: 'account-d.docusign.com',
+    iat: now,
+    exp: now + 3600,
+    scope: 'signature'
+  };
+
+  // Encode header and payload
+  const encodedHeader = btoa(JSON.stringify(header)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
+  const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
+
+  // Create signature
+  const dataToSign = `${encodedHeader}.${encodedPayload}`;
+  const encoder = new TextEncoder();
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    encoder.encode(dataToSign)
+  );
+
+  // Encode signature
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/[+/]/g, c => c === '+' ? '-' : '_')
+    .replace(/=/g, '');
+
+  return `${dataToSign}.${encodedSignature}`;
 }
 
 // Refresh OAuth token
