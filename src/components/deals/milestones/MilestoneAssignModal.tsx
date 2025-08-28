@@ -54,14 +54,14 @@ const MilestoneAssignModal: React.FC<MilestoneAssignModalProps> = ({
   const fetchDealParticipants = async () => {
     setFetchingParticipants(true);
     try {
-      // Fetch accepted participants with proper join to profiles
+      // Fetch accepted participants with left join to profiles to handle RLS policies
       const { data: acceptedParticipants, error: participantsError } = await supabase
         .from('deal_participants')
         .select(`
           id,
           user_id,
           role,
-          profiles!inner (
+          profiles (
             id,
             name,
             email
@@ -76,7 +76,24 @@ const MilestoneAssignModal: React.FC<MilestoneAssignModalProps> = ({
 
       console.log('Fetched participants:', acceptedParticipants);
 
-      setParticipants((acceptedParticipants || []).map(p => ({
+      // Handle cases where profiles might be null due to RLS policies or missing profiles
+      const participantsWithProfiles = (acceptedParticipants || []).map(p => {
+        // If profiles is null or empty due to RLS, create a fallback profile
+        if (!p.profiles || Object.keys(p.profiles).length === 0) {
+          // Try to get basic info from the participant record itself
+          return {
+            ...p,
+            profiles: {
+              id: p.user_id,
+              name: `User ${p.user_id.slice(0, 8)}`, // Fallback name
+              email: 'N/A' // Fallback email
+            }
+          };
+        }
+        return p;
+      });
+
+      setParticipants(participantsWithProfiles.map(p => ({
         ...p,
         status: 'accepted' as const
       })));
