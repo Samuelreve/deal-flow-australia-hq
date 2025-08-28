@@ -97,7 +97,15 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
     if (!privateKey) missingVars.push('DOCUSIGN_PRIVATE_KEY');
     if (!accountId) missingVars.push('DOCUSIGN_ACCOUNT_ID');
     
-    const errorMsg = `DocuSign JWT not configured. Missing: ${missingVars.join(', ')}`;
+    const debugInfo = {
+      integrationKey: integrationKey ? 'SET' : 'MISSING',
+      userId: userId ? 'SET' : 'MISSING', 
+      privateKey: privateKey ? `SET (length: ${privateKey.length})` : 'MISSING',
+      accountId: accountId ? 'SET' : 'MISSING',
+      missingVars
+    };
+    
+    const errorMsg = `DocuSign JWT not configured. Missing: ${missingVars.join(', ')}. Debug: ${JSON.stringify(debugInfo)}`;
     console.error('❌', errorMsg);
     throw new Error(errorMsg);
   }
