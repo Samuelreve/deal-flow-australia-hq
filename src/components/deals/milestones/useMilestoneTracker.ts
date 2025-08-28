@@ -157,16 +157,21 @@ export function useMilestoneTracker(dealId: string, initialMilestones: Milestone
         
       if (error) throw error;
       
-      console.log('✅ Edge function succeeded, updating local state...');
+      console.log('✅ Edge function succeeded, actual status from server:', data?.status);
       
-      // Update local state
+      // Use the actual status returned from the server, not the optimistic one
+      // This handles cases where requested "completed" becomes "pending_approval" for assigned users
+      const actualStatus = data?.status || newStatus;
+      const actualCompletedAt = data?.completed_at ? new Date(data.completed_at) : (actualStatus === 'completed' ? new Date() : undefined);
+      
+      // Update local state with server response
       setMilestones(prevMilestones => {
         const updated = prevMilestones.map(m => 
           m.id === milestoneId 
-            ? { ...m, status: newStatus, completedAt: newStatus === 'completed' ? new Date() : m.completedAt }
+            ? { ...m, status: actualStatus, completedAt: actualCompletedAt }
             : m
         );
-        console.log('📝 Updated milestones state:', updated);
+        console.log('📝 Updated milestones state with server response:', updated);
         return updated;
       });
       
