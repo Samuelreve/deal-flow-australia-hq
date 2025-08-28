@@ -79,7 +79,7 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  // Force redeploy: v6.0 - Debug Web Crypto API implementation
+  // Force redeploy: v7.0 - Enhanced JWT debugging
   console.log('🔍 All available environment variables:');
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (key.includes('DOCUSIGN') || key.includes('SUPABASE') || key.includes('OPENAI')) {
@@ -157,6 +157,15 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
 
 // Create JWT manually using Web Crypto API
 async function createJWT(clientId: string, userId: string, privateKeyPem: string): Promise<string> {
+  console.log('🔧 Starting JWT creation process');
+  console.log('🔑 Private key format details:', {
+    hasBeginMarker: privateKeyPem.includes('-----BEGIN'),
+    hasEndMarker: privateKeyPem.includes('-----END'),
+    keyType: privateKeyPem.includes('RSA') ? 'RSA' : privateKeyPem.includes('PRIVATE KEY') ? 'PRIVATE KEY' : 'UNKNOWN',
+    totalLength: privateKeyPem.length,
+    lineCount: privateKeyPem.split('\n').length
+  });
+  
   // Prepare private key for Web Crypto API
   let keyData = privateKeyPem.trim();
   
@@ -166,56 +175,75 @@ async function createJWT(clientId: string, userId: string, privateKeyPem: string
     .replace(/-----END[^-]+-----/g, '')
     .replace(/\s/g, '');
 
-  // Decode base64
-  const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+  console.log('🔧 Processed key data length:', keyData.length);
 
-  // Import the private key
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    binaryKey,
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256',
-    },
-    false,
-    ['sign']
-  );
+  try {
+    // Decode base64
+    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+    console.log('🔧 Binary key length:', binaryKey.length);
 
-  // Create JWT header and payload
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT'
-  };
+    // Import the private key
+    console.log('🔧 Attempting to import private key...');
+    const cryptoKey = await crypto.subtle.importKey(
+      'pkcs8',
+      binaryKey,
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
+      },
+      false,
+      ['sign']
+    );
+    console.log('✅ Private key imported successfully');
 
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: clientId,
-    sub: userId,
-    aud: 'account-d.docusign.com',
-    iat: now,
-    exp: now + 3600,
-    scope: 'signature'
-  };
+    // Create JWT header and payload
+    const header = {
+      alg: 'RS256',
+      typ: 'JWT'
+    };
 
-  // Encode header and payload
-  const encodedHeader = btoa(JSON.stringify(header)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
-  const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      iss: clientId,
+      sub: userId,
+      aud: 'account-d.docusign.com',
+      iat: now,
+      exp: now + 3600,
+      scope: 'signature'
+    };
 
-  // Create signature
-  const dataToSign = `${encodedHeader}.${encodedPayload}`;
-  const encoder = new TextEncoder();
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    encoder.encode(dataToSign)
-  );
+    console.log('🔧 JWT payload created:', { iss: clientId, sub: userId, iat: now, exp: now + 3600 });
 
-  // Encode signature
-  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/[+/]/g, c => c === '+' ? '-' : '_')
-    .replace(/=/g, '');
+    // Encode header and payload
+    const encodedHeader = btoa(JSON.stringify(header)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
+    const encodedPayload = btoa(JSON.stringify(payload)).replace(/[+/]/g, c => c === '+' ? '-' : '_').replace(/=/g, '');
 
-  return `${dataToSign}.${encodedSignature}`;
+    // Create signature
+    const dataToSign = `${encodedHeader}.${encodedPayload}`;
+    console.log('🔧 Data to sign length:', dataToSign.length);
+    
+    const encoder = new TextEncoder();
+    console.log('🔧 Attempting to sign data...');
+    const signature = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      cryptoKey,
+      encoder.encode(dataToSign)
+    );
+    console.log('✅ Data signed successfully, signature length:', signature.byteLength);
+
+    // Encode signature
+    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/[+/]/g, c => c === '+' ? '-' : '_')
+      .replace(/=/g, '');
+
+    const jwt = `${dataToSign}.${encodedSignature}`;
+    console.log('✅ JWT created successfully, total length:', jwt.length);
+    return jwt;
+    
+  } catch (error) {
+    console.error('❌ JWT creation failed:', error);
+    throw error;
+  }
 }
 
 // Refresh OAuth token
