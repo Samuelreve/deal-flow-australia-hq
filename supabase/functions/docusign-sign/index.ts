@@ -79,7 +79,7 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  // Force redeploy: v10.0 - JOSE library deployment fix
+  // Force redeploy: v11.0 - PKCS1 to PKCS8 conversion
   console.log('🔍 All available environment variables:');
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (key.includes('DOCUSIGN') || key.includes('SUPABASE') || key.includes('OPENAI')) {
@@ -155,34 +155,65 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   }
 }
 
-// Create JWT using robust JOSE library
+// Create JWT using robust JOSE library with PKCS1 to PKCS8 conversion
 async function createJWT(clientId: string, userId: string, privateKeyPem: string): Promise<string> {
   console.log('🔧 Starting JWT creation with JOSE library');
   
   try {
-    // Import the private key
-    const { importPKCS8, importPKCS1 } = await import('npm:jose@5.2.0');
+    // Import the private key functions
+    const { importPKCS8 } = await import('npm:jose@5.2.0');
     
-    let privateKey;
+    let processedKey = privateKeyPem.trim();
     
-    // Try PKCS8 first, then PKCS1 if that fails
-    try {
-      console.log('🔧 Attempting to import as PKCS8...');
-      privateKey = await importPKCS8(privateKeyPem, 'RS256');
-      console.log('✅ Successfully imported private key as PKCS8');
-    } catch (pkcs8Error) {
-      console.log('🔧 PKCS8 failed, trying PKCS1...');
+    // Check if key is in PKCS#1 format and convert to PKCS#8
+    if (processedKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+      console.log('🔧 Detected PKCS#1 format, converting to PKCS#8...');
+      
+      // Simple conversion approach using Web Crypto API
       try {
-        privateKey = await importPKCS1(privateKeyPem, 'RS256');
-        console.log('✅ Successfully imported private key as PKCS1');
-      } catch (pkcs1Error) {
-        console.error('❌ Both PKCS8 and PKCS1 import failed:', {
-          pkcs8Error: pkcs8Error.message,
-          pkcs1Error: pkcs1Error.message
-        });
-        throw new Error(`Private key import failed: ${pkcs8Error.message}`);
+        // Remove headers and whitespace for base64 decoding
+        const keyData = processedKey
+          .replace(/-----BEGIN RSA PRIVATE KEY-----/g, '')
+          .replace(/-----END RSA PRIVATE KEY-----/g, '')
+          .replace(/\s/g, '');
+        
+        // Decode the base64 key
+        const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+        
+        // Import as PKCS#1 using Web Crypto (which can handle both formats)
+        const cryptoKey = await crypto.subtle.importKey(
+          'pkcs1',
+          binaryKey,
+          {
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: 'SHA-256',
+          },
+          true,
+          ['sign']
+        );
+        
+        // Export as PKCS#8
+        const pkcs8ArrayBuffer = await crypto.subtle.exportKey('pkcs8', cryptoKey);
+        const pkcs8Base64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8ArrayBuffer)));
+        
+        // Format as PEM
+        processedKey = `-----BEGIN PRIVATE KEY-----\n${pkcs8Base64.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
+        console.log('✅ Successfully converted PKCS#1 to PKCS#8');
+        
+      } catch (conversionError) {
+        console.error('❌ PKCS#1 to PKCS#8 conversion failed:', conversionError);
+        throw new Error(`Private key conversion failed: ${conversionError.message}`);
       }
+    } else if (processedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      console.log('🔧 Key is already in PKCS#8 format');
+    } else {
+      console.warn('⚠️ Unknown private key format, attempting direct import');
     }
+    
+    // Now import using JOSE with the processed key
+    console.log('🔧 Importing private key with JOSE...');
+    const privateKey = await importPKCS8(processedKey, 'RS256');
+    console.log('✅ Successfully imported private key');
 
     const now = Math.floor(Date.now() / 1000);
     
