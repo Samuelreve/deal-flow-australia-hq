@@ -79,7 +79,7 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  // Force redeploy: v5.0 - Use Web Crypto API for JWT signing
+  // Force redeploy: v6.0 - Debug Web Crypto API implementation
   console.log('🔍 All available environment variables:');
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (key.includes('DOCUSIGN') || key.includes('SUPABASE') || key.includes('OPENAI')) {
