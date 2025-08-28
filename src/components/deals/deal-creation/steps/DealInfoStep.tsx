@@ -28,12 +28,12 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
     if (!data.dealCategory) return true; // Show all fields if no category selected
     
     const categoryFields = {
-      business_sale: ['dealTitle', 'dealType', 'askingPrice', 'targetCompletionDate', 'reasonForSelling', 'dealDescription', 'assetDetails'],
+      business_sale: ['dealTitle', 'askingPrice', 'targetCompletionDate', 'reasonForSelling', 'dealDescription', 'assetDetails'],
       real_estate: ['dealTitle', 'askingPrice', 'targetCompletionDate', 'dealDescription'],
       ip_transfer: ['dealTitle', 'dealDescription'],
       micro_deals: ['dealTitle', 'askingPrice', 'dealDescription'],
-      cross_border: ['dealTitle', 'dealType', 'askingPrice', 'targetCompletionDate', 'dealDescription'],
-      franchise: ['dealTitle', 'dealType', 'askingPrice', 'targetCompletionDate', 'reasonForSelling', 'dealDescription', 'assetDetails'],
+      cross_border: ['dealTitle', 'askingPrice', 'targetCompletionDate', 'dealDescription'],
+      franchise: ['dealTitle', 'askingPrice', 'targetCompletionDate', 'reasonForSelling', 'dealDescription', 'assetDetails'],
     };
     
     const allowedFields = categoryFields[data.dealCategory as keyof typeof categoryFields] || [];
@@ -52,9 +52,6 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
       newErrors.dealDescription = 'Deal description is required';
     }
     
-    if (shouldShowField('dealType') && !data.dealType) {
-      newErrors.dealType = 'Deal type is required';
-    }
     
     if (!data.dealCategory) {
       newErrors.dealCategory = 'Deal category should be selected in the previous step';
@@ -134,33 +131,6 @@ const DealInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev })
           </div>
         )}
 
-        {/* Deal Type - Business Sale, Cross Border, Franchise */}
-        {shouldShowField('dealType') && (
-          <div className="space-y-2">
-            <Label htmlFor="dealType">
-              Deal Type *
-            </Label>
-            <Select 
-              value={data.dealType} 
-              onValueChange={(value) => updateData({ dealType: value })}
-            >
-              <SelectTrigger className={errors.dealType ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select deal type" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEAL_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.dealType && (
-              <p className="text-sm text-red-500">{errors.dealType}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Asset Sale = business assets only; Share Sale = company ownership
-            </p>
-          </div>
-        )}
 
         {/* Asking Price - All except IP Transfer */}
         {shouldShowField('askingPrice') && (

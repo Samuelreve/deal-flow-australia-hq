@@ -33,7 +33,6 @@ const DealCreationForm: React.FC = () => {
       title: '',
       description: '',
       askingPrice: '',
-      dealType: '',
       keyAssetsIncluded: '',
       keyAssetsExcluded: '',
       reasonForSelling: '',

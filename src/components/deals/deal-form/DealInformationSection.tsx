@@ -39,19 +39,6 @@ const DealInformationSection: React.FC<DealInformationSectionProps> = ({ form })
             )}
           />
           
-          <FormField
-            control={form.control}
-            name="dealType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deal Type</FormLabel>
-                <FormControl>
-                  <Input placeholder="Asset Sale, Share Sale" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}

@@ -28,27 +28,6 @@ export const DealBasicDetailsForm: React.FC<DealBasicDetailsFormProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="space-y-2">
-        <Label htmlFor="dealType">
-          Deal Type *
-        </Label>
-        <Select 
-          value={data.dealType} 
-          onValueChange={(value) => updateData({ dealType: value })}
-        >
-          <SelectTrigger className={errors.dealType ? 'border-red-500' : ''}>
-            <SelectValue placeholder="Select deal type" />
-          </SelectTrigger>
-          <SelectContent>
-            {DEAL_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.dealType && (
-          <p className="text-sm text-red-500">{errors.dealType}</p>
-        )}
-      </div>
 
       <div className="space-y-2">
         <div className="flex justify-between items-center">
