@@ -51,7 +51,7 @@ const MilestoneAssignmentModal: React.FC<MilestoneAssignmentModalProps> = ({
         .select(`
           user_id,
           role,
-          profiles:user_id (
+          profiles (
             id,
             name,
             email
@@ -61,13 +61,20 @@ const MilestoneAssignmentModal: React.FC<MilestoneAssignmentModalProps> = ({
 
       if (error) throw error;
 
-      const participantsList = data?.map(p => ({
-        id: p.profiles?.id || '',
-        name: p.profiles?.name || p.profiles?.email || 'Unknown',
-        email: p.profiles?.email || '',
-        role: p.role
-      })).filter(p => p.id) || [];
+      console.log('Raw participants data:', data);
 
+      const participantsList = data?.map(p => {
+        // Handle cases where profiles might be null due to RLS policies
+        const profile = p.profiles;
+        return {
+          id: p.user_id, // Use user_id as the key for assignment
+          name: profile?.name || profile?.email || `User ${p.user_id.slice(0, 8)}`,
+          email: profile?.email || 'Email not available',
+          role: p.role
+        };
+      }) || [];
+
+      console.log('Processed participants:', participantsList);
       setParticipants(participantsList);
     } catch (error: any) {
       console.error('Error fetching participants:', error);
