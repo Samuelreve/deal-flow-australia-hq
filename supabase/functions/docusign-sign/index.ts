@@ -131,18 +131,50 @@ async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: st
   try {
     // Ensure the private key is properly formatted for RSA signing
     let formattedPrivateKey = privateKey;
-    if (!privateKey.includes('-----BEGIN')) {
-      // If it's a raw key without headers, add them
-      formattedPrivateKey = `-----BEGIN RSA PRIVATE KEY-----\n${privateKey}\n-----END RSA PRIVATE KEY-----`;
+    
+    // Remove any extra whitespace and normalize line endings
+    formattedPrivateKey = formattedPrivateKey.trim().replace(/\\n/g, '\n');
+    
+    // Check if it needs PEM headers
+    if (!formattedPrivateKey.includes('-----BEGIN')) {
+      // Try to decode if it's base64 encoded
+      try {
+        const decoded = atob(formattedPrivateKey);
+        if (decoded.includes('-----BEGIN')) {
+          formattedPrivateKey = decoded;
+        } else {
+          // Add PEM headers if not present
+          formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${formattedPrivateKey}\n-----END PRIVATE KEY-----`;
+        }
+      } catch {
+        // Not base64, add headers
+        formattedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${formattedPrivateKey}\n-----END PRIVATE KEY-----`;
+      }
     }
     
-    // Replace any literal \n with actual newlines
-    formattedPrivateKey = formattedPrivateKey.replace(/\\n/g, '\n');
+    // Ensure proper line breaks in PEM format (64 chars per line for the key content)
+    const lines = formattedPrivateKey.split('\n');
+    const beginLine = lines.find(line => line.includes('-----BEGIN'));
+    const endLine = lines.find(line => line.includes('-----END'));
     
-    console.log('🔑 Private key format check:', {
+    if (beginLine && endLine) {
+      const keyContent = formattedPrivateKey
+        .replace(beginLine, '')
+        .replace(endLine, '')
+        .replace(/\n/g, '')
+        .replace(/\s/g, '');
+      
+      // Split into 64-character lines
+      const formattedContent = keyContent.match(/.{1,64}/g)?.join('\n') || keyContent;
+      formattedPrivateKey = `${beginLine}\n${formattedContent}\n${endLine}`;
+    }
+    
+    console.log('🔑 Private key format details:', {
       hasBeginMarker: formattedPrivateKey.includes('-----BEGIN'),
       hasEndMarker: formattedPrivateKey.includes('-----END'),
-      length: formattedPrivateKey.length
+      keyType: formattedPrivateKey.includes('RSA PRIVATE KEY') ? 'RSA' : 'PKCS8',
+      totalLength: formattedPrivateKey.length,
+      lineCount: formattedPrivateKey.split('\n').length
     });
 
     const results = await apiClient.requestJWTUserToken(
