@@ -79,12 +79,13 @@ async function getDocuSignAccessToken(userId: string): Promise<{ access_token: s
 
 // JWT fallback for system-level signing
 async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+  // Force redeploy: v2.0
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   const userId = Deno.env.get('DOCUSIGN_USER_ID');
   const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
   const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
 
-  console.log('🔍 DocuSign Environment Variables Check:');
+  console.log('🔍 DocuSign Environment Variables Check (v2.0):');
   console.log('DOCUSIGN_INTEGRATION_KEY:', integrationKey ? 'SET' : 'MISSING');
   console.log('DOCUSIGN_USER_ID:', userId ? 'SET' : 'MISSING');
   console.log('DOCUSIGN_PRIVATE_KEY:', privateKey ? 'SET (length: ' + (privateKey?.length || 0) + ')' : 'MISSING');
