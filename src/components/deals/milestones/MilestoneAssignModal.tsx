@@ -54,14 +54,14 @@ const MilestoneAssignModal: React.FC<MilestoneAssignModalProps> = ({
   const fetchDealParticipants = async () => {
     setFetchingParticipants(true);
     try {
-      // Fetch accepted participants
+      // Fetch accepted participants with proper join to profiles
       const { data: acceptedParticipants, error: participantsError } = await supabase
         .from('deal_participants')
         .select(`
           id,
           user_id,
           role,
-          profiles (
+          profiles!inner (
             id,
             name,
             email
@@ -69,41 +69,17 @@ const MilestoneAssignModal: React.FC<MilestoneAssignModalProps> = ({
         `)
         .eq('deal_id', dealId);
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError);
+        throw participantsError;
+      }
 
-      // Fetch pending invitations
-      const { data: pendingInvitations, error: invitationsError } = await supabase
-        .from('deal_invitations')
-        .select(`
-          id,
-          invitee_email,
-          invitee_role
-        `)
-        .eq('deal_id', dealId)
-        .eq('status', 'pending');
+      console.log('Fetched participants:', acceptedParticipants);
 
-      if (invitationsError) throw invitationsError;
-
-      // Combine accepted participants with pending invitations
-      const allParticipants: DealParticipant[] = [
-        ...(acceptedParticipants || []).map(p => ({
-          ...p,
-          status: 'accepted' as const
-        })),
-        ...(pendingInvitations || []).map(inv => ({
-          id: inv.id,
-          user_id: `pending-${inv.id}`,
-          role: inv.invitee_role,
-          status: 'pending' as const,
-          profiles: {
-            id: `pending-${inv.id}`,
-            name: inv.invitee_email.split('@')[0],
-            email: inv.invitee_email
-          }
-        }))
-      ];
-
-      setParticipants(allParticipants);
+      setParticipants((acceptedParticipants || []).map(p => ({
+        ...p,
+        status: 'accepted' as const
+      })));
     } catch (error: any) {
       console.error('Error fetching participants:', error);
       toast({
@@ -217,30 +193,28 @@ const MilestoneAssignModal: React.FC<MilestoneAssignModalProps> = ({
                     <SelectValue placeholder="Choose a participant" />
                   </SelectTrigger>
                   <SelectContent>
-                    {participants.map((participant) => (
-                      <SelectItem 
-                        key={participant.user_id} 
-                        value={participant.user_id}
-                        disabled={participant.status === 'pending'}
-                      >
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className={participant.status === 'pending' ? 'text-muted-foreground' : ''}>
-                            {participant.profiles.name || participant.profiles.email}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            participant.status === 'pending' 
-                              ? 'bg-muted text-muted-foreground' 
-                              : 'bg-secondary'
-                          }`}>
-                            {participant.role}
-                          </span>
-                          {participant.status === 'pending' && (
-                            <span className="text-xs text-muted-foreground">(pending)</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {participants.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No participants found
+                      </div>
+                    ) : (
+                      participants.map((participant) => (
+                        <SelectItem 
+                          key={participant.user_id} 
+                          value={participant.user_id}
+                        >
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <span>
+                              {participant.profiles.name || participant.profiles.email}
+                            </span>
+                            <span className="text-xs bg-secondary px-2 py-1 rounded">
+                              {participant.role}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
