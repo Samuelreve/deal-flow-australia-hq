@@ -1,5 +1,6 @@
 
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define the expected structure of the successful backend acceptance response
 export interface AcceptanceSuccessResponse {
@@ -13,57 +14,53 @@ export interface AcceptanceErrorResponse {
 }
 
 export class InvitationService {
-  private acceptInvitationUrl = '/api/invitations/accept'; // API endpoint
-
   /**
-   * Accept an invitation
+   * Accept an invitation using Supabase RPC
    * @param token The invitation token
    * @param userId The user ID accepting the invitation
-   * @param accessToken The authentication token
+   * @param accessToken The authentication token (not used in Supabase RPC)
    * @returns Promise with the acceptance result
    */
   async acceptInvitation(
     token: string,
     userId: string,
-    accessToken: string
+    accessToken?: string
   ): Promise<{ success: boolean; data?: AcceptanceSuccessResponse; error?: string }> {
     try {
-      // Make the POST request to the backend acceptance endpoint
-      const response = await fetch(this.acceptInvitationUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ token, userId }),
-      });
+      console.log('Accepting invitation with:', { token, userId });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        let errorMessage = errorData.message || `Invitation acceptance failed with status: ${response.status}`;
-        
-        // Handle specific error cases
-        if (response.status === 400) {
-          errorMessage = errorData.message || 'Invalid invitation data.';
-        } else if (response.status === 404) {
-          errorMessage = errorData.message || 'Invitation not found or expired.';
-        } else if (response.status === 409) {
-          errorMessage = errorData.message || 'Invitation already accepted or you are already a participant.';
-        } else if (response.status === 403) {
-          errorMessage = errorData.message || 'Permission denied to accept this invitation.';
-        }
-        
-        return { 
-          success: false, 
-          error: errorMessage
+      const { data, error } = await supabase.rpc('accept_invitation', {
+        p_token: token,
+        p_user_id: userId
+      });
+
+      console.log('Accept invitation response:', { data, error });
+
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        return {
+          success: false,
+          error: error.message || 'Failed to accept invitation'
         };
       }
-      
-      const data: AcceptanceSuccessResponse = await response.json();
-      return {
-        success: true,
-        data
-      };
+
+      // The function returns an array, check if we have valid data
+      if (data && Array.isArray(data) && data.length > 0 && data[0].success) {
+        const result = data[0];
+        return {
+          success: true,
+          data: {
+            message: result.message || 'Invitation accepted successfully',
+            dealId: result.deal_id
+          }
+        };
+      } else {
+        console.error('Invalid response data:', data);
+        return {
+          success: false,
+          error: 'Failed to accept invitation - invalid response'
+        };
+      }
     } catch (error: any) {
       console.error('Invitation acceptance error:', error);
       return {

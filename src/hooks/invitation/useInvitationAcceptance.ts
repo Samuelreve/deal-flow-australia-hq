@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { invitationService } from '@/services/invitationService';
 
 export const useInvitationAcceptance = (inviteToken: string | null) => {
-  const { user, session, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
   // State to track the invitation acceptance process
@@ -19,17 +19,9 @@ export const useInvitationAcceptance = (inviteToken: string | null) => {
     setAcceptanceStatus('loading');
     setStatusMessage('Accepting invitation...');
     
-    if (!session?.access_token) {
-      setAcceptanceStatus('error');
-      setStatusMessage('Authentication token missing');
-      toast.error('Authentication token missing');
-      return;
-    }
-    
     const result = await invitationService.acceptInvitation(
       token,
-      userId,
-      session.access_token
+      userId
     );
     
     if (result.success && result.data) {
