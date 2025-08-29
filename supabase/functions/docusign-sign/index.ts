@@ -1013,11 +1013,16 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
 // Helper function to convert PKCS#1 to PKCS#8 format
 async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
   try {
+    console.log('🔄 Converting PKCS#1 to PKCS#8 format...');
+    
     // Extract the raw key content
     const keyContent = pkcs1Key
       .replace('-----BEGIN RSA PRIVATE KEY-----', '')
       .replace('-----END RSA PRIVATE KEY-----', '')
+      .replace(/\r?\n/g, '')
       .replace(/\s/g, '');
+    
+    console.log('Key content length after cleaning:', keyContent.length);
     
     // Decode the base64 content
     const binaryString = atob(keyContent);
@@ -1026,56 +1031,82 @@ async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
       pkcs1Data[i] = binaryString.charCodeAt(i);
     }
     
-    // RSA algorithm identifier in DER format
-    const rsaAlgorithmId = new Uint8Array([
-      0x30, 0x0d, // SEQUENCE, length 13
+    console.log('PKCS#1 data length:', pkcs1Data.length);
+    
+    // Create PKCS#8 structure using proper ASN.1 encoding
+    const version = new Uint8Array([0x02, 0x01, 0x00]); // INTEGER 0
+    
+    // RSA algorithm identifier (1.2.840.113549.1.1.1)
+    const algorithmId = new Uint8Array([
+      0x30, 0x0d, // SEQUENCE of 13 bytes
       0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // RSA OID
-      0x05, 0x00 // NULL parameters
+      0x05, 0x00  // NULL
     ]);
     
-    // Create the PKCS#8 structure
-    const pkcs8Structure: number[] = [];
+    // Wrap PKCS#1 data in OCTET STRING
+    const privateKeyInfo = encodeAsn1(0x04, pkcs1Data); // OCTET STRING
     
-    // Version (INTEGER 0)
-    pkcs8Structure.push(0x02, 0x01, 0x00);
+    // Combine all parts
+    const privateKeyInfoSequence = concatArrays([version, algorithmId, privateKeyInfo]);
     
-    // Algorithm identifier
-    pkcs8Structure.push(...rsaAlgorithmId);
+    // Wrap everything in a SEQUENCE
+    const pkcs8Data = encodeAsn1(0x30, privateKeyInfoSequence); // SEQUENCE
     
-    // Private key (OCTET STRING)
-    const privateKeyOctetString = encodeDERLength(pkcs1Data.length);
-    pkcs8Structure.push(0x04, ...privateKeyOctetString, ...pkcs1Data);
+    // Convert to base64
+    const base64 = btoa(String.fromCharCode(...pkcs8Data));
     
-    // Wrap in main SEQUENCE
-    const mainSeqLength = encodeDERLength(pkcs8Structure.length);
-    const pkcs8Data = new Uint8Array([0x30, ...mainSeqLength, ...pkcs8Structure]);
+    // Format as PEM with proper line breaks
+    const formatted = base64.match(/.{1,64}/g)?.join('\n') || base64;
+    const pemKey = `-----BEGIN PRIVATE KEY-----\n${formatted}\n-----END PRIVATE KEY-----`;
     
-    // Convert back to base64
-    const base64String = btoa(String.fromCharCode(...pkcs8Data));
+    console.log('✅ Successfully converted PKCS#1 to PKCS#8');
+    console.log('PKCS#8 key length:', pemKey.length);
     
-    // Format as PEM
-    return `-----BEGIN PRIVATE KEY-----\n${base64String.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
+    return pemKey;
     
   } catch (error) {
-    console.error('Failed to convert PKCS#1 to PKCS#8:', error);
-    throw new Error('Failed to convert private key format');
+    console.error('❌ Failed to convert PKCS#1 to PKCS#8:', error);
+    console.error('Error details:', error.message);
+    throw new Error(`Private key conversion failed: ${error.message}`);
   }
 }
 
-function encodeDERLength(length: number): number[] {
+// Helper function to encode ASN.1 structures
+function encodeAsn1(tag: number, data: Uint8Array): Uint8Array {
+  const length = data.length;
+  let lengthBytes: Uint8Array;
+  
   if (length < 0x80) {
-    return [length];
+    // Short form
+    lengthBytes = new Uint8Array([length]);
+  } else {
+    // Long form
+    const lengthOfLength = Math.ceil(Math.log2(length + 1) / 8);
+    lengthBytes = new Uint8Array(1 + lengthOfLength);
+    lengthBytes[0] = 0x80 | lengthOfLength;
+    
+    for (let i = 0; i < lengthOfLength; i++) {
+      lengthBytes[1 + i] = (length >> (8 * (lengthOfLength - 1 - i))) & 0xff;
+    }
   }
   
-  const bytes: number[] = [];
-  let temp = length;
-  while (temp > 0) {
-    bytes.unshift(temp & 0xff);
-    temp = temp >> 8;
-  }
-  
-  return [0x80 | bytes.length, ...bytes];
+  return concatArrays([new Uint8Array([tag]), lengthBytes, data]);
 }
+
+// Helper function to concatenate Uint8Arrays
+function concatArrays(arrays: Uint8Array[]): Uint8Array {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  
+  return result;
+}
+
 
 async function createDocuSignEnvelope(params: {
   document: EnvelopeDocument;
