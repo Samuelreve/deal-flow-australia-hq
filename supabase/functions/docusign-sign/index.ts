@@ -1,7 +1,5 @@
-// v6.1 - Complete rewrite using JOSE library for DocuSign JWT authentication
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 // Import DocuSign SDK using default export pattern for Deno
 const docusign = await import('npm:docusign-esign@8.2.0');
@@ -917,40 +915,88 @@ async function getDocuSignAccessToken(): Promise<string> {
 
 async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string> {
   try {
-    console.log('🔐 Creating JWT with JOSE library for DocuSign authentication...');
+    console.log('Using DocuSign SDK for JWT authentication...');
     console.log('Integration Key:', integrationKey.substring(0, 8) + '...');
     console.log('User ID:', userId.substring(0, 8) + '...');
     console.log('Account ID:', accountId.substring(0, 8) + '...');
+    console.log('Target: demo.docusign.net environment');
     
-    // Create JWT using JOSE library
-    const jwt = await createJWTWithJOSE(integrationKey, userId, privateKey);
+    // Initialize DocuSign API client for demo environment
+    console.log('DocuSign module structure:', Object.keys(docusign));
+    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
+    console.log('ApiClient type:', typeof ApiClient);
+    console.log('ApiClient keys:', ApiClient ? Object.keys(ApiClient) : 'undefined');
+    const apiClient = new ApiClient();
+    apiClient.setBasePath('https://demo.docusign.net/restapi');
     
-    // Exchange JWT for access token
-    const response = await fetch('https://account-d.docusign.com/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        assertion: jwt
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('JWT token exchange failed:', response.status, errorText);
-      throw new Error(`JWT token exchange failed: ${response.status} - ${errorText}`);
+    // Configure OAuth settings for demo - the SDK seems to prepend https:// automatically
+    // Use just the domain name to avoid double https://
+    apiClient.setOAuthBasePath('account-d.docusign.com');
+    
+    console.log('API Client configured for demo environment');
+    console.log('Base Path:', apiClient.getBasePath());
+    console.log('OAuth Base Path:', 'account-d.docusign.com');
+    
+    // Clean and format the private key
+    let cleanPrivateKey = privateKey.trim();
+    
+    // Ensure proper PKCS#8 format if needed
+    if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+      console.log('Converting PKCS#1 key to PKCS#8 format for SDK');
+      cleanPrivateKey = await convertPKCS1toPKCS8(cleanPrivateKey);
+    } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
     }
-
-    const tokenData = await response.json();
-    console.log('✅ Successfully obtained access token via JWT');
-    return tokenData.access_token;
+    
+    console.log('Private key formatted successfully');
+    
+    // Define scopes for JWT
+    const scopes = ['signature'];
+    
+    // Request JWT token using the SDK
+    console.log('Requesting JWT access token using SDK...');
+    
+    // Using the correct DocuSign SDK method and parameter structure
+    try {
+      const results = await apiClient.requestJWTUserToken(
+        integrationKey,
+        userId,
+        "signature",
+        cleanPrivateKey,
+        3600 // expiresIn: JWT token expiration in seconds (1 hour)
+      );
+      
+      console.log('JWT token request successful');
+      
+      if (!results || !results.body || !results.body.access_token) {
+        console.error('No access token in SDK response:', results);
+        throw new Error('No access token received from DocuSign SDK');
+      }
+      
+      const accessToken = results.body.access_token;
+      console.log('✅ Successfully obtained DocuSign access token using SDK');
+      console.log('Token type:', results.body.token_type);
+      console.log('Expires in:', results.body.expires_in, 'seconds');
+      
+      return accessToken;
+    } catch (jwtError) {
+      console.error('JWT authentication failed:', jwtError);
+      console.error('Error details:', jwtError.message);
+      throw new Error(`DocuSign SDK JWT authentication failed: ${jwtError.message}`);
+    }
     
   } catch (error: any) {
-    console.error('❌ DocuSign JWT authentication error:', error);
-    console.error('Error type:', error.constructor.name);
+    console.error('DocuSign SDK JWT authentication failed:', error);
+    console.error('Error name:', error.name);
     console.error('Error message:', error.message);
+    
+    // Check for specific error types
+    if (error.message && error.message.includes('consent_required')) {
+      console.log('Consent required - user needs to grant consent first');
+      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
+      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+      throw new Error(`CONSENT_REQUIRED: User consent is required. Visit: ${consentUrl}`);
+    }
     
     if (error.message && error.message.includes('user_not_found')) {
       console.log('User not found error - User ID is incorrect');
@@ -960,138 +1006,76 @@ async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, 
       throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
     }
     
-    throw new Error(`DocuSign JWT authentication failed: ${error.message}`);
+    throw new Error(`DocuSign SDK JWT authentication failed: ${error.message}`);
   }
 }
 
-async function createJWTWithJOSE(integrationKey: string, userId: string, privateKey: string): Promise<string> {
+// Helper function to convert PKCS#1 to PKCS#8 format
+async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
   try {
-    console.log('🔧 Creating JWT using JOSE library...');
+    // Extract the raw key content
+    const keyContent = pkcs1Key
+      .replace('-----BEGIN RSA PRIVATE KEY-----', '')
+      .replace('-----END RSA PRIVATE KEY-----', '')
+      .replace(/\s/g, '');
     
-    // Clean the private key and handle both PKCS#1 and PKCS#8 formats
-    let cleanPrivateKey = privateKey.trim();
-    
-    // The JOSE library can handle PKCS#1 format directly if we try different import methods
-    if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-      console.log('🔄 PKCS#1 format detected, attempting to import with JOSE...');
-      
-      try {
-        // Try importing PKCS#1 directly - JOSE can sometimes handle this
-        const privateKeyObject = await jose.importPKCS8(cleanPrivateKey, 'RS256');
-        
-        console.log('✅ PKCS#1 private key imported successfully with JOSE');
-        
-        // Create and sign JWT
-        const now = Math.floor(Date.now() / 1000);
-        const payload = {
-          iss: integrationKey,
-          sub: userId,
-          aud: 'account-d.docusign.com',
-          iat: now,
-          exp: now + 3600,
-          scope: 'signature'
-        };
-        
-        const jwt = await new jose.SignJWT(payload)
-          .setProtectedHeader({ alg: 'RS256' })
-          .sign(privateKeyObject);
-        
-        console.log('✅ JWT created successfully with JOSE');
-        return jwt;
-        
-      } catch (pkcs1Error) {
-        // If direct import fails, convert to PKCS#8 format manually
-        console.log('❌ Direct PKCS#1 import failed, converting to PKCS#8:', pkcs1Error.message);
-        
-        try {
-          // Simple conversion - just change the headers
-          const keyContent = cleanPrivateKey
-            .replace('-----BEGIN RSA PRIVATE KEY-----', '')
-            .replace('-----END RSA PRIVATE KEY-----', '')
-            .replace(/\s/g, '');
-          
-          const pkcs8Key = `-----BEGIN PRIVATE KEY-----
-${keyContent}
------END PRIVATE KEY-----`;
-          
-          const privateKeyObject = await jose.importPKCS8(pkcs8Key, 'RS256');
-          
-          console.log('✅ PKCS#1 converted to PKCS#8 and imported successfully');
-          
-          // Create and sign JWT
-          const now = Math.floor(Date.now() / 1000);
-          const payload = {
-            iss: integrationKey,
-            sub: userId,
-            aud: 'account-d.docusign.com',
-            iat: now,
-            exp: now + 3600,
-            scope: 'signature'
-          };
-          
-          const jwt = await new jose.SignJWT(payload)
-            .setProtectedHeader({ alg: 'RS256' })
-            .sign(privateKeyObject);
-          
-          console.log('✅ JWT created successfully with converted key');
-          return jwt;
-          
-        } catch (conversionError) {
-          console.error('❌ Both PKCS#1 import methods failed:', {
-            originalError: pkcs1Error.message,
-            conversionError: conversionError.message
-          });
-          throw new Error(`PKCS#1 key import failed: ${pkcs1Error.message}`);
-        }
-      }
-    } else if (cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      console.log('🔑 PKCS#8 format detected');
-      
-      // Import PKCS#8 key directly
-      const privateKeyObject = await jose.importPKCS8(cleanPrivateKey, 'RS256');
-      
-      console.log('✅ PKCS#8 private key imported successfully');
-      
-      // Create JWT payload
-      const now = Math.floor(Date.now() / 1000);
-      const payload = {
-        iss: integrationKey,
-        sub: userId,
-        aud: 'account-d.docusign.com',
-        iat: now,
-        exp: now + 3600,
-        scope: 'signature'
-      };
-      
-      console.log('🎯 JWT payload created:', { 
-        iss: payload.iss.substring(0, 8) + '...', 
-        sub: payload.sub.substring(0, 8) + '...', 
-        aud: payload.aud 
-      });
-      
-      // Sign the JWT
-      const jwt = await new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: 'RS256' })
-        .sign(privateKeyObject);
-      
-      console.log('✅ JWT created successfully with JOSE');
-      return jwt;
-    } else {
-      throw new Error('Invalid private key format. Expected PKCS#1 or PKCS#8 format.');
+    // Decode the base64 content
+    const binaryString = atob(keyContent);
+    const pkcs1Data = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      pkcs1Data[i] = binaryString.charCodeAt(i);
     }
     
-  } catch (error: any) {
-    console.error('❌ JWT creation failed with JOSE:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.substring(0, 500) + '...'
-    });
-    throw new Error(`Private key import failed: ${error.message}`);
+    // RSA algorithm identifier in DER format
+    const rsaAlgorithmId = new Uint8Array([
+      0x30, 0x0d, // SEQUENCE, length 13
+      0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // RSA OID
+      0x05, 0x00 // NULL parameters
+    ]);
+    
+    // Create the PKCS#8 structure
+    const pkcs8Structure: number[] = [];
+    
+    // Version (INTEGER 0)
+    pkcs8Structure.push(0x02, 0x01, 0x00);
+    
+    // Algorithm identifier
+    pkcs8Structure.push(...rsaAlgorithmId);
+    
+    // Private key (OCTET STRING)
+    const privateKeyOctetString = encodeDERLength(pkcs1Data.length);
+    pkcs8Structure.push(0x04, ...privateKeyOctetString, ...pkcs1Data);
+    
+    // Wrap in main SEQUENCE
+    const mainSeqLength = encodeDERLength(pkcs8Structure.length);
+    const pkcs8Data = new Uint8Array([0x30, ...mainSeqLength, ...pkcs8Structure]);
+    
+    // Convert back to base64
+    const base64String = btoa(String.fromCharCode(...pkcs8Data));
+    
+    // Format as PEM
+    return `-----BEGIN PRIVATE KEY-----\n${base64String.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
+    
+  } catch (error) {
+    console.error('Failed to convert PKCS#1 to PKCS#8:', error);
+    throw new Error('Failed to convert private key format');
   }
 }
 
-// Removed old PKCS#1 to PKCS#8 conversion - now handled by JOSE library
+function encodeDERLength(length: number): number[] {
+  if (length < 0x80) {
+    return [length];
+  }
+  
+  const bytes: number[] = [];
+  let temp = length;
+  while (temp > 0) {
+    bytes.unshift(temp & 0xff);
+    temp = temp >> 8;
+  }
+  
+  return [0x80 | bytes.length, ...bytes];
+}
 
 async function createDocuSignEnvelope(params: {
   document: EnvelopeDocument;
