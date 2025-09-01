@@ -69,24 +69,6 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
 
   return (
     <div className="space-y-6">
-      {/* Deal Description */}
-      {deal.description && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="border-b pb-3">
-                <p className="text-sm font-medium text-muted-foreground">**Deal Description: Cross-Border Transfer Agreement**</p>
-              </div>
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {deal.description}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Deal Fundamentals */}
       <Card>
