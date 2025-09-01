@@ -67,9 +67,32 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
     return iconMap[categoryValue as keyof typeof iconMap] || Tags;
   };
 
+  const getDescriptionSummary = (description?: string) => {
+    if (!description) return 'No description available';
+    
+    // Split by sentences and take first two
+    const sentences = description.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+    return sentences.slice(0, 2).join('. ') + (sentences.length > 2 ? '.' : '');
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Deal Fundamentals */}
+    <div className="space-y-6">
+      {/* Deal Description */}
+      {deal.description && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">{deal.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {getDescriptionSummary(deal.description)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Deal Fundamentals */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -451,6 +474,7 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 };
