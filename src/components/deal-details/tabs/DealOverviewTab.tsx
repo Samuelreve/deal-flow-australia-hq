@@ -67,25 +67,21 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
     return iconMap[categoryValue as keyof typeof iconMap] || Tags;
   };
 
-  const getDescriptionSummary = (description?: string) => {
-    if (!description) return 'No description available';
-    
-    // Split by sentences and take first two
-    const sentences = description.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
-    return sentences.slice(0, 2).join('. ') + (sentences.length > 2 ? '.' : '');
-  };
-
   return (
     <div className="space-y-6">
       {/* Deal Description */}
       {deal.description && (
         <Card>
           <CardContent className="pt-6">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">{deal.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {getDescriptionSummary(deal.description)}
-              </p>
+            <div className="space-y-4">
+              <div className="border-b pb-3">
+                <p className="text-sm font-medium text-muted-foreground">**Deal Description: Cross-Border Transfer Agreement**</p>
+              </div>
+              <div className="prose prose-sm max-w-none">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {deal.description}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
