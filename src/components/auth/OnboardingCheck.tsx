@@ -39,8 +39,8 @@ const OnboardingCheck: React.FC = () => {
       // Redirect to professional setup page
       return <Navigate to="/profile/professional-setup" replace />;
     } else {
-      // Redirect to general intent capture page
-      return <Navigate to="/onboarding/intent" replace />;
+      // Skip role selection - mark onboarding as complete and redirect to dashboard
+      return <Navigate to="/dashboard" replace />;
     }
   }
 

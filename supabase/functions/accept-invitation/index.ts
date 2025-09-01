@@ -149,6 +149,24 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
+    // Update user's profile role if it's a new user (role is 'seller' which is default)
+    const { data: userProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    
+    // If user has default role and invitation has a specific role, update the profile
+    if (userProfile?.role === 'seller' && invitation.invitee_role !== 'seller') {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ 
+          role: invitation.invitee_role,
+          onboarding_complete: true // Mark onboarding as complete since role is set by invitation
+        })
+        .eq("id", user.id);
+    }
+    
     // Create a notification for the inviter
     await supabaseAdmin
       .from("notifications")

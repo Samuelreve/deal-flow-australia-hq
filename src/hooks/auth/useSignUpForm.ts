@@ -67,8 +67,6 @@ export const useSignUpForm = (inviteToken?: string | null, redirect?: string | n
         setTimeout(() => {
           if (redirect) {
             navigate(redirect, { replace: true });
-          } else if (inviteToken) {
-            navigate(`/accept-invite?token=${inviteToken}`, { replace: true });
           } else {
             navigate("/dashboard", { replace: true });
           }
