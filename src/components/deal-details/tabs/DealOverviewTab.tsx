@@ -68,9 +68,29 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Deal Fundamentals */}
-      <Card>
+    <div className="space-y-6">
+      {/* Deal Description */}
+      {deal.description && (
+        <Card className="col-span-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Deal Description
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-sm max-w-none">
+              <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                {deal.description}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Deal Fundamentals */}
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -451,6 +471,7 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 };
