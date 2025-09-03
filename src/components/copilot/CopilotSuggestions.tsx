@@ -84,7 +84,7 @@ const CopilotSuggestions: React.FC<{ onHeaderMouseDown?: (e: React.MouseEvent) =
   };
 
   return (
-    <Card className="w-[420px] h-[640px] copilot-card overflow-hidden border-0 bg-card/95">
+    <Card className="w-[420px] copilot-card overflow-hidden border-0 bg-card/95" style={{ height: `${Math.min(window.innerHeight - 100, 800)}px` }}>
       <div 
         className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none"
         onMouseDown={onHeaderMouseDown}
@@ -100,7 +100,7 @@ const CopilotSuggestions: React.FC<{ onHeaderMouseDown?: (e: React.MouseEvent) =
         </div>
       </div>
       
-      <CardContent className="flex flex-col h-[580px] p-6 gap-6">
+      <CardContent className="flex flex-col p-6 gap-6" style={{ height: `${Math.min(window.innerHeight - 160, 740)}px` }}>
         <div className="text-center py-4">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
             <Sparkles className="h-6 w-6 text-primary" />

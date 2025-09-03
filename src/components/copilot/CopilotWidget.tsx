@@ -34,15 +34,15 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   const { count } = useDealsCount();
   const isPreDeal = !dealId && (count ?? 0) === 0;
 
-  // Calculate initial bottom-right position
+  // Calculate initial middle-right position
   const getInitialPosition = (): Position => {
     const copilotWidth = 420;
-    const copilotHeight = 760;
+    const copilotHeight = Math.min(window.innerHeight - 100, 800); // Stretch height, max 800px
     const padding = 16;
     
     return {
       x: window.innerWidth - copilotWidth - padding,
-      y: window.innerHeight - copilotHeight - padding
+      y: Math.max(50, (window.innerHeight - copilotHeight) / 2) // Center vertically
     };
   };
 
@@ -70,7 +70,8 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
     
     // Keep within viewport bounds with some padding
     const maxX = window.innerWidth - 420 - 16; // copilot width + padding
-    const maxY = window.innerHeight - 760 - 16; // copilot height + padding
+    const copilotHeight = Math.min(window.innerHeight - 100, 800);
+    const maxY = window.innerHeight - copilotHeight - 16; // dynamic height + padding
     
     setPosition({
       x: Math.max(16, Math.min(maxX, newX)),
@@ -99,7 +100,7 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   return (
     <div className="pointer-events-none">
       {/* Floating toggle button */}
-      <div className="fixed bottom-4 right-4 z-50 pointer-events-auto">
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 pointer-events-auto">
         {!open && (
           <Button
             variant="default"
