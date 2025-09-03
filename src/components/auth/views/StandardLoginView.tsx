@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import StandardLoginForm from "../StandardLoginForm";
+import OAuthButtons from "../OAuthButtons";
 
 interface StandardLoginViewProps {
   onSignUp: () => void;
@@ -43,6 +44,17 @@ const StandardLoginView = ({
         </Alert>
       )}
       
+      <OAuthButtons mode="signin" disabled={isLoading} />
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+        </div>
+      </div>
+      
       <StandardLoginForm 
         onSubmit={handleSubmit}
         onForgotPassword={handleForgotPassword}
@@ -55,7 +67,7 @@ const StandardLoginView = ({
           <span className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or</span>
+          <span className="bg-card px-2 text-muted-foreground">New to Trustroom?</span>
         </div>
       </div>
       

@@ -47,4 +47,6 @@ export interface AuthContextType {
   loading: boolean;
   setUser: (user: User | null) => void;
   updateUserProfile: (profile: UserProfile) => Promise<boolean>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
 }

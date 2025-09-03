@@ -41,6 +41,38 @@ export const authService = {
     }
   },
 
+  async signInWithGoogle() {
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl
+      }
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  },
+
+  async signInWithApple() {
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: redirectUrl
+      }
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  },
+
   async updateProfile(profile: UserProfile): Promise<UserProfile | null> {
     // Ensure specializations is properly formatted as a string array
     const specializations = Array.isArray(profile.professional_specializations) 

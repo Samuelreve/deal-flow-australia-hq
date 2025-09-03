@@ -87,6 +87,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      await authService.signInWithGoogle();
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      throw error;
+    }
+  };
+
+  const signInWithApple = async () => {
+    try {
+      await authService.signInWithApple();
+    } catch (error) {
+      console.error("Apple sign in error:", error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     session,
@@ -96,7 +114,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     signup,
     updateUserProfile,
-    setUser
+    setUser,
+    signInWithGoogle,
+    signInWithApple
   };
 
   return (

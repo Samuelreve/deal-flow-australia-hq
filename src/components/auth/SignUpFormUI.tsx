@@ -7,6 +7,7 @@ import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { useSignUpForm } from "@/hooks/auth/useSignUpForm";
+import OAuthButtons from "./OAuthButtons";
 
 interface SignUpFormUIProps {
   inviteToken?: string | null;
@@ -57,6 +58,17 @@ const SignUpFormUI = ({ inviteToken, redirect }: SignUpFormUIProps) => {
                 </AlertDescription>
               </Alert>
             )}
+            
+            <OAuthButtons mode="signup" disabled={isLoading} />
+            
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+              </div>
+            </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
