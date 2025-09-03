@@ -34,11 +34,19 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
   const { count } = useDealsCount();
   const isPreDeal = !dealId && (count ?? 0) === 0;
 
-  // Calculate initial middle-right position
+  // Calculate initial position based on screen size
   const getInitialPosition = (): Position => {
-    const copilotWidth = 420;
-    const copilotHeight = Math.min(window.innerHeight - 100, 800); // Stretch height, max 800px
+    const isMobile = window.innerWidth < 768;
+    const copilotWidth = isMobile ? window.innerWidth - 32 : 420;
+    const copilotHeight = Math.min(window.innerHeight - 100, 800);
     const padding = 16;
+    
+    if (isMobile) {
+      return {
+        x: padding,
+        y: Math.max(20, (window.innerHeight - copilotHeight) / 2)
+      };
+    }
     
     return {
       x: window.innerWidth - copilotWidth - padding,
@@ -69,9 +77,11 @@ const CopilotWidget: React.FC<CopilotWidgetProps> = ({ dealId }) => {
     const newY = dragState.startPosY + deltaY;
     
     // Keep within viewport bounds with some padding
-    const maxX = window.innerWidth - 420 - 16; // copilot width + padding
+    const isMobile = window.innerWidth < 768;
+    const copilotWidth = isMobile ? window.innerWidth - 32 : 420;
+    const maxX = window.innerWidth - copilotWidth - 16;
     const copilotHeight = Math.min(window.innerHeight - 100, 800);
-    const maxY = window.innerHeight - copilotHeight - 16; // dynamic height + padding
+    const maxY = window.innerHeight - copilotHeight - 16;
     
     setPosition({
       x: Math.max(16, Math.min(maxX, newX)),

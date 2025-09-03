@@ -58,7 +58,7 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
   };
 
   return (
-    <Card className="w-[420px] copilot-card overflow-hidden border-0 bg-card/95" style={{ height: `${Math.min(window.innerHeight - 100, 800)}px` }}>
+    <Card className="w-full max-w-[420px] md:w-[420px] copilot-card overflow-hidden border-0 bg-card/95" style={{ height: `${Math.min(window.innerHeight - 100, 800)}px` }}>
       <div 
         className="copilot-gradient text-primary-foreground px-6 py-5 cursor-grab active:cursor-grabbing select-none relative"
         onMouseDown={onHeaderMouseDown}
@@ -75,54 +75,54 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
       </div>
       
       <CardContent className="flex flex-col p-6 pb-12 gap-6" style={{ height: `${Math.min(window.innerHeight - 160, 740)}px` }}>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={summarizeDeal} 
             disabled={loading}
-            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
+            className="copilot-button h-12 sm:h-14 flex items-center gap-2 sm:gap-3 justify-start text-left p-2 sm:p-4 copilot-content-enter hover:bg-secondary/50"
           >
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/15 relative overflow-hidden shrink-0">
               <FileText className="h-4 w-4 text-primary relative z-10" />
             </div>
-            <span className="text-sm font-medium text-foreground truncate">Summarize deal</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground truncate">Summarize deal</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={suggestNextAction} 
             disabled={loading}
-            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
+            className="copilot-button h-12 sm:h-14 flex items-center gap-2 sm:gap-3 justify-start text-left p-2 sm:p-4 copilot-content-enter hover:bg-secondary/50"
           >
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/15 relative overflow-hidden shrink-0">
               <Compass className="h-4 w-4 text-accent relative z-10" />
             </div>
-            <span className="text-sm font-medium text-foreground truncate">Next steps</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground truncate">Next steps</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={generateMilestones} 
             disabled={loading}
-            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
+            className="copilot-button h-12 sm:h-14 flex items-center gap-2 sm:gap-3 justify-start text-left p-2 sm:p-4 copilot-content-enter hover:bg-secondary/50"
           >
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/15 relative overflow-hidden shrink-0">
               <ListChecks className="h-4 w-4 text-primary relative z-10" />
             </div>
-            <span className="text-sm font-medium text-foreground truncate">Generate milestones</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground truncate">Generate milestones</span>
           </Button>
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={predictDealHealth} 
             disabled={loading}
-            className="copilot-button h-14 flex items-center gap-3 justify-start text-left p-4 copilot-content-enter hover:bg-secondary/50"
+            className="copilot-button h-12 sm:h-14 flex items-center gap-2 sm:gap-3 justify-start text-left p-2 sm:p-4 copilot-content-enter hover:bg-secondary/50"
           >
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/15 relative overflow-hidden shrink-0">
               <Activity className="h-4 w-4 text-accent relative z-10" />
             </div>
-            <span className="text-sm font-medium text-foreground truncate">Show health</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground truncate">Show health</span>
           </Button>
         </div>
 
