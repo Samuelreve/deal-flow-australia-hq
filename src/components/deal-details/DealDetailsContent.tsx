@@ -62,19 +62,21 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-7">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="milestones">Milestones</TabsTrigger>
-        <TabsTrigger value="documents">Documents</TabsTrigger>
-        <TabsTrigger value="participants">Participants</TabsTrigger>
-        <TabsTrigger value="messages" className="relative">
-          Messages
-          {hasUnreadMessages && activeTab !== "messages" && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></div>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="timeline">Timeline</TabsTrigger>
-        <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
+      <TabsList className="w-full h-auto p-1 bg-muted rounded-md">
+        <div className="flex overflow-x-auto scrollbar-hide gap-1 min-w-full">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">Overview</TabsTrigger>
+          <TabsTrigger value="milestones" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">Milestones</TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">Documents</TabsTrigger>
+          <TabsTrigger value="participants" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">Participants</TabsTrigger>
+          <TabsTrigger value="messages" className="relative text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">
+            Messages
+            {hasUnreadMessages && activeTab !== "messages" && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></div>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">Timeline</TabsTrigger>
+          <TabsTrigger value="ai-assistant" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-2 sm:px-3">AI Assistant</TabsTrigger>
+        </div>
       </TabsList>
 
       <TabsContent value="overview" className="mt-6">
