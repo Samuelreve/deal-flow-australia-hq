@@ -35,20 +35,22 @@ const DocumentViewerPanel: React.FC<DocumentViewerPanelProps> = ({
   onAddComment,
 }) => {
   return (
-    <Card className="h-[900px] flex flex-col">
+    <Card className="h-auto min-h-[400px] max-h-[900px] lg:h-[900px] flex flex-col">
       {selectedDocument ? (
         <>
           <CardHeader className="pb-3 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">{selectedDocument.name}</CardTitle>
-                <p className="text-sm text-muted-foreground">Version {selectedDocument.version}</p>
-              </div>
-              <DocumentActions onAnalyzeDocument={onAnalyzeDocument} />
-            </div>
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base lg:text-lg">{selectedDocument.name}</CardTitle>
+            <p className="text-sm text-muted-foreground">Version {selectedDocument.version}</p>
+          </div>
+          <div className="w-full lg:w-auto">
+            <DocumentActions onAnalyzeDocument={onAnalyzeDocument} />
+          </div>
+        </div>
           </CardHeader>
           
-          <CardContent className="flex-1 flex min-h-0 p-4 gap-4">
+          <CardContent className="flex-1 flex flex-col lg:flex-row min-h-0 p-2 sm:p-4 gap-2 sm:gap-4">
             <DocumentPreview
               documentPreview={documentPreview}
               previewLoading={previewLoading}

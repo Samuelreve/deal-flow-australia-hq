@@ -286,13 +286,13 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
   }, [comments]);
 
   return (
-    <div className="w-80 border-l pl-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l pt-4 lg:pt-0 lg:pl-4 flex flex-col h-auto lg:h-full">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h4 className="font-medium">Comments</h4>
         <Button 
           size="sm" 
           variant="outline" 
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 w-full sm:w-auto"
           onClick={onToggleCommentForm}
           disabled={!selectedDocument}
         >
@@ -334,7 +334,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
       )}
       
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto space-y-3">
+      <div className="flex-1 overflow-y-auto space-y-3 max-h-[400px] lg:max-h-none">
         {comments.length === 0 ? (
           <div className="text-center py-8">
             <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />

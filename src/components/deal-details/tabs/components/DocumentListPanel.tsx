@@ -129,7 +129,7 @@ const DocumentListPanel: React.FC<DocumentListPanelProps> = ({
   };
 
   return (
-    <Card className="h-[900px] flex flex-col">
+    <Card className="h-auto min-h-[400px] max-h-[900px] lg:h-[900px] flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg mb-3">Deal Documents</CardTitle>
         <div className="flex gap-2">
