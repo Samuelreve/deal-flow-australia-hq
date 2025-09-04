@@ -33,6 +33,55 @@ const AcceptInvitePage = () => {
 
   const token = searchParams.get('token');
 
+  const checkUserExists = async (email: string) => {
+    try {
+      console.log('Checking if user exists for email:', email);
+      
+      // First check profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error('Error checking profiles:', profileError);
+      }
+      
+      console.log('Profile check result:', { profile, profileError });
+      
+      if (profile) {
+        console.log('User found in profiles table');
+        setUserExists(true);
+        return;
+      }
+      
+      // If not found in profiles, try checking through a function that can access auth.users
+      try {
+        const { data: checkResult, error: functionError } = await supabase.functions.invoke('check-user-exists', {
+          body: { email }
+        });
+        
+        if (!functionError && checkResult) {
+          console.log('Function check result:', checkResult);
+          setUserExists(checkResult.exists);
+          return;
+        }
+      } catch (functionError) {
+        console.log('Function check not available:', functionError);
+      }
+      
+      // Default to false if no user found
+      console.log('User does not exist');
+      setUserExists(false);
+      
+    } catch (error) {
+      console.error('Error in checkUserExists:', error);
+      // Default to null so both buttons are shown
+      setUserExists(null);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       verifyInvitation();
@@ -60,18 +109,7 @@ const AcceptInvitePage = () => {
           setInvitation(data);
           
           // Check if user exists for this email
-          try {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('email', data.inviteeEmail)
-              .maybeSingle();
-            
-            setUserExists(!!profiles);
-          } catch (error) {
-            console.error('Error checking if user exists:', error);
-            setUserExists(false);
-          }
+          await checkUserExists(data.inviteeEmail);
           return;
         }
       } catch (functionError) {
@@ -133,18 +171,7 @@ const AcceptInvitePage = () => {
       setInvitation(invitationDetails);
       
       // Check if user exists for this email
-      try {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', invitation.invitee_email)
-          .maybeSingle();
-        
-        setUserExists(!!profiles);
-      } catch (error) {
-        console.error('Error checking if user exists:', error);
-        setUserExists(false);
-      }
+      await checkUserExists(invitation.invitee_email);
 
     } catch (error: any) {
       console.error('Error verifying invitation:', error);
@@ -328,22 +355,57 @@ const AcceptInvitePage = () => {
                 </p>
                 
                 <div className="space-y-2">
-                  {userExists !== false && (
-                    <Button 
-                      onClick={() => navigate(`/login?inviteToken=${token}`)}
-                      className="w-full"
-                    >
-                      Log In
-                    </Button>
-                  )}
-                  {userExists !== true && (
-                    <Button 
-                      onClick={() => navigate(`/signup?inviteToken=${token}`)}
-                      variant={userExists === false ? "default" : "outline"} 
-                      className="w-full"
-                    >
-                      Create Account
-                    </Button>
+                  {userExists === true ? (
+                    // User exists - show login as primary button
+                    <>
+                      <Button 
+                        onClick={() => navigate(`/login?inviteToken=${token}`)}
+                        className="w-full"
+                      >
+                        Log In
+                      </Button>
+                      <Button 
+                        onClick={() => navigate(`/signup?inviteToken=${token}`)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Create New Account
+                      </Button>
+                    </>
+                  ) : userExists === false ? (
+                    // User doesn't exist - show create account as primary button  
+                    <>
+                      <Button 
+                        onClick={() => navigate(`/signup?inviteToken=${token}`)}
+                        className="w-full"
+                      >
+                        Create Account
+                      </Button>
+                      <Button 
+                        onClick={() => navigate(`/login?inviteToken=${token}`)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Log In Instead
+                      </Button>
+                    </>
+                  ) : (
+                    // Unknown status - show both buttons equally
+                    <>
+                      <Button 
+                        onClick={() => navigate(`/login?inviteToken=${token}`)}
+                        className="w-full"
+                      >
+                        Log In
+                      </Button>
+                      <Button 
+                        onClick={() => navigate(`/signup?inviteToken=${token}`)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Create Account
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
