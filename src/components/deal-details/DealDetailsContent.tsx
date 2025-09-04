@@ -62,20 +62,20 @@ const DealDetailsContent: React.FC<DealDetailsContentProps> = ({
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="w-full h-8 sm:h-10 p-0.5 sm:p-1 bg-muted rounded-md">
-        <div className="flex overflow-x-auto scrollbar-hide gap-0.5 sm:gap-1 min-w-full h-full">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">Overview</TabsTrigger>
-          <TabsTrigger value="milestones" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">Milestones</TabsTrigger>
-          <TabsTrigger value="documents" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">Documents</TabsTrigger>
-          <TabsTrigger value="participants" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">Participants</TabsTrigger>
-          <TabsTrigger value="messages" className="relative text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">
+      <TabsList className="w-full h-8 sm:h-10 md:h-12 lg:h-14 p-0.5 sm:p-1 md:p-1.5 bg-muted rounded-md">
+        <div className="flex overflow-x-auto scrollbar-hide gap-0.5 sm:gap-1 md:gap-2 min-w-full h-full">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">Overview</TabsTrigger>
+          <TabsTrigger value="milestones" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">Milestones</TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">Documents</TabsTrigger>
+          <TabsTrigger value="participants" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">Participants</TabsTrigger>
+          <TabsTrigger value="messages" className="relative text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">
             Messages
             {hasUnreadMessages && activeTab !== "messages" && (
-              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-3 sm:h-3 bg-destructive rounded-full"></div>
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-destructive rounded-full"></div>
             )}
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">Timeline</TabsTrigger>
-          <TabsTrigger value="ai-assistant" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 py-1 sm:py-1.5 h-full min-w-0">AI Assistant</TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">Timeline</TabsTrigger>
+          <TabsTrigger value="ai-assistant" className="text-xs sm:text-sm md:text-base lg:text-lg whitespace-nowrap flex-shrink-0 px-1.5 sm:px-3 md:px-4 lg:px-6 py-1 sm:py-1.5 md:py-2 lg:py-3 h-full min-w-0">AI Assistant</TabsTrigger>
         </div>
       </TabsList>
 
