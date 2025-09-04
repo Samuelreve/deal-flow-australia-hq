@@ -4,6 +4,7 @@ import { Document, DocumentVersion } from "@/types/documentVersion";
 import { useUnifiedDocumentUpload } from "@/hooks/useUnifiedDocumentUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { unifiedDocumentUploadService } from "@/services/documents/unifiedDocumentUploadService";
+import { useRealtimeUpdates } from "@/hooks/realtime/useRealtimeUpdates";
 
 /**
  * Hook for managing documents with unified upload service
@@ -175,6 +176,54 @@ export const useDocuments = (dealId: string, initialDocuments: Document[] = []) 
       return false;
     }
   }, [selectedDocument, loadVersions]);
+
+  // Set up real-time subscriptions for documents and document versions
+  useRealtimeUpdates([
+    {
+      table: 'documents',
+      filter: `deal_id=eq.${dealId}`,
+      onInsert: (payload) => {
+        console.log('📄 New document uploaded:', payload.new);
+        loadDocuments();
+      },
+      onUpdate: (payload) => {
+        console.log('📄 Document updated:', payload.new);
+        loadDocuments();
+      },
+      onDelete: (payload) => {
+        console.log('📄 Document deleted:', payload.old);
+        loadDocuments();
+      },
+      showToasts: false // We'll handle our own notifications
+    },
+    {
+      table: 'document_versions',
+      onInsert: (payload) => {
+        console.log('📋 New document version uploaded:', payload.new);
+        // Refresh documents to update latest version info
+        loadDocuments();
+        // If this version is for the currently selected document, refresh versions too
+        if (selectedDocument && payload.new.document_id === selectedDocument.id) {
+          loadVersions(selectedDocument.id);
+        }
+      },
+      onUpdate: (payload) => {
+        console.log('📋 Document version updated:', payload.new);
+        if (selectedDocument && payload.new.document_id === selectedDocument.id) {
+          loadVersions(selectedDocument.id);
+        }
+      },
+      onDelete: (payload) => {
+        console.log('📋 Document version deleted:', payload.old);
+        // Refresh documents to update latest version info
+        loadDocuments();
+        if (selectedDocument && payload.old.document_id === selectedDocument.id) {
+          loadVersions(selectedDocument.id);
+        }
+      },
+      showToasts: false
+    }
+  ]);
 
   // Load documents on mount
   useEffect(() => {
