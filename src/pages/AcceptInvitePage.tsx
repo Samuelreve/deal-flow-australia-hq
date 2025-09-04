@@ -356,41 +356,23 @@ const AcceptInvitePage = () => {
                 
                 <div className="space-y-2">
                   {userExists === true ? (
-                    // User exists - show login as primary button
-                    <>
-                      <Button 
-                        onClick={() => navigate(`/login?inviteToken=${token}`)}
-                        className="w-full"
-                      >
-                        Log In
-                      </Button>
-                      <Button 
-                        onClick={() => navigate(`/signup?inviteToken=${token}`)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        Create New Account
-                      </Button>
-                    </>
+                    // User exists - show only login button
+                    <Button 
+                      onClick={() => navigate(`/login?inviteToken=${token}`)}
+                      className="w-full"
+                    >
+                      Log In
+                    </Button>
                   ) : userExists === false ? (
-                    // User doesn't exist - show create account as primary button  
-                    <>
-                      <Button 
-                        onClick={() => navigate(`/signup?inviteToken=${token}`)}
-                        className="w-full"
-                      >
-                        Create Account
-                      </Button>
-                      <Button 
-                        onClick={() => navigate(`/login?inviteToken=${token}`)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        Log In Instead
-                      </Button>
-                    </>
+                    // User doesn't exist - show only create account button  
+                    <Button 
+                      onClick={() => navigate(`/signup?inviteToken=${token}`)}
+                      className="w-full"
+                    >
+                      Create Account
+                    </Button>
                   ) : (
-                    // Unknown status - show both buttons equally
+                    // Unknown status - show both buttons as fallback
                     <>
                       <Button 
                         onClick={() => navigate(`/login?inviteToken=${token}`)}
