@@ -40,6 +40,17 @@ export function useDocumentUploadService() {
       return null;
     }
 
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "File size must be under 10MB",
+        variant: "destructive"
+      });
+      setUploadError("File size must be under 10MB");
+      return null;
+    }
+
     if (!file || !dealId || !category) {
       toast({
         title: "Missing information",

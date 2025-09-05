@@ -14,6 +14,12 @@ export const useDocumentUpload = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be under 10MB');
+      return;
+    }
+
     // Check file type
     const allowedTypes = ['.txt', '.pdf', '.docx'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();

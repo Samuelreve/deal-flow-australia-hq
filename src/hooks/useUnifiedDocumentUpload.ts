@@ -33,6 +33,16 @@ export const useUnifiedDocumentUpload = () => {
       return null;
     }
 
+    // Validate file size (10MB limit)
+    if (options.file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "File size must be under 10MB",
+        variant: "destructive"
+      });
+      return null;
+    }
+
     setUploading(true);
     setUploadProgress(0);
 

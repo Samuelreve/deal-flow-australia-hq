@@ -20,6 +20,15 @@ export const useContractDocumentUpload = ({
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      const errorMsg = 'File size must be under 10MB';
+      setError(errorMsg);
+      onUploadError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
     // Validate file type using the extraction service
     if (!DocumentTextExtractionService.isSupportedFileType(file)) {
       const errorMsg = DocumentTextExtractionService.getUnsupportedFileTypeMessage(file);

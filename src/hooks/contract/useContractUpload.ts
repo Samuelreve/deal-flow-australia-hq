@@ -41,7 +41,15 @@ export const useContractUpload = (
       userId: user.id
     });
 
-    // Validate file type first
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      const errorMsg = 'File size must be under 10MB';
+      console.error('❌ File too large:', file.size);
+      toast.error(errorMsg);
+      return;
+    }
+
+    // Validate file type
     const supportedTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

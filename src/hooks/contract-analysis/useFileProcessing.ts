@@ -25,6 +25,16 @@ export const useFileProcessing = () => {
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file) return { success: false };
     
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      const errorMessage = 'File size must be under 10MB';
+      setError(errorMessage);
+      toast.error('File too large', {
+        description: errorMessage
+      });
+      return { success: false, error: errorMessage };
+    }
+    
     // Validate file type
     if (!validateFileType(file)) {
       const errorMessage = 'Unsupported file type. Please upload a PDF, Word document, or text file.';
