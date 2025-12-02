@@ -386,23 +386,35 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   console.log("Document converted to base64, length:", documentBase64.length);
 
   // Build signers with clientUserId for embedded signing
+  // IMPORTANT: The current user (signerEmail) must be the embedded signer
   const signers: any[] = [];
-  let firstSignerEmail = signerEmail;
-  let firstSignerName = signerName;
+  let embeddedSignerEmail = signerEmail;
+  let embeddedSignerName = signerName;
 
   if (signaturePositions && signaturePositions.length > 0) {
+    // Find if the current user is in the signature positions
+    const currentUserIndex = signaturePositions.findIndex(
+      pos => pos.email.toLowerCase() === signerEmail.toLowerCase()
+    );
+    
+    console.log("Current user email:", signerEmail);
+    console.log("Current user index in positions:", currentUserIndex);
+    console.log("All positions:", JSON.stringify(signaturePositions.map(p => p.email)));
+
+    // Calculate routing orders: current user gets "1", others get "2", "3", etc.
+    let otherSignerOrder = 2;
+    
     signaturePositions.forEach((pos, index) => {
-      if (index === 0) {
-        firstSignerEmail = pos.email;
-        firstSignerName = pos.name;
-      }
-      // Build signer config - only first signer is embedded (immediate redirect)
-      // Other signers will receive email invitations from DocuSign
+      const isCurrentUser = pos.email.toLowerCase() === signerEmail.toLowerCase();
+      
+      // Build signer config
       const signerConfig: any = {
         email: pos.email,
         name: pos.name,
         recipientId: pos.recipientId || String(index + 1),
-        routingOrder: String(index + 1),
+        // Current user gets routingOrder "1" to sign first
+        // Other signers get incrementing orders to receive emails after
+        routingOrder: isCurrentUser ? "1" : String(otherSignerOrder++),
         tabs: {
           signHereTabs: [
             {
@@ -415,15 +427,43 @@ async function handleSigningRequest(req: Request): Promise<Response> {
         },
       };
       
-      // Only first signer gets clientUserId for embedded signing
-      // Subsequent signers will receive email invitations automatically
-      if (index === 0) {
+      // Only the CURRENT USER gets clientUserId for embedded signing
+      // Other signers will receive email invitations from DocuSign after current user signs
+      if (isCurrentUser) {
         signerConfig.clientUserId = pos.email;
+        embeddedSignerEmail = pos.email;
+        embeddedSignerName = pos.name;
+        console.log("Setting embedded signer:", pos.email, "with position x:", pos.xPosition, "y:", pos.yPosition);
       }
       
       signers.push(signerConfig);
     });
+    
+    // If current user wasn't found in positions, add them as the embedded signer
+    if (currentUserIndex === -1) {
+      console.log("Current user not in positions, adding as embedded signer");
+      signers.unshift({
+        email: signerEmail,
+        name: signerName,
+        recipientId: "0",
+        routingOrder: "1",
+        clientUserId: signerEmail,
+        tabs: {
+          signHereTabs: [
+            {
+              documentId: "1",
+              pageNumber: "1",
+              xPosition: "100",
+              yPosition: "700",
+            },
+          ],
+        },
+      });
+      embeddedSignerEmail = signerEmail;
+      embeddedSignerName = signerName;
+    }
   } else {
+    // No positions specified, use the requesting user
     signers.push({
       email: signerEmail,
       name: signerName,
@@ -488,15 +528,17 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   const envelopeResult = await envelopeResponse.json();
   console.log("Envelope created:", envelopeResult);
 
-  // Generate embedded signing URL for the first signer
+  // Generate embedded signing URL for the current user (embedded signer)
   const returnUrl = `https://deal-flow-australia-hq.lovable.app/deals/${dealId}?signing=complete`;
+  
+  console.log("Generating signing URL for embedded signer:", embeddedSignerEmail);
   
   const recipientViewRequest = {
     returnUrl: returnUrl,
     authenticationMethod: "none",
-    email: firstSignerEmail,
-    userName: firstSignerName,
-    clientUserId: firstSignerEmail,
+    email: embeddedSignerEmail,
+    userName: embeddedSignerName,
+    clientUserId: embeddedSignerEmail,
   };
 
   console.log("Requesting recipient view URL...");
