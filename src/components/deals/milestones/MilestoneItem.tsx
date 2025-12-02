@@ -811,19 +811,29 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   };
   
   return (
-    <li className="mb-10 ms-6">
-      <span className={`absolute flex items-center justify-center w-6 h-6 ${getStatusColor(milestone.status)} rounded-full -start-3 ring-8 ring-white dark:ring-gray-800`}>
+    <li className="milestone-item">
+      <span className={`milestone-indicator ${
+        milestone.status === 'completed' ? 'milestone-indicator-completed' :
+        milestone.status === 'in_progress' ? 'milestone-indicator-in-progress' :
+        milestone.status === 'blocked' ? 'milestone-indicator-blocked' :
+        'milestone-indicator-not-started'
+      }`}>
         {/* Status indicator circle */}
       </span>
-      <h4 className="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
-        {milestone.title}
-        <span className={`text-sm font-medium me-2 px-2.5 py-0.5 rounded ms-3 ${getStatusColor(milestone.status)}`}>
+      <h4 className="flex flex-wrap items-center gap-2 mb-1 text-base sm:text-lg font-semibold text-foreground">
+        <span className="break-words">{milestone.title}</span>
+        <span className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
+          milestone.status === 'completed' ? 'bg-primary/10 text-primary' :
+          milestone.status === 'in_progress' ? 'bg-accent/10 text-accent' :
+          milestone.status === 'blocked' ? 'bg-destructive/10 text-destructive' :
+          'bg-muted text-muted-foreground'
+        }`}>
           {formatStatus(milestone.status, milestone.assignedUser?.name)}
         </span>
         
         {/* Assignment indicator */}
         {milestone.assignedUser && (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ms-2">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
             <User className="h-3 w-3 mr-1" />
             {milestone.assignedUser.name}
           </span>
@@ -831,12 +841,12 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
         {/* Signing Status Indicator for milestones with documents */}
         {milestoneDocuments.length > 0 && (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ms-2 ${
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
             milestoneSigningStatus === 'completed' 
-              ? 'bg-green-100 text-green-800' 
+              ? 'bg-primary/10 text-primary' 
               : milestoneSigningStatus === 'sent'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-accent/10 text-accent'
+              : 'bg-muted text-muted-foreground'
           }`}>
             {milestoneSigningStatus === 'completed' ? (
               <><CheckCircle className="h-3 w-3 mr-1" />Signed</>
@@ -850,7 +860,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
         {/* Role-specific signing messages */}
         {milestoneDocuments.length > 0 && milestoneSigningStatus === 'sent' && !userHasSigned && hasOtherSignatures && (
-          <div className="mt-2 text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-md border border-orange-200">
+          <div className="mt-2 text-sm bg-accent/10 text-accent px-3 py-2 rounded-md border border-accent/20">
             <div className="flex items-center">
               <FileCheck className="h-4 w-4 mr-2" />
               {signerNames.length > 0 
@@ -879,23 +889,23 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           {milestone.status !== 'completed' ? (
             <>
               {milestone.dueDate && (
-                <span className="text-gray-400 dark:text-gray-500">
+                <span className="text-muted-foreground">
                   Due by: {formatDate(milestone.dueDate)}
                 </span>
               )}
               {/* Show completion badge when assigned user has completed the milestone */}
               {milestone.assignedUser && (milestone.status as string) === 'completed' && (
-                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-700 dark:text-green-300 mt-1">
-                  <UserCheck className="h-4 w-4 mr-2 text-green-600" />
-                  <span className="font-semibold text-green-800">{milestone.assignedUser.name}</span>
-                  <span className="ml-1 text-green-700">completed</span>
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-primary/10 border border-primary/20 text-primary mt-1">
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  <span className="font-semibold">{milestone.assignedUser.name}</span>
+                  <span className="ml-1">completed</span>
                 </div>
               )}
             </>
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
               {milestone.completedAt && (
-                <span className="text-gray-500 dark:text-gray-400 text-sm">
+                <span className="text-muted-foreground text-sm">
                   {formatDate(milestone.completedAt)}
                 </span>
               )}
@@ -904,13 +914,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
       {milestone.description && (
-        <p className="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">{milestone.description}</p>
+        <p className="mb-4 text-sm sm:text-base font-normal text-muted-foreground">{milestone.description}</p>
       )}
 
       {/* Sequential milestone warning */}
       {milestone.status === 'not_started' && !canStart && previousMilestone && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm text-amber-800">
+        <div className="mb-4 p-3 bg-accent/10 border border-accent/20 rounded-lg">
+          <p className="text-sm text-accent">
             <span className="font-medium">Waiting for previous milestone:</span> "{previousMilestone.title}" must be completed before this milestone can be started.
           </p>
         </div>
@@ -922,7 +932,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         {canAssignMilestone && milestone.status !== 'completed' && (
           <button
             onClick={() => setIsAssignmentModalOpen(true)}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-2 focus:outline-none focus:ring-blue-500"
+            className="btn-milestone-action btn-milestone-outline text-primary"
           >
             <UserCheck className="h-3 w-3 mr-1" />
             {milestone.assignedUser ? 'Reassign' : 'Assign'}
@@ -933,7 +943,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         {canUploadMilestoneDocuments && milestone.status !== 'completed' && (
           <button
             onClick={() => setShowDocumentUpload(!showDocumentUpload)}
-            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 focus:ring-2 focus:outline-none focus:ring-green-500"
+            className="btn-milestone-action btn-milestone-outline text-primary"
           >
             <Upload className="h-3 w-3 mr-1" />
             Upload Document
@@ -974,11 +984,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                   updatingMilestoneId === milestone.id || 
                   (isDocumentSigning && milestoneSigningStatus !== 'completed')
                 }
-                className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                className={`inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                   isDocumentSigning && milestoneSigningStatus !== 'completed'
-                    ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                    : 'text-gray-900 bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700'
-                } rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-gray-100 focus:text-blue-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'text-muted-foreground bg-muted border border-border cursor-not-allowed' 
+                    : 'bg-background border border-border hover:bg-muted text-foreground'
+                } ${updatingMilestoneId === milestone.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title={
                   isDocumentSigning && milestoneSigningStatus !== 'completed' 
                     ? 'Please sign the document before completing this milestone' 
@@ -994,7 +1004,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <button
                 onClick={() => onUpdateStatus(milestone.id, 'completed')}
                 disabled={updatingMilestoneId === milestone.id}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300"
+                className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
               >
                 {updatingMilestoneId === milestone.id ? 'Approving...' : 'Approve Completion'}
               </button>
@@ -1005,12 +1015,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <button
                 onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
                 disabled={updatingMilestoneId === milestone.id || !canStart}
-                className={`inline-flex items-center px-4 py-2 text-sm font-medium ${
+                className={`inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                   !canStart 
-                    ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                    : 'text-white bg-blue-600 hover:bg-blue-700'
-                } rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
-                  !canStart ? 'focus:ring-gray-100' : 'focus:ring-blue-300'
+                    ? 'text-muted-foreground bg-muted border border-border cursor-not-allowed' 
+                    : 'text-primary-foreground bg-primary hover:bg-primary/90'
                 }`}
                 title={!canStart ? `Previous milestone "${previousMilestone?.title}" must be completed first` : ''}
               >
@@ -1023,7 +1031,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <button
                 onClick={() => onUpdateStatus(milestone.id, 'blocked')}
                 disabled={updatingMilestoneId === milestone.id}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-red-300"
+                className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-destructive-foreground bg-destructive rounded-lg hover:bg-destructive/90 transition-colors"
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Mark as Blocked'}
               </button>
@@ -1034,7 +1042,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
               <button
                 onClick={() => onUpdateStatus(milestone.id, 'in_progress')}
                 disabled={updatingMilestoneId === milestone.id}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-blue-300"
+                className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors"
               >
                 {updatingMilestoneId === milestone.id ? 'Updating...' : 'Resume Milestone'}
               </button>
@@ -1048,10 +1056,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         <div className="mt-3">
           <button
             onClick={handleSaveSignedDocumentToDealRoom}
-            className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg focus:z-10 focus:ring-4 focus:outline-none ${
+            className={`inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
               downloadingSignedDoc || savedSignedDocuments.has(milestone.id)
-                ? 'text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed' 
-                : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-300'
+                ? 'text-muted-foreground bg-muted border border-border cursor-not-allowed' 
+                : 'text-primary-foreground bg-primary hover:bg-primary/90'
             }`}
             disabled={downloadingSignedDoc || savedSignedDocuments.has(milestone.id)}
           >
@@ -1166,8 +1174,8 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {milestoneMessages.length > 0 && (milestone.status as string) !== 'completed' && (
         <div className="mt-4 space-y-2">
           {milestoneMessages.map((message, index) => (
-            <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-800">{message}</p>
+            <div key={index} className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+              <p className="text-sm text-primary">{message}</p>
             </div>
           ))}
         </div>
@@ -1176,7 +1184,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       {/* Milestone Documents with Enhanced Status */}
       {milestoneDocuments.length > 0 && (
         <div className="mt-4">
-          <h5 className="text-sm font-medium text-gray-900 mb-3">Documents for this milestone:</h5>
+          <h5 className="text-sm font-medium text-foreground mb-3">Documents for this milestone:</h5>
           
           {/* Document Signing Status Component */}
           <DocumentSigningStatus 
@@ -1195,10 +1203,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           
           <div className="space-y-2 mt-4">
             {milestoneDocuments.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                 <div>
-                   <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                   <p className="text-xs text-gray-500">
+              <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted/50 rounded-lg p-3 gap-2">
+                 <div className="min-w-0 flex-1">
+                   <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                   <p className="text-xs text-muted-foreground">
                      Uploaded by {doc.profiles?.name || 'Unknown User'} on {new Date(doc.created_at).toLocaleDateString()}
                    </p>
                   </div>

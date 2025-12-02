@@ -1,6 +1,8 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
+import { Building2, DollarSign, Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 interface Deal {
   id: string;
@@ -20,18 +22,17 @@ interface DealDetailsHeaderProps {
 }
 
 const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'completed': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'active': return 'default';
+      case 'completed': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
     }
   };
 
   const formatPrice = (price?: number) => {
-    if (!price) return 'Not specified';
+    if (!price) return null;
     return new Intl.NumberFormat('en-AU', {
       style: 'currency',
       currency: 'AUD',
@@ -41,22 +42,32 @@ const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
   };
 
   return (
-    <div className="mb-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">{deal.title}</h1>
-        <div className="flex items-center gap-4">
-          <Badge className={getStatusColor(deal.status)}>
+    <div className="mb-6 sm:mb-8">
+      <div className="space-y-3">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+          {deal.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <Badge variant={getStatusVariant(deal.status)} className="text-xs sm:text-sm">
             {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
           </Badge>
           {deal.deal_type && (
-            <span className="text-sm text-muted-foreground">
-              <strong>Type:</strong> {deal.deal_type}
-            </span>
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              <span>{deal.deal_type}</span>
+            </div>
           )}
           {deal.asking_price && (
-            <span className="text-sm text-muted-foreground">
-              <strong>Price:</strong> {formatPrice(deal.asking_price)}
-            </span>
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+              <DollarSign className="h-3.5 w-3.5" />
+              <span className="font-medium">{formatPrice(deal.asking_price)}</span>
+            </div>
+          )}
+          {deal.target_completion_date && (
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{format(new Date(deal.target_completion_date), 'MMM d, yyyy')}</span>
+            </div>
           )}
         </div>
       </div>

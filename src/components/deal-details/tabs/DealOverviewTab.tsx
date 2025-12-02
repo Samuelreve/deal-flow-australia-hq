@@ -69,13 +69,13 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Deal Description */}
       {deal.description && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Deal Description
             </CardTitle>
           </CardHeader>
@@ -85,40 +85,40 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Deal Fundamentals */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Deal Fundamentals
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {deal.deal_category && (
             <div className="flex items-center gap-2 mb-4">
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                 {React.createElement(getCategoryIcon(deal.deal_category), { className: "h-3 w-3" })}
                 {getCategoryLabel(deal.deal_category)}
               </Badge>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Deal Type</p>
-              <p className="font-medium">{deal.deal_type || 'Not specified'}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Deal Type</p>
+              <p className="font-medium text-sm sm:text-base">{deal.deal_type || 'Not specified'}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Asking Price</p>
-              <p className="font-medium">{formatPrice(deal.asking_price)}</p>
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Asking Price</p>
+              <p className="font-semibold text-sm sm:text-base text-primary">{formatPrice(deal.asking_price)}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Target Completion</p>
-              <p className="font-medium">{formatDate(deal.target_completion_date)}</p>
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Target Completion</p>
+              <p className="font-medium text-sm sm:text-base">{formatDate(deal.target_completion_date)}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Reason for Selling</p>
-              <p className="font-medium">{deal.reason_for_selling || 'Not specified'}</p>
+            <div className="p-3 rounded-lg bg-muted/50">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Reason for Selling</p>
+              <p className="font-medium text-sm sm:text-base">{deal.reason_for_selling || 'Not specified'}</p>
             </div>
           </div>
 

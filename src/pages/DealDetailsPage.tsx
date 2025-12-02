@@ -185,7 +185,7 @@ const DealDetailsPage = () => {
 
 return (
   <AppLayout>
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
       <DealDetailsHeader deal={deal} />
       <DealDetailsContent 
         deal={deal} 
