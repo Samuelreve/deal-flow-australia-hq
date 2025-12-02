@@ -107,15 +107,15 @@ const DealsPage = () => {
   
   return (
     <AppLayout>
-      <div className="mb-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-border">
         <div>
-          <h1 className="text-3xl font-semibold">Deals</h1>
-          <p className="text-muted-foreground">Manage all your business transactions</p>
+          <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
+          <p className="text-sm text-muted-foreground">Manage all your business transactions</p>
         </div>
         
         {canCreateDeals && (
-          <Button onClick={() => navigate("/create-deal")}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={() => navigate("/create-deal")} size="sm" className="mt-3 md:mt-0">
+            <Plus className="h-4 w-4 mr-1.5" />
             New Deal
           </Button>
         )}
@@ -128,24 +128,22 @@ const DealsPage = () => {
         setStatusFilter={setStatusFilter}
       />
       
-      <div className="space-y-4">
-        {filteredDeals.length === 0 ? (
-          <EmptyDealsState 
-            isFiltered={isFiltered} 
-            canCreateDeals={canCreateDeals} 
-          />
-        ) : (
-          <DealsTable 
-            deals={filteredDeals} 
-            totalDeals={totalCount}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            onDeleteDeal={handleDeleteDeal}
-            canDelete={canCreateDeals}
-          />
-        )}
-      </div>
+      {filteredDeals.length === 0 ? (
+        <EmptyDealsState 
+          isFiltered={isFiltered} 
+          canCreateDeals={canCreateDeals} 
+        />
+      ) : (
+        <DealsTable 
+          deals={filteredDeals} 
+          totalDeals={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          onDeleteDeal={handleDeleteDeal}
+          canDelete={canCreateDeals}
+        />
+      )}
 
       <AlertDialog open={dealToDelete !== null} onOpenChange={cancelDelete}>
         <AlertDialogContent>
