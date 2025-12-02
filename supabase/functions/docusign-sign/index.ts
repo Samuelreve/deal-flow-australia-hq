@@ -385,16 +385,23 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
   console.log("Document converted to base64, length:", documentBase64.length);
 
-  // Build signers
+  // Build signers with clientUserId for embedded signing
   const signers: any[] = [];
+  let firstSignerEmail = signerEmail;
+  let firstSignerName = signerName;
 
   if (signaturePositions && signaturePositions.length > 0) {
     signaturePositions.forEach((pos, index) => {
+      if (index === 0) {
+        firstSignerEmail = pos.email;
+        firstSignerName = pos.name;
+      }
       signers.push({
         email: pos.email,
         name: pos.name,
         recipientId: pos.recipientId || String(index + 1),
         routingOrder: String(index + 1),
+        clientUserId: pos.email, // Required for embedded signing
         tabs: {
           signHereTabs: [
             {
@@ -413,6 +420,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       name: signerName,
       recipientId: "1",
       routingOrder: "1",
+      clientUserId: signerEmail, // Required for embedded signing
       tabs: {
         signHereTabs: [
           {
@@ -428,7 +436,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
   console.log("Signers:", JSON.stringify(signers, null, 2));
 
-  // Create envelope using DocuSign REST API
+  // Create envelope using DocuSign REST API (status: "sent" for embedded signing)
   const envelopeDefinition = {
     emailSubject: `Please sign: ${documentRecord.name}`,
     documents: [
@@ -471,6 +479,42 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   const envelopeResult = await envelopeResponse.json();
   console.log("Envelope created:", envelopeResult);
 
+  // Generate embedded signing URL for the first signer
+  const returnUrl = `https://deal-flow-australia-hq.lovable.app/deals/${dealId}?signing=complete`;
+  
+  const recipientViewRequest = {
+    returnUrl: returnUrl,
+    authenticationMethod: "none",
+    email: firstSignerEmail,
+    userName: firstSignerName,
+    clientUserId: firstSignerEmail,
+  };
+
+  console.log("Requesting recipient view URL...");
+
+  const viewResponse = await fetch(
+    `${DOCUSIGN_API_BASE_URL}/restapi/v2.1/accounts/${accountId}/envelopes/${envelopeResult.envelopeId}/views/recipient`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(recipientViewRequest),
+    }
+  );
+
+  let signingUrl: string | null = null;
+
+  if (viewResponse.ok) {
+    const viewResult = await viewResponse.json();
+    signingUrl = viewResult.url;
+    console.log("Signing URL generated successfully");
+  } else {
+    const viewError = await viewResponse.text();
+    console.error("Failed to get signing URL:", viewResponse.status, viewError);
+  }
+
   // Store signature records in database
   for (const signer of signers) {
     await supabase.from("document_signatures").insert({
@@ -491,7 +535,8 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       success: true,
       envelopeId: envelopeResult.envelopeId,
       status: envelopeResult.status,
-      message: "Document sent for signature successfully",
+      signingUrl: signingUrl,
+      message: signingUrl ? "Document ready for signing" : "Document sent for signature via email",
     }),
     {
       status: 200,
