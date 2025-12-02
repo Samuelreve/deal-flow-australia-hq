@@ -42,10 +42,10 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
 
   if (!isAuthenticated && initialMilestones.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-800">Deal Milestones</h3>
+      <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 mb-6">
+        <h3 className="text-lg sm:text-xl font-semibold mb-4 text-foreground">Deal Milestones</h3>
         <div className="text-center py-6">
-          <p className="mb-4 text-gray-600">You need to be logged in to view and manage milestones</p>
+          <p className="mb-4 text-muted-foreground">You need to be logged in to view and manage milestones</p>
           <Button onClick={() => navigate('/login')} className="flex items-center gap-2">
             <LogIn className="h-4 w-4" />
             Sign in
@@ -57,9 +57,9 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-800">Deal Milestones</h3>
+      <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-foreground">Deal Milestones</h3>
           
           {/* AI-Powered Milestone Generation Button */}
           {isParticipant && (
@@ -72,8 +72,12 @@ const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
         </div>
 
         {/* Loading and Error Indicators for Fetching */}
-        {loadingMilestones && <p className="text-center text-blue-600">Loading milestones...</p>}
-        {fetchError && <p className="text-center text-red-600">Error loading milestones: {fetchError}</p>}
+        {loadingMilestones && (
+          <p className="text-center text-primary animate-pulse py-4">Loading milestones...</p>
+        )}
+        {fetchError && (
+          <p className="text-center text-destructive py-4">Error loading milestones: {fetchError}</p>
+        )}
 
         {/* Milestone List */}
         {!loadingMilestones && !fetchError && (

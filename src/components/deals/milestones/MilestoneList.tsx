@@ -23,14 +23,18 @@ const MilestoneList: React.FC<MilestoneListProps> = ({
   onMilestoneUpdated
 }) => {
   if (milestones.length === 0) {
-    return <p className="text-gray-600">No milestones defined for this deal.</p>;
+    return (
+      <p className="text-muted-foreground text-center py-8">
+        No milestones defined for this deal.
+      </p>
+    );
   }
 
   // Sort milestones by order_index to ensure proper sequence
   const sortedMilestones = [...milestones].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
   return (
-    <ol className="relative border-s border-gray-200 dark:border-gray-700 ml-3">
+    <ol className="relative border-s-2 border-border ml-3 space-y-0">
       {sortedMilestones.map((milestone, index) => {
         // Check if the previous milestone is completed (or if this is the first milestone)
         const previousMilestone = index > 0 ? sortedMilestones[index - 1] : null;
