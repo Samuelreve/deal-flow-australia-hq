@@ -21,6 +21,7 @@ export const authService = {
       email,
       password,
       options: {
+        emailRedirectTo: 'https://deal-flow-australia-hq.lovable.app/',
         data: {
           name: name || email.split('@')[0]
         }
@@ -42,11 +43,10 @@ export const authService = {
   },
 
   async signInWithGoogle() {
-    const redirectUrl = `${window.location.origin}/dashboard`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl
+        redirectTo: 'https://deal-flow-australia-hq.lovable.app/dashboard'
       }
     });
     
@@ -58,11 +58,10 @@ export const authService = {
   },
 
   async signInWithApple() {
-    const redirectUrl = `${window.location.origin}/dashboard`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: redirectUrl
+        redirectTo: 'https://deal-flow-australia-hq.lovable.app/dashboard'
       }
     });
     
