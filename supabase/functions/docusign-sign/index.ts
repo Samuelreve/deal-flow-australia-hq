@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { encode as base64UrlEncode } from "https://deno.land/std@0.190.0/encoding/base64url.ts";
+import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 declare const Deno: {
   env: {
@@ -118,33 +118,8 @@ async function getJWTAccessToken(): Promise<string> {
 
   console.log("Generating JWT for DocuSign authentication...");
 
-  const now = Math.floor(Date.now() / 1000);
-  const exp = now + 3600; // 1 hour expiration
-
-  // JWT Header
-  const header = {
-    alg: "RS256",
-    typ: "JWT",
-  };
-
-  // JWT Payload
-  const payload = {
-    iss: integrationKey,
-    sub: userId,
-    aud: "account-d.docusign.com", // Sandbox
-    iat: now,
-    exp: exp,
-    scope: "signature impersonation",
-  };
-
-  // Encode header and payload
-  const encodedHeader = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)));
-  const encodedPayload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
-  const signingInput = `${encodedHeader}.${encodedPayload}`;
-
-  // Sign the JWT with RSA-SHA256
-  const signature = await signWithRSA(signingInput, privateKeyPem);
-  const jwt = `${signingInput}.${signature}`;
+  // Create signed JWT using jose library
+  const jwt = await createSignedJWT(integrationKey, userId, privateKeyPem);
 
   console.log("JWT generated, exchanging for access token...");
 
@@ -179,92 +154,36 @@ async function getJWTAccessToken(): Promise<string> {
 }
 
 /**
- * Convert PKCS#1 RSA private key to PKCS#8 format
- * PKCS#8 wraps PKCS#1 with an algorithm identifier
+ * Sign JWT using jose library (handles all key formats properly)
  */
-function convertPkcs1ToPkcs8(pkcs1Key: Uint8Array): Uint8Array {
-  // PKCS#8 header for RSA keys (AlgorithmIdentifier for rsaEncryption)
-  const pkcs8Header = new Uint8Array([
-    0x30, 0x82, // SEQUENCE, length placeholder (2 bytes)
-    0x00, 0x00, // Length will be filled in
-    0x02, 0x01, 0x00, // INTEGER 0 (version)
-    0x30, 0x0d, // SEQUENCE (AlgorithmIdentifier)
-    0x06, 0x09, // OID
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // rsaEncryption OID
-    0x05, 0x00, // NULL
-    0x04, 0x82, // OCTET STRING, length placeholder (2 bytes)
-    0x00, 0x00, // Length will be filled in
-  ]);
-
-  const totalLength = pkcs8Header.length + pkcs1Key.length;
-  const result = new Uint8Array(totalLength);
+async function createSignedJWT(
+  integrationKey: string,
+  userId: string,
+  privateKeyPem: string
+): Promise<string> {
+  // Normalize line endings in private key
+  const normalizedKey = privateKeyPem.replace(/\\n/g, "\n");
   
-  // Copy header
-  result.set(pkcs8Header, 0);
+  console.log("Importing private key with jose...");
   
-  // Set outer SEQUENCE length (total - 4 bytes for tag and length)
-  const outerLength = totalLength - 4;
-  result[2] = (outerLength >> 8) & 0xff;
-  result[3] = outerLength & 0xff;
+  // Import the private key using jose (handles PKCS#1 and PKCS#8 formats)
+  const privateKey = await jose.importPKCS8(normalizedKey, "RS256");
   
-  // Set OCTET STRING length (pkcs1Key length)
-  result[22] = (pkcs1Key.length >> 8) & 0xff;
-  result[23] = pkcs1Key.length & 0xff;
+  const now = Math.floor(Date.now() / 1000);
   
-  // Copy PKCS#1 key
-  result.set(pkcs1Key, pkcs8Header.length);
+  // Create and sign the JWT
+  const jwt = await new jose.SignJWT({
+    scope: "signature impersonation",
+  })
+    .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+    .setIssuer(integrationKey)
+    .setSubject(userId)
+    .setAudience("account-d.docusign.com") // Sandbox
+    .setIssuedAt(now)
+    .setExpirationTime(now + 3600)
+    .sign(privateKey);
   
-  return result;
-}
-
-/**
- * Sign data with RSA private key
- * Handles both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats
- */
-async function signWithRSA(data: string, privateKeyPem: string): Promise<string> {
-  // Normalize line endings
-  let normalizedKey = privateKeyPem.replace(/\\n/g, "\n");
-  
-  // Detect key format
-  const isPkcs1 = normalizedKey.includes("-----BEGIN RSA PRIVATE KEY-----");
-  const isPkcs8 = normalizedKey.includes("-----BEGIN PRIVATE KEY-----");
-  
-  console.log("Key format detected:", isPkcs1 ? "PKCS#1" : isPkcs8 ? "PKCS#8" : "Unknown");
-  
-  // Clean the key - remove headers/footers and whitespace
-  let cleanKey = normalizedKey
-    .replace(/-----BEGIN RSA PRIVATE KEY-----/g, "")
-    .replace(/-----END RSA PRIVATE KEY-----/g, "")
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\s/g, "");
-
-  // Decode base64 key
-  let binaryKey = Uint8Array.from(atob(cleanKey), (c) => c.charCodeAt(0));
-  
-  // If PKCS#1 format, convert to PKCS#8
-  if (isPkcs1) {
-    console.log("Converting PKCS#1 to PKCS#8 format...");
-    binaryKey = convertPkcs1ToPkcs8(binaryKey);
-  }
-
-  // Import the key (Web Crypto API requires PKCS#8 format)
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      hash: "SHA-256",
-    },
-    false,
-    ["sign"],
-  );
-
-  // Sign the data
-  const signatureBuffer = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(data));
-
-  // Convert to base64url
-  return base64UrlEncode(new Uint8Array(signatureBuffer));
+  return jwt;
 }
 
 /**
