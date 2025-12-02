@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building, MapPin, Calendar, DollarSign, User, FileText, Tags, Copyright, Home, Globe, Star } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
 import { DEAL_CATEGORIES } from "@/components/deals/deal-creation/types";
+import DealDescriptionFormatter from "./DealDescriptionFormatter";
 
 interface Deal {
   id: string;
@@ -69,6 +70,21 @@ const DealOverviewTab: React.FC<DealOverviewTabProps> = ({ deal }) => {
 
   return (
     <div className="space-y-6">
+      {/* Deal Description */}
+      {deal.description && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Deal Description
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DealDescriptionFormatter text={deal.description} />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Deal Fundamentals */}
       <Card>
