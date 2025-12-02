@@ -51,8 +51,8 @@ export const useDeals = (pagination?: PaginationOptions) => {
   const deleteDeal = async (dealId: string) => {
     try {
       await dealsService.deleteDeal(dealId);
-      setDeals(prev => prev.filter(deal => deal.id !== dealId));
-      setTotalCount(prev => prev - 1);
+      // Refetch to get proper paginated data after deletion
+      await fetchDeals();
     } catch (err) {
       console.error('Failed to delete deal:', err);
       throw err;
