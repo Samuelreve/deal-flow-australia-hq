@@ -140,7 +140,7 @@ serve(async (req: Request) => {
     }
 
     // Determine redirect URL - redirect to deal details page
-    const baseUrl = 'https://preview--deal-flow-australia-hq.lovable.app';
+    const baseUrl = 'https://deal-flow-australia-hq.lovable.app';
     const redirectUrl = redirectDealId 
       ? `${baseUrl}/deals/${redirectDealId}`
       : `${baseUrl}`;

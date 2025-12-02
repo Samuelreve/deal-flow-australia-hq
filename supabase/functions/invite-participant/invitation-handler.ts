@@ -32,7 +32,7 @@ export async function handleInvitation(req: Request): Promise<Response> {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const APP_BASE_URL = "https://preview--deal-flow-australia-hq.lovable.app";
+    const APP_BASE_URL = "https://deal-flow-australia-hq.lovable.app";
     
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
