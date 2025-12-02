@@ -179,12 +179,60 @@ async function getJWTAccessToken(): Promise<string> {
 }
 
 /**
+ * Convert PKCS#1 RSA private key to PKCS#8 format
+ * PKCS#8 wraps PKCS#1 with an algorithm identifier
+ */
+function convertPkcs1ToPkcs8(pkcs1Key: Uint8Array): Uint8Array {
+  // PKCS#8 header for RSA keys (AlgorithmIdentifier for rsaEncryption)
+  const pkcs8Header = new Uint8Array([
+    0x30, 0x82, // SEQUENCE, length placeholder (2 bytes)
+    0x00, 0x00, // Length will be filled in
+    0x02, 0x01, 0x00, // INTEGER 0 (version)
+    0x30, 0x0d, // SEQUENCE (AlgorithmIdentifier)
+    0x06, 0x09, // OID
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // rsaEncryption OID
+    0x05, 0x00, // NULL
+    0x04, 0x82, // OCTET STRING, length placeholder (2 bytes)
+    0x00, 0x00, // Length will be filled in
+  ]);
+
+  const totalLength = pkcs8Header.length + pkcs1Key.length;
+  const result = new Uint8Array(totalLength);
+  
+  // Copy header
+  result.set(pkcs8Header, 0);
+  
+  // Set outer SEQUENCE length (total - 4 bytes for tag and length)
+  const outerLength = totalLength - 4;
+  result[2] = (outerLength >> 8) & 0xff;
+  result[3] = outerLength & 0xff;
+  
+  // Set OCTET STRING length (pkcs1Key length)
+  result[22] = (pkcs1Key.length >> 8) & 0xff;
+  result[23] = pkcs1Key.length & 0xff;
+  
+  // Copy PKCS#1 key
+  result.set(pkcs1Key, pkcs8Header.length);
+  
+  return result;
+}
+
+/**
  * Sign data with RSA private key
+ * Handles both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats
  */
 async function signWithRSA(data: string, privateKeyPem: string): Promise<string> {
-  // Clean and normalize the private key
-  let cleanKey = privateKeyPem
-    .replace(/\\n/g, "\n")
+  // Normalize line endings
+  let normalizedKey = privateKeyPem.replace(/\\n/g, "\n");
+  
+  // Detect key format
+  const isPkcs1 = normalizedKey.includes("-----BEGIN RSA PRIVATE KEY-----");
+  const isPkcs8 = normalizedKey.includes("-----BEGIN PRIVATE KEY-----");
+  
+  console.log("Key format detected:", isPkcs1 ? "PKCS#1" : isPkcs8 ? "PKCS#8" : "Unknown");
+  
+  // Clean the key - remove headers/footers and whitespace
+  let cleanKey = normalizedKey
     .replace(/-----BEGIN RSA PRIVATE KEY-----/g, "")
     .replace(/-----END RSA PRIVATE KEY-----/g, "")
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
@@ -192,9 +240,15 @@ async function signWithRSA(data: string, privateKeyPem: string): Promise<string>
     .replace(/\s/g, "");
 
   // Decode base64 key
-  const binaryKey = Uint8Array.from(atob(cleanKey), (c) => c.charCodeAt(0));
+  let binaryKey = Uint8Array.from(atob(cleanKey), (c) => c.charCodeAt(0));
+  
+  // If PKCS#1 format, convert to PKCS#8
+  if (isPkcs1) {
+    console.log("Converting PKCS#1 to PKCS#8 format...");
+    binaryKey = convertPkcs1ToPkcs8(binaryKey);
+  }
 
-  // Import the key
+  // Import the key (Web Crypto API requires PKCS#8 format)
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
     binaryKey,
