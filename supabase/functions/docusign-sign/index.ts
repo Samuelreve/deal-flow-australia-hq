@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// Import DocuSign SDK using default export pattern for Deno
-const docusign = await import('npm:docusign-esign@8.2.0');
+// Import DocuSign SDK using esm.sh for Deno compatibility
+const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
 
 declare const Deno: {
   env: {
