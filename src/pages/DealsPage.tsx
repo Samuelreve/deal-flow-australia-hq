@@ -107,43 +107,45 @@ const DealsPage = () => {
   
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
-          <p className="text-sm text-muted-foreground">Manage all your business transactions</p>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
+            <p className="text-sm text-muted-foreground">Manage all your business transactions</p>
+          </div>
+          
+          {canCreateDeals && (
+            <Button onClick={() => navigate("/create-deal")} className="mt-4 md:mt-0">
+              <Plus className="h-4 w-4 mr-2" />
+              New Deal
+            </Button>
+          )}
         </div>
         
-        {canCreateDeals && (
-          <Button onClick={() => navigate("/create-deal")} size="sm" className="mt-3 md:mt-0">
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Deal
-          </Button>
+        <DealFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+        />
+        
+        {filteredDeals.length === 0 ? (
+          <EmptyDealsState 
+            isFiltered={isFiltered} 
+            canCreateDeals={canCreateDeals} 
+          />
+        ) : (
+          <DealsTable 
+            deals={filteredDeals} 
+            totalDeals={totalCount}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onDeleteDeal={handleDeleteDeal}
+            canDelete={canCreateDeals}
+          />
         )}
       </div>
-      
-      <DealFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-      />
-      
-      {filteredDeals.length === 0 ? (
-        <EmptyDealsState 
-          isFiltered={isFiltered} 
-          canCreateDeals={canCreateDeals} 
-        />
-      ) : (
-        <DealsTable 
-          deals={filteredDeals} 
-          totalDeals={totalCount}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          onDeleteDeal={handleDeleteDeal}
-          canDelete={canCreateDeals}
-        />
-      )}
 
       <AlertDialog open={dealToDelete !== null} onOpenChange={cancelDelete}>
         <AlertDialogContent>
