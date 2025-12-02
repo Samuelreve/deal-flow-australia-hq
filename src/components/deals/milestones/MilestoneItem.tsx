@@ -679,9 +679,20 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     } catch (error: any) {
       console.error('Error starting DocuSign process:', error);
       
+      // Check if DocuSign authentication is required (from edge function response)
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('DocuSign not connected') || errorMessage.includes('requiresAuth')) {
+        toast({
+          title: 'DocuSign Connection Required',
+          description: 'Please connect your DocuSign account in Settings before signing documents.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
       // Check if this is a consent required error
-      if (error.message && error.message.startsWith('CONSENT_REQUIRED:')) {
-        const consentUrl = error.message.split('CONSENT_REQUIRED:')[1];
+      if (errorMessage.startsWith('CONSENT_REQUIRED:')) {
+        const consentUrl = errorMessage.split('CONSENT_REQUIRED:')[1];
         
         toast({
           title: 'DocuSign consent required',
@@ -694,7 +705,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       
       toast({
         title: 'Signing failed',
-        description: error.message || 'Failed to start document signing process',
+        description: errorMessage || 'Failed to start document signing process',
         variant: 'destructive'
       });
     } finally {
