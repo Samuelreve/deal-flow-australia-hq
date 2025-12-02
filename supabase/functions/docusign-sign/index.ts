@@ -154,7 +154,62 @@ async function getJWTAccessToken(): Promise<string> {
 }
 
 /**
- * Sign JWT using jose library (handles all key formats properly)
+ * Convert PKCS#1 RSA private key to PKCS#8 format
+ * PKCS#1: -----BEGIN RSA PRIVATE KEY-----
+ * PKCS#8: -----BEGIN PRIVATE KEY-----
+ */
+function convertPkcs1ToPkcs8(pkcs1Pem: string): string {
+  // Extract base64 content from PEM
+  const base64Content = pkcs1Pem
+    .replace(/-----BEGIN RSA PRIVATE KEY-----/g, "")
+    .replace(/-----END RSA PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
+
+  // Decode base64 to get the PKCS#1 key bytes
+  const pkcs1Bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
+
+  // PKCS#8 header for RSA keys (OID 1.2.840.113549.1.1.1)
+  // SEQUENCE { INTEGER 0, SEQUENCE { OID, NULL }, OCTET STRING { pkcs1Key } }
+  const pkcs8Header = new Uint8Array([
+    0x30, 0x82, 0x00, 0x00, // SEQUENCE with 2-byte length placeholder
+    0x02, 0x01, 0x00, // INTEGER 0 (version)
+    0x30, 0x0d, // SEQUENCE (algorithm identifier)
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // OID rsaEncryption
+    0x05, 0x00, // NULL
+    0x04, 0x82, 0x00, 0x00, // OCTET STRING with 2-byte length placeholder
+  ]);
+
+  // Calculate lengths
+  const totalLength = pkcs8Header.length - 4 + pkcs1Bytes.length;
+  const octetStringLength = pkcs1Bytes.length;
+
+  // Create the full PKCS#8 key
+  const pkcs8Bytes = new Uint8Array(4 + totalLength);
+  pkcs8Bytes.set(pkcs8Header);
+  pkcs8Bytes.set(pkcs1Bytes, pkcs8Header.length);
+
+  // Set the outer SEQUENCE length (totalLength)
+  pkcs8Bytes[2] = (totalLength >> 8) & 0xff;
+  pkcs8Bytes[3] = totalLength & 0xff;
+
+  // Set the OCTET STRING length (at position 24-25 in header)
+  pkcs8Bytes[24] = (octetStringLength >> 8) & 0xff;
+  pkcs8Bytes[25] = octetStringLength & 0xff;
+
+  // Convert to base64
+  let binary = "";
+  for (let i = 0; i < pkcs8Bytes.length; i++) {
+    binary += String.fromCharCode(pkcs8Bytes[i]);
+  }
+  const pkcs8Base64 = btoa(binary);
+
+  // Format as PEM with 64-character lines
+  const lines = pkcs8Base64.match(/.{1,64}/g) || [];
+  return `-----BEGIN PRIVATE KEY-----\n${lines.join("\n")}\n-----END PRIVATE KEY-----`;
+}
+
+/**
+ * Sign JWT using jose library
  */
 async function createSignedJWT(
   integrationKey: string,
@@ -162,15 +217,24 @@ async function createSignedJWT(
   privateKeyPem: string
 ): Promise<string> {
   // Normalize line endings in private key
-  const normalizedKey = privateKeyPem.replace(/\\n/g, "\n");
-  
+  let normalizedKey = privateKeyPem.replace(/\\n/g, "\n").trim();
+
+  console.log("Processing private key...");
+
+  // Check if the key is PKCS#1 format and convert to PKCS#8
+  if (normalizedKey.includes("BEGIN RSA PRIVATE KEY")) {
+    console.log("Detected PKCS#1 format, converting to PKCS#8...");
+    normalizedKey = convertPkcs1ToPkcs8(normalizedKey);
+    console.log("Converted to PKCS#8 format");
+  }
+
   console.log("Importing private key with jose...");
-  
-  // Import the private key using jose (handles PKCS#1 and PKCS#8 formats)
+
+  // Import the private key using jose
   const privateKey = await jose.importPKCS8(normalizedKey, "RS256");
-  
+
   const now = Math.floor(Date.now() / 1000);
-  
+
   // Create and sign the JWT
   const jwt = await new jose.SignJWT({
     scope: "signature impersonation",
@@ -182,7 +246,7 @@ async function createSignedJWT(
     .setIssuedAt(now)
     .setExpirationTime(now + 3600)
     .sign(privateKey);
-  
+
   return jwt;
 }
 
