@@ -42,37 +42,24 @@ const DealDetailsHeader: React.FC<DealDetailsHeaderProps> = ({ deal }) => {
 
   return (
     <div className="mb-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{deal.title}</h1>
-          <div className="flex items-center gap-4">
-            <Badge className={getStatusColor(deal.status)}>
-              {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
-            </Badge>
-            {deal.deal_type && (
-              <span className="text-sm text-muted-foreground">
-                <strong>Type:</strong> {deal.deal_type}
-              </span>
-            )}
-            {deal.asking_price && (
-              <span className="text-sm text-muted-foreground">
-                <strong>Price:</strong> {formatPrice(deal.asking_price)}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-sm text-muted-foreground mb-1">Health Score</div>
-          <div className="text-2xl font-bold">{deal.health_score}/100</div>
+      <div>
+        <h1 className="text-3xl font-bold mb-2">{deal.title}</h1>
+        <div className="flex items-center gap-4">
+          <Badge className={getStatusColor(deal.status)}>
+            {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
+          </Badge>
+          {deal.deal_type && (
+            <span className="text-sm text-muted-foreground">
+              <strong>Type:</strong> {deal.deal_type}
+            </span>
+          )}
+          {deal.asking_price && (
+            <span className="text-sm text-muted-foreground">
+              <strong>Price:</strong> {formatPrice(deal.asking_price)}
+            </span>
+          )}
         </div>
       </div>
-      {deal.description && (
-        <div className="text-muted-foreground w-full">
-          <p className="text-justify leading-relaxed whitespace-pre-wrap">
-            {deal.description}
-          </p>
-        </div>
-      )}
     </div>
   );
 };
