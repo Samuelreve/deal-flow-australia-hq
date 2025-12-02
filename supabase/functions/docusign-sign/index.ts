@@ -396,12 +396,13 @@ async function handleSigningRequest(req: Request): Promise<Response> {
         firstSignerEmail = pos.email;
         firstSignerName = pos.name;
       }
-      signers.push({
+      // Build signer config - only first signer is embedded (immediate redirect)
+      // Other signers will receive email invitations from DocuSign
+      const signerConfig: any = {
         email: pos.email,
         name: pos.name,
         recipientId: pos.recipientId || String(index + 1),
         routingOrder: String(index + 1),
-        clientUserId: pos.email, // Required for embedded signing
         tabs: {
           signHereTabs: [
             {
@@ -412,7 +413,15 @@ async function handleSigningRequest(req: Request): Promise<Response> {
             },
           ],
         },
-      });
+      };
+      
+      // Only first signer gets clientUserId for embedded signing
+      // Subsequent signers will receive email invitations automatically
+      if (index === 0) {
+        signerConfig.clientUserId = pos.email;
+      }
+      
+      signers.push(signerConfig);
     });
   } else {
     signers.push({
