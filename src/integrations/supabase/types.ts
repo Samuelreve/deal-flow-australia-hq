@@ -1785,7 +1785,7 @@ export type Database = {
           accessed_at: string | null
           action: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string
         }
@@ -1793,7 +1793,7 @@ export type Database = {
           accessed_at?: string | null
           action: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id: string
         }
@@ -1801,7 +1801,7 @@ export type Database = {
           accessed_at?: string | null
           action?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string
         }
@@ -1847,6 +1847,12 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        SetofOptions: {
+          from: "*"
+          to: "custom_health_metrics"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_deal_invitation: {
         Args: {
@@ -1856,10 +1862,7 @@ export type Database = {
         }
         Returns: Json
       }
-      get_allowed_deal_statuses: {
-        Args: { p_deal_id: string }
-        Returns: Json
-      }
+      get_allowed_deal_statuses: { Args: { p_deal_id: string }; Returns: Json }
       get_allowed_status_transitions: {
         Args: {
           p_current_status: Database["public"]["Enums"]["deal_status"]
@@ -1868,18 +1871,12 @@ export type Database = {
         }
         Returns: string[]
       }
-      get_auth_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_auth_user_role: { Args: never; Returns: string }
       get_comment_replies: {
         Args: { p_parent_comment_id: string }
         Returns: Json
       }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_role: { Args: never; Returns: string }
       get_custom_health_metrics: {
         Args: { p_user_id: string }
         Returns: {
@@ -1894,6 +1891,12 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "custom_health_metrics"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_custom_metrics_new: {
         Args: { p_user_id: string }
@@ -1909,14 +1912,23 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "custom_health_metrics_new"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      get_deal_invitations: {
-        Args: { p_deal_id: string }
-        Returns: Json
-      }
+      get_deal_invitations: { Args: { p_deal_id: string }; Returns: Json }
       get_deal_timeline: {
         Args: { deal_uuid: string }
         Returns: Database["public"]["CompositeTypes"]["timeline_event"][]
+        SetofOptions: {
+          from: "*"
+          to: "timeline_event"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_document_comments_with_nested_structure: {
         Args: { p_document_version_id: string }
@@ -1951,6 +1963,12 @@ export type Database = {
           id: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "health_score_comparisons"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_health_predictions_new: {
         Args: { p_user_id: string }
@@ -1966,6 +1984,12 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "deal_health_predictions_new"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_health_reports: {
         Args: { p_user_id: string }
@@ -1982,6 +2006,12 @@ export type Database = {
           status: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "health_reports"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_nested_document_comments: {
         Args: { p_document_version_id: string }
@@ -2004,6 +2034,12 @@ export type Database = {
       get_public_profiles_for_deal: {
         Args: { p_deal_id: string }
         Returns: Database["public"]["CompositeTypes"]["public_profile"][]
+        SetofOptions: {
+          from: "*"
+          to: "public_profile"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_recovery_plans: {
         Args: { p_user_id: string }
@@ -2019,6 +2055,12 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "health_recovery_plans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_recovery_plans_new: {
         Args: { p_user_id: string }
@@ -2034,15 +2076,15 @@ export type Database = {
           updated_at: string
           user_id: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "health_recovery_plans_new"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      get_safe_public_profile: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      has_valid_docusign_token: {
-        Args: { p_user_id?: string }
-        Returns: Json
-      }
+      get_safe_public_profile: { Args: { p_user_id: string }; Returns: Json }
+      has_valid_docusign_token: { Args: { p_user_id?: string }; Returns: Json }
       is_deal_owner_or_participant: {
         Args: { p_deal_id: string; p_user_id?: string }
         Returns: boolean
@@ -2051,10 +2093,7 @@ export type Database = {
         Args: { p_deal_id: string; p_required_role?: string }
         Returns: boolean
       }
-      is_profile_owner: {
-        Args: { profile_id: string }
-        Returns: boolean
-      }
+      is_profile_owner: { Args: { profile_id: string }; Returns: boolean }
       mark_messages_as_read: {
         Args: { p_deal_id: string; p_recipient_user_id?: string }
         Returns: undefined
@@ -2089,11 +2128,14 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        SetofOptions: {
+          from: "*"
+          to: "notification_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      shares_deal_with: {
-        Args: { target_user_id: string }
-        Returns: boolean
-      }
+      shares_deal_with: { Args: { target_user_id: string }; Returns: boolean }
       update_deal_status: {
         Args: { p_deal_id: string; p_new_status: string }
         Returns: Json
