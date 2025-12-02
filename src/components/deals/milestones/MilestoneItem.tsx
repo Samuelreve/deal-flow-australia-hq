@@ -717,6 +717,10 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
     if (!user) return;
 
     setDownloadingSignedDoc(true);
+    let downloadedCount = 0;
+    let errorCount = 0;
+    let lastError = '';
+
     try {
       // Get signature records for this deal to find envelope IDs
       const { data: signatures, error: sigError } = await supabase
@@ -745,27 +749,48 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           }
         });
 
+        // Check for error from invoke or from response data
         if (error) {
           console.error('❌ Error downloading envelope:', signature.envelope_id, error);
+          lastError = error.message || 'Unknown error';
+          errorCount++;
+          continue;
+        }
+
+        // Also check if response indicates failure
+        if (data && !data.success) {
+          console.error('❌ Download failed for envelope:', signature.envelope_id, data.error);
+          lastError = data.error || 'Download failed';
+          errorCount++;
           continue;
         }
 
         console.log('✅ Successfully downloaded signed document:', data);
+        downloadedCount++;
       }
 
-      toast({
-        title: 'Success',
-        description: 'Signed document has been saved to Documents tab',
-      });
+      // Show appropriate toast based on results
+      if (downloadedCount > 0) {
+        toast({
+          title: 'Success',
+          description: `${downloadedCount} signed document(s) saved to Documents tab`,
+        });
 
-      // Mark document as saved
-      setDocumentSaved(true);
-      
-      // Mark this milestone as having saved signed documents
-      markMilestoneDocumentAsSaved(milestone.id);
+        // Mark document as saved
+        setDocumentSaved(true);
+        
+        // Mark this milestone as having saved signed documents
+        markMilestoneDocumentAsSaved(milestone.id);
 
-      // Trigger refresh of documents list without full page reload
-      window.dispatchEvent(new CustomEvent('documentsUpdated'));
+        // Trigger refresh of documents list without full page reload
+        window.dispatchEvent(new CustomEvent('documentsUpdated'));
+      } else if (errorCount > 0) {
+        toast({
+          title: 'Download failed',
+          description: lastError || 'Failed to download signed documents',
+          variant: 'destructive'
+        });
+      }
 
     } catch (error: any) {
       console.error('Error downloading signed document:', error);
