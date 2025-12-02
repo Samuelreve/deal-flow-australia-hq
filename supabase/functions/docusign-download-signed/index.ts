@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-// Import DocuSign SDK using default export pattern for Deno
-const docusign = await import('npm:docusign-esign@8.2.0');
+import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,375 +8,142 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// DocuSign OAuth endpoints
+// DocuSign API base URLs
 const DOCUSIGN_AUTH_BASE_URL = 'https://account-d.docusign.com';
+const DOCUSIGN_API_BASE_URL = 'https://demo.docusign.net/restapi';
 
-// Store DocuSign token data (OAuth-based)
-let docusignTokenData: {
-  access_token: string;
-  refresh_token?: string;
-  account_id: string;
-  base_uri: string;
-  expires_at: number;
-  user_info: DocuSignUserInfo;
-} | null = null;
+// Cached JWT token
+let cachedToken: { accessToken: string; expiresAt: number } | null = null;
 
-// Legacy configuration support
-let docusignConfig: {
-  integrationKey: string;
-  userId: string;
-  privateKey: string;
-  accountId: string;
-  accessToken?: string;
-  tokenExpiresAt?: number;
-} | null = null;
-
-interface OAuthTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  refresh_token?: string;
-  scope: string;
-}
-
-interface DocuSignUserInfo {
-  sub: string;
-  name: string;
-  email: string;
-  accounts: Array<{
-    account_id: string;
-    account_name: string;
-    is_default: boolean;
-    base_uri: string;
-  }>;
-}
-
-async function getDocuSignAccessToken(userId: string): Promise<{ access_token: string; base_uri: string; account_id: string }> {
-  console.log('🔐 Getting DocuSign access token for user:', userId);
-  
-  // SECURITY: Use secure token retrieval function
-  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  // Audit log token access
-  await supabase.from('token_access_audit').insert({
-    user_id: userId,
-    action: 'docusign_token_access',
-    ip_address: '127.0.0.1',
-    user_agent: 'docusign-download-signed-function'
-  });
-
-  // Get user token using secure function (service role only)
-  const { data: tokenData, error: tokenError } = await supabase.rpc('get_docusign_token_for_service', {
-    p_user_id: userId
-  });
-
-  if (tokenError || !tokenData) {
-    console.log('No valid DocuSign token found for user, falling back to JWT');
-    return await getJWTAccessToken();
-  }
-
-  // Check if token is still valid
-  if (new Date(tokenData.expires_at) > new Date()) {
-    return {
-      access_token: tokenData.access_token,
-      base_uri: tokenData.base_uri,
-      account_id: tokenData.account_id
-    };
-  }
-
-  // Token expired, try to refresh if we have refresh token
-  if (tokenData.refresh_token) {
-    console.log('Token expired, attempting refresh...');
-    const refreshed = await refreshOAuthToken(tokenData.refresh_token, userId);
-    if (refreshed) {
-      return await getDocuSignAccessToken(userId); // Retry after refresh
-    }
-  }
-
-  // Fallback to JWT if refresh failed
-  console.log('Token refresh failed, falling back to JWT');
-  return await getJWTAccessToken();
-}
-
-async function getJWTAccessToken(): Promise<{ access_token: string; base_uri: string; account_id: string }> {
+/**
+ * Get JWT access token for DocuSign API
+ */
+async function getJWTAccessToken(): Promise<string> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   const userId = Deno.env.get('DOCUSIGN_USER_ID');
   const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
   const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
 
   if (!integrationKey || !userId || !privateKey || !accountId) {
-    throw new Error('DocuSign not configured. Missing required environment variables: DOCUSIGN_INTEGRATION_KEY, DOCUSIGN_USER_ID, DOCUSIGN_PRIVATE_KEY, DOCUSIGN_ACCOUNT_ID');
+    throw new Error('DocuSign not configured. Missing required environment variables.');
   }
 
-  if (!docusignConfig) {
-    docusignConfig = {
-      integrationKey,
-      userId,
-      privateKey,
-      accountId
-    };
-  }
-
-  // Check if we have a valid cached JWT token
-  if (docusignConfig.accessToken && 
-      docusignConfig.tokenExpiresAt && 
-      Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
+  // Check cached token
+  if (cachedToken && Date.now() < cachedToken.expiresAt - 300000) {
     console.log('✅ Using cached JWT access token');
-    return {
-      access_token: docusignConfig.accessToken,
-      base_uri: 'https://demo.docusign.net/restapi',
-      account_id: docusignConfig.accountId
-    };
+    return cachedToken.accessToken;
   }
 
-  // Get new token using DocuSign SDK
-  console.log('🔐 Getting new JWT access token using DocuSign SDK...');
-  const accessToken = await getJWTAccessTokenWithSDK(
-    docusignConfig.integrationKey,
-    docusignConfig.userId,
-    docusignConfig.privateKey,
-    docusignConfig.accountId
-  );
+  console.log('🔐 Getting new JWT access token...');
 
-  // Cache the token (expires in 1 hour)
-  docusignConfig.accessToken = accessToken;
-  docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
+  // Clean and format the private key
+  let cleanPrivateKey = privateKey.trim();
+  
+  // Convert PKCS#1 to PKCS#8 if needed
+  if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+    console.log('Converting PKCS#1 key to PKCS#8 format');
+    cleanPrivateKey = await convertPkcs1ToPkcs8(cleanPrivateKey);
+  } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
+  }
 
-  return {
-    access_token: accessToken,
-    base_uri: 'https://demo.docusign.net/restapi',
-    account_id: docusignConfig.accountId
+  // Create JWT assertion
+  const now = Math.floor(Date.now() / 1000);
+  const jwtPayload = {
+    iss: integrationKey,
+    sub: userId,
+    aud: 'account-d.docusign.com',
+    iat: now,
+    exp: now + 3600,
+    scope: 'signature impersonation'
   };
+
+  // Import private key and sign JWT
+  const pemContent = cleanPrivateKey
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s/g, '');
+  
+  const binaryKey = Uint8Array.from(atob(pemContent), c => c.charCodeAt(0));
+  const privateKeyObj = await jose.importPKCS8(cleanPrivateKey, 'RS256');
+  
+  const jwt = await new jose.SignJWT(jwtPayload)
+    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+    .sign(privateKeyObj);
+
+  // Exchange JWT for access token
+  const tokenResponse = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt
+    })
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    console.error('Token request failed:', tokenResponse.status, errorText);
+    
+    if (errorText.includes('consent_required')) {
+      throw new Error(`CONSENT_REQUIRED: User consent is required.`);
+    }
+    
+    throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  
+  // Cache the token
+  cachedToken = {
+    accessToken: tokenData.access_token,
+    expiresAt: Date.now() + (tokenData.expires_in * 1000)
+  };
+
+  console.log('✅ Successfully obtained JWT access token');
+  return tokenData.access_token;
 }
 
-async function getValidAccessToken(userId: string): Promise<string | null> {
-  if (!docusignTokenData) {
-    return null;
+/**
+ * Convert PKCS#1 to PKCS#8 format
+ */
+async function convertPkcs1ToPkcs8(pkcs1Key: string): Promise<string> {
+  const keyContent = pkcs1Key
+    .replace('-----BEGIN RSA PRIVATE KEY-----', '')
+    .replace('-----END RSA PRIVATE KEY-----', '')
+    .replace(/\s/g, '');
+  
+  const binaryString = atob(keyContent);
+  const pkcs1Data = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    pkcs1Data[i] = binaryString.charCodeAt(i);
   }
-
-  // Check if token is expired
-  if (Date.now() >= docusignTokenData.expires_at) {
-    console.log('OAuth token expired, attempting refresh...');
-    
-    if (!docusignTokenData.refresh_token) {
-      console.log('No refresh token available');
-      return null;
-    }
-    
-    try {
-      // Refresh the token
-      const refreshed = await refreshOAuthToken(docusignTokenData.refresh_token, userId);
-      if (refreshed) {
-        return docusignTokenData.access_token;
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      return null;
-    }
-  }
-
-  return docusignTokenData.access_token;
+  
+  // RSA algorithm identifier
+  const rsaAlgorithmId = new Uint8Array([
+    0x30, 0x0d,
+    0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+    0x05, 0x00
+  ]);
+  
+  const pkcs8Structure: number[] = [];
+  pkcs8Structure.push(0x02, 0x01, 0x00);
+  pkcs8Structure.push(...rsaAlgorithmId);
+  
+  const octetLength = encodeDerLength(pkcs1Data.length);
+  pkcs8Structure.push(0x04, ...octetLength, ...pkcs1Data);
+  
+  const mainSeqLength = encodeDerLength(pkcs8Structure.length);
+  const pkcs8Data = new Uint8Array([0x30, ...mainSeqLength, ...pkcs8Structure]);
+  
+  const base64String = btoa(String.fromCharCode(...pkcs8Data));
+  return `-----BEGIN PRIVATE KEY-----\n${base64String.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
 }
 
-async function refreshOAuthToken(refreshToken: string, userId: string): Promise<boolean> {
-  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-  const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
-
-  if (!integrationKey || !clientSecret) {
-    console.error('Missing integration key or client secret for token refresh');
-    return false;
-  }
-
-  try {
-    const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${integrationKey}:${clientSecret}`)}`
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken
-      })
-    });
-
-    if (!response.ok) {
-      console.error('Token refresh failed:', response.status, await response.text());
-      return false;
-    }
-
-    const oAuthToken: OAuthTokenResponse = await response.json();
-    
-    // Update token in database
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    await supabase.from('docusign_tokens').update({
-      access_token: oAuthToken.access_token,
-      refresh_token: oAuthToken.refresh_token || refreshToken,
-      expires_at: new Date(Date.now() + (oAuthToken.expires_in * 1000)).toISOString(),
-      updated_at: new Date().toISOString()
-    }).eq('user_id', userId);
-
-    console.log('✅ OAuth token refreshed successfully');
-    return true;
-
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    return false;
-  }
-}
-
-async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string> {
-  try {
-    console.log('Using DocuSign SDK for JWT authentication...');
-    console.log('Integration Key:', integrationKey.substring(0, 8) + '...');
-    console.log('User ID:', userId.substring(0, 8) + '...');
-    console.log('Account ID:', accountId.substring(0, 8) + '...');
-    console.log('Target: demo.docusign.net environment');
-    
-    // Initialize DocuSign API client for demo environment
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    const apiClient = new ApiClient();
-    apiClient.setBasePath('https://demo.docusign.net/restapi');
-    
-    // Configure OAuth settings for demo
-    apiClient.setOAuthBasePath('account-d.docusign.com');
-    
-    console.log('API Client configured for demo environment');
-    
-    // Clean and format the private key
-    let cleanPrivateKey = privateKey.trim();
-    
-    // Ensure proper PKCS#8 format if needed
-    if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-      console.log('Converting PKCS#1 key to PKCS#8 format for SDK');
-      cleanPrivateKey = await convertPKCS1toPKCS8(cleanPrivateKey);
-    } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
-    }
-    
-    console.log('Private key formatted successfully');
-    
-    // Request JWT token using the SDK
-    console.log('Requesting JWT access token using SDK...');
-    
-    try {
-      const results = await apiClient.requestJWTUserToken(
-        integrationKey,
-        userId,
-        "signature",
-        cleanPrivateKey,
-        3600 // expiresIn: JWT token expiration in seconds (1 hour)
-      );
-      
-      console.log('JWT token request successful');
-      
-      if (!results || !results.body || !results.body.access_token) {
-        console.error('No access token in SDK response:', results);
-        throw new Error('No access token received from DocuSign SDK');
-      }
-      
-      const accessToken = results.body.access_token;
-      console.log('✅ Successfully obtained DocuSign access token using SDK');
-      console.log('Token type:', results.body.token_type);
-      console.log('Expires in:', results.body.expires_in, 'seconds');
-      
-      return accessToken;
-    } catch (jwtError) {
-      console.error('JWT authentication failed:', jwtError);
-      console.error('Error details:', jwtError.message);
-      throw new Error(`DocuSign SDK JWT authentication failed: ${jwtError.message}`);
-    }
-    
-  } catch (error: any) {
-    console.error('DocuSign SDK JWT authentication failed:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
-    // Check for specific error types
-    if (error.message && error.message.includes('consent_required')) {
-      console.log('Consent required - user needs to grant consent first');
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`CONSENT_REQUIRED: User consent is required. Visit: ${consentUrl}`);
-    }
-    
-    if (error.message && error.message.includes('user_not_found')) {
-      console.log('User not found error - User ID is incorrect');
-      console.log('Current User ID being used:', userId);
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
-    }
-    
-    throw new Error(`DocuSign SDK JWT authentication failed: ${error.message}`);
-  }
-}
-
-// Helper function to convert PKCS#1 to PKCS#8 format
-async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
-  try {
-    // Extract the raw key content
-    const keyContent = pkcs1Key
-      .replace('-----BEGIN RSA PRIVATE KEY-----', '')
-      .replace('-----END RSA PRIVATE KEY-----', '')
-      .replace(/\s/g, '');
-    
-    // Decode the base64 content
-    const binaryString = atob(keyContent);
-    const pkcs1Data = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      pkcs1Data[i] = binaryString.charCodeAt(i);
-    }
-    
-    // RSA algorithm identifier in DER format
-    const rsaAlgorithmId = new Uint8Array([
-      0x30, 0x0d, // SEQUENCE, length 13
-      0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // RSA OID
-      0x05, 0x00 // NULL parameters
-    ]);
-    
-    // Create the PKCS#8 structure
-    const pkcs8Structure: number[] = [];
-    
-    // Version (INTEGER 0)
-    pkcs8Structure.push(0x02, 0x01, 0x00);
-    
-    // Algorithm identifier
-    pkcs8Structure.push(...rsaAlgorithmId);
-    
-    // Private key (OCTET STRING)
-    const privateKeyOctetString = encodeDERLength(pkcs1Data.length);
-    pkcs8Structure.push(0x04, ...privateKeyOctetString, ...pkcs1Data);
-    
-    // Wrap in main SEQUENCE
-    const mainSeqLength = encodeDERLength(pkcs8Structure.length);
-    const pkcs8Data = new Uint8Array([0x30, ...mainSeqLength, ...pkcs8Structure]);
-    
-    // Convert back to base64
-    const base64String = btoa(String.fromCharCode(...pkcs8Data));
-    
-    // Format as PEM
-    return `-----BEGIN PRIVATE KEY-----\n${base64String.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
-    
-  } catch (error) {
-    console.error('Failed to convert PKCS#1 to PKCS#8:', error);
-    throw new Error('Failed to convert private key format');
-  }
-}
-
-function encodeDERLength(length: number): number[] {
-  if (length < 0x80) {
-    return [length];
-  }
+function encodeDerLength(length: number): number[] {
+  if (length < 0x80) return [length];
   
   const bytes: number[] = [];
   let temp = length;
@@ -386,108 +151,75 @@ function encodeDERLength(length: number): number[] {
     bytes.unshift(temp & 0xff);
     temp = temp >> 8;
   }
-  
   return [0x80 | bytes.length, ...bytes];
 }
 
-async function getUserInfo(accessToken: string): Promise<DocuSignUserInfo> {
-  const response = await fetch('https://account-d.docusign.com/oauth/userinfo', {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Failed to get user info: ${response.status} - ${errorData}`);
-  }
-
-  return await response.json();
-}
-
-// Function to download document from DocuSign using SDK
+/**
+ * Download document from DocuSign using REST API
+ */
 async function downloadDocumentFromDocuSign(
-  accessToken: string, 
-  baseUri: string, 
-  accountId: string, 
-  envelopeId: string, 
+  accessToken: string,
+  accountId: string,
+  envelopeId: string,
   documentId: string = 'combined'
 ): Promise<Uint8Array> {
-  
-  console.log('📥 Downloading document from DocuSign using SDK...');
-  console.log('🔗 Base URI:', baseUri);
+  console.log('📥 Downloading document from DocuSign REST API...');
   console.log('🏢 Account ID:', accountId);
   console.log('📋 Envelope ID:', envelopeId);
   console.log('📄 Document ID:', documentId);
 
-  try {
-    // Initialize DocuSign API client
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    const EnvelopesApi = docusign.EnvelopesApi || docusign.default?.EnvelopesApi;
-    
-    const apiClient = new ApiClient();
-    apiClient.setBasePath(baseUri);
-    
-    // Set authentication
-    apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
-    
-    // Create EnvelopesApi instance
-    const envelopesApi = new EnvelopesApi(apiClient);
-    
-    console.log('🔍 Checking envelope status first...');
-    
-    // Step 1: Check envelope status first (best practice)
-    const envelopeInfo = await envelopesApi.getEnvelope(accountId, envelopeId);
-    console.log('📋 Envelope status:', envelopeInfo.status);
-    
-    if (envelopeInfo.status !== 'completed') {
-      throw new Error(`Envelope is not completed. Current status: ${envelopeInfo.status}`);
-    }
-    
-    console.log('📥 Downloading document using EnvelopesApi.getDocument...');
-    
-    // Step 2: Download the document using SDK
-    const documentResult = await envelopesApi.getDocument(accountId, envelopeId, documentId);
-    
-    if (!documentResult) {
-      throw new Error('No document data received from DocuSign');
-    }
-    
-    console.log('✅ Document downloaded successfully using SDK');
-    
-    // Convert the result to Uint8Array
-    let documentBytes: Uint8Array;
-    
-    if (documentResult instanceof ArrayBuffer) {
-      documentBytes = new Uint8Array(documentResult);
-    } else if (documentResult instanceof Uint8Array) {
-      documentBytes = documentResult;
-    } else if (typeof documentResult === 'string') {
-      // If it's a base64 string, decode it
-      const binaryString = atob(documentResult);
-      documentBytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        documentBytes[i] = binaryString.charCodeAt(i);
+  // First check envelope status
+  const statusResponse = await fetch(
+    `${DOCUSIGN_API_BASE_URL}/v2.1/accounts/${accountId}/envelopes/${envelopeId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
-    } else {
-      // Try to convert buffer-like objects
-      documentBytes = new Uint8Array(documentResult);
     }
-    
-    console.log(`📊 Document size: ${documentBytes.length} bytes`);
-    return documentBytes;
-    
-  } catch (error: any) {
-    console.error('❌ Failed to download document using SDK:', error);
-    console.error('Error details:', error.message);
-    throw new Error(`Failed to download document: ${error.message}`);
+  );
+
+  if (!statusResponse.ok) {
+    const errorText = await statusResponse.text();
+    console.error('Failed to get envelope status:', errorText);
+    throw new Error(`Failed to get envelope status: ${statusResponse.status}`);
   }
+
+  const envelopeInfo = await statusResponse.json();
+  console.log('📋 Envelope status:', envelopeInfo.status);
+
+  if (envelopeInfo.status !== 'completed') {
+    throw new Error(`Envelope is not completed. Current status: ${envelopeInfo.status}`);
+  }
+
+  // Download the document
+  const downloadResponse = await fetch(
+    `${DOCUSIGN_API_BASE_URL}/v2.1/accounts/${accountId}/envelopes/${envelopeId}/documents/${documentId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/pdf'
+      }
+    }
+  );
+
+  if (!downloadResponse.ok) {
+    const errorText = await downloadResponse.text();
+    console.error('Failed to download document:', errorText);
+    throw new Error(`Failed to download document: ${downloadResponse.status}`);
+  }
+
+  const arrayBuffer = await downloadResponse.arrayBuffer();
+  const documentBytes = new Uint8Array(arrayBuffer);
+  
+  console.log(`✅ Downloaded document: ${documentBytes.length} bytes`);
+  return documentBytes;
 }
 
 serve(async (req: Request) => {
   console.log('=== DocuSign Download Signed Document Function Started ===');
   
-  // Handle CORS preflight requests
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -502,8 +234,8 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get user from token
-    let currentUserId = '00000000-0000-0000-0000-000000000000'; // fallback
+    // Get user ID
+    let currentUserId = '00000000-0000-0000-0000-000000000000';
     if (token) {
       const userClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -527,24 +259,23 @@ serve(async (req: Request) => {
 
     console.log('🎯 Processing request for envelope:', envelopeId, 'deal:', dealId);
 
-    // Step 1: Get fresh DocuSign access token
-    console.log('🔐 Step 1: Getting fresh DocuSign access token...');
-    const { access_token, base_uri, account_id } = await getDocuSignAccessToken(currentUserId);
-    console.log('✅ Successfully obtained fresh access token');
+    // Step 1: Get DocuSign access token
+    console.log('🔐 Step 1: Getting DocuSign access token...');
+    const accessToken = await getJWTAccessToken();
+    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID') ?? '';
 
     // Step 2: Download document from DocuSign
     console.log('📥 Step 2: Downloading document from DocuSign...');
     const documentBytes = await downloadDocumentFromDocuSign(
-      access_token,
-      base_uri,
-      account_id,
+      accessToken,
+      accountId,
       envelopeId,
       documentId
     );
 
     console.log(`📊 Downloaded document size: ${documentBytes.length} bytes`);
 
-    // Step 3: Get original document name from signature record
+    // Step 3: Get original document name
     const { data: signature } = await supabase
       .from('document_signatures')
       .select('document_id')
@@ -561,7 +292,9 @@ serve(async (req: Request) => {
         .single();
       
       if (originalDoc?.name) {
-        fileName = `SIGNED_${originalDoc.name}`;
+        // Ensure the signed file has .pdf extension
+        const baseName = originalDoc.name.replace(/\.[^/.]+$/, '');
+        fileName = `SIGNED_${baseName}.pdf`;
       }
     }
 
@@ -578,12 +311,12 @@ serve(async (req: Request) => {
 
     if (uploadError) {
       console.error('❌ Storage upload failed:', uploadError);
-      throw new Error('Failed to save document to storage');
+      throw new Error(`Failed to save document to storage: ${uploadError.message}`);
     }
 
     console.log('✅ Document saved to storage:', storagePath);
 
-    // Step 5: Create document record in database
+    // Step 5: Create document record
     const { data: newDoc, error: createError } = await supabase
       .from('documents')
       .insert({
@@ -602,11 +335,13 @@ serve(async (req: Request) => {
 
     if (createError) {
       console.error('❌ Failed to create document record:', createError);
-      throw new Error('Failed to create document record');
+      throw new Error(`Failed to create document record: ${createError.message}`);
     }
 
+    console.log('✅ Created document record:', newDoc.id);
+
     // Step 6: Create document version record
-    await supabase
+    const { error: versionError } = await supabase
       .from('document_versions')
       .insert({
         document_id: newDoc.id,
@@ -614,9 +349,13 @@ serve(async (req: Request) => {
         storage_path: storagePath,
         size: documentBytes.length,
         type: 'application/pdf',
-        uploaded_by: newDoc.uploaded_by,
+        uploaded_by: currentUserId,
         description: 'Signed document downloaded from DocuSign'
       });
+
+    if (versionError) {
+      console.error('Warning: Failed to create version record:', versionError);
+    }
 
     // Step 7: Update signature status
     await supabase
@@ -647,9 +386,10 @@ serve(async (req: Request) => {
     );
 
   } catch (error: any) {
-    console.error('DocuSign download error:', error);
+    console.error('❌ DocuSign download error:', error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message,
         details: 'Failed to download signed document from DocuSign'
       }),
