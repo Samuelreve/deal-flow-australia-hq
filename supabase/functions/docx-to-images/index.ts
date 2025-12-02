@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import mammoth from "npm:mammoth@1.6.0"
+import mammoth from "https://esm.sh/mammoth@1.6.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
