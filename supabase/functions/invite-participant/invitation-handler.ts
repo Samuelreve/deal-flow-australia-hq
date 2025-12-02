@@ -1,7 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 import { generateInvitationEmail } from "../_shared/email-templates.ts";
 import { 
   InviteRequest, 
