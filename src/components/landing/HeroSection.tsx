@@ -1,17 +1,70 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Menu, X, User, Settings, LogOut, Bot } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import StatsCard from "./StatsCard";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
   scrollToSection: (sectionId: string) => void;
 }
 
+const navLinks = [
+  { label: "Features", sectionId: "features" },
+  { label: "How It Works", sectionId: "how-it-works" },
+  { label: "FAQ", sectionId: "faq" },
+];
+
 const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const getInitials = () => {
+    if (user?.name) {
+      return user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.charAt(0).toUpperCase() || "U";
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
+  const NavLinks = ({ onClick }: { onClick?: () => void }) => (
+    <>
+      {navLinks.map((link) => (
+        <button
+          key={link.sectionId}
+          onClick={() => {
+            scrollToSection(link.sectionId);
+            onClick?.();
+          }}
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {link.label}
+        </button>
+      ))}
+    </>
+  );
 
   return (
     <header className="relative bg-gradient-to-b from-background to-background/80">
@@ -28,16 +81,75 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
             Trustroom.ai
           </motion.div>
         </div>
-        <div className="flex items-center gap-4">
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-6">
+          <nav className="flex items-center gap-6">
+            <NavLinks />
+          </nav>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/ai-assistant")}
+            className="gap-2 hover:text-primary transition-colors"
+          >
+            <Bot className="h-4 w-4" />
+            AI Assistant
+          </Button>
+
           {isAuthenticated ? (
-            <Button 
-              onClick={() => navigate("/dashboard")}
-              className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
-            >
-              Dashboard
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate("/dashboard")}
+                className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
+              >
+                Dashboard
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user?.profile?.avatar_url} alt={user?.name || "User"} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-popover" align="end" forceMount>
+                  <div className="flex items-center gap-2 p-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.profile?.avatar_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : (
-            <>
+            <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate("/login")}
@@ -51,8 +163,123 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
               >
                 Get Started
               </Button>
-            </>
+            </div>
           )}
+        </div>
+
+        {/* Mobile Menu */}
+        <div className="md:hidden">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+              <nav className="flex flex-col gap-4 mt-8">
+                <NavLinks onClick={() => setMobileMenuOpen(false)} />
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    navigate("/ai-assistant");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="justify-start gap-2"
+                >
+                  <Bot className="h-4 w-4" />
+                  AI Assistant
+                </Button>
+
+                <div className="h-px bg-border my-2" />
+
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 px-2 py-2">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user?.profile?.avatar_url} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user?.name || "User"}</span>
+                        <span className="text-xs text-muted-foreground">{user?.email}</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => {
+                        navigate("/dashboard");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
+                    >
+                      Dashboard
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        navigate("/profile");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="justify-start"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        navigate("/settings");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="justify-start"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="justify-start text-destructive hover:text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => {
+                        navigate("/login");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="justify-start"
+                    >
+                      Log in
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        navigate("/signup");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0"
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
       
