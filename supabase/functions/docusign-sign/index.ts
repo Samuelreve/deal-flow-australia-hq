@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-// Import DocuSign SDK using esm.sh for Deno compatibility
-const docusign = await import('https://esm.sh/docusign-esign@8.2.0');
+// NOTE: Do NOT import docusign-esign SDK - it crashes in Deno due to Node.js dependencies
+// Use direct REST API calls instead
 
 declare const Deno: {
   env: {
@@ -18,26 +18,6 @@ const corsHeaders = {
 
 // DocuSign OAuth endpoints
 const DOCUSIGN_AUTH_BASE_URL = 'https://account-d.docusign.com';
-
-// Store DocuSign token data (OAuth-based)
-let docusignTokenData: {
-  access_token: string;
-  refresh_token?: string;
-  account_id: string;
-  base_uri: string;
-  expires_at: number;
-  user_info: DocuSignUserInfo;
-} | null = null;
-
-// Legacy configuration support
-let docusignConfig: {
-  integrationKey: string;
-  userId: string;
-  privateKey: string;
-  accountId: string;
-  accessToken?: string;
-  tokenExpiresAt?: number;
-} | null = null;
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -64,7 +44,7 @@ interface DocuSignRequest {
   dealId: string;
   signerEmail: string;
   signerName: string;
-  signerRole: 'buyer' | 'seller';
+  signerRole: 'buyer' | 'seller' | 'admin';
   buyerEmail?: string;
   buyerName?: string;
   signaturePositions?: Array<{
@@ -77,28 +57,11 @@ interface DocuSignRequest {
   }>;
 }
 
-interface EnvelopeRecipient {
-  email: string;
-  name: string;
-  recipientId: string;
-  routingOrder: string;
-  xPosition?: string;
-  yPosition?: string;
-  pageNumber?: string;
-}
-
-interface EnvelopeDocument {
-  documentBase64: string;
-  documentId: string;
-  fileExtension: string;
-  name: string;
-}
-
 serve(async (req: Request) => {
   console.log('=== DocuSign Function Started ===');
   console.log('Request method:', req.method);
   
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests FIRST
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
@@ -110,11 +73,6 @@ serve(async (req: Request) => {
     const operation = url.pathname.split('/').pop();
 
     console.log('Operation:', operation);
-
-    // Handle configuration endpoint
-    if (operation === 'configure') {
-      return await handleConfigureRequest(req);
-    }
 
     // Handle OAuth operations
     if (operation === 'auth') {
@@ -157,57 +115,12 @@ serve(async (req: Request) => {
 });
 
 /**
- * Handle configuration request - set DocuSign credentials
- */
-async function handleConfigureRequest(req: Request): Promise<Response> {
-  const { integrationKey, userId, privateKey, accountId } = await req.json();
-
-  if (!integrationKey || !userId || !privateKey || !accountId) {
-    return new Response(
-      JSON.stringify({ error: 'Missing required credentials: integrationKey, userId, privateKey, accountId' }),
-      { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
-  }
-
-  // Store configuration
-  docusignConfig = {
-    integrationKey,
-    userId,
-    privateKey,
-    accountId
-  };
-
-  console.log('✅ DocuSign configuration updated');
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      message: 'DocuSign configuration updated successfully',
-      config: {
-        integrationKey: integrationKey.substring(0, 8) + '...',
-        userId: userId.substring(0, 8) + '...',
-        accountId: accountId.substring(0, 8) + '...',
-        hasPrivateKey: !!privateKey
-      }
-    }),
-    { 
-      status: 200,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders }
-    }
-  );
-}
-
-/**
  * Handle authorization request - return authorization URL
  */
 async function handleAuthorizationRequest(req: Request): Promise<Response> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
   let redirectUri = Deno.env.get('DOCUSIGN_REDIRECT_URI');
 
-  // If no redirect URI is configured, use the callback function URL
   if (!redirectUri) {
     redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback`;
   }
@@ -222,10 +135,8 @@ async function handleAuthorizationRequest(req: Request): Promise<Response> {
     );
   }
 
-  // Generate a random state parameter for security
   const state = crypto.randomUUID();
   
-  // Build authorization URL
   const authUrl = new URL(`${DOCUSIGN_AUTH_BASE_URL}/oauth/auth`);
   authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('scope', 'signature');
@@ -264,7 +175,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
     );
   }
 
-  const { code, state } = await req.json();
+  const { code } = await req.json();
 
   if (!code) {
     return new Response(
@@ -277,7 +188,6 @@ async function handleTokenRequest(req: Request): Promise<Response> {
   }
 
   try {
-    // Exchange authorization code for access token
     const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: {
@@ -297,31 +207,14 @@ async function handleTokenRequest(req: Request): Promise<Response> {
     }
 
     const oAuthToken: OAuthTokenResponse = await response.json();
-
-    // Get user info
     const userInfo = await getUserInfo(oAuthToken.access_token);
-
-    // Set base path for the default account
     const defaultAccount = userInfo.accounts.find(acc => acc.is_default) || userInfo.accounts[0];
     
     if (!defaultAccount) {
       throw new Error('No DocuSign account found for user');
     }
 
-    // Store token information in database and memory
-    const expiresAt = Date.now() + (oAuthToken.expires_in * 1000);
-    docusignTokenData = {
-      access_token: oAuthToken.access_token,
-      refresh_token: oAuthToken.refresh_token,
-      account_id: defaultAccount.account_id,
-      base_uri: defaultAccount.base_uri,
-      expires_at: expiresAt,
-      user_info: userInfo
-    };
-    
-    // Tokens are stored in memory only, no database persistence needed
-
-    console.log('✅ Successfully obtained and stored DocuSign access token via OAuth');
+    console.log('✅ Successfully obtained DocuSign access token via OAuth');
 
     return new Response(
       JSON.stringify({
@@ -347,7 +240,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('OAuth token exchange error:', error);
     return new Response(
       JSON.stringify({ 
@@ -411,17 +304,6 @@ async function handleRefreshRequest(req: Request): Promise<Response> {
 
     const oAuthToken: OAuthTokenResponse = await response.json();
 
-    // Update the stored token data with the new access token
-    if (docusignTokenData) {
-      const expiresAt = Date.now() + (oAuthToken.expires_in * 1000);
-      docusignTokenData = {
-        ...docusignTokenData,
-        access_token: oAuthToken.access_token,
-        refresh_token: oAuthToken.refresh_token || docusignTokenData.refresh_token,
-        expires_at: expiresAt
-      };
-    }
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -440,7 +322,7 @@ async function handleRefreshRequest(req: Request): Promise<Response> {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Token refresh error:', error);
     return new Response(
       JSON.stringify({ 
@@ -475,7 +357,6 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
 
   try {
     const userInfo = await getUserInfo(accessToken);
-    
     const defaultAccount = userInfo.accounts.find(acc => acc.is_default) || userInfo.accounts[0];
 
     return new Response(
@@ -494,7 +375,7 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('User info error:', error);
     return new Response(
       JSON.stringify({ 
@@ -510,81 +391,20 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
 }
 
 /**
- * Handle status request - get current configuration and token status
+ * Handle status request
  */
 async function handleStatusRequest(req: Request): Promise<Response> {
-  console.log('🔍 Status request - checking for stored token data...');
+  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+  const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
   
-  // Use JWT authentication directly, no database lookup needed
-  
-  // Check OAuth token data in memory (fallback)
-  if (docusignTokenData) {
-    const expired = isTokenExpired();
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        authMethod: 'oauth',
-        isAuthenticated: true,
-        // For compatibility with retrieve function, include fields at top level
-        account_id: docusignTokenData.account_id,
-        base_uri: docusignTokenData.base_uri,
-        access_token: docusignTokenData.access_token,
-        tokenData: {
-          account_id: docusignTokenData.account_id,
-          base_uri: docusignTokenData.base_uri,
-          expires_at: docusignTokenData.expires_at,
-          user_info: docusignTokenData.user_info
-        },
-        tokenStatus: {
-          isExpired: expired,
-          hasRefreshToken: !!docusignTokenData.refresh_token,
-          expiresIn: Math.max(0, docusignTokenData.expires_at - Date.now()) / 1000
-        },
-        message: expired ? 'OAuth token is expired' : 'OAuth token is valid'
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
-  }
-
-  // Check legacy JWT configuration
-  if (!docusignConfig) {
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        authMethod: 'none',
-        message: 'DocuSign not configured. Please configure credentials or use OAuth authentication.',
-        isConfigured: false,
-        isAuthenticated: false
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
-  }
-
-  const hasValidToken = docusignConfig.accessToken && 
-    docusignConfig.tokenExpiresAt && 
-    Date.now() < docusignConfig.tokenExpiresAt;
-
   return new Response(
     JSON.stringify({
-      success: true,
-      authMethod: 'jwt',
-      isConfigured: true,
-      isAuthenticated: hasValidToken,
-      hasValidToken,
-      tokenExpiresIn: hasValidToken ? 
-        Math.max(0, (docusignConfig.tokenExpiresAt! - Date.now()) / 1000) : 0,
-      config: {
-        integrationKey: docusignConfig.integrationKey.substring(0, 8) + '...',
-        userId: docusignConfig.userId.substring(0, 8) + '...',
-        accountId: docusignConfig.accountId.substring(0, 8) + '...'
-      }
+      configured: !!(integrationKey && clientSecret),
+      hasIntegrationKey: !!integrationKey,
+      hasClientSecret: !!clientSecret,
+      message: integrationKey && clientSecret 
+        ? 'DocuSign is configured' 
+        : 'DocuSign credentials not fully configured'
     }),
     { 
       status: 200,
@@ -594,854 +414,75 @@ async function handleStatusRequest(req: Request): Promise<Response> {
 }
 
 /**
- * Handle signing request - main document signing logic
+ * Get user info from DocuSign
  */
-async function handleSigningRequest(req: Request): Promise<Response> {
-  // Auto-configure from environment variables if not already configured
-  if (!docusignTokenData && !docusignConfig) {
-    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-    const userId = Deno.env.get('DOCUSIGN_USER_ID');
-    const privateKey = Deno.env.get('DOCUSIGN_PRIVATE_KEY');
-    const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID');
-
-    if (integrationKey && userId && privateKey && accountId) {
-      console.log('Auto-configuring DocuSign from environment variables');
-      console.log('Integration Key:', integrationKey?.substring(0, 8) + '...');
-      console.log('User ID:', userId?.substring(0, 8) + '...');
-      console.log('Account ID:', accountId?.substring(0, 8) + '...');
-      console.log('Has Private Key:', !!privateKey);
-      docusignConfig = {
-        integrationKey,
-        userId,
-        privateKey,
-        accountId
-      };
-    } else {
-      return new Response(
-        JSON.stringify({ 
-          error: 'DocuSign not configured. Please use OAuth authentication or configure JWT credentials.',
-          oauthEndpoint: '/auth',
-          configureEndpoint: '/configure',
-          missingEnvVars: {
-            DOCUSIGN_INTEGRATION_KEY: !integrationKey,
-            DOCUSIGN_USER_ID: !userId,
-            DOCUSIGN_PRIVATE_KEY: !privateKey,
-            DOCUSIGN_ACCOUNT_ID: !accountId
-          }
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
+async function getUserInfo(accessToken: string): Promise<DocuSignUserInfo> {
+  const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/userinfo`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
     }
-  }
-
-  console.log('Creating Supabase client...');
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  console.log('Parsing request body...');
-  const requestBody = await req.json();
-  console.log('Raw request body:', requestBody);
-  
-  const { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, signaturePositions }: DocuSignRequest = requestBody;
-
-  // Validate required parameters
-  if (!documentId || !dealId || !signerEmail || !signerName || !signerRole) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'Missing required parameters',
-        required: ['documentId', 'dealId', 'signerEmail', 'signerName', 'signerRole'],
-        received: {
-          documentId: !!documentId,
-          dealId: !!dealId,
-          signerEmail: !!signerEmail,
-          signerName: !!signerName,
-          signerRole: !!signerRole
-        }
-      }),
-      { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      }
-    );
-  }
-
-  console.log('DocuSign request:', { documentId, dealId, signerEmail, signerName, signerRole, buyerEmail, buyerName, hasPositions: !!signaturePositions });
-
-  // Get document details from database
-  const { data: document, error: docError } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('id', documentId)
-    .single();
-
-  if (docError || !document) {
-    throw new Error('Document not found');
-  }
-
-  // Prepare signers list
-  let signers: EnvelopeRecipient[] = [];
-
-  if (signaturePositions && signaturePositions.length > 0) {
-    // Use the provided signature positions
-    signers = signaturePositions.map((pos, index) => {
-      // Set requesting signer to routing order 1, others to 2
-      const isRequestingSigner = pos.email === signerEmail;
-      
-      return {
-        email: pos.email,
-        name: pos.name,
-        recipientId: pos.recipientId,
-        routingOrder: isRequestingSigner ? "1" : "2",
-        xPosition: pos.xPosition,
-        yPosition: pos.yPosition,
-        pageNumber: pos.pageNumber
-      };
-    });
-    console.log('Signers configuration:', signers.map(s => ({
-      email: s.email,
-      name: s.name,
-      recipientId: s.recipientId,
-      routingOrder: s.routingOrder,
-      isRequestingSigner: s.email === signerEmail
-    })));
-  } else {
-    // Fallback to legacy behavior - find opposite party
-    const { data: participants, error: participantsError } = await supabase
-      .from('deal_participants')
-      .select('user_id, role, profiles!inner(name, email)')
-      .eq('deal_id', dealId);
-
-    if (participantsError) {
-      throw new Error('Failed to get deal participants');
-    }
-
-    // Find the opposite party to send for signing
-    const oppositeRole = signerRole === 'buyer' ? 'seller' : 'buyer';
-    const oppositeParty = participants.find(p => p.role === oppositeRole);
-
-    if (!oppositeParty) {
-      throw new Error(`No ${oppositeRole} found for this deal`);
-    }
-
-    signers = [
-      {
-        email: signerEmail,
-        name: signerName,
-        recipientId: '1',
-        routingOrder: '1'
-      },
-      {
-        email: oppositeParty.profiles.email,
-        name: oppositeParty.profiles.name,
-        recipientId: '2',
-        routingOrder: '1' // Changed to 1 for concurrent signing
-      }
-    ];
-
-    console.log('Using legacy signer setup:', signers);
-  }
-
-  // Download document from Supabase storage
-  // Try different bucket names since there are multiple buckets
-  let fileData: Blob | null = null;
-  let downloadError: any = null;
-  
-  const buckets = ['deal_documents', 'Deal Documents', 'Documents', 'contracts'];
-  
-  for (const bucket of buckets) {
-    // Try both with and without deal ID prefix in the path
-    const possiblePaths = [
-      document.storage_path, // Original path
-      `${dealId}/${document.storage_path}` // Path with deal ID prefix
-    ];
-    
-    for (const path of possiblePaths) {
-      console.log(`Trying to download from bucket: ${bucket}, path: ${path}`);
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .download(path);
-      
-      if (!error && data) {
-        fileData = data;
-        console.log(`Successfully downloaded from bucket: ${bucket}, path: ${path}`);
-        break;
-      } else {
-        console.log(`Failed to download from bucket ${bucket}, path ${path}:`, error?.message);
-        downloadError = error;
-      }
-    }
-    
-    if (fileData) break;
-  }
-
-  if (!fileData) {
-    console.error('Failed to download document from any bucket. Last error:', downloadError);
-    throw new Error(`Failed to download document from any bucket. Last error: ${JSON.stringify(downloadError)}`);
-  }
-
-  // Determine file extension from filename
-  const fileExtension = document.name.split('.').pop()?.toLowerCase() || 'pdf';
-  console.log(`Document file extension: ${fileExtension}`);
-  
-  let documentBase64 = '';
-  let finalFileExtension = fileExtension;
-  
-  // For all file types, convert to base64 directly
-  // DocuSign supports DOCX natively, so no conversion needed
-  const arrayBuffer = await fileData.arrayBuffer();
-  documentBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-  // Get DocuSign access token
-  const accessToken = await getDocuSignAccessToken();
-
-  // Get DocuSign configuration for saving to database
-  let tokenDataToSave = null;
-  
-  // Try to get OAuth token data first
-  if (docusignTokenData) {
-    tokenDataToSave = docusignTokenData;
-  } else if (docusignConfig) {
-    // Create token data from JWT configuration
-    tokenDataToSave = {
-      access_token: accessToken,
-      refresh_token: null,
-      account_id: docusignConfig.accountId,
-      base_uri: 'https://demo.docusign.net',
-      expires_at: Date.now() + (3600 * 1000), // 1 hour from now
-      user_info: { sub: docusignConfig.userId, name: 'JWT User', email: '', accounts: [] }
-    };
-  }
-
-  console.log('✅ Successfully obtained DocuSign access token using SDK');
-
-  // Create envelope for signing  
-  const envelope = await createDocuSignEnvelope({
-    document: {
-      documentBase64,
-      documentId: '1',
-      fileExtension: finalFileExtension,
-      name: document.name
-    },
-    signers,
-    accessToken,
-    signerEmail
   });
 
-  // Get signing URL for the requesting signer (embedded signing)
-  const requestingSigner = signers.find(s => s.email === signerEmail);
-  let signingUrl = null;
+  if (!response.ok) {
+    throw new Error(`Failed to get user info: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Get token from database for the authenticated user
+ */
+async function getTokenFromDatabase(userId: string): Promise<{
+  access_token: string;
+  refresh_token?: string;
+  account_id: string;
+  base_uri: string;
+  expires_at: string;
+} | null> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   
-  if (requestingSigner) {
-    console.log(`Requesting signer found: ${requestingSigner.email} - attempting embedded signing`);
-    
-    try {
-      // Generate embedded signing URL for the requesting signer
-      signingUrl = await getSigningUrl(envelope.envelopeId, requestingSigner.recipientId, accessToken, signerEmail, signerName);
-      console.log('✅ Successfully generated embedded signing URL for requesting signer');
-    } catch (error) {
-      console.error('Failed to generate embedded signing URL:', error);
-      console.log('User will need to sign via email invitation instead');
-    }
-  } else {
-    console.log('Requesting signer is not in the signers list - envelope created for assigned users only');
-  }
-
-  // Store envelope information in database
-  await supabase
-    .from('document_signatures')
-    .insert({
-      document_id: documentId,
-      deal_id: dealId,
-      envelope_id: envelope.envelopeId,
-      signer_email: signerEmail,
-      signer_role: signerRole,
-      status: 'sent'
-    });
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      signingUrl: signingUrl || null,
-      envelopeId: envelope.envelopeId,
-      message: signingUrl ? 'Envelope created and signing URL generated' : 'Envelope created for assigned signers'
-    }),
-    {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    }
-  );
-}
-
-async function getDocuSignAccessToken(): Promise<string> {
-  // First try OAuth token if available
-  const oauthToken = await getValidAccessToken();
-  if (oauthToken) {
-    console.log('Using OAuth access token');
-    return oauthToken;
-  }
-
-  // Fall back to JWT authentication using DocuSign SDK
-  if (!docusignConfig) {
-    throw new Error('DocuSign not configured. Please use OAuth authentication or configure JWT credentials.');
-  }
-
-  // Check if we have a valid cached JWT token
-  if (docusignConfig.accessToken && 
-      docusignConfig.tokenExpiresAt && 
-      Date.now() < docusignConfig.tokenExpiresAt - 300000) { // 5 minutes buffer
-    console.log('Using cached JWT access token');
-    return docusignConfig.accessToken;
-  }
-
-  // Get new token using DocuSign SDK
-  console.log('Getting new JWT access token using DocuSign SDK...');
-  const accessToken = await getJWTAccessTokenWithSDK(
-    docusignConfig.integrationKey,
-    docusignConfig.userId,
-    docusignConfig.privateKey,
-    docusignConfig.accountId
-  );
-
-  // Cache the token (expires in 1 hour)
-  docusignConfig.accessToken = accessToken;
-  docusignConfig.tokenExpiresAt = Date.now() + (3600 * 1000); // 1 hour
-
-  return accessToken;
-}
-
-async function getJWTAccessTokenWithSDK(integrationKey: string, userId: string, privateKey: string, accountId: string): Promise<string> {
-  try {
-    console.log('Using DocuSign SDK for JWT authentication...');
-    console.log('Integration Key:', integrationKey.substring(0, 8) + '...');
-    console.log('User ID:', userId.substring(0, 8) + '...');
-    console.log('Account ID:', accountId.substring(0, 8) + '...');
-    console.log('Target: demo.docusign.net environment');
-    
-    // Initialize DocuSign API client for demo environment
-    console.log('DocuSign module structure:', Object.keys(docusign));
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    console.log('ApiClient type:', typeof ApiClient);
-    console.log('ApiClient keys:', ApiClient ? Object.keys(ApiClient) : 'undefined');
-    const apiClient = new ApiClient();
-    apiClient.setBasePath('https://demo.docusign.net/restapi');
-    
-    // Configure OAuth settings for demo - the SDK seems to prepend https:// automatically
-    // Use just the domain name to avoid double https://
-    apiClient.setOAuthBasePath('account-d.docusign.com');
-    
-    console.log('API Client configured for demo environment');
-    console.log('Base Path:', apiClient.getBasePath());
-    console.log('OAuth Base Path:', 'account-d.docusign.com');
-    
-    // Clean and format the private key
-    let cleanPrivateKey = privateKey.trim();
-    
-    // Ensure proper PKCS#8 format if needed
-    if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-      console.log('Converting PKCS#1 key to PKCS#8 format for SDK');
-      cleanPrivateKey = await convertPKCS1toPKCS8(cleanPrivateKey);
-    } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
-    }
-    
-    console.log('Private key formatted successfully');
-    
-    // Define scopes for JWT
-    const scopes = ['signature'];
-    
-    // Request JWT token using the SDK
-    console.log('Requesting JWT access token using SDK...');
-    
-    // Using the correct DocuSign SDK method and parameter structure
-    try {
-      const results = await apiClient.requestJWTUserToken(
-        integrationKey,
-        userId,
-        "signature",
-        cleanPrivateKey,
-        3600 // expiresIn: JWT token expiration in seconds (1 hour)
-      );
-      
-      console.log('JWT token request successful');
-      
-      if (!results || !results.body || !results.body.access_token) {
-        console.error('No access token in SDK response:', results);
-        throw new Error('No access token received from DocuSign SDK');
-      }
-      
-      const accessToken = results.body.access_token;
-      console.log('✅ Successfully obtained DocuSign access token using SDK');
-      console.log('Token type:', results.body.token_type);
-      console.log('Expires in:', results.body.expires_in, 'seconds');
-      
-      return accessToken;
-    } catch (jwtError) {
-      console.error('JWT authentication failed:', jwtError);
-      console.error('Error details:', jwtError.message);
-      throw new Error(`DocuSign SDK JWT authentication failed: ${jwtError.message}`);
-    }
-    
-  } catch (error: any) {
-    console.error('DocuSign SDK JWT authentication failed:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
-    // Check for specific error types
-    if (error.message && error.message.includes('consent_required')) {
-      console.log('Consent required - user needs to grant consent first');
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`CONSENT_REQUIRED: User consent is required. Visit: ${consentUrl}`);
-    }
-    
-    if (error.message && error.message.includes('user_not_found')) {
-      console.log('User not found error - User ID is incorrect');
-      console.log('Current User ID being used:', userId);
-      const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-oauth-callback`;
-      const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature&client_id=${integrationKey}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-      throw new Error(`USER_NOT_FOUND: The User ID "${userId}" is not valid. Please use OAuth to get the correct User ID first. OAuth URL: ${consentUrl}`);
-    }
-    
-    throw new Error(`DocuSign SDK JWT authentication failed: ${error.message}`);
-  }
-}
-
-// Helper function to convert PKCS#1 to PKCS#8 format
-async function convertPKCS1toPKCS8(pkcs1Key: string): Promise<string> {
-  try {
-    console.log('🔄 Converting PKCS#1 to PKCS#8 format...');
-    
-    // Extract the raw key content
-    const keyContent = pkcs1Key
-      .replace('-----BEGIN RSA PRIVATE KEY-----', '')
-      .replace('-----END RSA PRIVATE KEY-----', '')
-      .replace(/\r?\n/g, '')
-      .replace(/\s/g, '');
-    
-    console.log('Key content length after cleaning:', keyContent.length);
-    
-    // Decode the base64 content
-    const binaryString = atob(keyContent);
-    const pkcs1Data = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      pkcs1Data[i] = binaryString.charCodeAt(i);
-    }
-    
-    console.log('PKCS#1 data length:', pkcs1Data.length);
-    
-    // Create PKCS#8 structure using proper ASN.1 encoding
-    const version = new Uint8Array([0x02, 0x01, 0x00]); // INTEGER 0
-    
-    // RSA algorithm identifier (1.2.840.113549.1.1.1)
-    const algorithmId = new Uint8Array([
-      0x30, 0x0d, // SEQUENCE of 13 bytes
-      0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // RSA OID
-      0x05, 0x00  // NULL
-    ]);
-    
-    // Wrap PKCS#1 data in OCTET STRING
-    const privateKeyInfo = encodeAsn1(0x04, pkcs1Data); // OCTET STRING
-    
-    // Combine all parts
-    const privateKeyInfoSequence = concatArrays([version, algorithmId, privateKeyInfo]);
-    
-    // Wrap everything in a SEQUENCE
-    const pkcs8Data = encodeAsn1(0x30, privateKeyInfoSequence); // SEQUENCE
-    
-    // Convert to base64
-    const base64 = btoa(String.fromCharCode(...pkcs8Data));
-    
-    // Format as PEM with proper line breaks
-    const formatted = base64.match(/.{1,64}/g)?.join('\n') || base64;
-    const pemKey = `-----BEGIN PRIVATE KEY-----\n${formatted}\n-----END PRIVATE KEY-----`;
-    
-    console.log('✅ Successfully converted PKCS#1 to PKCS#8');
-    console.log('PKCS#8 key length:', pemKey.length);
-    
-    return pemKey;
-    
-  } catch (error) {
-    console.error('❌ Failed to convert PKCS#1 to PKCS#8:', error);
-    console.error('Error details:', error.message);
-    throw new Error(`Private key conversion failed: ${error.message}`);
-  }
-}
-
-// Helper function to encode ASN.1 structures
-function encodeAsn1(tag: number, data: Uint8Array): Uint8Array {
-  const length = data.length;
-  let lengthBytes: Uint8Array;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  if (length < 0x80) {
-    // Short form
-    lengthBytes = new Uint8Array([length]);
-  } else {
-    // Long form
-    const lengthOfLength = Math.ceil(Math.log2(length + 1) / 8);
-    lengthBytes = new Uint8Array(1 + lengthOfLength);
-    lengthBytes[0] = 0x80 | lengthOfLength;
+  const { data, error } = await supabase
+    .from('docusign_tokens')
+    .select('access_token, refresh_token, account_id, base_uri, expires_at')
+    .eq('user_id', userId)
+    .single();
     
-    for (let i = 0; i < lengthOfLength; i++) {
-      lengthBytes[1 + i] = (length >> (8 * (lengthOfLength - 1 - i))) & 0xff;
-    }
-  }
-  
-  return concatArrays([new Uint8Array([tag]), lengthBytes, data]);
-}
-
-// Helper function to concatenate Uint8Arrays
-function concatArrays(arrays: Uint8Array[]): Uint8Array {
-  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  
-  for (const arr of arrays) {
-    result.set(arr, offset);
-    offset += arr.length;
-  }
-  
-  return result;
-}
-
-
-async function createDocuSignEnvelope(params: {
-  document: EnvelopeDocument;
-  signers: EnvelopeRecipient[];
-  accessToken: string;
-  signerEmail: string;
-}): Promise<{ envelopeId: string }> {
-  try {
-    console.log('Creating DocuSign envelope using SDK...');
-    
-    // Initialize API client with DocuSign SDK classes
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    const EnvelopesApi = docusign.EnvelopesApi || docusign.default?.EnvelopesApi;
-    const Document = docusign.Document || docusign.default?.Document;
-    const Signer = docusign.Signer || docusign.default?.Signer;
-    const SignHere = docusign.SignHere || docusign.default?.SignHere;
-    const Tabs = docusign.Tabs || docusign.default?.Tabs;
-    const Recipients = docusign.Recipients || docusign.default?.Recipients;
-    const EnvelopeDefinition = docusign.EnvelopeDefinition || docusign.default?.EnvelopeDefinition;
-    const apiClient = new ApiClient();
-    
-    // Get account info to set proper base path
-    const accountId = docusignConfig?.accountId || docusignTokenData?.account_id;
-    if (!accountId) {
-      throw new Error('No account ID available');
-    }
-    
-    // Set base path based on available token data
-    if (docusignTokenData?.base_uri) {
-      apiClient.setBasePath(docusignTokenData.base_uri + '/restapi');
-    } else {
-      apiClient.setBasePath('https://demo.docusign.net/restapi');
-    }
-    
-    console.log('API Client base path:', apiClient.getBasePath());
-    
-    // Create EnvelopesApi instance
-    const envelopesApi = new EnvelopesApi(apiClient);
-    
-    // Create document
-    const document = new Document();
-    document.documentBase64 = params.document.documentBase64;
-    document.documentId = params.document.documentId;
-    // Ensure proper file extension format
-    const extension = params.document.fileExtension;
-    document.fileExtension = extension === 'docx' ? 'docx' : 'pdf';
-    document.name = params.document.name;
-    
-    console.log('Document details:', {
-      name: document.name,
-      fileExtension: document.fileExtension,
-      documentId: document.documentId,
-      base64Length: document.documentBase64?.length || 0
-    });
-    
-    // Create signers
-    const signers = params.signers.map((signerInfo, index) => {
-      const signer = new Signer();
-      signer.email = signerInfo.email;
-      signer.name = signerInfo.name;
-      signer.recipientId = signerInfo.recipientId;
-      signer.routingOrder = signerInfo.routingOrder;
-      
-      // Set clientUserId for the requesting signer to enable embedded signing
-      // This allows the requesting user to sign immediately through the embedded interface
-      if (signerInfo.email === params.signerEmail) {
-        signer.clientUserId = `client_${signerInfo.recipientId}`;
-        console.log(`Setting clientUserId for requesting signer ${signerInfo.email}: client_${signerInfo.recipientId}`);
-      } else {
-        console.log(`No clientUserId set for ${signerInfo.email} - will receive email invitation`);
-      }
-      
-      // Add signature tabs with coordinates
-      const signHere = new SignHere();
-      signHere.documentId = params.document.documentId;
-      signHere.pageNumber = signerInfo.pageNumber || '1';
-      signHere.recipientId = signerInfo.recipientId;
-      signHere.tabLabel = `SignHere${index + 1}`;
-      signHere.xPosition = signerInfo.xPosition || '100';
-      signHere.yPosition = signerInfo.yPosition || `${200 + (index * 100)}`;
-      
-      const tabs = new Tabs();
-      tabs.signHereTabs = [signHere];
-      signer.tabs = tabs;
-      
-      return signer;
-    });
-    
-    console.log('Signers configuration:', signers.map(s => ({
-      email: s.email,
-      name: s.name,
-      recipientId: s.recipientId,
-      clientUserId: s.clientUserId,
-      hasSignHereTabs: s.tabs?.signHereTabs?.length || 0
-    })));
-    
-    // Create recipients
-    const recipients = new Recipients();
-    recipients.signers = signers;
-    
-    // Create envelope definition
-    const envelopeDefinition = new EnvelopeDefinition();
-    envelopeDefinition.emailSubject = 'Please sign this document';
-    envelopeDefinition.documents = [document];
-    envelopeDefinition.recipients = recipients;
-    envelopeDefinition.status = 'sent';
-    
-    console.log('Sending envelope to DocuSign...');
-    
-    // Set authentication
-    apiClient.addDefaultHeader('Authorization', `Bearer ${params.accessToken}`);
-    
-    // Create envelope
-    const result = await envelopesApi.createEnvelope(accountId, {
-      envelopeDefinition: envelopeDefinition
-    });
-    
-    if (!result || !result.envelopeId) {
-      throw new Error('Failed to create envelope - no envelope ID returned');
-    }
-    
-    console.log('✅ Envelope created successfully:', result.envelopeId);
-    
-    return { envelopeId: result.envelopeId };
-    
-  } catch (error: any) {
-    console.error('Failed to create DocuSign envelope using SDK:', error);
-    throw new Error(`Failed to create envelope: ${error.message}`);
-  }
-}
-
-async function getSigningUrl(envelopeId: string, recipientId: string, accessToken: string, recipientEmail: string, recipientName: string): Promise<string> {
-  try {
-    console.log('Getting signing URL using SDK...');
-    console.log('Parameters:', { envelopeId, recipientId, recipientEmail, recipientName });
-    
-    // Initialize API client with DocuSign SDK classes
-    const ApiClient = docusign.ApiClient || docusign.default?.ApiClient || docusign.default;
-    const EnvelopesApi = docusign.EnvelopesApi || docusign.default?.EnvelopesApi;
-    const RecipientViewRequest = docusign.RecipientViewRequest || docusign.default?.RecipientViewRequest;
-    const apiClient = new ApiClient();
-    
-    const accountId = docusignConfig?.accountId || docusignTokenData?.account_id;
-    if (!accountId) {
-      throw new Error('No account ID available');
-    }
-    
-    // Set base path based on available token data
-    if (docusignTokenData?.base_uri) {
-      apiClient.setBasePath(docusignTokenData.base_uri + '/restapi');
-    } else {
-      apiClient.setBasePath('https://demo.docusign.net/restapi');
-    }
-    
-    // Create EnvelopesApi instance
-    const envelopesApi = new EnvelopesApi(apiClient);
-    
-    // Create recipient view request with required fields
-    const recipientViewRequest = new RecipientViewRequest();
-    recipientViewRequest.authenticationMethod = 'email';
-    recipientViewRequest.email = recipientEmail;
-    recipientViewRequest.userName = recipientName;
-    recipientViewRequest.clientUserId = `client_${recipientId}`; // Must match the clientUserId set during envelope creation
-    recipientViewRequest.returnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/docusign-callback?envelopeId=${envelopeId}`;
-    
-    console.log('Recipient view request:', {
-      authenticationMethod: recipientViewRequest.authenticationMethod,
-      email: recipientViewRequest.email,
-      userName: recipientViewRequest.userName,
-      clientUserId: recipientViewRequest.clientUserId,
-      returnUrl: recipientViewRequest.returnUrl
-    });
-    
-    console.log('Requesting signing URL from DocuSign...');
-    console.log('Account ID:', accountId);
-    console.log('Envelope ID:', envelopeId);
-    console.log('API Base Path:', apiClient.getBasePath());
-    
-    // Set authentication
-    apiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
-    
-    // First check the envelope status and recipients
-    console.log('Checking envelope status and recipients before creating recipient view...');
-    try {
-      const envelopeInfo = await envelopesApi.getEnvelope(accountId, envelopeId);
-      console.log('Envelope status:', envelopeInfo.status);
-      console.log('Envelope details:', {
-        status: envelopeInfo.status,
-        statusChangedDateTime: envelopeInfo.statusChangedDateTime,
-        emailSubject: envelopeInfo.emailSubject
-      });
-      
-      // Get recipients to verify clientUserId setup
-      try {
-        const recipients = await envelopesApi.listRecipients(accountId, envelopeId);
-        console.log('Envelope recipients:', recipients.signers?.map(s => ({
-          email: s.email,
-          name: s.name,
-          recipientId: s.recipientId,
-          clientUserId: s.clientUserId,
-          status: s.status,
-          routingOrder: s.routingOrder
-        })));
-        
-        // Find the requesting recipient
-        const requestingRecipient = recipients.signers?.find(s => s.recipientId === recipientId);
-        if (requestingRecipient) {
-          console.log('Target recipient details:', {
-            email: requestingRecipient.email,
-            recipientId: requestingRecipient.recipientId,
-            clientUserId: requestingRecipient.clientUserId,
-            status: requestingRecipient.status
-          });
-          
-          if (!requestingRecipient.clientUserId) {
-            throw new Error('Recipient does not have clientUserId - embedded signing not available');
-          }
-          
-          if (requestingRecipient.clientUserId !== `client_${recipientId}`) {
-            console.error('clientUserId mismatch!');
-            console.error('Expected:', `client_${recipientId}`);
-            console.error('Actual:', requestingRecipient.clientUserId);
-            throw new Error(`clientUserId mismatch. Expected: client_${recipientId}, Actual: ${requestingRecipient.clientUserId}`);
-          }
-        } else {
-          throw new Error(`Recipient with ID ${recipientId} not found in envelope`);
-        }
-      } catch (recipientError) {
-        console.error('Failed to get envelope recipients:', recipientError);
-      }
-      
-      if (envelopeInfo.status !== 'sent') {
-        console.error('Envelope is not in sent status. Current status:', envelopeInfo.status);
-        throw new Error(`Envelope must be sent before creating recipient view. Current status: ${envelopeInfo.status}`);
-      }
-    } catch (statusError: any) {
-      console.error('Failed to check envelope status:', statusError);
-      // Continue anyway - maybe the status check failed but we can still try to create the recipient view
-    }
-    
-    try {
-      // Get recipient view
-      const result = await envelopesApi.createRecipientView(accountId, envelopeId, {
-        recipientViewRequest: recipientViewRequest
-      });
-      
-      console.log('DocuSign API Response:', result);
-      
-      if (!result || !result.url) {
-        console.error('No URL in DocuSign response:', result);
-        throw new Error('Failed to get signing URL - no URL returned');
-      }
-      
-      console.log('✅ Signing URL obtained successfully:', result.url);
-      
-      return result.url;
-    } catch (apiError: any) {
-      console.error('DocuSign API Error Details:', {
-        message: apiError.message,
-        status: apiError.status,
-        statusText: apiError.statusText,
-        response: apiError.response?.data || apiError.response?.body || apiError.response?.text || apiError.response,
-        headers: apiError.response?.headers
-      });
-      
-      // Try to get more detailed error information
-      if (apiError.response) {
-        const response = apiError.response;
-        console.error('Full API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: response.data,
-          body: response.body,
-          headers: response.headers
-        });
-        
-        // If it's a 400 error, it's likely an issue with the clientUserId or envelope state
-        if (response.status === 400) {
-          console.error('400 Bad Request - Possible issues:');
-          console.error('1. clientUserId mismatch between envelope creation and recipient view');
-          console.error('2. Envelope not ready for embedded signing');
-          console.error('3. Recipient not configured for embedded signing');
-          console.error('Current clientUserId:', recipientViewRequest.clientUserId);
-          console.error('Expected format: client_<recipientId>');
-        }
-      }
-      
-      throw apiError;
-    }
-    
-  } catch (error: any) {
-    console.error('Failed to get signing URL using SDK:', error);
-    throw new Error(`Failed to get signing URL: ${error.message}`);
-  }
-}
-
-async function getValidAccessToken(): Promise<string | null> {
-  if (!docusignTokenData) {
+  if (error || !data) {
+    console.log('No token found in database for user:', userId);
     return null;
   }
-
-  // Check if token is expired
-  if (Date.now() >= docusignTokenData.expires_at) {
-    console.log('OAuth token expired, attempting refresh...');
-    
-    if (!docusignTokenData.refresh_token) {
-      console.log('No refresh token available');
-      return null;
-    }
-    
-    try {
-      // Refresh the token
-      const refreshed = await refreshOAuthToken(docusignTokenData.refresh_token);
-      if (refreshed) {
-        return docusignTokenData.access_token;
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      return null;
-    }
-  }
-
-  return docusignTokenData.access_token;
+  
+  return data;
 }
 
-async function refreshOAuthToken(refreshToken: string): Promise<boolean> {
-  const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
-  const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
-
-  if (!integrationKey || !clientSecret) {
-    console.error('Missing integration key or client secret for token refresh');
-    return false;
-  }
-
-  try {
+/**
+ * Refresh token if expired
+ */
+async function refreshTokenIfNeeded(tokenData: {
+  access_token: string;
+  refresh_token?: string;
+  account_id: string;
+  base_uri: string;
+  expires_at: string;
+}, userId: string): Promise<string> {
+  const expiresAt = new Date(tokenData.expires_at).getTime();
+  const now = Date.now();
+  
+  // If token expires in less than 5 minutes, refresh it
+  if (expiresAt - now < 5 * 60 * 1000 && tokenData.refresh_token) {
+    console.log('Token expiring soon, refreshing...');
+    
+    const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
+    const clientSecret = Deno.env.get('DOCUSIGN_CLIENT_SECRET');
+    
+    if (!integrationKey || !clientSecret) {
+      throw new Error('Missing DocuSign credentials for token refresh');
+    }
+    
     const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: {
@@ -1450,54 +491,283 @@ async function refreshOAuthToken(refreshToken: string): Promise<boolean> {
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: refreshToken
+        refresh_token: tokenData.refresh_token
       })
     });
-
-    if (!response.ok) {
-      console.error('Token refresh failed:', response.status, await response.text());
-      return false;
-    }
-
-    const oAuthToken: OAuthTokenResponse = await response.json();
     
-    // Update stored token data
-    const expiresAt = Date.now() + (oAuthToken.expires_in * 1000);
-    docusignTokenData = {
-      ...docusignTokenData!,
-      access_token: oAuthToken.access_token,
-      refresh_token: oAuthToken.refresh_token || docusignTokenData!.refresh_token,
-      expires_at: expiresAt
-    };
-
-    console.log('✅ OAuth token refreshed successfully');
-    return true;
-
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    return false;
-  }
-}
-
-async function getUserInfo(accessToken: string): Promise<DocuSignUserInfo> {
-  const response = await fetch('https://account-d.docusign.com/oauth/userinfo', {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
+    if (!response.ok) {
+      throw new Error('Failed to refresh token');
     }
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Failed to get user info: ${response.status} - ${errorData}`);
-  }
-
-  return await response.json();
-}
-
-function isTokenExpired(): boolean {
-  if (!docusignTokenData) {
-    return true;
+    
+    const newToken: OAuthTokenResponse = await response.json();
+    
+    // Update token in database
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const newExpiresAt = new Date(Date.now() + newToken.expires_in * 1000).toISOString();
+    
+    await supabase
+      .from('docusign_tokens')
+      .update({
+        access_token: newToken.access_token,
+        refresh_token: newToken.refresh_token || tokenData.refresh_token,
+        expires_at: newExpiresAt,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+    
+    return newToken.access_token;
   }
   
-  return Date.now() >= docusignTokenData.expires_at;
+  return tokenData.access_token;
+}
+
+/**
+ * Handle the main signing request using direct REST API calls
+ */
+async function handleSigningRequest(req: Request): Promise<Response> {
+  console.log('=== Starting DocuSign Signing Request ===');
+
+  // Get authenticated user from request
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Authorization required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Parse request body
+  const requestData: DocuSignRequest = await req.json();
+  console.log('Request data:', JSON.stringify(requestData, null, 2));
+
+  const { documentId, dealId, signerEmail, signerName, signerRole, signaturePositions } = requestData;
+
+  if (!documentId || !dealId || !signerEmail || !signerName) {
+    return new Response(
+      JSON.stringify({ error: 'Missing required fields: documentId, dealId, signerEmail, signerName' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Initialize Supabase client
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Get user from JWT token
+  const jwt = authHeader.replace('Bearer ', '');
+  const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
+  
+  if (userError || !user) {
+    console.error('User auth error:', userError);
+    return new Response(
+      JSON.stringify({ error: 'Invalid authentication token' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log('Authenticated user:', user.id);
+
+  // Get DocuSign token from database
+  const tokenData = await getTokenFromDatabase(user.id);
+  
+  if (!tokenData) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'DocuSign not connected',
+        requiresAuth: true,
+        message: 'Please connect your DocuSign account first'
+      }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Refresh token if needed
+  const accessToken = await refreshTokenIfNeeded(tokenData, user.id);
+  const accountId = tokenData.account_id;
+  const baseUri = tokenData.base_uri;
+
+  console.log('Using DocuSign account:', accountId);
+  console.log('Base URI:', baseUri);
+
+  // Get document from storage
+  const { data: documentRecord, error: docError } = await supabase
+    .from('documents')
+    .select('storage_path, name')
+    .eq('id', documentId)
+    .single();
+
+  if (docError || !documentRecord) {
+    console.error('Document fetch error:', docError);
+    return new Response(
+      JSON.stringify({ error: 'Document not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log('Document record:', documentRecord);
+
+  // Try to download document from storage
+  let documentBase64: string;
+  
+  // Try multiple path patterns
+  const pathsToTry = [
+    documentRecord.storage_path,
+    `${dealId}/${documentRecord.storage_path}`,
+    documentRecord.storage_path.includes('/') ? documentRecord.storage_path : `${dealId}/${documentRecord.storage_path}`
+  ];
+
+  let downloadedData: Blob | null = null;
+  let successPath: string | null = null;
+
+  for (const path of pathsToTry) {
+    console.log('Trying to download from path:', path);
+    const { data, error } = await supabase.storage
+      .from('deal_documents')
+      .download(path);
+    
+    if (!error && data) {
+      downloadedData = data;
+      successPath = path;
+      console.log('Successfully downloaded from:', path);
+      break;
+    }
+    console.log('Failed to download from path:', path, error?.message);
+  }
+
+  if (!downloadedData) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to download document from storage' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Convert to base64
+  const arrayBuffer = await downloadedData.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  documentBase64 = btoa(binary);
+
+  console.log('Document converted to base64, length:', documentBase64.length);
+
+  // Build signers from signature positions
+  const signers: any[] = [];
+  
+  if (signaturePositions && signaturePositions.length > 0) {
+    signaturePositions.forEach((pos, index) => {
+      signers.push({
+        email: pos.email,
+        name: pos.name,
+        recipientId: pos.recipientId || String(index + 1),
+        routingOrder: String(index + 1),
+        tabs: {
+          signHereTabs: [{
+            documentId: '1',
+            pageNumber: pos.pageNumber || '1',
+            xPosition: pos.xPosition || '100',
+            yPosition: pos.yPosition || '100'
+          }]
+        }
+      });
+    });
+  } else {
+    // Default signer if no positions specified
+    signers.push({
+      email: signerEmail,
+      name: signerName,
+      recipientId: '1',
+      routingOrder: '1',
+      tabs: {
+        signHereTabs: [{
+          documentId: '1',
+          pageNumber: '1',
+          xPosition: '100',
+          yPosition: '700'
+        }]
+      }
+    });
+  }
+
+  console.log('Signers:', JSON.stringify(signers, null, 2));
+
+  // Create envelope using DocuSign REST API directly
+  const envelopeDefinition = {
+    emailSubject: `Please sign: ${documentRecord.name}`,
+    documents: [{
+      documentBase64: documentBase64,
+      documentId: '1',
+      fileExtension: documentRecord.name.split('.').pop() || 'pdf',
+      name: documentRecord.name
+    }],
+    recipients: {
+      signers: signers
+    },
+    status: 'sent'
+  };
+
+  console.log('Creating envelope with DocuSign REST API...');
+
+  const envelopeResponse = await fetch(
+    `${baseUri}/restapi/v2.1/accounts/${accountId}/envelopes`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(envelopeDefinition)
+    }
+  );
+
+  if (!envelopeResponse.ok) {
+    const errorText = await envelopeResponse.text();
+    console.error('DocuSign API error:', envelopeResponse.status, errorText);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to create DocuSign envelope',
+        details: errorText
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const envelopeResult = await envelopeResponse.json();
+  console.log('Envelope created:', envelopeResult);
+
+  // Store signature records in database
+  for (const signer of signers) {
+    await supabase.from('document_signatures').insert({
+      document_id: documentId,
+      deal_id: dealId,
+      envelope_id: envelopeResult.envelopeId,
+      signer_email: signer.email,
+      signer_role: signerRole,
+      status: 'sent'
+    });
+  }
+
+  // Update document status
+  await supabase
+    .from('documents')
+    .update({ status: 'final' })
+    .eq('id', documentId);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      envelopeId: envelopeResult.envelopeId,
+      status: envelopeResult.status,
+      message: 'Document sent for signature successfully'
+    }),
+    { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
+  );
 }
