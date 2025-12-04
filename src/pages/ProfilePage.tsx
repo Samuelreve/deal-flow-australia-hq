@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { UserProfile } from "@/types/auth";
-import AppLayout from "@/components/layout/AppLayout";
 import ProfileSidebar from '@/components/profile/ProfileSidebar';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 import ProfileLoading from '@/components/profile/ProfileLoading';
@@ -32,19 +31,17 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto py-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="md:w-1/3">
-            <ProfileSidebar profile={user.profile} />
-          </div>
-          
-          <div className="md:w-2/3">
-            <ProfileTabs profile={user.profile} onProfileUpdate={handleProfileUpdate} />
-          </div>
+    <div className="container mx-auto py-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="md:w-1/3">
+          <ProfileSidebar profile={user.profile} />
+        </div>
+        
+        <div className="md:w-2/3">
+          <ProfileTabs profile={user.profile} onProfileUpdate={handleProfileUpdate} />
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 };
 
