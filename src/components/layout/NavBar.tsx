@@ -94,7 +94,7 @@ const NavBar = () => {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-10" />
           </Link>
 
           {/* Desktop Navigation */}
