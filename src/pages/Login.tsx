@@ -79,12 +79,15 @@ const Login = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 flex flex-col lg:flex-row">
       {/* Left column - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 relative">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+        
+        <div className="w-full max-w-md relative z-10 animate-fade-in">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-primary">DealPilot</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient">Trustroom.ai</h1>
             <p className="text-muted-foreground mt-2">
               Streamline your business exchange journey
             </p>
@@ -95,7 +98,10 @@ const Login = () => {
       </div>
       
       {/* Right column - Info */}
-      <div className="hidden lg:flex lg:w-1/2 bg-muted p-8 items-center justify-center">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/5 to-accent/10 p-8 items-center justify-center relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-20 right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-20 w-48 h-48 bg-accent/10 rounded-full blur-3xl" />
         <LoginInfoPanel />
       </div>
     </div>
