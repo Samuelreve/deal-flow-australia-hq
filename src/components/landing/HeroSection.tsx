@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import StatsCard from "./StatsCard";
+import BackgroundAnimation from "./BackgroundAnimation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,11 +42,11 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
   };
 
   return (
-    <header className="relative bg-gradient-to-b from-background to-background/80">
-      {/* Background pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    <header className="relative bg-gradient-to-b from-background to-background/80 min-h-[90vh]">
+      {/* Background Animation */}
+      <BackgroundAnimation />
       
-      <div className="h-16 px-4 md:px-6 flex items-center justify-between border-b backdrop-blur-sm z-10 relative">
+      <div className="h-16 px-4 md:px-6 flex items-center justify-between border-b backdrop-blur-sm z-20 relative">
         <div className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
           <motion.div
             initial={{ opacity: 0 }}
