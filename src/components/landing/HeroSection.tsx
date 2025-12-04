@@ -52,7 +52,7 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
+          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-10" />
         </motion.div>
 
         {/* Desktop Navigation */}
