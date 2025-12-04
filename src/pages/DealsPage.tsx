@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,65 +86,59 @@ const DealsPage = () => {
   
   if (loading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <AppLayout>
-        <div className="text-center py-8">
-          <p className="text-destructive">Error: {error}</p>
-        </div>
-      </AppLayout>
+      <div className="text-center py-8">
+        <p className="text-destructive">Error: {error}</p>
+      </div>
     );
   }
   
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
-            <p className="text-sm text-muted-foreground">Manage all your business transactions</p>
-          </div>
-          
-          {canCreateDeals && (
-            <Button onClick={() => navigate("/create-deal")} className="mt-4 md:mt-0">
-              <Plus className="h-4 w-4 mr-2" />
-              New Deal
-            </Button>
-          )}
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Deals</h1>
+          <p className="text-sm text-muted-foreground">Manage all your business transactions</p>
         </div>
         
-        <DealFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-        />
-        
-        {filteredDeals.length === 0 ? (
-          <EmptyDealsState 
-            isFiltered={isFiltered} 
-            canCreateDeals={canCreateDeals} 
-          />
-        ) : (
-          <DealsTable 
-            deals={filteredDeals} 
-            totalDeals={totalCount}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            onDeleteDeal={handleDeleteDeal}
-            canDelete={canCreateDeals}
-          />
+        {canCreateDeals && (
+          <Button onClick={() => navigate("/create-deal")} className="mt-4 md:mt-0">
+            <Plus className="h-4 w-4 mr-2" />
+            New Deal
+          </Button>
         )}
       </div>
+      
+      <DealFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+      />
+      
+      {filteredDeals.length === 0 ? (
+        <EmptyDealsState 
+          isFiltered={isFiltered} 
+          canCreateDeals={canCreateDeals} 
+        />
+      ) : (
+        <DealsTable 
+          deals={filteredDeals} 
+          totalDeals={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          onDeleteDeal={handleDeleteDeal}
+          canDelete={canCreateDeals}
+        />
+      )}
 
       <AlertDialog open={dealToDelete !== null} onOpenChange={cancelDelete}>
         <AlertDialogContent>
@@ -163,7 +156,7 @@ const DealsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppLayout>
+    </div>
   );
 };
 

@@ -1,14 +1,9 @@
 
 import React from "react";
 import NotificationList from "@/components/notifications/NotificationList";
-import AppLayout from "@/components/layout/AppLayout";
 
 const NotificationsPage: React.FC = () => {
-  return (
-    <AppLayout>
-      <NotificationList />
-    </AppLayout>
-  );
+  return <NotificationList />;
 };
 
 export default NotificationsPage;

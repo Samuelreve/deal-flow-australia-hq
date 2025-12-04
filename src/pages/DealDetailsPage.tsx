@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useParticipantRemovalCheck } from "@/hooks/useParticipantRemovalCheck";
-import AppLayout from "@/components/layout/AppLayout";
 import DealDetailsHeader from "@/components/deal-details/DealDetailsHeader";
 import DealDetailsContent from "@/components/deal-details/DealDetailsContent";
 import CopilotWidget from "@/components/copilot/CopilotWidget";
@@ -151,28 +150,24 @@ const DealDetailsPage = () => {
 
   if (loading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading deal details...</span>
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading deal details...</span>
+      </div>
     );
   }
 
   if (!deal || !isParticipant) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold">Access Denied</h2>
-          <p className="text-muted-foreground mt-2">
-            {!isParticipant 
-              ? "You don't have access to this deal or have been removed from it."
-              : "The deal you're looking for doesn't exist."
-            }
-          </p>
-        </div>
-      </AppLayout>
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold">Access Denied</h2>
+        <p className="text-muted-foreground mt-2">
+          {!isParticipant 
+            ? "You don't have access to this deal or have been removed from it."
+            : "The deal you're looking for doesn't exist."
+          }
+        </p>
+      </div>
     );
   }
 
@@ -183,8 +178,7 @@ const DealDetailsPage = () => {
     }
   };
 
-return (
-  <AppLayout>
+  return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
       <DealDetailsHeader deal={deal} />
       <DealDetailsContent 
@@ -194,10 +188,9 @@ return (
         dealId={dealId!}
         selectedParticipantId={selectedParticipantId}
       />
+      <CopilotWidget dealId={dealId!} />
     </div>
-    <CopilotWidget dealId={dealId!} />
-  </AppLayout>
-);
+  );
 };
 
 export default DealDetailsPage;
