@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
-// Import PDF.js for direct text extraction (much more reliable than OCR)
+// Import PDF.js for direct text extraction
 import { getDocument } from "https://esm.sh/pdf.mjs";
 
 const serve_handler = async (req: Request) => {
@@ -24,7 +24,7 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    console.log('🔍 Starting PDF text extraction for:', fileName);
+    console.log('🔍 Starting text extraction for:', fileName, 'mimeType:', mimeType);
 
     // Validate base64 format and clean up
     let cleanBase64 = fileBase64;
@@ -43,7 +43,58 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    // Convert base64 to Uint8Array with better error handling
+    // Check if this is a text-based file (not PDF)
+    const textMimeTypes = [
+      'text/plain', 
+      'text/html', 
+      'text/csv', 
+      'text/markdown',
+      'application/json',
+      'application/xml',
+      'text/xml'
+    ];
+    
+    const textExtensions = ['.txt', '.md', '.csv', '.json', '.xml', '.html', '.htm'];
+    const fileExt = fileName ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
+    
+    const isTextFile = textMimeTypes.includes(mimeType) || textExtensions.includes(fileExt);
+
+    if (isTextFile) {
+      console.log('📝 Processing as text file...');
+      try {
+        const decodedText = atob(cleanBase64);
+        // Try to decode as UTF-8
+        const decoder = new TextDecoder('utf-8');
+        const bytes = new Uint8Array(decodedText.length);
+        for (let i = 0; i < decodedText.length; i++) {
+          bytes[i] = decodedText.charCodeAt(i);
+        }
+        const text = decoder.decode(bytes);
+        
+        console.log(`✅ Text file extracted successfully: ${text.length} characters`);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          text: text.trim(),
+          method: 'text-decode',
+          pageCount: 1,
+          successfulPages: 1
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (textError) {
+        console.error('❌ Failed to decode text file:', textError);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `Failed to decode text file: ${textError.message}` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Convert base64 to Uint8Array for binary files (PDF)
     let bytes;
     try {
       const binaryString = atob(cleanBase64);
@@ -53,15 +104,22 @@ const serve_handler = async (req: Request) => {
       }
       console.log('📄 File converted to bytes:', bytes.length);
       
-      // Validate minimum PDF size (PDF files should be at least 100 bytes)
-      if (bytes.length < 100) {
-        throw new Error('File too small to be a valid PDF');
-      }
-      
       // Check PDF magic number
       const pdfHeader = new TextDecoder().decode(bytes.slice(0, 4));
       if (pdfHeader !== '%PDF') {
-        throw new Error('File is not a valid PDF - missing PDF header');
+        // If it's not a PDF and we haven't handled it as text, try to decode as text anyway
+        console.log('⚠️ File is not a PDF, attempting text decode...');
+        const text = new TextDecoder('utf-8').decode(bytes);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          text: text.trim(),
+          method: 'fallback-text-decode',
+          pageCount: 1,
+          successfulPages: 1
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     } catch (error) {
       console.error('❌ Failed to process file data:', error);
@@ -74,7 +132,7 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    // Extract text directly from PDF using PDF.js
+    // Extract text from PDF using PDF.js
     let allText = '';
     let totalPages = 0;
     let successfulPages = 0;
@@ -82,13 +140,11 @@ const serve_handler = async (req: Request) => {
     try {
       console.log('🔄 Loading PDF document with PDF.js...');
       
-      // Load PDF document
       const pdfDoc = await getDocument({ data: bytes }).promise;
       totalPages = pdfDoc.numPages;
       
       console.log(`📖 PDF loaded successfully with ${totalPages} pages`);
 
-      // Extract text from each page
       for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         try {
           console.log(`📄 Processing page ${pageNum}/${totalPages}...`);
@@ -96,7 +152,6 @@ const serve_handler = async (req: Request) => {
           const page = await pdfDoc.getPage(pageNum);
           const textContent = await page.getTextContent();
           
-          // Combine text items into readable text
           const pageText = textContent.items
             .map((item: any) => item.str)
             .join(' ')
@@ -111,7 +166,6 @@ const serve_handler = async (req: Request) => {
           }
         } catch (pageError) {
           console.error(`❌ Error processing page ${pageNum}:`, pageError);
-          // Continue with next page instead of failing completely
           continue;
         }
       }
@@ -130,13 +184,12 @@ const serve_handler = async (req: Request) => {
         });
       }
 
-      // Clean up the extracted text
       const cleanedText = allText
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
+        .replace(/\s+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      console.log(`✅ PDF text extraction completed successfully: ${cleanedText.length} characters from ${successfulPages}/${totalPages} pages`);
+      console.log(`✅ PDF text extraction completed: ${cleanedText.length} characters from ${successfulPages}/${totalPages} pages`);
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -163,10 +216,10 @@ const serve_handler = async (req: Request) => {
     }
 
   } catch (error) {
-    console.error('❌ PDF text extractor error:', error);
+    console.error('❌ Text extractor error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: `PDF text extraction failed: ${error.message}` 
+      error: `Text extraction failed: ${error.message}` 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
