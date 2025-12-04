@@ -30,6 +30,14 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import OnboardingCheck from "@/components/auth/OnboardingCheck";
+import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
+
+// Layout wrapper for authenticated pages
+const AuthenticatedLayoutWrapper = () => (
+  <AuthenticatedLayout>
+    <Outlet />
+  </AuthenticatedLayout>
+);
 
 function App() {
   return (
@@ -74,18 +82,20 @@ function App() {
             
             {/* Protected routes - require authentication */}
             <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-              {/* Routes that require onboarding completion */}
+              {/* Routes that require onboarding completion - with sidebar layout */}
               <Route element={<OnboardingCheck />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/deals" element={<DealsPage />} />
-                <Route path="/deals/:dealId" element={<DealDetailsPage />} />
-                <Route path="/create-deal" element={<CreateDealPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/deal-health" element={<DealHealthPage />} />
-                <Route path="/health-monitoring" element={<DealHealthMonitoring />} />
-                <Route path="/advanced-health-monitoring" element={<AdvancedHealthMonitoring />} />
+                <Route element={<AuthenticatedLayoutWrapper />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/deals" element={<DealsPage />} />
+                  <Route path="/deals/:dealId" element={<DealDetailsPage />} />
+                  <Route path="/create-deal" element={<CreateDealPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/deal-health" element={<DealHealthPage />} />
+                  <Route path="/health-monitoring" element={<DealHealthMonitoring />} />
+                  <Route path="/advanced-health-monitoring" element={<AdvancedHealthMonitoring />} />
+                </Route>
                 
                 {/* Fallback for authenticated, onboarded users to dashboard */}
                 <Route path="/app/*" element={<Navigate to="/dashboard" replace />} />

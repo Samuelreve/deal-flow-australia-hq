@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import AppLayout from "@/components/layout/AppLayout";
 import DashboardWelcomeHeader from "@/components/dashboard/DashboardWelcomeHeader";
 import DashboardQuickStats from "@/components/dashboard/DashboardQuickStats";
 import DashboardRecentDeals from "@/components/dashboard/DashboardRecentDeals";
@@ -8,6 +7,7 @@ import DashboardRecentNotifications from "@/components/dashboard/DashboardRecent
 import { useAuth } from "@/contexts/AuthContext";
 import { useDeals } from "@/hooks/useDeals";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -46,47 +46,41 @@ const Dashboard = () => {
 
   if (dealsLoading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
-            </div>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-6">
-        <DashboardWelcomeHeader 
-          welcomeMessage={welcomeMessage}
-          currentDate={currentDate}
-        />
+    <div className="space-y-8 animate-fade-in">
+      <DashboardWelcomeHeader 
+        welcomeMessage={welcomeMessage}
+        currentDate={currentDate}
+      />
+      
+      <DashboardQuickStats 
+        metrics={metrics}
+        recentActivityCount={recentActivityCount}
+        unreadCount={unreadCount}
+      />
+      
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Recent Deals */}
+        <div className="space-y-6 animate-fade-in stagger-1">
+          <DashboardRecentDeals deals={deals} />
+        </div>
         
-        <DashboardQuickStats 
-          metrics={metrics}
-          recentActivityCount={recentActivityCount}
-          unreadCount={unreadCount}
-        />
-        
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Recent Deals and Contract Analysis */}
-          <div className="space-y-6">
-            <DashboardRecentDeals deals={deals} />
-          </div>
-          
-          {/* Right Column - Notifications */}
-          <div>
-            <DashboardRecentNotifications notifications={notifications} />
-          </div>
+        {/* Right Column - Notifications */}
+        <div className="animate-fade-in stagger-2">
+          <DashboardRecentNotifications notifications={notifications} />
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 };
 

@@ -26,10 +26,17 @@ const SignUpFormUI = ({ inviteToken, redirect }: SignUpFormUIProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4 md:p-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50 flex flex-col items-center justify-center p-4 md:p-8 relative">
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+      
+      {/* Decorative elements */}
+      <div className="absolute top-20 right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-20 w-48 h-48 bg-accent/10 rounded-full blur-3xl" />
+      
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary">Trustroom.ai</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient">Trustroom.ai</h1>
           <p className="text-muted-foreground mt-2">
             Create your account to get started
           </p>
