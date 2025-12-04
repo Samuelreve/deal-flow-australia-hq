@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import ContractAnalysisHeader from '@/components/contract/ContractAnalysisHeader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useRealContracts } from '@/hooks/contract/useRealContracts';
@@ -15,6 +16,17 @@ import { Loader2, Send, FileText, Upload, Brain, MessageCircle } from 'lucide-re
 import RealContractUpload from '@/components/contract/RealContractUpload';
 import ConversationHistory from '@/components/contract/tabs/components/ConversationHistory';
 import UploadProgressIndicator from '@/components/contract/upload/UploadProgressIndicator';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Layout wrapper that uses sidebar for authenticated users
+const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (isAuthenticated) {
+    return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  }
+  return <AppLayout>{children}</AppLayout>;
+};
 
 const ContractAnalysisPage: React.FC = () => {
   console.log('🏠 ContractAnalysisPage rendering...');
@@ -200,7 +212,7 @@ const ContractAnalysisPage: React.FC = () => {
   // Render upload section when no contract is selected
   if (!selectedContract) {
     return (
-      <AppLayout>
+      <LayoutWrapper>
         <div className="container py-6 max-w-4xl">
           <ContractAnalysisHeader />
           
@@ -215,13 +227,13 @@ const ContractAnalysisPage: React.FC = () => {
             </ErrorBoundary>
           </div>
         </div>
-      </AppLayout>
+      </LayoutWrapper>
     );
   }
 
   // Render tabbed analysis interface
   return (
-    <AppLayout>
+    <LayoutWrapper>
       <div className="container py-6 max-w-7xl">
         <ContractAnalysisHeader />
         
@@ -483,7 +495,7 @@ const ContractAnalysisPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </LayoutWrapper>
   );
 };
 
