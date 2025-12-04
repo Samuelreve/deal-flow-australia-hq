@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, User, Settings, LogOut, Bot, LayoutDashboard } from "lucide-react";
+import { ArrowRight, User, Settings, LogOut, Bot, LayoutDashboard, Clock, FileCheck, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -260,9 +260,9 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
           
           {/* Stats Section */}
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <StatsCard value="40%" label="Faster Deal Completion" />
-            <StatsCard value="90%" label="Reduced Documentation Errors" />
-            <StatsCard value="60%" label="Less Legal Back-and-Forth" />
+            <StatsCard value="40" suffix="%" label="Faster Deal Completion" icon={Clock} />
+            <StatsCard value="90" suffix="%" label="Reduced Documentation Errors" icon={FileCheck} />
+            <StatsCard value="60" suffix="%" label="Less Legal Back-and-Forth" icon={Scale} />
           </div>
         </motion.div>
 
