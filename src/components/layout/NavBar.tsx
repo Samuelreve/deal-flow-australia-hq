@@ -2,16 +2,12 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  FileText,
-  Settings,
   LogOut,
   User,
   ArrowRight,
-  Activity,
-  Zap,
   Menu,
-  X,
+  Bot,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -66,15 +62,9 @@ const NavBar = () => {
     return nameParts[0][0].toUpperCase();
   };
 
-  const navItems = isAuthenticated && canNavigate ? [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/deals", icon: FileText, label: "Deals" },
-    { to: "/health-monitoring", icon: Activity, label: "Health" },
-    { to: "/advanced-health-monitoring", icon: Zap, label: "Advanced" },
-  ] : [
-    { to: "/", label: "Home" },
-    { to: "/demo/contract", label: "Demo" },
-  ];
+  const navItems = !isAuthenticated ? [
+    { to: "/ai-assistant", icon: Bot, label: "AI Assistant" },
+  ] : [];
 
   const MobileNavItems = () => (
     <div className="flex flex-col space-y-4 p-4">
