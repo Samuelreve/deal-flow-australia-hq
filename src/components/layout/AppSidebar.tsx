@@ -108,7 +108,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
         {/* Logo & Toggle */}
         <div className={cn('flex items-center h-20 px-4', collapsed ? 'justify-center' : 'justify-between')}>
           {!collapsed && (
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-12" />
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-16" />
           )}
           <Button
             variant="ghost"
