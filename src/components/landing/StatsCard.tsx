@@ -23,7 +23,7 @@ const StatsCard = ({ value, label, icon: Icon, suffix = "" }: StatsCardProps) =>
     if (hasAnimated) {
       const controls = animate(count, numericValue, {
         duration: 2,
-        ease: "easeOut",
+        ease: [0.25, 0.46, 0.45, 0.94],
       });
       
       const unsubscribe = rounded.on("change", (latest) => {
@@ -39,19 +39,28 @@ const StatsCard = ({ value, label, icon: Icon, suffix = "" }: StatsCardProps) =>
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: 0.1 }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ 
+        duration: 0.6,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }}
       onViewportEnter={() => setHasAnimated(true)}
     >
-      <Card className="bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <Card className="bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         <CardContent className="pt-6 relative">
           <div className="flex items-start justify-between mb-3">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+            <motion.div 
+              className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center transition-transform duration-500 group-hover:scale-110"
+              initial={{ scale: 0, rotate: -180 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
               <Icon className="h-6 w-6 text-primary" />
-            </div>
+            </motion.div>
           </div>
           <div className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent mb-2">
             {hasAnimated ? displayValue : 0}{suffix}
