@@ -51,8 +51,10 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
+          className="flex items-center gap-1"
         >
           <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-28" />
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">AI</span>
         </motion.div>
 
         {/* Desktop Navigation */}
