@@ -47,15 +47,13 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
       <BackgroundAnimation />
       
       <div className="h-16 px-4 md:px-6 flex items-center justify-between border-b backdrop-blur-sm z-20 relative">
-        <div className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            Trustroom.ai
-          </motion.div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
+        </motion.div>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
