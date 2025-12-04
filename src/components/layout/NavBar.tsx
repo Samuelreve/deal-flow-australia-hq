@@ -93,10 +93,8 @@ const NavBar = () => {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-              Trustroom.ai
-            </span>
+          <Link to="/" className="flex items-center">
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
           </Link>
 
           {/* Desktop Navigation */}

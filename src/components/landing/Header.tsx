@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Sparkles, FileText, Brain } from "lucide-react";
+import { Menu, FileText, Brain } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Header = () => {
@@ -18,13 +18,8 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="p-1.5 bg-primary rounded-lg">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            Trustroom.ai
-          </span>
+        <Link to="/" className="flex items-center">
+          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -64,13 +59,8 @@ const Header = () => {
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[400px]">
             <div className="flex flex-col h-full">
-              <div className="flex items-center space-x-2 pb-6">
-                <div className="p-1.5 bg-primary rounded-lg">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                  Trustroom.ai
-                </span>
+              <div className="flex items-center pb-6">
+                <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
               </div>
               
               <nav className="flex flex-col space-y-4 flex-1">
