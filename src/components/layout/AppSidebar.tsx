@@ -106,19 +106,33 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
         )}
       >
         {/* Logo & Toggle */}
-        <div className={cn('flex items-center h-16 px-4', collapsed ? 'justify-center' : 'justify-between')}>
+        <div className={cn('flex items-center h-20 px-4', collapsed ? 'justify-center' : 'justify-center')}>
           {!collapsed && (
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-8" />
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-14" />
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
-          </Button>
+          {collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <ChevronLeft className={cn('h-5 w-5 transition-transform rotate-180')} />
+            </Button>
+          )}
         </div>
+        {!collapsed && (
+          <div className="flex justify-end px-4 -mt-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <ChevronLeft className="h-5 w-5 transition-transform" />
+            </Button>
+          </div>
+        )}
 
         {/* Main Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
