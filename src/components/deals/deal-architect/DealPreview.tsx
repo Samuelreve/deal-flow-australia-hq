@@ -129,7 +129,7 @@ export function DealPreview({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="max-h-48">
+            <ScrollArea className="h-[200px]">
               <div className="space-y-2">
                 {milestones.map((milestone, index) => (
                   <div 
