@@ -1690,6 +1690,7 @@ export type Database = {
           professional_specializations: Json | null
           professional_website: string | null
           role: Database["public"]["Enums"]["user_role"]
+          tour_completed: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1711,6 +1712,7 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tour_completed?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1732,6 +1734,7 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tour_completed?: boolean | null
           updated_at?: string
         }
         Relationships: []

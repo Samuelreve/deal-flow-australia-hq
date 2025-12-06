@@ -49,7 +49,7 @@ const DashboardQuickStats = ({ metrics, recentActivityCount, unreadCount }: Dash
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div data-tour="quick-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, index) => (
         <GlassCard 
           key={stat.label} 
