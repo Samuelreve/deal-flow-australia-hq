@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { DOCUMENT_SUGGESTION_PROMPT } from "../_shared/ai-prompts.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
@@ -19,78 +20,74 @@ const generateSuggestion = async (request: SuggestionRequest): Promise<string> =
 
   const { documentText, extractedData, fieldType, currentValue, dealCategory } = request;
 
-  const prompts = {
-    title: `Based on the following document and extracted data, suggest a professional deal title:
+  const fieldPrompts = {
+    title: `Based on the document, suggest a professional deal title.
 
 Document Category: ${dealCategory}
-Current Title: ${currentValue}
+Current Title: ${currentValue || 'None'}
 Extracted Data: ${JSON.stringify(extractedData, null, 2)}
 
-Generate a concise, professional deal title that accurately represents this transaction. Examples:
-- Business Sale: "Sale of [Business Name] - [Deal Type]"
-- Real Estate: "Property Sale - [Address]"
-- IP Transfer: "IP Transfer - [Asset Name]"
-- Cross-Border: "Cross-Border Transaction - [Description]"
-- Micro Deal: "Sale of [Item Name]"
+Requirements:
+- Keep under 60 characters
+- Use title case
+- Be specific to the transaction type
+- Format examples:
+  * Business Sale: "[Company Name] Acquisition"
+  * Real Estate: "Property Sale - [Address]"
+  * IP Transfer: "IP Transfer - [Asset Name]"
 
-Respond with just the suggested title, no explanation.`,
+Respond with just the suggested title.`,
 
-    description: `Based on the following document and extracted data, enhance the deal description:
+    description: `Based on the document, create a compelling deal description.
 
 Document Category: ${dealCategory}
-Current Description: ${currentValue}
+Current Description: ${currentValue || 'None'}
 Extracted Data: ${JSON.stringify(extractedData, null, 2)}
-Document Text Excerpt: ${documentText.substring(0, 1000)}...
+Document Excerpt: ${documentText.substring(0, 2000)}...
 
-Generate a compelling, professional deal description that includes:
-- What is being sold/transferred
-- Key value propositions and strengths
-- Important business/property/asset details
-- Growth opportunities or strategic value
-- Any unique selling points from the document
+Requirements:
+- 2-3 sentences covering: What's being sold, key business details, what's included
+- Maximum 300 words
+- Buyer-focused, professional tone
+- Include specific metrics if found (revenue, customers, assets)
 
-Keep it professional and buyer-focused. Maximum 300 words.`,
+Respond with the suggested description.`,
 
-    valuation: `Based on the following document and extracted business information, provide a valuation insight:
+    valuation: `Based on the document, provide valuation guidance.
 
 Document Category: ${dealCategory}
 Extracted Data: ${JSON.stringify(extractedData, null, 2)}
-Document Text Excerpt: ${documentText.substring(0, 1000)}...
+Document Excerpt: ${documentText.substring(0, 2000)}...
 
-Analyze the business/asset information and provide a valuation tip in this format:
-"Based on [type] with [key metric], typical asking prices range from [range]. Consider [specific advice]."
+Look for:
+- Explicit asking price or purchase price
+- EBITDA with implied multiple
+- Asset values
+- Revenue figures
 
-Focus on:
-- Industry multiples if business data is available
-- Comparable sales data
-- Key value drivers mentioned in the document
-- Professional valuation recommendations
+If explicit price found, state it.
+If calculating from multiples, explain briefly.
+If insufficient data, say so.
 
-Respond with just the valuation tip, starting with "Based on".`,
+Format: "Based on [source], the suggested valuation is $[amount]" or "Insufficient data to suggest valuation - [what's missing]"`,
 
-    assets: `Based on the following document and extracted data, suggest key assets and exclusions:
+    assets: `Based on the document, identify key assets included in the transaction.
 
 Document Category: ${dealCategory}
-Current Assets: ${currentValue}
+Current Assets: ${currentValue || 'None'}
 Extracted Data: ${JSON.stringify(extractedData, null, 2)}
-Document Text Excerpt: ${documentText.substring(0, 1000)}...
+Document Excerpt: ${documentText.substring(0, 2000)}...
 
-Analyze the document and suggest:
-1. Key assets that should be included in the sale
-2. Items that might be excluded
+Categories to identify:
+- Tangible: Equipment, inventory, vehicles, real estate
+- Intangible: IP, customer lists, brand, software, licenses
+- Contractual: Leases, customer contracts, supplier agreements
 
-Look for mentions of:
-- Equipment, machinery, inventory
-- Intellectual property, customer lists
-- Real estate, lease agreements
-- Goodwill, brand value
-- Contracts and licenses
-
-Format as: "Key assets: [list]. Typical exclusions: [list]."
-Keep it concise and relevant to the specific deal.`
+Format: "[Category]: [specific items], [Category]: [specific items]"
+Keep concise - focus on material assets mentioned in the document.`
   };
 
-  const prompt = prompts[fieldType];
+  const prompt = fieldPrompts[fieldType];
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -104,7 +101,7 @@ Keep it concise and relevant to the specific deal.`
         messages: [
           { 
             role: 'system', 
-            content: 'You are a business deal advisor helping create professional deal documentation. Provide practical, actionable suggestions based on document analysis.' 
+            content: DOCUMENT_SUGGESTION_PROMPT
           },
           { role: 'user', content: prompt }
         ],
