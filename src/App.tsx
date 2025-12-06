@@ -18,6 +18,8 @@ import TermsOfServicePage from "@/pages/TermsOfServicePage";
 import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import CookiePolicyPage from "@/pages/CookiePolicyPage";
 import AccessibilityPage from "@/pages/AccessibilityPage";
+import AIDisclaimerPage from "@/pages/AIDisclaimerPage";
+import FAQPage from "@/pages/FAQPage";
 import AIAssistantPage from "@/pages/AIAssistantPage";
 import DealHealthPage from "@/pages/DealHealthPage";
 import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
@@ -73,6 +75,8 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/cookie-policy" element={<CookiePolicyPage />} />
             <Route path="/accessibility" element={<AccessibilityPage />} />
+            <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
+            <Route path="/faq" element={<FAQPage />} />
             
             {/* AI Assistant - accessible to everyone */}
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
