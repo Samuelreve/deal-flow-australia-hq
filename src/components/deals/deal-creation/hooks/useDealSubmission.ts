@@ -21,7 +21,12 @@ export const useDealSubmission = () => {
     dealId: currentDealId || ''
   });
 
-  const handleSubmit = async (formData: DealCreationData, tempDealId?: string, autoGenerateContract: boolean = true) => {
+  const handleSubmit = async (
+    formData: DealCreationData, 
+    tempDealId?: string, 
+    autoGenerateContract: boolean = true,
+    aiGeneratedMilestones?: Array<{ name: string; description: string; order: number; selected?: boolean }>
+  ) => {
     if (!isAuthenticated || !user) {
       toast({
         title: "Authentication Required",
@@ -143,7 +148,30 @@ export const useDealSubmission = () => {
         console.log('Deal created successfully:', newDeal);
       }
 
-      // Milestones will be created only when user explicitly generates them
+      // Create AI-generated milestones if provided
+      if (aiGeneratedMilestones && aiGeneratedMilestones.length > 0) {
+        const selectedMilestones = aiGeneratedMilestones.filter(m => m.selected !== false);
+        if (selectedMilestones.length > 0) {
+          console.log('Creating AI-generated milestones:', selectedMilestones.length);
+          const milestonesData = selectedMilestones.map((m, index) => ({
+            deal_id: finalDealId,
+            title: m.name,
+            description: m.description || '',
+            order_index: m.order || index + 1,
+            status: 'not_started' as const
+          }));
+
+          const { error: milestonesError } = await supabase
+            .from('milestones')
+            .insert(milestonesData);
+
+          if (milestonesError) {
+            console.error('Error creating milestones:', milestonesError);
+          } else {
+            console.log('Milestones created successfully');
+          }
+        }
+      }
 
       // Migrate temporary documents to the final deal
       if (tempDealId && formData.uploadedDocuments && formData.uploadedDocuments.length > 0) {

@@ -13,6 +13,7 @@ interface WizardStepRendererProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   tempDealId?: string;
+  onLaunchAIArchitect?: () => void;
 }
 
 export const WizardStepRenderer: React.FC<WizardStepRendererProps> = ({
@@ -23,7 +24,8 @@ export const WizardStepRenderer: React.FC<WizardStepRendererProps> = ({
   onPrev,
   onSubmit,
   isSubmitting,
-  tempDealId
+  tempDealId,
+  onLaunchAIArchitect
 }) => {
   const { extractedData } = useDocumentExtraction();
   const step = WIZARD_STEPS.find(s => s.id === currentStep);
@@ -48,6 +50,11 @@ export const WizardStepRenderer: React.FC<WizardStepRendererProps> = ({
       extractedText: extractedData.text,
       extractedData: extractedData.extractedData
     };
+  }
+  
+  // Pass onLaunchAIArchitect to category step (step 1)
+  if (currentStep === 1 && onLaunchAIArchitect) {
+    additionalProps.onLaunchAIArchitect = onLaunchAIArchitect;
   }
   
   return (
