@@ -32,15 +32,15 @@ interface AppSidebarProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Deals', href: '/deals', icon: FileText },
-  { name: 'Health Monitoring', href: '/health-monitoring', icon: Activity },
-  { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, tourId: 'sidebar-dashboard' },
+  { name: 'Deals', href: '/deals', icon: FileText, tourId: 'sidebar-deals' },
+  { name: 'Health Monitoring', href: '/health-monitoring', icon: Activity, tourId: 'sidebar-health' },
+  { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, tourId: 'sidebar-ai' },
 ];
 
 const secondaryNavigation = [
-  { name: 'Create Deal', href: '/create-deal', icon: Plus },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Create Deal', href: '/create-deal', icon: Plus, tourId: 'sidebar-create-deal' },
+  { name: 'Notifications', href: '/notifications', icon: Bell, tourId: 'sidebar-notifications' },
 ];
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
@@ -67,9 +67,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
       .slice(0, 2);
   };
 
-  const NavItem = ({ item, isActive }: { item: typeof navigation[0]; isActive: boolean }) => {
+  const NavItem = ({ item, isActive }: { item: typeof navigation[0] & { tourId?: string }; isActive: boolean }) => {
     const content = (
       <button
+        data-tour={item.tourId}
         onClick={() => navigate(item.href)}
         className={cn(
           'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
@@ -144,16 +145,20 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
         {/* User Section */}
         <div className="p-3 border-t border-sidebar-border">
           {/* Settings */}
-          <NavItem
-            item={{ name: 'Settings', href: '/settings', icon: Settings }}
-            isActive={location.pathname === '/settings'}
-          />
+          <div data-tour="sidebar-settings">
+            <NavItem
+              item={{ name: 'Settings', href: '/settings', icon: Settings, tourId: 'sidebar-settings' }}
+              isActive={location.pathname === '/settings'}
+            />
+          </div>
 
           {/* User Profile */}
-          <div className={cn(
-            'mt-3 flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer',
-            collapsed && 'justify-center'
-          )}
+          <div 
+            data-tour="user-profile"
+            className={cn(
+              'mt-3 flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer',
+              collapsed && 'justify-center'
+            )}
             onClick={() => navigate('/profile')}
           >
             <Avatar className="h-9 w-9 border-2 border-sidebar-primary/30">

@@ -13,7 +13,7 @@ const DashboardWelcomeHeader = ({ welcomeMessage, currentDate }: DashboardWelcom
   const navigate = useNavigate();
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-8 mb-8">
+    <div data-tour="welcome-header" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-8 mb-8">
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -32,6 +32,7 @@ const DashboardWelcomeHeader = ({ welcomeMessage, currentDate }: DashboardWelcom
           </p>
         </div>
         <Button 
+          data-tour="create-deal-button"
           onClick={() => navigate('/create-deal')}
           className="btn-premium text-primary-foreground"
           size="lg"
