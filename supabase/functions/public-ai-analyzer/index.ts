@@ -306,13 +306,17 @@ serve(async (req) => {
     );
     
   } catch (error) {
+    // Log detailed error server-side only
     console.error("❌ Error in public-ai-analyzer:", error);
+    if (error instanceof Error) {
+      console.error("Stack trace:", error.stack);
+    }
     
+    // Return generic error to client (no stack traces)
     return new Response(
       JSON.stringify({
         error: "Failed to analyze document",
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
+        code: "PROCESSING_ERROR"
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }, 

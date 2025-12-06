@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { markdownToSafeHtml } from "@/lib/sanitize";
 
 interface NextActionSuggestionProps {
   dealId: string;
@@ -95,12 +96,7 @@ const NextActionSuggestion: React.FC<NextActionSuggestionProps> = ({
                   <div 
                     className="text-sm leading-relaxed"
                     dangerouslySetInnerHTML={{
-                      __html: result.suggestion
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/\n\n/g, '</p><p>')
-                        .replace(/\n/g, '<br>')
-                        .replace(/^(.*)$/g, '<p>$1</p>')
+                      __html: markdownToSafeHtml(result.suggestion)
                     }}
                   />
                 </div>
