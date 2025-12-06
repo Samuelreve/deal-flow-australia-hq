@@ -1,5 +1,6 @@
 
 import { Highlight, HighlightCategory } from './types';
+import { escapeHtml } from '@/lib/sanitize';
 
 // Generate a unique ID for each highlight
 export const generateHighlightId = (): string => {
@@ -13,11 +14,14 @@ export const renderHighlightedText = (
 ): string => {
   if (!contractText) return "";
   
+  // Escape the contract text first to prevent XSS
+  const escapedText = escapeHtml(contractText);
+  
   // Sort highlights by start index (descending) to process from end to start
   // This ensures we don't mess up indices as we insert highlight markup
   const sortedHighlights = [...highlights].sort((a, b) => b.startIndex - a.startIndex);
   
-  let result = contractText;
+  let result = escapedText;
   
   sortedHighlights.forEach(highlight => {
     const { startIndex, endIndex, color, id, category } = highlight;
@@ -27,7 +31,8 @@ export const renderHighlightedText = (
       const highlighted = result.substring(startIndex, endIndex);
       const after = result.substring(endIndex);
       
-      result = `${before}<span data-highlight-id="${id}" data-category="${category}" class="highlighted-text" style="background-color: ${color}; padding: 0 2px; border-radius: 2px; cursor: pointer;">${highlighted}</span>${after}`;
+      // Color and category are internal values, not user input, so they're safe
+      result = `${before}<span data-highlight-id="${escapeHtml(id)}" data-category="${escapeHtml(category)}" class="highlighted-text" style="background-color: ${color}; padding: 0 2px; border-radius: 2px; cursor: pointer;">${highlighted}</span>${after}`;
     }
   });
   

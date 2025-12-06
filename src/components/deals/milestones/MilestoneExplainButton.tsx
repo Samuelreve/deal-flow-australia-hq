@@ -14,6 +14,7 @@ import { useDocumentAI } from "@/hooks/useDocumentAI";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { markdownToSafeHtml } from "@/lib/sanitize";
 
 interface MilestoneExplainButtonProps {
   dealId: string;
@@ -98,12 +99,7 @@ const MilestoneExplainButton: React.FC<MilestoneExplainButtonProps> = ({
                   <div 
                     className="text-sm leading-relaxed"
                     dangerouslySetInnerHTML={{
-                      __html: result.explanation
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/\n\n/g, '</p><p>')
-                        .replace(/\n/g, '<br>')
-                        .replace(/^(.*)$/g, '<p>$1</p>')
+                      __html: markdownToSafeHtml(result.explanation)
                     }}
                   />
                 </div>
