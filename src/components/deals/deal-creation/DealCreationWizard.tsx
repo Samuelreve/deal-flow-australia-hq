@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { WIZARD_STEPS } from './config/wizardSteps';
 import { WizardProgress } from './components/WizardProgress';
 import { WizardStepCard } from './components/WizardStepCard';
@@ -11,6 +10,8 @@ import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useDealSubmission } from './hooks/useDealSubmission';
 import { DocumentExtractionProvider } from '@/contexts/DocumentExtractionContext';
 import GeneratedDocumentReview from '../document/GeneratedDocumentReview';
+import { DealArchitectChat, GeneratedMilestone } from '../deal-architect';
+import { DealCreationData } from './types';
 
 const DealCreationWizard: React.FC = () => {
   const { currentStep, setCurrentStep, formData, updateFormData } = useWizardState();
@@ -28,11 +29,48 @@ const DealCreationWizard: React.FC = () => {
     formData
   });
 
+  const [isAIMode, setIsAIMode] = useState(false);
+  const [aiMilestones, setAIMilestones] = useState<GeneratedMilestone[]>([]);
+
   const currentStepInfo = WIZARD_STEPS.find(s => s.id === currentStep);
 
   const handleFinalSubmit = (autoGenerateContract?: boolean) => {
-    handleSubmit(formData, tempDealId, autoGenerateContract);
+    handleSubmit(formData, tempDealId, autoGenerateContract, aiMilestones);
   };
+
+  const handleLaunchAIArchitect = () => {
+    setIsAIMode(true);
+  };
+
+  const handleAIDealCreated = (dealData: Partial<DealCreationData>, milestones: GeneratedMilestone[]) => {
+    // Merge AI-generated data with form data
+    updateFormData(dealData);
+    setAIMilestones(milestones);
+    
+    // Submit the deal
+    handleSubmit({ ...formData, ...dealData }, tempDealId, false, milestones);
+  };
+
+  const handleCancelAI = () => {
+    setIsAIMode(false);
+    updateFormData({ dealCategory: '' });
+  };
+
+  // Render AI Chat mode
+  if (isAIMode) {
+    return (
+      <WizardAuthGuard>
+        <DocumentExtractionProvider>
+          <div className="max-w-4xl mx-auto">
+            <DealArchitectChat
+              onDealCreated={handleAIDealCreated}
+              onCancel={handleCancelAI}
+            />
+          </div>
+        </DocumentExtractionProvider>
+      </WizardAuthGuard>
+    );
+  }
 
   return (
     <WizardAuthGuard>
@@ -51,6 +89,7 @@ const DealCreationWizard: React.FC = () => {
                 onSubmit={handleFinalSubmit}
                 isSubmitting={isSubmitting}
                 tempDealId={tempDealId}
+                onLaunchAIArchitect={handleLaunchAIArchitect}
               />
             </WizardStepCard>
           )}

@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Briefcase, Home, Globe, Gamepad2, Package } from 'lucide-react';
+import { Building2, Briefcase, Home, Globe, Gamepad2, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StepProps, DEAL_CATEGORIES } from '../types';
-import { toast } from 'sonner';
 
 const categoryIcons = {
   business_sale: Building2,
@@ -13,10 +12,19 @@ const categoryIcons = {
   real_estate: Home,
   cross_border: Globe,
   micro_deals: Gamepad2,
-  other: Package
+  other: Sparkles
 };
 
-const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => {
+interface DealCategoryStepProps extends StepProps {
+  onLaunchAIArchitect?: () => void;
+}
+
+const DealCategoryStep: React.FC<DealCategoryStepProps> = ({ 
+  data, 
+  updateData, 
+  onNext,
+  onLaunchAIArchitect 
+}) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateStep = () => {
@@ -32,12 +40,11 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
 
   const handleNext = () => {
     if (validateStep()) {
-      // Check if "Other" category is selected and show alert
+      // Check if "Other" category is selected - launch AI Architect
       if (data.dealCategory === 'other') {
-        toast.info("Coming Soon! 🚀", {
-          description: "The 'Other' deal category will be enabled in the future with AI prompts for custom deal creation. Stay tuned!",
-          duration: 4000,
-        });
+        if (onLaunchAIArchitect) {
+          onLaunchAIArchitect();
+        }
         return;
       }
       onNext();
@@ -53,7 +60,7 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
     <div className="space-y-6">
       <div className="text-center space-y-4">
         <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-          <Package className="h-8 w-8 text-primary" />
+          <Building2 className="h-8 w-8 text-primary" />
         </div>
         <div>
           <h2 className="text-2xl font-semibold">Choose Your Deal Category</h2>
@@ -71,33 +78,43 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {DEAL_CATEGORIES.map((category) => {
-          const Icon = categoryIcons[category.value as keyof typeof categoryIcons] || Package;
+          const Icon = categoryIcons[category.value as keyof typeof categoryIcons] || Building2;
           const isSelected = data.dealCategory === category.value;
+          const isAICategory = category.value === 'other';
           
           return (
             <Card 
               key={category.value}
               className={`cursor-pointer transition-all hover:shadow-md ${
                 isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:border-primary/50'
-              }`}
+              } ${isAICategory ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-transparent' : ''}`}
               onClick={() => handleCategorySelect(category.value)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-muted'}`}>
+                  <div className={`p-2 rounded-lg ${
+                    isSelected ? 'bg-primary text-white' : 
+                    isAICategory ? 'bg-gradient-to-br from-primary to-primary/80 text-white' : 'bg-muted'
+                  }`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                       {category.label}
                       {isSelected && <Badge variant="secondary">Selected</Badge>}
+                      {isAICategory && !isSelected && (
+                        <Badge variant="default" className="bg-primary/90">AI-Powered</Badge>
+                      )}
                     </CardTitle>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-sm">
-                  {category.description}
+                  {isAICategory 
+                    ? 'Create any deal type through an AI-guided conversation'
+                    : category.description
+                  }
                 </CardDescription>
                 
                 {/* Show specific features for each category */}
@@ -139,9 +156,9 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
                   )}
                   {category.value === 'other' && (
                     <ul className="space-y-1">
-                      <li>• Flexible custom fields</li>
-                      <li>• General deal structure</li>
-                      <li>• Standard legal framework</li>
+                      <li>• <span className="text-primary font-medium">AI guides you step-by-step</span></li>
+                      <li>• Auto-generates milestones</li>
+                      <li>• Flexible for any deal structure</li>
                     </ul>
                   )}
                 </div>
@@ -158,7 +175,14 @@ const DealCategoryStep: React.FC<StepProps> = ({ data, updateData, onNext }) => 
           className="min-w-[160px]"
           disabled={!data.dealCategory}
         >
-          Continue to Business Info
+          {data.dealCategory === 'other' ? (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Start AI Chat
+            </>
+          ) : (
+            'Continue to Business Info'
+          )}
         </Button>
       </div>
     </div>
