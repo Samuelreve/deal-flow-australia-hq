@@ -7,6 +7,50 @@ import { supabase } from '@/integrations/supabase/client';
 import { DealCreationData } from '../types';
 import { useDocumentAI } from '@/hooks/useDocumentAI';
 
+// Sanitize AI-generated data to convert "N/A" and invalid values to null
+const sanitizeAIData = (data: DealCreationData): DealCreationData => {
+  const isValidValue = (value: any): boolean => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string') {
+      const trimmed = value.trim().toLowerCase();
+      return trimmed !== '' && trimmed !== 'n/a' && trimmed !== 'na' && trimmed !== 'to be determined';
+    }
+    return true;
+  };
+
+  const sanitizeString = (value: string | undefined): string | undefined => {
+    if (!isValidValue(value)) return undefined;
+    return value;
+  };
+
+  const sanitizeDate = (value: string | undefined): string | undefined => {
+    if (!isValidValue(value)) return undefined;
+    // Check if it's a valid date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(value!)) return undefined;
+    return value;
+  };
+
+  return {
+    ...data,
+    businessLegalName: sanitizeString(data.businessLegalName),
+    businessTradingName: sanitizeString(data.businessTradingName),
+    legalEntityType: sanitizeString(data.legalEntityType),
+    abn: sanitizeString(data.abn),
+    acn: sanitizeString(data.acn),
+    registeredAddress: sanitizeString(data.registeredAddress),
+    principalAddress: sanitizeString(data.principalAddress),
+    businessState: sanitizeString(data.businessState),
+    businessIndustry: sanitizeString(data.businessIndustry),
+    targetCompletionDate: sanitizeDate(data.targetCompletionDate),
+    askingPrice: isValidValue(data.askingPrice) ? data.askingPrice : undefined,
+    keyAssetsIncluded: sanitizeString(data.keyAssetsIncluded),
+    keyAssetsExcluded: sanitizeString(data.keyAssetsExcluded),
+    reasonForSelling: sanitizeString(data.reasonForSelling),
+    primarySellerName: sanitizeString(data.primarySellerName),
+  };
+};
+
 export const useDealSubmission = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -36,8 +80,11 @@ export const useDealSubmission = () => {
       return;
     }
 
+    // Sanitize AI-generated data to handle "N/A" values
+    const sanitizedData = sanitizeAIData(formData);
+
     setIsSubmitting(true);
-    console.log('Starting deal submission with data:', formData);
+    console.log('Starting deal submission with data:', sanitizedData);
     console.log('Temp deal ID:', tempDealId);
     
     try {
@@ -48,32 +95,32 @@ export const useDealSubmission = () => {
         const { data: updatedDeal, error: updateError } = await supabase
           .from('deals')
           .update({
-            title: formData.dealTitle,
-            description: formData.dealDescription,
-            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice.replace(/,/g, '')) : null,
-            business_industry: formData.businessIndustry,
-            target_completion_date: formData.targetCompletionDate || null,
+            title: sanitizedData.dealTitle,
+            description: sanitizedData.dealDescription,
+            asking_price: sanitizedData.askingPrice ? parseFloat(sanitizedData.askingPrice.replace(/,/g, '')) : null,
+            business_industry: sanitizedData.businessIndustry || null,
+            target_completion_date: sanitizedData.targetCompletionDate || null,
             status: 'active',
-            business_legal_name: formData.businessLegalName,
-            business_trading_names: formData.businessTradingName,
-            business_legal_entity_type: formData.legalEntityType,
-            business_abn: formData.abn,
-            business_acn: formData.acn,
-            business_registered_address: formData.registeredAddress,
-            business_principal_place_address: formData.principalAddress,
-            business_state: formData.businessState,
-            business_years_in_operation: formData.yearsInOperation,
-            deal_type: formData.dealType,
-            deal_category: formData.dealCategory as any,
-            key_assets_included: formData.keyAssetsIncluded,
-            key_assets_excluded: formData.keyAssetsExcluded,
-            reason_for_selling: formData.reasonForSelling,
-            primary_seller_contact_name: formData.primarySellerName,
+            business_legal_name: sanitizedData.businessLegalName || null,
+            business_trading_names: sanitizedData.businessTradingName || null,
+            business_legal_entity_type: sanitizedData.legalEntityType || null,
+            business_abn: sanitizedData.abn || null,
+            business_acn: sanitizedData.acn || null,
+            business_registered_address: sanitizedData.registeredAddress || null,
+            business_principal_place_address: sanitizedData.principalAddress || null,
+            business_state: sanitizedData.businessState || null,
+            business_years_in_operation: sanitizedData.yearsInOperation || null,
+            deal_type: sanitizedData.dealType || null,
+            deal_category: sanitizedData.dealCategory as any,
+            key_assets_included: sanitizedData.keyAssetsIncluded || null,
+            key_assets_excluded: sanitizedData.keyAssetsExcluded || null,
+            reason_for_selling: sanitizedData.reasonForSelling || null,
+            primary_seller_contact_name: sanitizedData.primarySellerName || null,
             // Category-specific fields
-            ip_assets: formData.dealCategory === 'ip_transfer' && formData.ipAssets?.length > 0 ? { assets: formData.ipAssets } as any : null,
-            property_details: formData.dealCategory === 'real_estate' && formData.propertyDetails ? formData.propertyDetails as any : null,
-            cross_border_details: formData.dealCategory === 'cross_border' && formData.crossBorderDetails ? formData.crossBorderDetails as any : null,
-            micro_deal_details: formData.dealCategory === 'micro_deals' && formData.microDealDetails ? formData.microDealDetails as any : null,
+            ip_assets: sanitizedData.dealCategory === 'ip_transfer' && sanitizedData.ipAssets?.length > 0 ? { assets: sanitizedData.ipAssets } as any : null,
+            property_details: sanitizedData.dealCategory === 'real_estate' && sanitizedData.propertyDetails ? sanitizedData.propertyDetails as any : null,
+            cross_border_details: sanitizedData.dealCategory === 'cross_border' && sanitizedData.crossBorderDetails ? sanitizedData.crossBorderDetails as any : null,
+            micro_deal_details: sanitizedData.dealCategory === 'micro_deals' && sanitizedData.microDealDetails ? sanitizedData.microDealDetails as any : null,
             updated_at: new Date().toISOString()
           })
           .eq('id', tempDealId)
@@ -92,34 +139,34 @@ export const useDealSubmission = () => {
         const { data: newDeal, error: createError } = await supabase
           .from('deals')
           .insert({
-            title: formData.dealTitle,
-            description: formData.dealDescription,
-            asking_price: formData.askingPrice ? parseFloat(formData.askingPrice.replace(/,/g, '')) : null,
-            business_industry: formData.businessIndustry,
-            target_completion_date: formData.targetCompletionDate || null,
+            title: sanitizedData.dealTitle,
+            description: sanitizedData.dealDescription,
+            asking_price: sanitizedData.askingPrice ? parseFloat(sanitizedData.askingPrice.replace(/,/g, '')) : null,
+            business_industry: sanitizedData.businessIndustry || null,
+            target_completion_date: sanitizedData.targetCompletionDate || null,
             status: 'active',
             health_score: 50,
             seller_id: user.id,
-            business_legal_name: formData.businessLegalName,
-            business_trading_names: formData.businessTradingName,
-            business_legal_entity_type: formData.legalEntityType,
-            business_abn: formData.abn,
-            business_acn: formData.acn,
-            business_registered_address: formData.registeredAddress,
-            business_principal_place_address: formData.principalAddress,
-            business_state: formData.businessState,
-            business_years_in_operation: formData.yearsInOperation,
-            deal_type: formData.dealType,
-            deal_category: formData.dealCategory as any,
-            key_assets_included: formData.keyAssetsIncluded,
-            key_assets_excluded: formData.keyAssetsExcluded,
-            reason_for_selling: formData.reasonForSelling,
-            primary_seller_contact_name: formData.primarySellerName,
+            business_legal_name: sanitizedData.businessLegalName || null,
+            business_trading_names: sanitizedData.businessTradingName || null,
+            business_legal_entity_type: sanitizedData.legalEntityType || null,
+            business_abn: sanitizedData.abn || null,
+            business_acn: sanitizedData.acn || null,
+            business_registered_address: sanitizedData.registeredAddress || null,
+            business_principal_place_address: sanitizedData.principalAddress || null,
+            business_state: sanitizedData.businessState || null,
+            business_years_in_operation: sanitizedData.yearsInOperation || null,
+            deal_type: sanitizedData.dealType || null,
+            deal_category: sanitizedData.dealCategory as any,
+            key_assets_included: sanitizedData.keyAssetsIncluded || null,
+            key_assets_excluded: sanitizedData.keyAssetsExcluded || null,
+            reason_for_selling: sanitizedData.reasonForSelling || null,
+            primary_seller_contact_name: sanitizedData.primarySellerName || null,
             // Category-specific fields
-            ip_assets: formData.dealCategory === 'ip_transfer' && formData.ipAssets?.length > 0 ? { assets: formData.ipAssets } as any : null,
-            property_details: formData.dealCategory === 'real_estate' && formData.propertyDetails ? formData.propertyDetails as any : null,
-            cross_border_details: formData.dealCategory === 'cross_border' && formData.crossBorderDetails ? formData.crossBorderDetails as any : null,
-            micro_deal_details: formData.dealCategory === 'micro_deals' && formData.microDealDetails ? formData.microDealDetails as any : null
+            ip_assets: sanitizedData.dealCategory === 'ip_transfer' && sanitizedData.ipAssets?.length > 0 ? { assets: sanitizedData.ipAssets } as any : null,
+            property_details: sanitizedData.dealCategory === 'real_estate' && sanitizedData.propertyDetails ? sanitizedData.propertyDetails as any : null,
+            cross_border_details: sanitizedData.dealCategory === 'cross_border' && sanitizedData.crossBorderDetails ? sanitizedData.crossBorderDetails as any : null,
+            micro_deal_details: sanitizedData.dealCategory === 'micro_deals' && sanitizedData.microDealDetails ? sanitizedData.microDealDetails as any : null
           })
           .select()
           .single();
