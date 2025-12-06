@@ -215,102 +215,112 @@ You MUST respond with valid JSON matching this exact structure:
 `;
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message, conversationHistory, currentDealData } = await req.json();
+    const { message, conversationHistory = [], currentDealData = {} } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
-      throw new Error('AI service not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI service not configured',
+          message: "I'm sorry, I encountered an error. Please try again."
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Build messages array with conversation history
+    // Build messages array with system prompt and conversation history
     const messages = [
       { role: 'system', content: AI_DEAL_ARCHITECT_SYSTEM_PROMPT },
+      { role: 'system', content: `Current deal data collected so far: ${JSON.stringify(currentDealData)}` },
+      ...conversationHistory.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      { role: 'user', content: message }
     ];
 
-    // Add context about current deal data if available
-    if (currentDealData && Object.keys(currentDealData).length > 0) {
-      messages.push({
-        role: 'system',
-        content: `Current deal data collected so far:\n${JSON.stringify(currentDealData, null, 2)}`
-      });
-    }
+    console.log('Calling OpenAI API with messages:', messages.length);
 
-    // Add conversation history
-    if (conversationHistory && conversationHistory.length > 0) {
-      messages.push(...conversationHistory);
-    }
-
-    // Add the new user message
-    messages.push({ role: 'user', content: message });
-
-    console.log('Calling Lovable AI Gateway with', messages.length, 'messages');
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages,
-        response_format: { type: "json_object" },
+        response_format: { type: 'json_object' },
+        max_tokens: 2000,
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      
       if (response.status === 429) {
-        console.error('Rate limit exceeded');
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          JSON.stringify({ 
+            error: 'Rate limit exceeded',
+            message: "I'm experiencing high demand. Please try again in a moment."
+          }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        console.error('Payment required');
-        return new Response(
-          JSON.stringify({ error: 'AI service credits exhausted. Please add funds.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI service error',
+          message: "I'm sorry, I encountered an error. Please try again."
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
+    const data = await response.json();
+    const aiContent = data.choices?.[0]?.message?.content;
 
-    if (!content) {
-      console.error('No content in AI response');
-      throw new Error('Empty response from AI');
+    if (!aiContent) {
+      console.error('No content in OpenAI response');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Empty response',
+          message: "I'm sorry, I didn't receive a proper response. Please try again."
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    console.log('AI response received, parsing JSON');
 
     // Parse the JSON response
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(content);
+      parsedResponse = JSON.parse(aiContent);
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', content);
+      console.error('Failed to parse AI response as JSON:', aiContent);
       // Return a fallback response
       parsedResponse = {
-        message: content,
-        dealData: currentDealData || {},
+        message: aiContent,
+        dealData: currentDealData,
+        milestones: [],
         isComplete: false,
-        confidence: 'low',
-        nextQuestion: null
+        confidence: 0
       };
     }
+
+    console.log('AI response parsed successfully:', {
+      hasMessage: !!parsedResponse.message,
+      hasDealData: !!parsedResponse.dealData,
+      isComplete: parsedResponse.isComplete
+    });
 
     return new Response(
       JSON.stringify(parsedResponse),
@@ -321,8 +331,8 @@ serve(async (req) => {
     console.error('Error in deal-architect-chat:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        message: "I'm sorry, I encountered an error. Please try again."
+        error: 'Internal error',
+        message: "I'm sorry, something went wrong. Please try again."
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
