@@ -1,16 +1,10 @@
+import { DEAL_CHAT_SYSTEM_PROMPT } from "../../_shared/ai-prompts.ts";
 
 /**
  * Build system prompt for the deal chat AI
  */
 export function buildDealChatSystemPrompt(): string {
-  return `You are a helpful, deal-specific assistant for the DealPilot platform. Your goal is to answer user questions about the current deal based ONLY on the provided context.
-
-**Important Rules:**
-1. Answer the user's question concisely and directly.
-2. Base your answer **ONLY** on the information provided in the 'Deal Context'.
-3. If the answer is NOT explicitly available in the provided 'Deal Context', state clearly: 'I do not have enough information in the current deal context to answer that question.' Do NOT make up information or speculate.
-4. Do NOT provide legal advice, financial advice, or personal opinions.
-5. Keep your answer brief and to the point.`;
+  return DEAL_CHAT_SYSTEM_PROMPT;
 }
 
 /**

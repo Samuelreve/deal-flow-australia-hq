@@ -24,8 +24,13 @@ export async function handleGenerateMilestones(
     // Get deal type from context (passed from frontend) or deal data
     const dealType = context?.dealType || deal.deal_type || 'Asset Sale';
     
+    // Import enhanced prompts
+    const { MILESTONE_GENERATION_PROMPT } = await import("../_shared/ai-prompts.ts");
+    
     // Create a comprehensive prompt for milestone generation
-    const prompt = `You are an AI assistant helping to generate appropriate milestones for a business deal. Based on the following deal information, generate a comprehensive list of milestones that are typical for this type of transaction.
+    const prompt = `${MILESTONE_GENERATION_PROMPT}
+
+# DEAL CONTEXT
 
 Deal Information:
 - Title: ${deal.title || 'Not specified'}
@@ -43,15 +48,7 @@ Documents: ${documents.map(d => `${d.name} (${d.type})`).join(', ') || 'No docum
 
 Existing Milestones: ${existingMilestones.length > 0 ? existingMilestones.map(m => m.title).join(', ') : 'None'}
 
-Please generate 5-8 realistic and actionable milestones for this ${dealType} transaction. Each milestone should:
-1. Be specific to this type of deal
-2. Have a clear, actionable title
-3. Include a detailed description of what needs to be accomplished
-4. Be ordered logically in the typical sequence they would occur
-
-Consider typical phases like: initial documentation, due diligence, legal review, financial verification, regulatory approvals, contract negotiation, closing preparations, and completion.
-
-Respond with a JSON object containing an array of milestones, each with 'name', 'description', and 'order' properties. Keep descriptions practical and specific to business acquisitions.`;
+Generate milestones appropriate for this ${dealType} transaction.`;
 
     // Call OpenAI to generate milestones
     const completion = await openai.chat.completions.create({
@@ -59,7 +56,7 @@ Respond with a JSON object containing an array of milestones, each with 'name', 
       messages: [
         {
           role: "system",
-          content: "You are an expert in business deal management and mergers & acquisitions. Generate realistic, actionable milestones for business transactions. Always respond with valid JSON."
+          content: "You are **Trustroom Transaction Architect**, an expert in structuring business deals with comprehensive knowledge of standard M&A transaction phases, deal-type-specific workflows, and industry-specific requirements. Generate realistic, actionable milestones for business transactions. Always respond with valid JSON containing a 'milestones' array."
         },
         {
           role: "user",

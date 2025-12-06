@@ -101,6 +101,9 @@ export async function handleSummarizeDocument(
 
     console.log('🤖 Generating AI summary with OpenAI...');
     
+    // Import enhanced prompts
+    const { DOCUMENT_SUMMARY_PROMPT } = await import("../_shared/ai-prompts.ts");
+    
     // Truncate content if too long (OpenAI token limits)
     const maxContentLength = 12000; // Roughly 3000 tokens for GPT-4
     const truncatedContent = documentContent.length > maxContentLength 
@@ -108,16 +111,7 @@ export async function handleSummarizeDocument(
       : documentContent;
 
     // Create the prompt for concise summarization
-    const prompt = `Provide a VERY BRIEF summary of this document in EXACTLY 3-4 short sentences. Each sentence should be no more than 25 words.
-
-RULES:
-- Start with document type (contract, agreement, invoice, etc.)
-- Include key parties if mentioned
-- State the main purpose or transaction
-- Mention any critical amounts, dates, or deadlines
-- Use simple, clear language
-- NO legal jargon or lengthy explanations
-- Maximum 100 words total
+    const prompt = `${DOCUMENT_SUMMARY_PROMPT}
 
 Document content:
 ${truncatedContent}
@@ -129,7 +123,7 @@ Summary:`;
       messages: [
         {
           role: 'system',
-          content: 'You are a concise document summarizer. Always provide extremely brief, direct summaries. Never exceed 4 sentences or 100 words.'
+          content: 'You are **Trustroom Document Analyst**, an expert at rapidly extracting key information from business documents. Always provide extremely brief, direct summaries. Never exceed 4 sentences or 100 words.'
         },
         {
           role: 'user',

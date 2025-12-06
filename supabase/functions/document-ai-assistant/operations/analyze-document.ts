@@ -58,13 +58,16 @@ async function extractTextWithOCR(fileData: Blob, fileName: string): Promise<str
 }
 
 async function analyzeDocumentWithAI(text: string, analysisType: string, openai: any): Promise<any> {
+  // Import enhanced prompts
+  const { DOCUMENT_ANALYSIS_PROMPT, CONTRACT_SUMMARY_PROMPT, CONTRACT_KEY_TERMS_PROMPT, CONTRACT_RISK_PROMPT } = await import("../_shared/ai-prompts.ts");
+  
   const prompts = {
-    'summary': `Please provide a concise summary of this document in exactly 3-4 sentences. Focus on the main purpose, key parties involved, and most important terms. Keep it brief and professional. Document content:\n\n${text}`,
-    'key_terms': `Extract and list the key terms, important clauses, and significant provisions from this document. Return them as a simple list. Document content:\n\n${text}`,
-    'risks': `Identify potential risks, concerns, or red flags in this document. Focus on legal, financial, and operational risks. Document content:\n\n${text}`
+    'summary': `${CONTRACT_SUMMARY_PROMPT}\n\nDocument content:\n\n${text}`,
+    'key_terms': `${CONTRACT_KEY_TERMS_PROMPT}\n\nDocument content:\n\n${text}`,
+    'risks': `${CONTRACT_RISK_PROMPT}\n\nDocument content:\n\n${text}`
   };
 
-  const prompt = prompts[analysisType] || `Analyze this document for: ${analysisType}\n\nDocument content:\n\n${text}`;
+  const prompt = prompts[analysisType] || `${DOCUMENT_ANALYSIS_PROMPT}\n\nAnalysis Type: ${analysisType}\n\nDocument content:\n\n${text}`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -72,7 +75,7 @@ async function analyzeDocumentWithAI(text: string, analysisType: string, openai:
       messages: [
         {
           role: "system",
-          content: "You are a legal document analysis AI. Provide clear, concise, and professional analysis. Be specific and actionable in your responses."
+          content: "You are **Trustroom Document Intelligence**, a master-level contract and document analysis specialist. Provide clear, concise, and professional analysis that business professionals can act upon. Be specific about clause locations, highlight unusual terms, and compare to market standards where relevant."
         },
         {
           role: "user",

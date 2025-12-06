@@ -35,77 +35,31 @@ serve(async (req) => {
       );
     }
 
+    // Import enhanced prompts
+    const { CONTRACT_SUMMARY_PROMPT, CONTRACT_RISK_PROMPT, CONTRACT_KEY_TERMS_PROMPT, CONTRACT_SUGGESTIONS_PROMPT } = await import("../_shared/ai-prompts.ts");
+
     let systemPrompt = '';
     let userPrompt = '';
 
     switch (analysisType) {
       case 'summary':
-        systemPrompt = `
-          You are a legal contract analysis expert. Provide a comprehensive but concise summary of the contract.
-          
-          Include:
-          1. Contract type and purpose
-          2. Key parties involved
-          3. Main obligations and responsibilities
-          4. Important dates and timelines
-          5. Financial terms (if any)
-          6. Termination conditions
-          
-          Format your response in clear, structured sections with bullet points where appropriate.
-        `;
-        userPrompt = `Please provide a comprehensive summary of this contract:\n\n${contractText}`;
+        systemPrompt = CONTRACT_SUMMARY_PROMPT;
+        userPrompt = `Analyze and summarize this contract:\n\n${contractText}`;
         break;
 
       case 'risks':
-        systemPrompt = `
-          You are a legal risk assessment specialist. Analyze the contract for potential risks and concerns.
-          
-          Focus on:
-          1. Legal risks and liability issues
-          2. Financial risks and exposure
-          3. Operational risks and constraints
-          4. Compliance and regulatory risks
-          5. Unclear or ambiguous clauses
-          6. Missing protections or clauses
-          
-          Rate each risk as High, Medium, or Low and explain the potential impact.
-        `;
-        userPrompt = `Please analyze this contract for potential risks and concerns:\n\n${contractText}`;
+        systemPrompt = CONTRACT_RISK_PROMPT;
+        userPrompt = `Analyze this contract for potential risks:\n\n${contractText}`;
         break;
 
       case 'keyTerms':
-        systemPrompt = `
-          You are a contract terms extraction specialist. Extract and explain the most important terms and clauses.
-          
-          Focus on:
-          1. Key definitions and terminology
-          2. Important clauses and their implications
-          3. Rights and obligations of each party
-          4. Payment terms and conditions
-          5. Intellectual property provisions
-          6. Confidentiality and non-disclosure terms
-          7. Dispute resolution mechanisms
-          
-          Present each term with a brief explanation of its significance.
-        `;
-        userPrompt = `Please extract and explain the key terms and clauses from this contract:\n\n${contractText}`;
+        systemPrompt = CONTRACT_KEY_TERMS_PROMPT;
+        userPrompt = `Extract and explain key terms from this contract:\n\n${contractText}`;
         break;
 
       case 'suggestions':
-        systemPrompt = `
-          You are a contract improvement consultant. Provide constructive suggestions for improving the contract.
-          
-          Focus on:
-          1. Missing clauses that should be included
-          2. Unclear language that needs clarification
-          3. Potential improvements to protect both parties
-          4. Industry best practices that could be adopted
-          5. Risk mitigation suggestions
-          6. Compliance and legal improvements
-          
-          Provide practical, actionable recommendations with explanations.
-        `;
-        userPrompt = `Please provide suggestions for improving this contract:\n\n${contractText}`;
+        systemPrompt = CONTRACT_SUGGESTIONS_PROMPT;
+        userPrompt = `Provide improvement suggestions for this contract:\n\n${contractText}`;
         break;
 
       default:

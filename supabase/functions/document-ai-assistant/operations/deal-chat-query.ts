@@ -85,19 +85,11 @@ export async function handleDealChatQuery(
       }
     }
 
-    // Use OpenAI for real AI responses with deal context
-    const systemPrompt = `You are an AI assistant specialized in deal management and business transactions. You have access to comprehensive deal information and can provide helpful insights about:
-
-- Deal progress and health analysis
-- Next actions and recommendations based on current milestones
-- Document analysis and requirements
-- Industry insights and benchmarking
-- Risk assessment and mitigation strategies
-- Participant engagement and communication
-
-Use the provided deal context to give specific, actionable responses. Reference specific milestones, documents, participants, and progress when relevant. Be conversational but professional.
-
-IMPORTANT: Base your responses on the actual deal data provided. If specific information is not available in the context, mention that additional information would be helpful for a more detailed analysis.`;
+    // Import enhanced system prompt
+    const { DEAL_CHAT_SYSTEM_PROMPT } = await import("../_shared/ai-prompts.ts");
+    
+    // Use enhanced AI responses with deal context
+    const systemPrompt = DEAL_CHAT_SYSTEM_PROMPT;
 
     const userMessage = `Deal ID: ${dealId}
 User Query: ${query}

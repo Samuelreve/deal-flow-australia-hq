@@ -78,6 +78,9 @@ serve(async (req) => {
       documentContent = "Document content extraction not supported for this file type.";
     }
     
+    // Import enhanced prompts
+    const { CONTRACT_SUMMARY_PROMPT } = await import("../_shared/ai-prompts.ts");
+    
     // Call OpenAI for contract summarization
     const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -90,14 +93,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: `You are a legal assistant. Summarize the key terms and sections of the following contract document in simple, non-legal terms.
-            Then, list the parties involved, the contract type (e.g., Asset Purchase Agreement, Lease Agreement), any key obligations, timelines, termination rules, and liabilities explicitly mentioned.
-            
-            Answer ONLY using what is explicitly stated in the document.
-            Do NOT invent information or speculate.
-            Do NOT provide legal advice; state that you are an informational tool.
-            If the answer is NOT explicitly available, state 'I cannot find that information in the provided text.'
-            Highlight any unclear or ambiguous language if found.` 
+            content: CONTRACT_SUMMARY_PROMPT
           },
           { 
             role: "user", 

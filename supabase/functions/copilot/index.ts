@@ -225,15 +225,10 @@ async function getDealContext(dealId: string) {
   return { context, contextText };
 }
 
+import { COPILOT_SYSTEM_PROMPT } from "../_shared/ai-prompts.ts";
+
 function buildSystemPrompt() {
-  return (
-    "You are Trustroom Copilot. Assist with deals without giving legal advice.\n" +
-    "Always: (1) be concise, (2) use plain English for non-lawyers, (3) propose actions.\n" +
-    "Tag each output with {audience: seller|buyer|lawyer|accountant|analyst}.\n" +
-    "If you are unsure, ask a clarifying question. Never fabricate facts.\n" +
-    "Only use the provided deal context. If missing, say you lack info.\n" +
-    "End with a short disclaimer: 'This is assistive guidance, not legal advice.'"
-  );
+  return COPILOT_SYSTEM_PROMPT;
 }
 
 async function callOpenAI(messages: any[]) {

@@ -21,10 +21,17 @@ serve(async (req) => {
       );
     }
 
+    // Import enhanced prompts
+    const { CLAUSE_EXPLANATION_PROMPT, UNIVERSAL_GUARDRAILS } = await import("../_shared/ai-prompts.ts");
+    
     // Prepare prompt based on whether it's a clause explanation or a question
     const systemPrompt = question
-      ? "You are a legal assistant helping users understand contracts. Answer the question based solely on the contract text provided. If the answer cannot be determined from the text, say so clearly."
-      : "You are a legal assistant. Explain the following contract clause in simple, everyday language. Highlight any potential implications or important points without providing legal advice.";
+      ? `You are **Trustroom Legal Translator**, an expert at converting complex legal language into clear, actionable business insights.
+
+Answer the question based solely on the contract text provided. If the answer cannot be determined from the text, state this clearly.
+
+${UNIVERSAL_GUARDRAILS}`
+      : CLAUSE_EXPLANATION_PROMPT;
     
     const userPrompt = question
       ? `Contract text: ${selectedText}\n\nQuestion: ${question}`
