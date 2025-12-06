@@ -1,5 +1,6 @@
 
 import { fetchDealContextData } from './utils/deal-context-fetcher.ts';
+import { NEXT_ACTION_PROMPT } from "../../_shared/ai-prompts.ts";
 
 export async function handleSuggestNextAction(
   dealId: string,
@@ -19,65 +20,106 @@ export async function handleSuggestNextAction(
     const blockedMilestones = milestones.filter(m => m.status === 'blocked').length;
     const notStartedMilestones = milestones.filter(m => m.status === 'not_started').length;
     
-    // Create a comprehensive prompt for next action suggestion
-    const prompt = `You are an AI assistant helping to suggest the next best action for a business deal. Based on the following deal information, suggest a specific, actionable next step to move the deal forward.
+    // Identify overdue milestones
+    const today = new Date();
+    const overdueMilestones = milestones.filter(m => {
+      if (m.status === 'completed') return false;
+      if (!m.due_date) return false;
+      return new Date(m.due_date) < today;
+    });
+    
+    // Calculate days since last activity (based on deal updated_at)
+    const lastActivity = deal.updated_at ? new Date(deal.updated_at) : null;
+    const daysSinceActivity = lastActivity 
+      ? Math.floor((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+    
+    // Build comprehensive context for the AI
+    const contextPrompt = `Analyze this deal and suggest the single most impactful next action:
 
-Deal Information:
-- Title: ${deal.title || 'Not specified'}
-- Business Name: ${deal.business_legal_name || 'Not specified'}
-- Status: ${deal.status}
-- Health Score: ${deal.health_score}/100
-- Asking Price: ${deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'Not specified'}
-- Target Completion: ${deal.target_completion_date || 'Not specified'}
+=== DEAL INFORMATION ===
+Title: ${deal.title || 'Not specified'}
+Business Name: ${deal.business_legal_name || 'Not specified'}
+Status: ${deal.status}
+Health Score: ${deal.health_score}/100
+Asking Price: ${deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'Not specified'}
+Target Completion: ${deal.target_completion_date || 'Not specified'}
+Days Since Last Activity: ${daysSinceActivity !== null ? daysSinceActivity : 'Unknown'}
 
-Milestone Progress:
-- Total Milestones: ${totalMilestones}
-- Completed: ${completedMilestones}
-- In Progress: ${inProgressMilestones}
-- Blocked: ${blockedMilestones}
-- Not Started: ${notStartedMilestones}
+=== MILESTONE PROGRESS ===
+Total Milestones: ${totalMilestones}
+Completed: ${completedMilestones} (${totalMilestones > 0 ? Math.round((completedMilestones/totalMilestones)*100) : 0}%)
+In Progress: ${inProgressMilestones}
+Blocked: ${blockedMilestones}
+Not Started: ${notStartedMilestones}
+Overdue: ${overdueMilestones.length}
 
-Current Milestones:
-${milestones.map(m => `- ${m.title} (${m.status})`).join('\n')}
+=== MILESTONE DETAILS ===
+${milestones.map(m => {
+  const dueInfo = m.due_date ? ` (Due: ${m.due_date})` : '';
+  const overdue = overdueMilestones.includes(m) ? ' [OVERDUE]' : '';
+  return `- ${m.title}: ${m.status}${dueInfo}${overdue}`;
+}).join('\n')}
 
-Participants: ${participants.map(p => `${p.role}: ${p.profiles?.name || 'Unknown'}`).join(', ')}
+=== PARTICIPANTS (${participants.length}) ===
+${participants.map(p => `- ${p.profiles?.name || 'Unknown'} (${p.role})`).join('\n')}
 
-Documents: ${documents.length > 0 ? documents.map(d => `${d.name} (${d.type})`).join(', ') : 'No documents uploaded yet'}
+=== DOCUMENTS (${documents.length}) ===
+${documents.length > 0 
+  ? documents.slice(0, 10).map(d => `- ${d.name} (${d.type})`).join('\n')
+  : 'No documents uploaded yet'}
 
-Based on this information, suggest ONE specific next action that would have the highest impact on moving this deal forward. Consider:
-1. Current bottlenecks or blocked milestones
-2. Missing documentation or information
-3. Participant engagement and communication needs
-4. Risk mitigation opportunities
-5. Timeline acceleration possibilities
+Based on this information, return a JSON object with ONE specific next action following the format in your instructions.`;
 
-Provide a clear, actionable recommendation with specific steps the user can take immediately.`;
-
-    // Call OpenAI to generate next action suggestion
+    // Call OpenAI with the enhanced prompt
     const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-2025-04-14",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an expert business deal advisor. Provide specific, actionable recommendations to help move deals forward efficiently. Be concise but thorough in your suggestions."
+          content: NEXT_ACTION_PROMPT
         },
         {
           role: "user",
-          content: prompt
+          content: contextPrompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 800
+      temperature: 0.4,
+      max_tokens: 600
     });
 
-    const suggestion = completion.choices[0].message.content;
+    const responseContent = completion.choices[0].message.content;
     console.log('Next action suggestion generated successfully');
     
+    // Try to parse as JSON, fall back to text
+    let parsedResponse;
+    try {
+      // Clean potential markdown formatting
+      const cleanedContent = responseContent
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      parsedResponse = JSON.parse(cleanedContent);
+    } catch {
+      // If not valid JSON, return as text suggestion
+      parsedResponse = {
+        action: responseContent,
+        reasoning: "AI-generated recommendation based on deal analysis",
+        urgency: "medium",
+        owner: "Deal team"
+      };
+    }
+    
     return {
-      suggestion: suggestion,
+      suggestion: parsedResponse.action || responseContent,
+      reasoning: parsedResponse.reasoning,
+      impact: parsedResponse.impact,
+      urgency: parsedResponse.urgency || "medium",
+      deadline: parsedResponse.deadline,
+      owner: parsedResponse.owner,
       dealStatus: deal.status,
       healthScore: deal.health_score,
-      disclaimer: "This suggestion is generated by AI based on your current deal data. Please review and adapt as needed for your specific situation."
+      disclaimer: "This suggestion is AI-generated based on your current deal data. Please review and adapt as needed for your specific situation."
     };
     
   } catch (error) {

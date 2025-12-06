@@ -1,5 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+import { MILESTONE_EXPLANATION_PROMPT } from "../../_shared/ai-prompts.ts";
 
 export async function handleExplainMilestone(
   dealId: string,
@@ -36,48 +37,51 @@ export async function handleExplainMilestone(
     if (dealError || !deal) {
       throw new Error('Deal not found');
     }
+    
+    // Calculate if milestone is overdue
+    const today = new Date();
+    const isOverdue = milestone.due_date && milestone.status !== 'completed' && new Date(milestone.due_date) < today;
+    const daysOverdue = isOverdue 
+      ? Math.floor((today.getTime() - new Date(milestone.due_date).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
 
     // Create a comprehensive prompt for milestone explanation
-    const prompt = `You are an AI assistant helping to explain a milestone in a business deal. Based on the milestone and deal information provided, explain what this milestone means, why it's important, and what typically needs to be done to complete it.
+    const contextPrompt = `Please explain this milestone to help the user understand it:
 
-Deal Context:
-- Title: ${deal.title || 'Not specified'}
-- Business Name: ${deal.business_legal_name || 'Not specified'}
-- Deal Type: ${deal.deal_type || 'Not specified'}
-- Industry: ${deal.business_industry || 'Not specified'}
-- Asking Price: ${deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'Not specified'}
+=== DEAL CONTEXT ===
+Title: ${deal.title || 'Not specified'}
+Business Name: ${deal.business_legal_name || 'Not specified'}
+Deal Type: ${deal.deal_type || 'Not specified'}
+Industry: ${deal.business_industry || 'Not specified'}
+Asking Price: ${deal.asking_price ? `$${deal.asking_price.toLocaleString()}` : 'Not specified'}
+Deal Status: ${deal.status}
 
-Milestone Details:
-- Title: ${milestone.title}
-- Description: ${milestone.description || 'No description provided'}
-- Status: ${milestone.status}
-- Due Date: ${milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : 'Not set'}
-- Order: ${milestone.order_index}
+=== MILESTONE DETAILS ===
+Title: ${milestone.title}
+Description: ${milestone.description || 'No description provided'}
+Status: ${milestone.status}
+Due Date: ${milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : 'Not set'}
+Order in Sequence: ${milestone.order_index + 1}
+${isOverdue ? `⚠️ OVERDUE: ${daysOverdue} days past due date` : ''}
+${milestone.status === 'completed' ? `✅ COMPLETED: ${milestone.completed_at ? new Date(milestone.completed_at).toLocaleDateString() : 'Date unknown'}` : ''}
 
-Please provide a comprehensive explanation that includes:
-1. What this milestone represents in the context of this deal
-2. Why this milestone is important for the deal progression
-3. What activities or tasks are typically involved in completing this milestone
-4. Any potential challenges or considerations for this milestone
-5. How this milestone relates to other parts of the deal process
+Provide a comprehensive explanation following the output structure in your instructions. Adapt your response based on the milestone's current status (${milestone.status}).`;
 
-Keep the explanation clear, professional, and actionable.`;
-
-    // Call OpenAI to generate milestone explanation
+    // Call OpenAI with the enhanced prompt
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an expert business advisor with deep knowledge of mergers and acquisitions, deal structures, and business transactions. Provide clear, practical explanations that help users understand their deal milestones and make informed decisions."
+          content: MILESTONE_EXPLANATION_PROMPT
         },
         {
           role: "user",
-          content: prompt
+          content: contextPrompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 800
+      temperature: 0.5,
+      max_tokens: 1000
     });
 
     const explanation = completion.choices[0].message.content;
@@ -87,7 +91,15 @@ Keep the explanation clear, professional, and actionable.`;
       explanation: explanation,
       milestone: {
         title: milestone.title,
-        status: milestone.status
+        status: milestone.status,
+        dueDate: milestone.due_date,
+        isOverdue: isOverdue,
+        daysOverdue: daysOverdue
+      },
+      dealContext: {
+        title: deal.title,
+        type: deal.deal_type,
+        industry: deal.business_industry
       },
       disclaimer: "This explanation is AI-generated based on your milestone and deal data. Please review and adapt as needed for your specific situation."
     };
