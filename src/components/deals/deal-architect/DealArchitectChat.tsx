@@ -30,7 +30,8 @@ export function DealArchitectChat({ onDealCreated, onCancel }: DealArchitectChat
     sendMessage,
     resetChat,
     toggleMilestone,
-    updateMilestone
+    updateMilestone,
+    continueConversation
   } = useDealArchitect({
     onComplete: (data, milestones) => {
       console.log('Deal creation ready:', data, milestones);
@@ -148,9 +149,7 @@ export function DealArchitectChat({ onDealCreated, onCancel }: DealArchitectChat
             onConfirm={handleConfirmDeal}
             onToggleMilestone={toggleMilestone}
             onUpdateMilestone={updateMilestone}
-            onContinueChat={() => {
-              // Allow user to continue chatting to refine
-            }}
+            onContinueChat={continueConversation}
           />
         </div>
       )}

@@ -175,6 +175,21 @@ export function useDealArchitect(options?: UseDealArchitectOptions) {
     }));
   }, []);
 
+  const continueConversation = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      isComplete: false
+    }));
+    
+    const assistantMessage: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: "Sure! What would you like to change or add to this deal?",
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+  }, []);
+
   return {
     messages,
     dealData: state.dealData,
@@ -186,6 +201,7 @@ export function useDealArchitect(options?: UseDealArchitectOptions) {
     sendMessage,
     resetChat,
     toggleMilestone,
-    updateMilestone
+    updateMilestone,
+    continueConversation
   };
 }
