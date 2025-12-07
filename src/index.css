@@ -207,11 +207,11 @@
 
   /* Milestone styling */
   .milestone-item {
-    @apply relative mb-8 ms-8 last:mb-0;
+    @apply relative mb-8 ms-10 last:mb-0;
   }
   
   .milestone-indicator {
-    @apply absolute flex items-center justify-center w-6 h-6 rounded-full -start-[1.125rem] ring-4 ring-background;
+    @apply absolute flex items-center justify-center w-6 h-6 rounded-full -start-[1.75rem] ring-4 ring-background;
   }
   
   .milestone-indicator-completed {
