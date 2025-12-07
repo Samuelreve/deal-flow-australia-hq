@@ -818,7 +818,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         milestone.status === 'blocked' ? 'milestone-indicator-blocked' :
         'milestone-indicator-not-started'
       }`}>
-        {/* Status indicator circle */}
+        {milestone.order_index + 1}
       </span>
       <h4 className="flex flex-wrap items-center gap-2 mb-1 text-base sm:text-lg font-semibold text-foreground">
         <span className="break-words">{milestone.title}</span>
