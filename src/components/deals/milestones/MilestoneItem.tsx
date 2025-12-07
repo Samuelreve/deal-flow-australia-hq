@@ -820,7 +820,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }`}>
         {milestone.order_index + 1}
       </span>
-      <h4 className="flex flex-wrap items-center gap-2 mb-1 text-base sm:text-lg font-semibold text-foreground">
+      <h4 className="flex flex-wrap items-center gap-3 mb-2 text-base sm:text-lg font-semibold text-foreground">
         <span className="break-words">{milestone.title}</span>
         <span className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded ${
           milestone.status === 'completed' ? 'bg-primary/10 text-primary' :
@@ -885,7 +885,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         )}
       </h4>
       {(milestone.dueDate || milestone.completedAt || milestone.assignedUser) && (
-        <div className="block mb-2 text-sm font-normal leading-none">
+        <div className="block mb-3 text-sm font-normal leading-relaxed">
           {milestone.status !== 'completed' ? (
             <>
               {milestone.dueDate && (
@@ -914,7 +914,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         </div>
       )}
       {milestone.description && (
-        <p className="mb-4 text-sm sm:text-base font-normal text-muted-foreground">{milestone.description}</p>
+        <p className="mt-1 mb-4 text-sm sm:text-base font-normal text-muted-foreground">{milestone.description}</p>
       )}
 
       {/* Sequential milestone warning */}
