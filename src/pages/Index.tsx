@@ -9,6 +9,9 @@ import TrustSection from "@/components/landing/TrustSection";
 import FAQSection from "@/components/landing/FAQSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
+import SocialProof from "@/components/landing/SocialProof";
+import ComparisonTable from "@/components/landing/ComparisonTable";
+import DealCategories from "@/components/landing/DealCategories";
 import { useEffect } from "react";
 
 const Index = () => {
@@ -41,7 +44,10 @@ const Index = () => {
       <HeroSection isAuthenticated={isAuthenticated} scrollToSection={scrollToSection} />
       
       <main>
+        <SocialProof />
         <FeaturesSection />
+        <ComparisonTable />
+        <DealCategories />
         <HowItWorksSection />
         <BenefitsSection />
         <TrustSection />
