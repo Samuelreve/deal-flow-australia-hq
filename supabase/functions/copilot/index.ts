@@ -231,7 +231,7 @@ function buildSystemPrompt() {
   return COPILOT_SYSTEM_PROMPT;
 }
 
-async function callOpenAI(messages: any[]) {
+async function callOpenAI(messages: any[], stream: boolean = false) {
   const t0 = Date.now();
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -244,17 +244,80 @@ async function callOpenAI(messages: any[]) {
       temperature: 0.2,
       max_tokens: 700,
       messages,
+      stream,
     }),
   });
   if (!resp.ok) {
     const errText = await resp.text();
     throw new Error(`OpenAI error: ${resp.status} ${errText}`);
   }
+  
+  // If streaming, return the raw response for the caller to handle
+  if (stream) {
+    return { response: resp, t0 };
+  }
+  
   const json = await resp.json();
   const t1 = Date.now();
   const content = json?.choices?.[0]?.message?.content ?? "";
   const usage = json?.usage ?? {};
   return { content, usage, latency: t1 - t0 };
+}
+
+// Stream OpenAI response as SSE
+function createStreamResponse(openAIResponse: Response, corsHeaders: Record<string, string>) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = openAIResponse.body!.getReader();
+      let buffer = '';
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Process complete lines
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep incomplete line in buffer
+          
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                continue;
+              }
+              try {
+                // Forward the OpenAI SSE data as-is
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              } catch {
+                // Skip malformed JSON
+              }
+            }
+          }
+        }
+        controller.close();
+      } catch (error) {
+        console.error('Stream error:', error);
+        controller.error(error);
+      }
+    },
+  });
+  
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }
 
 async function logCopilot({ dealId, userId, role, operation, content, audience, usage, latency, metadata }: any) {
@@ -284,7 +347,7 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { operation, dealId, userId, content, chatHistory = [], items, context: requestContext } = payload || {};
+    const { operation, dealId, userId, content, chatHistory = [], items, context: requestContext, stream: useStreaming = false } = payload || {};
     const uploadedDocument = requestContext?.uploadedDocument;
 
     if (!userId) {
@@ -346,7 +409,15 @@ serve(async (req) => {
         { role: "user", content: userPrompt },
       ];
 
-      const { content: answer, usage, latency } = await callOpenAI(messages);
+      // Support streaming responses
+      if (useStreaming) {
+        const { response, t0 } = await callOpenAI(messages, true) as { response: Response; t0: number };
+        // Background logging for streaming (we won't have the full content)
+        (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "user", operation, content, metadata: { streaming: true, ...(uploadedDocument ? { documentName: uploadedDocument.name } : {}) } }));
+        return createStreamResponse(response, corsHeaders);
+      }
+
+      const { content: answer, usage, latency } = await callOpenAI(messages) as { content: string; usage: any; latency: number };
 
       // Background logging
       (self as any).EdgeRuntime?.waitUntil?.(logCopilot({ dealId, userId, role: "user", operation, content, metadata: uploadedDocument ? { documentName: uploadedDocument.name } : {} }));
