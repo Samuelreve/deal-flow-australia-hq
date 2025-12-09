@@ -4,6 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBusinessCategoryDetection } from './useBusinessCategoryDetection';
 import { parseSSEStream } from '@/lib/streaming';
 
+interface FunctionCallResult {
+  function: string;
+  args: any;
+  result: {
+    success: boolean;
+    result?: any;
+    error?: string;
+  };
+}
+
 interface Message {
   id: string;
   content: string;
@@ -13,6 +23,7 @@ interface Message {
   confidence?: number;
   documentContext?: string;
   isStreaming?: boolean;
+  functionCalls?: FunctionCallResult[];
 }
 
 const STORAGE_KEY = 'trustroom_ai_conversation';
@@ -46,7 +57,15 @@ function saveConversation(messages: Message[]) {
   }
 }
 
-export const useEnhancedAIConversation = (documentContent?: string) => {
+interface UseEnhancedAIConversationOptions {
+  documentContent?: string;
+  dealId?: string;
+  enableFunctions?: boolean;
+}
+
+export const useEnhancedAIConversation = (options: UseEnhancedAIConversationOptions = {}) => {
+  const { documentContent, dealId, enableFunctions = true } = options;
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,8 +91,18 @@ I'm your expert AI advisor for mergers, acquisitions, and business transactions.
 • **Contracts** — NDA, LOI, Purchase Agreement analysis and guidance
 • **Negotiations** — Tactics, leverage points, term optimization
 
-**✨ Get Started:**
-Ask me anything like "How do I value a SaaS business?" or upload a document for instant analysis.
+${dealId ? `**⚡ Actions I Can Take:**
+• Create milestones and tasks for your deal
+• Generate due diligence checklists
+• Send invitations to deal participants
+• Update milestone status
+• Get deal status and progress summaries
+
+` : ''}**✨ Get Started:**
+${dealId 
+  ? 'Try "Create a due diligence checklist" or "What\'s the status of this deal?"'
+  : 'Ask me anything like "How do I value a SaaS business?" or upload a document for instant analysis.'
+}
 
 What can I help you with today?`,
       role: 'assistant',
@@ -87,7 +116,7 @@ What can I help you with today?`,
     } else {
       setMessages([welcomeMessage]);
     }
-  }, []);
+  }, [dealId]);
 
   // Save conversation when messages change (excluding welcome and streaming)
   useEffect(() => {
@@ -141,7 +170,6 @@ What would you like to discuss?`,
     const currentInput = inputValue;
     setInputValue('');
     setIsLoading(true);
-    setIsStreaming(true);
     setStreamedContent('');
 
     // Create abort controller for this request
@@ -166,16 +194,21 @@ What would you like to discuss?`,
         .slice(-10)
         .map(m => ({ role: m.role, content: m.content }));
 
-      console.log('Sending streaming message to AI assistant:', { 
+      console.log('Sending message to AI assistant:', { 
         message: currentInput, 
         category: detection.category,
         hasDocument: !!documentContent,
-        historyLength: chatHistory.length
+        historyLength: chatHistory.length,
+        dealId,
+        enableFunctions
       });
 
       // Get session for auth
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      
+      // Determine if we should stream (only when functions are not expected to be used)
+      const shouldStream = !dealId || !enableFunctions;
       
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-assistant`, {
         method: 'POST',
@@ -188,7 +221,9 @@ What would you like to discuss?`,
           category: detection.category,
           documentContext: documentContent,
           chatHistory,
-          stream: true
+          stream: shouldStream,
+          dealId,
+          enableFunctions: enableFunctions && !!dealId
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -198,34 +233,86 @@ What would you like to discuss?`,
         throw new Error(`Request failed: ${response.status} ${errorText}`);
       }
 
-      let fullContent = '';
+      // Check content type to determine if streaming
+      const contentType = response.headers.get('content-type');
+      const isStreamResponse = contentType?.includes('text/event-stream');
 
-      await parseSSEStream(response, {
-        onDelta: (text) => {
-          fullContent += text;
-          setStreamedContent(fullContent);
-          // Update the streaming message content
-          setMessages(prev => prev.map(m => 
-            m.id === streamingMsgId 
-              ? { ...m, content: fullContent }
-              : m
-          ));
-        },
-        onDone: () => {
-          // Finalize the message
-          setMessages(prev => prev.map(m => 
-            m.id === streamingMsgId 
-              ? { ...m, content: fullContent, isStreaming: false }
-              : m
-          ));
-          setIsStreaming(false);
-          setIsLoading(false);
-        },
-        onError: (error) => {
-          console.error('Stream error:', error);
-          throw error;
+      if (isStreamResponse) {
+        setIsStreaming(true);
+        let fullContent = '';
+
+        await parseSSEStream(response, {
+          onDelta: (text) => {
+            fullContent += text;
+            setStreamedContent(fullContent);
+            // Update the streaming message content
+            setMessages(prev => prev.map(m => 
+              m.id === streamingMsgId 
+                ? { ...m, content: fullContent }
+                : m
+            ));
+          },
+          onDone: () => {
+            // Finalize the message
+            setMessages(prev => prev.map(m => 
+              m.id === streamingMsgId 
+                ? { ...m, content: fullContent, isStreaming: false }
+                : m
+            ));
+            setIsStreaming(false);
+            setIsLoading(false);
+          },
+          onError: (error) => {
+            console.error('Stream error:', error);
+            throw error;
+          }
+        });
+      } else {
+        // JSON response (with potential function calls)
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to get AI response');
         }
-      });
+
+        let responseContent = data.response || '';
+        
+        // If there were function calls, format them nicely
+        if (data.functionCalls && data.functionCalls.length > 0) {
+          const functionSummary = data.functionCalls.map((fc: FunctionCallResult) => {
+            if (fc.result.success) {
+              return `✅ **${formatFunctionName(fc.function)}**: ${fc.result.result?.message || 'Completed successfully'}`;
+            } else {
+              return `❌ **${formatFunctionName(fc.function)}**: ${fc.result.error || 'Failed'}`;
+            }
+          }).join('\n');
+          
+          if (responseContent) {
+            responseContent = `${functionSummary}\n\n${responseContent}`;
+          } else {
+            responseContent = functionSummary;
+          }
+
+          // Show toast for successful actions
+          const successCount = data.functionCalls.filter((fc: FunctionCallResult) => fc.result.success).length;
+          if (successCount > 0) {
+            toast.success(`Completed ${successCount} action${successCount > 1 ? 's' : ''}`);
+          }
+        }
+
+        // Update the message with final content
+        setMessages(prev => prev.map(m => 
+          m.id === streamingMsgId 
+            ? { 
+                ...m, 
+                content: responseContent, 
+                isStreaming: false,
+                functionCalls: data.functionCalls
+              }
+            : m
+        ));
+        setIsLoading(false);
+      }
 
     } catch (error: any) {
       // Handle abort
@@ -259,7 +346,7 @@ What would you like to discuss?`,
       setIsStreaming(false);
       abortControllerRef.current = null;
     }
-  }, [inputValue, isLoading, isStreaming, messages, documentContent, detectCategory, streamedContent]);
+  }, [inputValue, isLoading, isStreaming, messages, documentContent, detectCategory, streamedContent, dealId, enableFunctions]);
 
   const handleFeedback = useCallback((messageId: string, helpful: boolean) => {
     console.log(`Feedback for message ${messageId}: ${helpful ? 'helpful' : 'not helpful'}`);
@@ -279,3 +366,10 @@ What would you like to discuss?`,
     clearHistory
   };
 };
+
+// Helper function to format function names nicely
+function formatFunctionName(name: string): string {
+  return name
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase());
+}
