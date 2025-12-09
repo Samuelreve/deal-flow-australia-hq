@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.deal-architect-chat]
 verify_jwt = true
+
+[functions.ai-assistant]
+verify_jwt = false
