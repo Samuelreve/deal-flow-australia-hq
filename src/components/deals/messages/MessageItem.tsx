@@ -94,7 +94,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onDelete }) => {
 
         {/* Actions Menu (only for own messages) */}
         {isCurrentUser && (
-          <div className={`mt-1 invisible group-hover:visible ${isCurrentUser ? 'text-right' : ''}`}>
+          <div className={`mt-1 h-6 ${isCurrentUser ? 'text-right' : ''}`}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">

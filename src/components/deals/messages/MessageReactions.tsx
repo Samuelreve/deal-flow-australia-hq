@@ -126,12 +126,10 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
     return acc;
   }, {} as Record<string, { count: number; users: string[]; hasCurrentUser: boolean }>);
 
-  if (Object.keys(groupedReactions).length === 0 && !showAddButton) {
-    return null;
-  }
+  const hasReactions = Object.keys(groupedReactions).length > 0;
 
   return (
-    <div className="flex items-center gap-1 mt-1 flex-wrap">
+    <div className="flex items-center gap-1 mt-1 flex-wrap min-h-[28px]">
       {/* Existing reactions */}
       {Object.entries(groupedReactions).map(([emoji, data]) => (
         <button
@@ -152,42 +150,42 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
         </button>
       ))}
 
-      {/* Add reaction button */}
-      {showAddButton && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 rounded-full hover:bg-muted"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" align="start">
-            <div className="grid grid-cols-4 gap-1">
-              {COMMON_REACTIONS.map(emoji => {
-                const hasReacted = reactions.some(
-                  r => r.reaction === emoji && r.user_id === user?.id
-                );
-                return (
-                  <button
-                    key={emoji}
-                    onClick={() => addReaction(emoji)}
-                    className={`
-                      p-2 text-2xl rounded hover:bg-muted
-                      transition-all hover:scale-125
-                      ${hasReacted ? 'bg-primary/20' : ''}
-                    `}
-                  >
-                    {emoji}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
+      {/* Add reaction button - always rendered with opacity control */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-6 w-6 rounded-full hover:bg-muted transition-opacity ${
+              showAddButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-2 bg-popover" align="start">
+          <div className="grid grid-cols-4 gap-1">
+            {COMMON_REACTIONS.map(emoji => {
+              const hasReacted = reactions.some(
+                r => r.reaction === emoji && r.user_id === user?.id
+              );
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => addReaction(emoji)}
+                  className={`
+                    p-2 text-2xl rounded hover:bg-muted
+                    transition-all hover:scale-125
+                    ${hasReacted ? 'bg-primary/20' : ''}
+                  `}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
