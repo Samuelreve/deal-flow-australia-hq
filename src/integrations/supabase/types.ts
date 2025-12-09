@@ -1660,6 +1660,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          category: string | null
           created_at: string
           deal_id: string | null
           id: string
@@ -1671,6 +1672,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           deal_id?: string | null
           id?: string
@@ -1682,6 +1684,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           deal_id?: string | null
           id?: string

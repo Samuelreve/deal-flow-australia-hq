@@ -16,6 +16,7 @@ export interface Notification {
   related_entity_id?: string | null;
   related_entity_type?: string | null;
   link?: string | null;
+  category?: 'deal_update' | 'message' | 'document_comment' | null;
 }
 
 interface NotificationItemProps {
