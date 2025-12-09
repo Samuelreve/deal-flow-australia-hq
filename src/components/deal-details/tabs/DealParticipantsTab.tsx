@@ -10,8 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import ParticipantInvitationForm from "@/components/deals/ParticipantInvitationForm";
 import ParticipantProfileModal from "@/components/deals/participants/ParticipantProfileModal";
 import RemoveParticipantButton from "@/components/deals/participants/RemoveParticipantButton";
+import PendingInvitations from "@/components/deals/participants/PendingInvitations";
 import { formatParticipantDate } from "@/utils/dateUtils";
 import { useParticipantsRealtime } from "@/hooks/useParticipantsRealtime";
+import { DealInvitation, DealInvitationsResponse } from "@/types/invitation";
 
 interface Participant {
   id: string;
@@ -25,14 +27,6 @@ interface Participant {
   };
 }
 
-interface PendingInvitation {
-  id: string;
-  invitee_email: string;
-  invitee_role: string;
-  created_at: string;
-  status: string;
-  invited_by_user_id: string;
-}
 
 interface DealParticipantsTabProps {
   dealId: string;
@@ -41,7 +35,7 @@ interface DealParticipantsTabProps {
 
 const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTabChange }) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<DealInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
@@ -93,25 +87,23 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
         };
       }) || [];
 
-      // Fetch pending invitations
+      // Fetch invitations using the secure RPC function
       const { data: invitationsData, error: invitationsError } = await supabase
-        .from('deal_invitations')
-        .select('*')
-        .eq('deal_id', dealId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .rpc('get_deal_invitations', { p_deal_id: dealId });
 
       if (invitationsError) {
-        toast({
-          title: "Error",
-          description: "Failed to load pending invitations",
-          variant: "destructive"
-        });
-        return;
+        console.warn('Could not fetch invitations:', invitationsError);
       }
 
       setParticipants(participantsWithProfiles);
-      setPendingInvitations(invitationsData || []);
+      
+      // Parse the RPC response
+      const invitationsResponse = invitationsData as unknown as DealInvitationsResponse;
+      if (invitationsResponse?.success && Array.isArray(invitationsResponse.invitations)) {
+        setPendingInvitations(invitationsResponse.invitations);
+      } else {
+        setPendingInvitations([]);
+      }
     } catch (error) {
       console.error('Error fetching participants:', error);
       toast({
@@ -350,42 +342,17 @@ const DealParticipantsTab: React.FC<DealParticipantsTabProps> = ({ dealId, onTab
               </Card>
             ))}
             
-            {/* Pending Invitations */}
-            {pendingInvitations.map((invitation) => (
-              <Card key={invitation.id} className="hover:shadow-md transition-shadow border-dashed border-2">
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-orange-50 text-orange-600 font-medium">
-                        <Mail className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-base truncate">
-                          {invitation.invitee_email}
-                        </h4>
-                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs">
-                          Pending
-                        </Badge>
-                      </div>
-                      
-                      <Badge className={`mb-3 ${getRoleColor(invitation.invitee_role)}`}>
-                        {invitation.invitee_role.charAt(0).toUpperCase() + invitation.invitee_role.slice(1)}
-                      </Badge>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Invited {formatParticipantDate(invitation.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </>
         )}
       </div>
+
+      {/* Pending Invitations with Copy/Resend/Revoke actions */}
+      <PendingInvitations
+        invitations={pendingInvitations}
+        isLoading={loading}
+        dealId={dealId}
+        onInvitationUpdated={fetchParticipants}
+      />
 
 
       {/* Participant Invitation Dialog */}
