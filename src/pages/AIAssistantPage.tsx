@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import AppLayout from '@/components/layout/AppLayout';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
@@ -11,6 +12,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const AIAssistantPage = () => {
   const { isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  const dealIdFromParams = searchParams.get('dealId');
+  
   const { uploadedDocument, handleFileUpload, removeDocument } = useDocumentUpload();
   const { 
     messages, 
@@ -22,7 +26,11 @@ const AIAssistantPage = () => {
     handleFeedback,
     cancelStream,
     clearHistory
-  } = useEnhancedAIConversation(uploadedDocument?.content);
+  } = useEnhancedAIConversation({
+    documentContent: uploadedDocument?.content,
+    dealId: dealIdFromParams || undefined,
+    enableFunctions: true
+  });
 
   const content = (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-background dark:to-muted">
