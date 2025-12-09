@@ -3,6 +3,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { DbNotification, Notification } from "@/types/notifications";
 import { toast } from "sonner";
 
+interface NotificationSettings {
+  inapp_deal_updates: boolean;
+  inapp_messages: boolean;
+  inapp_document_comments: boolean;
+}
+
+// Fetch user's notification settings
+async function getUserNotificationSettings(userId: string): Promise<NotificationSettings> {
+  const { data } = await supabase
+    .from('notification_settings')
+    .select('inapp_deal_updates, inapp_messages, inapp_document_comments')
+    .eq('user_id', userId)
+    .single();
+  
+  // Default to all enabled if no settings exist
+  return data || {
+    inapp_deal_updates: true,
+    inapp_messages: true,
+    inapp_document_comments: true
+  };
+}
+
+// Categorize notification based on its content
+function getNotificationCategory(notification: Notification): 'deal_updates' | 'messages' | 'document_comments' {
+  const title = notification.title.toLowerCase();
+  const type = notification.type?.toLowerCase() || '';
+  
+  if (title.includes('message') || type.includes('message')) return 'messages';
+  if (title.includes('comment') || type.includes('comment')) return 'document_comments';
+  
+  // Default: deal updates (health alerts, invitations, milestone changes, etc.)
+  return 'deal_updates';
+}
+
+// Filter notifications based on user settings
+function filterNotificationsBySettings(
+  notifications: Notification[], 
+  settings: NotificationSettings
+): Notification[] {
+  return notifications.filter(n => {
+    const category = getNotificationCategory(n);
+    if (category === 'deal_updates' && !settings.inapp_deal_updates) return false;
+    if (category === 'messages' && !settings.inapp_messages) return false;
+    if (category === 'document_comments' && !settings.inapp_document_comments) return false;
+    return true;
+  });
+}
+
 export async function fetchNotifications(): Promise<Notification[] | null> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -17,8 +65,12 @@ export async function fetchNotifications(): Promise<Notification[] | null> {
     
     if (error) throw error;
     
-    // Transform to match our Notification type
-    return data.map(n => mapNotificationFromDb(n));
+    // Fetch user's notification settings
+    const settings = await getUserNotificationSettings(session.user.id);
+    
+    // Transform and filter notifications based on settings
+    const notifications = data.map(n => mapNotificationFromDb(n));
+    return filterNotificationsBySettings(notifications, settings);
   } catch (error) {
     console.error("Error fetching notifications:", error);
     toast("Failed to load notifications", {
@@ -113,6 +165,14 @@ export function createNotificationSubscription(
   userId: string, 
   onNewNotification: (notification: Notification) => void
 ) {
+  // Cache settings to avoid fetching on every notification
+  let cachedSettings: NotificationSettings | null = null;
+  
+  // Fetch settings initially
+  getUserNotificationSettings(userId).then(settings => {
+    cachedSettings = settings;
+  });
+  
   const channel = supabase
     .channel('public:notifications')
     .on(
@@ -123,14 +183,27 @@ export function createNotificationSubscription(
         table: 'notifications',
         filter: `user_id=eq.${userId}`
       },
-      (payload) => {
+      async (payload) => {
         console.log("New notification received:", payload);
         
         // Format the notification
         const newNotification = mapNotificationFromDb(payload.new as DbNotification);
         
-        // Call the callback with the new notification
-        onNewNotification(newNotification);
+        // Refresh settings cache on new notification
+        const settings = await getUserNotificationSettings(userId);
+        cachedSettings = settings;
+        
+        // Check if this notification type is enabled
+        const category = getNotificationCategory(newNotification);
+        const shouldShow = 
+          (category === 'deal_updates' && settings.inapp_deal_updates) ||
+          (category === 'messages' && settings.inapp_messages) ||
+          (category === 'document_comments' && settings.inapp_document_comments);
+        
+        if (shouldShow) {
+          // Call the callback with the new notification
+          onNewNotification(newNotification);
+        }
       }
     )
     .subscribe();
@@ -140,3 +213,6 @@ export function createNotificationSubscription(
     supabase.removeChannel(channel);
   };
 }
+
+// Export for use in settings refresh
+export { getUserNotificationSettings, getNotificationCategory };
