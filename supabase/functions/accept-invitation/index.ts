@@ -177,6 +177,7 @@ const handler = async (req: Request): Promise<Response> => {
           title: "Invitation Accepted",
           message: `${userEmail} has accepted your invitation to join the deal`,
           type: "info",
+          category: "deal_update",
           link: `/deals/${invitation.deal_id}`
         }
       ]);

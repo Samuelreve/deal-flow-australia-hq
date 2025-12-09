@@ -130,6 +130,7 @@ async function sendDealNotifications(supabase: any, stalledDeals: DealAlert[]): 
           title: 'Deal Needs Attention',
           message: `The deal "${deal.title}" has not had any activity for over a week. Consider taking action to move it forward.`,
           type: 'warning',
+          category: 'deal_update',
           link: `/deals/${deal.id}`
         });
       
@@ -160,6 +161,7 @@ async function sendMilestoneNotifications(supabase: any, overdueMilestones: Mile
             title: 'Milestone Overdue',
             message: `The milestone "${milestone.title}" in deal "${milestone.deal_title}" was due on ${formattedDate} and is now overdue.`,
             type: 'error',
+            category: 'deal_update',
             link: `/deals/${milestone.deal_id}`,
             related_entity_id: milestone.id,
             related_entity_type: 'milestone'
@@ -191,6 +193,7 @@ async function sendMilestoneNotifications(supabase: any, overdueMilestones: Mile
             title: 'Milestone Overdue',
             message: `The milestone "${milestone.title}" in deal "${milestone.deal_title}" was due on ${formattedDate} and is now overdue.`,
             type: 'error',
+            category: 'deal_update',
             link: `/deals/${milestone.deal_id}`,
             related_entity_id: milestone.id,
             related_entity_type: 'milestone'
@@ -291,6 +294,7 @@ async function checkDealActivity(supabase: any, inactiveDays = 7): Promise<void>
                   title: 'Deal Needs Your Attention',
                   message: `There has been no activity on the deal "${deal.title}" for over ${inactiveDays} days. Consider checking its status and taking action.`,
                   type: 'info',
+                  category: 'deal_update',
                   link: `/deals/${deal.id}`
                 });
               
