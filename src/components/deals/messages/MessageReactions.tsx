@@ -144,15 +144,17 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
         <button
           key={emoji}
           onClick={() => addReaction(emoji)}
+          disabled={isProcessing}
           className={`
             px-2 py-0.5 rounded-full text-xs font-medium
             transition-all hover:scale-110
+            ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
             ${data.hasCurrentUser 
               ? 'bg-primary/20 border border-primary/30' 
               : 'bg-muted hover:bg-muted/80'
             }
           `}
-          title={`${data.count} reaction${data.count > 1 ? 's' : ''}`}
+          title={`Click to ${data.hasCurrentUser ? 'remove' : 'add'} reaction`}
         >
           <span className="mr-1">{emoji}</span>
           {data.count > 1 && <span>{data.count}</span>}
