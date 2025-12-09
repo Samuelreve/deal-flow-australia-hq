@@ -97,13 +97,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // Update the invitation status to revoked
+    // Update the invitation status to revoked (keep token but expire it immediately)
     const { error: updateError } = await supabaseAdmin
       .from('deal_invitations')
       .update({
         status: 'revoked',
-        invitation_token: null, // Clear the token
-        token_expires_at: null
+        token_expires_at: new Date().toISOString() // Expire the token immediately
       })
       .eq('id', invitationId);
 
