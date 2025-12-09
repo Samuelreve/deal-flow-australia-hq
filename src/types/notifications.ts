@@ -17,4 +17,5 @@ export interface DbNotification {
   link?: string | null;
   related_entity_id?: string | null;
   related_entity_type?: string | null;
+  category?: 'deal_update' | 'message' | 'document_comment' | null;
 }
