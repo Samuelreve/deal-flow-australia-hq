@@ -205,7 +205,7 @@ What would you like to discuss?`,
 
       // Get session for auth
       const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = 'https://wntmgfuclbdrezxcvzmw.supabase.co';
       
       // Determine if we should stream (only when functions are not expected to be used)
       const shouldStream = !dealId || !enableFunctions;

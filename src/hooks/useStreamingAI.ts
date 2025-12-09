@@ -56,7 +56,7 @@ export const useStreamingAI = (options: UseStreamingAIOptions = {}) => {
         throw new Error('No valid session');
       }
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = 'https://wntmgfuclbdrezxcvzmw.supabase.co';
       
       const response = await fetch(`${supabaseUrl}/functions/v1/copilot`, {
         method: 'POST',
