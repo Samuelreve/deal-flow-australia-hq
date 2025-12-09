@@ -74,21 +74,28 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
     }
   };
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const addReaction = async (emoji: string) => {
-    if (!user) return;
+    if (!user || isProcessing) return;
 
+    setIsProcessing(true);
     try {
-      // Check if user already reacted with this emoji
-      const existing = reactions.find(
-        r => r.user_id === user.id && r.reaction === emoji
-      );
+      // Check database directly for existing reaction to avoid race conditions
+      const { data: existingReaction } = await (supabase as any)
+        .from('message_reactions')
+        .select('id')
+        .eq('message_id', messageId)
+        .eq('user_id', user.id)
+        .eq('reaction', emoji)
+        .maybeSingle();
 
-      if (existing) {
+      if (existingReaction) {
         // Remove reaction
         const { error } = await (supabase as any)
           .from('message_reactions')
           .delete()
-          .eq('id', existing.id);
+          .eq('id', existingReaction.id);
 
         if (error) throw error;
       } else {
@@ -106,6 +113,8 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
