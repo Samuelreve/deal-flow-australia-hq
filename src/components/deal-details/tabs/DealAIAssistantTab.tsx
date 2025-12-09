@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Send, Sparkles, TrendingUp, AlertTriangle, FileText } from "lucide-react";
+import { Bot, Send, Sparkles, TrendingUp, AlertTriangle, FileText, StopCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDocumentAI } from "@/hooks/useDocumentAI";
+import { useStreamingAI } from "@/hooks/useStreamingAI";
 import { toast } from "sonner";
 import { useDealContext } from "@/hooks/deals/useDealContext";
+import { StreamingCursor } from "@/components/ui/streaming-cursor";
 
 interface Deal {
   id: string;
@@ -26,6 +27,7 @@ interface AIMessage {
   content: string;
   timestamp: Date;
   suggestions?: string[];
+  isStreaming?: boolean;
 }
 
 interface DealAIAssistantTabProps {
@@ -36,17 +38,46 @@ interface DealAIAssistantTabProps {
 const DealAIAssistantTab: React.FC<DealAIAssistantTabProps> = ({ dealId, deal }) => {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Fetch comprehensive deal context
   const dealContext = useDealContext(dealId);
   
-  // Initialize AI operations
-  const { dealChatQuery, loading } = useDocumentAI({ 
-    dealId, 
-    documentId: undefined 
+  // Initialize streaming AI
+  const { 
+    isStreaming, 
+    streamedContent, 
+    streamDealChat, 
+    cancelStream,
+    resetStream 
+  } = useStreamingAI({
+    onError: (error) => {
+      toast.error('Failed to get AI response. Please try again.');
+    }
   });
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streamedContent]);
+
+  // Update streaming message content in real-time
+  useEffect(() => {
+    if (isStreaming && streamedContent) {
+      setMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.isStreaming) {
+          return prev.map((msg, idx) => 
+            idx === prev.length - 1 
+              ? { ...msg, content: streamedContent }
+              : msg
+          );
+        }
+        return prev;
+      });
+    }
+  }, [streamedContent, isStreaming]);
 
   // Initialize with a welcome message
   useEffect(() => {
@@ -78,7 +109,7 @@ What would you like to know about this deal?`,
   }, [deal.title, deal.health_score]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || isStreaming) return;
 
     // Add user message
     const userMessage: AIMessage = {
@@ -88,56 +119,58 @@ What would you like to know about this deal?`,
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Add placeholder streaming message
+    const streamingMessage: AIMessage = {
+      id: `ai-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true
+    };
+
+    setMessages(prev => [...prev, userMessage, streamingMessage]);
     const currentMessage = newMessage.trim();
     setNewMessage('');
-    setIsTyping(true);
+    resetStream();
 
     try {
-      // Use real AI response with comprehensive deal context
-      const aiResponse = await dealChatQuery(dealId, currentMessage, dealContext);
+      // Build chat history for context
+      const chatHistory = messages
+        .filter(m => m.id !== 'welcome')
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const finalContent = await streamDealChat(dealId, currentMessage, chatHistory);
       
-      if (aiResponse) {
-        const aiMessage: AIMessage = {
-          id: `ai-${Date.now()}`,
-          role: 'assistant',
-          content: aiResponse.answer || aiResponse.chatResponse || aiResponse.explanation || aiResponse.summary || 'I apologize, but I encountered an issue processing your request.',
-          timestamp: new Date(),
-          suggestions: [
-            'What should be my next action?',
-            'Analyze the deal health score',
-            'Review deal documents',
-            'Compare to industry standards'
-          ]
-        };
-        
-        setMessages(prev => [...prev, aiMessage]);
-      } else {
-        // Fallback message if AI response fails
-        const fallbackMessage: AIMessage = {
-          id: `ai-${Date.now()}`,
-          role: 'assistant',
-          content: 'I apologize, but I\'m currently unable to process your request. Please try again later.',
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, fallbackMessage]);
-      }
+      // Finalize the streaming message
+      setMessages(prev => prev.map((msg, idx) => 
+        idx === prev.length - 1 && msg.isStreaming
+          ? {
+              ...msg,
+              content: finalContent || 'I apologize, but I encountered an issue processing your request.',
+              isStreaming: false,
+              suggestions: [
+                'What should be my next action?',
+                'Analyze the deal health score',
+                'Review deal documents',
+                'Compare to industry standards'
+              ]
+            }
+          : msg
+      ));
     } catch (error) {
       console.error('AI response error:', error);
-      toast.error('Failed to get AI response. Please try again.');
       
-      // Add error message to chat
-      const errorMessage: AIMessage = {
-        id: `ai-${Date.now()}`,
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error processing your request. Please try again.',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
+      // Update the streaming message to show error
+      setMessages(prev => prev.map((msg, idx) => 
+        idx === prev.length - 1 && msg.isStreaming
+          ? {
+              ...msg,
+              content: 'I apologize, but I encountered an error processing your request. Please try again.',
+              isStreaming: false
+            }
+          : msg
+      ));
     }
   };
 
@@ -208,7 +241,10 @@ What would you like to know about this deal?`,
                       : 'bg-muted border'
                   }`}
                 >
-                  <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                    {message.isStreaming && <StreamingCursor />}
+                  </div>
                   
                   {/* Suggestions */}
                   {message.suggestions && message.suggestions.length > 0 && (
@@ -234,43 +270,43 @@ What would you like to know about this deal?`,
             </div>
           ))}
           
-          {/* Typing indicator */}
-          {isTyping && (
-            <div className="flex gap-3">
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarFallback className="bg-blue-100 text-blue-600">
-                  <Bot className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="bg-muted rounded-lg px-4 py-3">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
         <div className="flex gap-2 pt-3 border-t">
+          {isStreaming && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={cancelStream}
+              className="flex items-center gap-1 text-destructive"
+            >
+              <StopCircle className="h-4 w-4" />
+              Stop
+            </Button>
+          )}
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Ask me anything about this deal..."
             className="flex-1"
-            disabled={isTyping}
+            disabled={isStreaming}
           />
           <Button 
             onClick={sendMessage}
-            disabled={!newMessage.trim() || isTyping}
+            disabled={!newMessage.trim() || isStreaming}
             size="sm"
             className="flex items-center gap-1"
           >
             <Send className="h-4 w-4" />
-            Ask AI
+            {isStreaming ? 'Thinking...' : 'Ask AI'}
           </Button>
         </div>
       </CardContent>

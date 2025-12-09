@@ -1,13 +1,17 @@
-
 import React, { useState, useRef, useEffect } from "react";
-import { useDocumentAI } from "@/hooks/document-ai/useDocumentAI";
-import { ChatMessage, DealChatResponse } from "@/hooks/document-ai/types";
+import { ChatMessage } from "@/hooks/document-ai/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot } from "lucide-react";
+import { Bot, StopCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from 'uuid';
+import { useStreamingAI } from "@/hooks/useStreamingAI";
+import { StreamingCursor } from "@/components/ui/streaming-cursor";
+
+interface StreamingChatMessage extends ChatMessage {
+  isStreaming?: boolean;
+}
 
 interface DealChatAssistantPanelProps {
   dealId: string;
@@ -19,20 +23,52 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
   isParticipant 
 }) => {
   const [userQuestion, setUserQuestion] = useState<string>("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
+  const [chatMessages, setChatMessages] = useState<StreamingChatMessage[]>([{
     id: uuidv4(),
     role: "assistant",
     content: "Hello! I'm your Deal Assistant. Ask me any questions about this deal, and I'll help you find information based on the deal data.",
     timestamp: Date.now()
   }]);
   
-  const { dealChatQuery, loading } = useDocumentAI({ dealId });
+  const { 
+    isStreaming, 
+    streamedContent, 
+    streamDealChat, 
+    cancelStream,
+    resetStream 
+  } = useStreamingAI({
+    onError: () => {
+      toast({
+        title: "Chat Error",
+        description: "An error occurred while getting an answer",
+        variant: "destructive"
+      });
+    }
+  });
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Scroll to the bottom of the chat when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  }, [chatMessages, streamedContent]);
+
+  // Update streaming message content in real-time
+  useEffect(() => {
+    if (isStreaming && streamedContent) {
+      setChatMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.isStreaming) {
+          return prev.map((msg, idx) => 
+            idx === prev.length - 1 
+              ? { ...msg, content: streamedContent }
+              : msg
+          );
+        }
+        return prev;
+      });
+    }
+  }, [streamedContent, isStreaming]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,52 +83,58 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       return;
     }
 
-    const newUserMessage: ChatMessage = { 
+    const newUserMessage: StreamingChatMessage = { 
       id: uuidv4(),
       role: 'user', 
       content: userQuestion.trim(),
       timestamp: Date.now()
     };
     
-    setChatMessages(prev => [...prev, newUserMessage]);
+    // Add placeholder streaming message
+    const streamingMessage: StreamingChatMessage = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      isStreaming: true
+    };
+    
+    setChatMessages(prev => [...prev, newUserMessage, streamingMessage]);
+    const currentQuestion = userQuestion.trim();
     setUserQuestion("");
+    resetStream();
 
     try {
-      // Call the AI assistant method with just dealId and query
-      const result = await dealChatQuery(dealId, userQuestion.trim());
+      // Build chat history for context
+      const chatHistory = chatMessages
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.content }));
 
-      if (result && 'answer' in result) {
-        const answer = (result as DealChatResponse).answer;
-        
-        const newAiMessage: ChatMessage = { 
-          id: uuidv4(),
-          role: 'assistant', 
-          content: answer,
-          timestamp: Date.now()
-        };
-        setChatMessages(prev => [...prev, newAiMessage]);
-      } else {
-        setChatMessages(prev => [...prev, { 
-          id: uuidv4(),
-          role: 'assistant', 
-          content: "I'm sorry, I couldn't process your question. Please try asking in a different way.",
-          timestamp: Date.now()
-        }]);
-      }
+      const finalContent = await streamDealChat(dealId, currentQuestion, chatHistory);
+
+      // Finalize the streaming message
+      setChatMessages(prev => prev.map((msg, idx) => 
+        idx === prev.length - 1 && msg.isStreaming
+          ? {
+              ...msg,
+              content: finalContent || "I'm sorry, I couldn't process your question. Please try asking in a different way.",
+              isStreaming: false
+            }
+          : msg
+      ));
     } catch (error) {
       console.error('Deal chat query failed:', error);
-      setChatMessages(prev => [...prev, { 
-        id: uuidv4(),
-        role: 'assistant', 
-        content: 'Sorry, I encountered an error while processing your question. Please try again later.',
-        timestamp: Date.now()
-      }]);
       
-      toast({
-        title: "Chat Error",
-        description: error instanceof Error ? error.message : "An error occurred while getting an answer",
-        variant: "destructive"
-      });
+      // Update the streaming message to show error
+      setChatMessages(prev => prev.map((msg, idx) => 
+        idx === prev.length - 1 && msg.isStreaming
+          ? {
+              ...msg,
+              content: 'Sorry, I encountered an error while processing your question. Please try again later.',
+              isStreaming: false
+            }
+          : msg
+      ));
     }
   };
 
@@ -122,7 +164,10 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
                   : "bg-muted"
               )}
             >
-              <div className="whitespace-pre-line text-sm">{msg.content}</div>
+              <div className="whitespace-pre-line text-sm">
+                {msg.content}
+                {msg.isStreaming && <StreamingCursor />}
+              </div>
               {msg.timestamp && (
                 <div className="text-xs opacity-70 mt-1">
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -143,6 +188,16 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
       {/* Input area */}
       <form onSubmit={handleSendMessage} className="p-2 bg-background border-t">
         <div className="flex gap-2">
+          {isStreaming && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={cancelStream}
+              className="text-destructive"
+            >
+              <StopCircle className="h-4 w-4" />
+            </Button>
+          )}
           <Textarea
             value={userQuestion}
             onChange={(e) => setUserQuestion(e.target.value)}
@@ -154,13 +209,13 @@ const DealChatAssistantPanel: React.FC<DealChatAssistantPanelProps> = ({
                 handleSendMessage(e);
               }
             }}
-            disabled={loading || !isParticipant}
+            disabled={isStreaming || !isParticipant}
           />
           
           <Button 
             type="submit" 
             size="icon" 
-            disabled={loading || !userQuestion.trim() || !isParticipant}
+            disabled={isStreaming || !userQuestion.trim() || !isParticipant}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m22 2-7 20-4-9-9-4Z"/>
