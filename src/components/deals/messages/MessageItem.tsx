@@ -94,14 +94,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onDelete }) => {
 
         {/* Actions Menu (only for own messages) */}
         {isCurrentUser && (
-          <div className={`mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${isCurrentUser ? 'text-right' : ''}`}>
+          <div className={`mt-1 invisible group-hover:visible ${isCurrentUser ? 'text-right' : ''}`}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <MoreVertical className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align={isCurrentUser ? 'end' : 'start'}>
+              <DropdownMenuContent align={isCurrentUser ? 'end' : 'start'} className="bg-popover">
                 <DropdownMenuItem onClick={handleCopy}>
                   <Copy className="mr-2 h-4 w-4" />
                   Copy Text
