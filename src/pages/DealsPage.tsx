@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -25,7 +25,6 @@ const DealsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredDeals, setFilteredDeals] = useState<DealSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DealStatus | "all">("all");
   const [dealToDelete, setDealToDelete] = useState<string | null>(null);
@@ -36,10 +35,11 @@ const DealsPage = () => {
     limit: dealsPerPage
   });
   
-  // Convert deals from service format to DealSummary format
-  const deals = convertDealsToDealSummaries(rawDeals);
+  // Memoize deals conversion to prevent infinite loops
+  const deals = useMemo(() => convertDealsToDealSummaries(rawDeals), [rawDeals]);
   
-  useEffect(() => {
+  // Memoize filtered deals to prevent unnecessary recalculations
+  const filteredDeals = useMemo(() => {
     let filtered = deals;
     
     // Apply status filter
@@ -57,8 +57,8 @@ const DealsPage = () => {
       );
     }
     
-    setFilteredDeals(filtered);
-  }, [searchTerm, statusFilter, deals]);
+    return filtered;
+  }, [deals, searchTerm, statusFilter]);
 
   const handleDeleteDeal = (dealId: string) => {
     setDealToDelete(dealId);
