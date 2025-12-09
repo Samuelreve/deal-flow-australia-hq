@@ -21,6 +21,8 @@ export interface DealInvitation {
   role: UserRole;
   created_at: string;
   status: string;
+  token?: string | null;
+  token_expires_at?: string | null;
   invited_by: {
     id: string;
     name: string | null;
