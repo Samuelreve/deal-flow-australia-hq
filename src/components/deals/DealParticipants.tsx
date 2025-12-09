@@ -113,6 +113,8 @@ const DealParticipants = ({ deal, onParticipantsLoaded, currentUserDealRole, dea
       <PendingInvitations
         invitations={invitations}
         isLoading={loadingInvitations}
+        dealId={deal.id}
+        onInvitationUpdated={fetchInvitations}
       />
 
       {/* Invite Participant Button */}
