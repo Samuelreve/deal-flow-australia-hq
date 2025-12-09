@@ -10,7 +10,7 @@ import { usePrivateMessages } from "@/hooks/usePrivateMessages";
 import { useDealParticipants } from "@/hooks/useDealParticipants";
 import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
 import ContactsList from "./components/ContactsList";
-
+import MessageItem from "@/components/deals/messages/MessageItem";
 
 interface DealMessagesTabProps {
   dealId: string;
@@ -190,47 +190,15 @@ const DealMessagesTab: React.FC<DealMessagesTabProps> = ({ dealId, selectedParti
             </div>
           ) : (
             <>
-              {messages.map((message) => {
-                const isCurrentUser = message.sender_user_id === user?.id;
-                
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage 
-                        src={message.profiles?.avatar_url || undefined} 
-                        alt={message.profiles?.name || 'User'} 
-                      />
-                      <AvatarFallback className="text-xs">
-                        {(message.profiles?.name || 'U').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className={`flex flex-col max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-muted-foreground">
-                          {isCurrentUser ? 'You' : (message.profiles?.name || 'User')}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatMessageTime(message.created_at)}
-                        </span>
-                      </div>
-                      
-                      <div
-                        className={`rounded-lg px-3 py-2 max-w-full break-words ${
-                          isCurrentUser
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {messages.map((message) => (
+                <MessageItem 
+                  key={message.id} 
+                  message={{
+                    ...message,
+                    profiles: message.profiles || { name: 'Unknown', avatar_url: null }
+                  }}
+                />
+              ))}
               {/* Auto-scroll target */}
               <div ref={messagesEndRef} />
             </>
