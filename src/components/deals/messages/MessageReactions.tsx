@@ -45,11 +45,14 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
           table: 'message_reactions',
           filter: `message_id=eq.${messageId}`
         },
-        () => {
+        (payload) => {
+          console.log('Reaction realtime update:', payload);
           fetchReactions();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Reactions realtime status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -80,9 +83,32 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
     if (!user || isProcessing) return;
 
     setIsProcessing(true);
+    
+    // Find existing reaction in current state for optimistic update
+    const existingReaction = reactions.find(
+      r => r.user_id === user.id && r.reaction === emoji
+    );
+    
+    // Store original state for rollback
+    const originalReactions = [...reactions];
+    
+    // Optimistic update - immediately update UI
+    if (existingReaction) {
+      setReactions(prev => prev.filter(r => r.id !== existingReaction.id));
+    } else {
+      const tempId = `temp-${Date.now()}`;
+      setReactions(prev => [...prev, {
+        id: tempId,
+        message_id: messageId,
+        user_id: user.id,
+        reaction: emoji,
+        created_at: new Date().toISOString()
+      }]);
+    }
+    
     try {
-      // Check database directly for existing reaction to avoid race conditions
-      const { data: existingReaction } = await (supabase as any)
+      // Check database directly for existing reaction to handle edge cases
+      const { data: dbReaction } = await (supabase as any)
         .from('message_reactions')
         .select('id')
         .eq('message_id', messageId)
@@ -90,16 +116,16 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
         .eq('reaction', emoji)
         .maybeSingle();
 
-      if (existingReaction) {
-        // Remove reaction
+      if (dbReaction) {
+        // Remove reaction from database
         const { error } = await (supabase as any)
           .from('message_reactions')
           .delete()
-          .eq('id', existingReaction.id);
+          .eq('id', dbReaction.id);
 
         if (error) throw error;
       } else {
-        // Add reaction
+        // Add reaction to database
         const { error } = await (supabase as any)
           .from('message_reactions')
           .insert({
@@ -111,8 +137,10 @@ export function MessageReactions({ messageId, showAddButton = false }: MessageRe
         if (error) throw error;
       }
     } catch (error) {
-      console.error('Error adding reaction:', error);
-      toast.error('Failed to add reaction');
+      console.error('Error updating reaction:', error);
+      // Rollback on error
+      setReactions(originalReactions);
+      toast.error('Failed to update reaction');
     } finally {
       setIsProcessing(false);
     }
