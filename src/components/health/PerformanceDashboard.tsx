@@ -1,8 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -25,20 +24,69 @@ import {
   TrendingUp, 
   TrendingDown, 
   BarChart3, 
-  PieChart as PieChartIcon,
   Activity,
-  Filter,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
 import { DealSummary } from "@/types/deal";
+import { supabase } from '@/integrations/supabase/client';
 
 interface PerformanceDashboardProps {
   deals: DealSummary[];
 }
 
+interface HealthHistoryEntry {
+  deal_id: string;
+  health_score: number;
+  created_at: string;
+}
+
 const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
+  const [healthHistory, setHealthHistory] = useState<HealthHistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Fetch real health history data
+  useEffect(() => {
+    const fetchHealthHistory = async () => {
+      if (deals.length === 0) {
+        setLoadingHistory(false);
+        return;
+      }
+
+      setLoadingHistory(true);
+      try {
+        const dealIds = deals.map(d => d.id);
+        
+        // Calculate date range based on selection
+        const now = new Date();
+        let startDate = new Date();
+        switch (timeRange) {
+          case '7d': startDate.setDate(now.getDate() - 7); break;
+          case '30d': startDate.setDate(now.getDate() - 30); break;
+          case '90d': startDate.setDate(now.getDate() - 90); break;
+          case '1y': startDate.setFullYear(now.getFullYear() - 1); break;
+        }
+
+        const { data, error } = await supabase
+          .from('deal_health_history')
+          .select('deal_id, health_score, created_at')
+          .in('deal_id', dealIds)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        setHealthHistory(data || []);
+      } catch (error) {
+        console.error('Error fetching health history:', error);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchHealthHistory();
+  }, [deals, timeRange]);
 
   const chartData = useMemo(() => {
     // Group deals by health score ranges
@@ -59,29 +107,37 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
     }));
   }, [deals]);
 
+  // Aggregate health history by day for trend chart
   const trendData = useMemo(() => {
-    // Simulate historical data for the last 30 days
-    const days = 30;
-    const data = [];
-    
-    for (let i = days; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      // Calculate average health score for this "day" (simulated)
-      const avgScore = deals.length > 0 
-        ? deals.reduce((sum, deal) => sum + deal.healthScore, 0) / deals.length + (Math.random() - 0.5) * 10
-        : 0;
-      
-      data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        avgHealthScore: Math.max(0, Math.min(100, avgScore)),
-        dealsCount: deals.length + Math.floor(Math.random() * 3) - 1
-      });
+    if (healthHistory.length === 0) {
+      // Fallback: show current deal scores as single data points
+      if (deals.length > 0) {
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const avgScore = deals.reduce((sum, deal) => sum + deal.healthScore, 0) / deals.length;
+        return [{ date: today, avgHealthScore: Math.round(avgScore), dealsCount: deals.length }];
+      }
+      return [];
     }
+
+    // Group by date and calculate averages
+    const dailyData = new Map<string, { scores: number[], count: number }>();
     
-    return data;
-  }, [deals]);
+    healthHistory.forEach(entry => {
+      const date = new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (!dailyData.has(date)) {
+        dailyData.set(date, { scores: [], count: 0 });
+      }
+      const day = dailyData.get(date)!;
+      day.scores.push(entry.health_score);
+      day.count++;
+    });
+
+    return Array.from(dailyData.entries()).map(([date, data]) => ({
+      date,
+      avgHealthScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
+      dealsCount: data.count
+    }));
+  }, [healthHistory, deals]);
 
   const statusData = useMemo(() => {
     const statusCounts = deals.reduce((acc, deal) => {
@@ -149,7 +205,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
           <LineChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis />
+            <YAxis domain={[0, 100]} />
             <Tooltip />
             <Line type="monotone" dataKey="avgHealthScore" stroke="#3b82f6" strokeWidth={2} />
           </LineChart>
@@ -159,7 +215,7 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
           <AreaChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis />
+            <YAxis domain={[0, 100]} />
             <Tooltip />
             <Area type="monotone" dataKey="avgHealthScore" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
           </AreaChart>
@@ -298,18 +354,37 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
           <Card>
             <CardHeader>
               <CardTitle>Health Score Trends</CardTitle>
-              <CardDescription>Average health score over time</CardDescription>
+              <CardDescription>
+                {loadingHistory ? 'Loading historical data...' : 
+                  healthHistory.length > 0 
+                    ? `Average health score over time (${healthHistory.length} records)` 
+                    : 'No historical data available for selected period'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="avgHealthScore" stroke="#3b82f6" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+              {loadingHistory ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : trendData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="avgHealthScore" stroke="#3b82f6" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  <div className="text-center">
+                    <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No trend data available</p>
+                    <p className="text-sm">Health history will appear as deals are updated</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

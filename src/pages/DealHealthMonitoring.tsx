@@ -166,11 +166,11 @@ const DealHealthMonitoring = () => {
         </TabsContent>
 
         <TabsContent value="thresholds">
-          <HealthThresholdManager />
+          <HealthThresholdManager dealId={selectedDealId || undefined} userId={user?.id} />
         </TabsContent>
 
         <TabsContent value="notifications">
-          <HealthNotificationSettings />
+          <HealthNotificationSettings userId={user?.id} />
         </TabsContent>
       </Tabs>
     </div>
