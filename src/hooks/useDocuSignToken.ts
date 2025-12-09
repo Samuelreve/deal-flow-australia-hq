@@ -57,7 +57,7 @@ export const useDocuSignToken = () => {
   };
 
   const getAuthUrl = () => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseUrl = 'https://wntmgfuclbdrezxcvzmw.supabase.co';
     const callbackUrl = `${supabaseUrl}/functions/v1/docusign-oauth-callback`;
     const integrationKey = 'your-integration-key'; // This would come from your environment
     
