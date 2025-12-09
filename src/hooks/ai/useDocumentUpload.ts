@@ -1,6 +1,6 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UploadedDocument {
   name: string;
@@ -9,6 +9,7 @@ interface UploadedDocument {
 
 export const useDocumentUpload = () => {
   const [uploadedDocument, setUploadedDocument] = useState<UploadedDocument | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -21,23 +22,54 @@ export const useDocumentUpload = () => {
     }
 
     // Check file type
-    const allowedTypes = ['.txt', '.pdf', '.docx'];
+    const allowedTypes = ['.txt', '.pdf', '.docx', '.md', '.csv', '.json'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
     if (!allowedTypes.includes(fileExtension)) {
-      toast.error('Please upload a text, PDF, or Word document');
+      toast.error('Please upload a supported document (TXT, PDF, DOCX, MD, CSV, JSON)');
       return;
     }
 
     try {
       let content = '';
       
-      if (file.type === 'text/plain') {
+      if (file.type === 'text/plain' || fileExtension === '.txt' || fileExtension === '.md') {
+        // For text files, read directly
         content = await file.text();
       } else {
-        // For demo purposes, we'll show that the file was uploaded
-        // In a real implementation, you'd use a proper PDF/Word parser
-        content = `[Document uploaded: ${file.name}] - Full document parsing would be implemented here with proper PDF/Word extraction libraries.`;
+        // For PDFs, DOCX, etc. - use the text-extractor edge function
+        setIsExtracting(true);
+        toast.loading('Extracting document text...', { id: 'extracting' });
+
+        // Convert file to base64
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+
+        // Call text-extractor edge function
+        const { data, error } = await supabase.functions.invoke('text-extractor', {
+          body: {
+            fileBase64: base64,
+            mimeType: file.type,
+            fileName: file.name
+          }
+        });
+
+        toast.dismiss('extracting');
+        setIsExtracting(false);
+
+        if (error || !data?.success) {
+          console.error('Text extraction failed:', error || data?.error);
+          toast.error(data?.error || 'Failed to extract document text');
+          return;
+        }
+
+        content = data.text;
+        console.log(`✅ Extracted ${content.length} characters from ${file.name}`);
       }
 
       setUploadedDocument({
@@ -45,10 +77,12 @@ export const useDocumentUpload = () => {
         content: content
       });
 
-      toast.success(`Document "${file.name}" uploaded successfully!`);
+      toast.success(`Document "${file.name}" uploaded and processed!`);
     } catch (error) {
-      console.error('Error reading file:', error);
-      toast.error('Failed to read the document');
+      console.error('Error processing file:', error);
+      toast.error('Failed to process the document');
+      setIsExtracting(false);
+      toast.dismiss('extracting');
     }
 
     // Reset file input
@@ -63,6 +97,7 @@ export const useDocumentUpload = () => {
 
   return {
     uploadedDocument,
+    isExtracting,
     handleFileUpload,
     removeDocument
   };
