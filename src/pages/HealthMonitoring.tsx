@@ -6,14 +6,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useHealthAlerts } from "@/hooks/useHealthAlerts";
 import { convertDealsToDealSummaries } from "@/utils/dealConversion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, Brain, Settings, RefreshCw, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import PerformanceDashboard from "@/components/health/PerformanceDashboard";
 import HealthPredictionEngine from "@/components/health/HealthPredictionEngine";
 import HealthAlertsList from "@/components/deals/health/HealthAlertsList";
-import HealthThresholdManager from "@/components/deals/health/HealthThresholdManager";
 import HealthNotificationSettings from "@/components/deals/health/HealthNotificationSettings";
 
 const HealthMonitoring = () => {
@@ -171,11 +170,8 @@ const HealthMonitoring = () => {
           <HealthPredictionEngine deals={deals} userId={user?.id} />
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <HealthThresholdManager userId={user?.id} />
-            <HealthNotificationSettings userId={user?.id} />
-          </div>
+        <TabsContent value="settings">
+          <HealthNotificationSettings userId={user?.id} />
         </TabsContent>
       </Tabs>
     </div>
