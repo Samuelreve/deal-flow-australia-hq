@@ -22,8 +22,7 @@ import AIDisclaimerPage from "@/pages/AIDisclaimerPage";
 import FAQPage from "@/pages/FAQPage";
 import AIAssistantPage from "@/pages/AIAssistantPage";
 import DealHealthPage from "@/pages/DealHealthPage";
-import DealHealthMonitoring from "@/pages/DealHealthMonitoring";
-import AdvancedHealthMonitoring from "@/pages/AdvancedHealthMonitoring";
+import HealthMonitoring from "@/pages/HealthMonitoring";
 import ProfilePage from "@/pages/ProfilePage";
 import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import IntentCapturePage from "@/pages/onboarding/IntentCapturePage";
@@ -99,8 +98,9 @@ function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/deal-health" element={<DealHealthPage />} />
-                  <Route path="/health-monitoring" element={<DealHealthMonitoring />} />
-                  <Route path="/advanced-health-monitoring" element={<AdvancedHealthMonitoring />} />
+                  <Route path="/health-monitoring" element={<HealthMonitoring />} />
+                  {/* Redirect old routes to new consolidated page */}
+                  <Route path="/advanced-health-monitoring" element={<Navigate to="/health-monitoring" replace />} />
                 </Route>
                 
                 {/* Fallback for authenticated, onboarded users to dashboard */}
