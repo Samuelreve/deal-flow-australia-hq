@@ -4,17 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { HealthThreshold } from '@/types/healthMonitoring';
 import { toast } from 'sonner';
 
-export const useHealthThresholds = (dealId: string) => {
+export const useHealthThresholds = (dealId?: string) => {
   const [thresholds, setThresholds] = useState<HealthThreshold[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchThresholds = async () => {
     try {
-      const { data, error } = await supabase
+      // If no dealId provided, fetch all user's thresholds
+      let query = supabase
         .from('deal_health_thresholds')
         .select('*')
-        .eq('deal_id', dealId)
         .order('threshold_value', { ascending: false });
+      
+      // Only filter by dealId if it's a valid UUID
+      if (dealId && dealId !== 'global' && dealId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        query = query.eq('deal_id', dealId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
@@ -58,9 +65,7 @@ export const useHealthThresholds = (dealId: string) => {
   };
 
   useEffect(() => {
-    if (dealId) {
-      fetchThresholds();
-    }
+    fetchThresholds();
   }, [dealId]);
 
   return {

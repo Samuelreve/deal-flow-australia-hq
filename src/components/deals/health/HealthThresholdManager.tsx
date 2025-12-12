@@ -18,9 +18,8 @@ interface HealthThresholdManagerProps {
 }
 
 const HealthThresholdManager: React.FC<HealthThresholdManagerProps> = ({ dealId, userId }) => {
-  // Use a placeholder deal ID if none provided - this allows user-level threshold management
-  const effectiveDealId = dealId || 'global';
-  const { thresholds, loading, updateThreshold, toggleThreshold, refetch } = useHealthThresholds(effectiveDealId);
+  // Pass dealId directly - hook now handles undefined/global cases properly
+  const { thresholds, loading, updateThreshold, toggleThreshold, refetch } = useHealthThresholds(dealId);
   const [isEditing, setIsEditing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newThreshold, setNewThreshold] = useState<{
