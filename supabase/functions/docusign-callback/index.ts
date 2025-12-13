@@ -53,12 +53,12 @@ async function notifyParticipants(
 ) {
   console.log('📧 Notifying participants for deal:', dealId);
   
-  // Get all deal participants with their profiles and notification settings
+  // Get all deal participants with their profiles
   const { data: participants, error: participantsError } = await supabase
     .from('deal_participants')
     .select(`
       user_id,
-      profiles!deal_participants_user_id_fkey (
+      profiles (
         id,
         name,
         email
@@ -261,20 +261,41 @@ serve(async (req: Request) => {
       console.log('🔍 Webhook event:', webhookEvent, 'Status:', webhookStatus);
       
       // Get document and deal details for notification
-      const { data: signatureData } = await supabase
+      const { data: signatureData, error: sigDataError } = await supabase
         .from('document_signatures')
         .select(`
           signer_email,
           deal_id,
-          documents (name),
-          deals:deal_id (title)
+          document_id
         `)
         .eq('envelope_id', webhookEnvelopeId)
         .single();
+      
+      if (sigDataError) {
+        console.error('Error fetching signature data:', sigDataError);
+      }
 
       if (signatureData && signatureData.deal_id) {
-        const documentName = signatureData.documents?.name || 'Document';
-        const dealTitle = signatureData.deals?.title || 'Deal';
+        // Fetch document and deal names separately for reliable data
+        let documentName = 'Document';
+        let dealTitle = 'Deal';
+        
+        if (signatureData.document_id) {
+          const { data: docData } = await supabase
+            .from('documents')
+            .select('name')
+            .eq('id', signatureData.document_id)
+            .single();
+          if (docData) documentName = docData.name;
+        }
+        
+        const { data: dealData } = await supabase
+          .from('deals')
+          .select('title')
+          .eq('id', signatureData.deal_id)
+          .single();
+        if (dealData) dealTitle = dealData.title;
+
         const signerEmail = signatureData.signer_email;
 
         console.log(`📄 Document: ${documentName}, Deal: ${dealTitle}, Signer: ${signerEmail}`);
