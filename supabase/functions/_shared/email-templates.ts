@@ -153,8 +153,67 @@ export function generateShareLinkEmail(params: {
         If you weren't expecting this document, please disregard this email.
       </p>
       <p style="margin-top: 30px; font-size: 12px; color: #666;">
-        Regards,<br/>The Deal Pilot Team
+        Regards,<br/>The Trustroom.ai Team
       </p>
     </div>
+  `;
+}
+
+// Generate document signed email HTML
+export function generateDocumentSignedEmail(params: {
+  recipientName: string;
+  signerName: string;
+  documentName: string;
+  dealTitle: string;
+  dealUrl: string;
+}): string {
+  const { recipientName, signerName, documentName, dealTitle, dealUrl } = params;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Document Signed</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <tr>
+                <td style="padding: 40px 30px; text-align: center; background-color: #10B981;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">✓ Document Signed</h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px;">
+                  <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5; color: #333333;">Hello ${recipientName},</p>
+                  <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                    Great news! <strong>${signerName}</strong> has signed the document "<strong>${documentName}</strong>" for the deal "<strong>${dealTitle}</strong>".
+                  </p>
+                  <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                    You can view the signed document and deal progress by clicking the button below:
+                  </p>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding: 20px 0;">
+                        <a href="${dealUrl}" style="display: inline-block; padding: 15px 30px; background-color: #10B981; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">View Deal</a>
+                      </td>
+                    </tr>
+                  </table>
+                  <p style="margin: 30px 0 0 0; font-size: 14px; line-height: 1.5; color: #333333;">
+                    Regards,<br/>
+                    The Trustroom.ai Team
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
   `;
 }

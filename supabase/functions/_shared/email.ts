@@ -1,6 +1,6 @@
 
 // Shared email utility functions for Edge Functions
-import { generateInvitationEmail, generateParticipantAddedEmail, generateShareLinkEmail } from './email-templates.ts';
+import { generateInvitationEmail, generateParticipantAddedEmail, generateShareLinkEmail, generateDocumentSignedEmail } from './email-templates.ts';
 
 interface EmailConfig {
   to: string;
@@ -41,4 +41,4 @@ export async function sendEmail(config: EmailConfig) {
 }
 
 // Export template functions
-export { generateInvitationEmail, generateParticipantAddedEmail, generateShareLinkEmail };
+export { generateInvitationEmail, generateParticipantAddedEmail, generateShareLinkEmail, generateDocumentSignedEmail };
