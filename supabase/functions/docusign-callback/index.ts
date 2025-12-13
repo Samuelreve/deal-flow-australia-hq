@@ -1,12 +1,145 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { generateDocumentSignedEmail } from "../_shared/email-templates.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Background function removed - user can manually download signed documents
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!RESEND_API_KEY) {
+    console.error("RESEND_API_KEY is not configured");
+    return false;
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: "Trustroom.ai <notifications@resend.dev>",
+        to: [to],
+        subject,
+        html
+      })
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Email sending failed:", errorBody);
+      return false;
+    }
+    
+    console.log(`✅ Email sent to ${to}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return false;
+  }
+}
+
+async function notifyParticipants(
+  supabase: any,
+  dealId: string,
+  signerEmail: string,
+  documentName: string,
+  dealTitle: string
+) {
+  console.log('📧 Notifying participants for deal:', dealId);
+  
+  // Get all deal participants with their profiles and notification settings
+  const { data: participants, error: participantsError } = await supabase
+    .from('deal_participants')
+    .select(`
+      user_id,
+      profiles!deal_participants_user_id_fkey (
+        id,
+        name,
+        email
+      )
+    `)
+    .eq('deal_id', dealId);
+
+  if (participantsError) {
+    console.error('Error fetching participants:', participantsError);
+    return;
+  }
+
+  if (!participants || participants.length === 0) {
+    console.log('No participants found for deal');
+    return;
+  }
+
+  console.log(`Found ${participants.length} participants to notify`);
+
+  const baseUrl = 'https://deal-flow-australia-hq.lovable.app';
+  const dealUrl = `${baseUrl}/deals/${dealId}`;
+  
+  // Get signer name from email (best effort)
+  const signerName = signerEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  for (const participant of participants) {
+    const profile = participant.profiles;
+    if (!profile) continue;
+
+    const userId = profile.id;
+    const recipientName = profile.name || 'there';
+    const recipientEmail = profile.email;
+
+    // 1. Create in-app notification
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        deal_id: dealId,
+        title: 'Document Signed',
+        message: `${signerName} has signed "${documentName}"`,
+        type: 'success',
+        category: 'deal_update',
+        link: `/deals/${dealId}`
+      });
+
+    if (notifError) {
+      console.error(`Error creating notification for ${userId}:`, notifError);
+    } else {
+      console.log(`✅ In-app notification created for ${recipientName}`);
+    }
+
+    // 2. Check if user wants email notifications for deal updates
+    const { data: settings } = await supabase
+      .from('notification_settings')
+      .select('email_deal_updates')
+      .eq('user_id', userId)
+      .single();
+
+    // Default to true if no settings found
+    const emailEnabled = settings?.email_deal_updates ?? true;
+
+    if (emailEnabled && recipientEmail) {
+      const emailHtml = generateDocumentSignedEmail({
+        recipientName,
+        signerName,
+        documentName,
+        dealTitle,
+        dealUrl
+      });
+
+      await sendEmail(
+        recipientEmail,
+        `Document Signed: ${documentName} - ${dealTitle}`,
+        emailHtml
+      );
+    } else {
+      console.log(`📧 Email notifications disabled for ${recipientName}`);
+    }
+  }
+}
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -126,7 +259,37 @@ serve(async (req: Request) => {
     if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
       console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
       console.log('🔍 Webhook event:', webhookEvent, 'Status:', webhookStatus);
-      console.log('✅ Document signing completed. User can now manually download the signed document.');
+      
+      // Get document and deal details for notification
+      const { data: signatureData } = await supabase
+        .from('document_signatures')
+        .select(`
+          signer_email,
+          deal_id,
+          documents (name),
+          deals:deal_id (title)
+        `)
+        .eq('envelope_id', webhookEnvelopeId)
+        .single();
+
+      if (signatureData && signatureData.deal_id) {
+        const documentName = signatureData.documents?.name || 'Document';
+        const dealTitle = signatureData.deals?.title || 'Deal';
+        const signerEmail = signatureData.signer_email;
+
+        console.log(`📄 Document: ${documentName}, Deal: ${dealTitle}, Signer: ${signerEmail}`);
+
+        // Notify all participants
+        await notifyParticipants(
+          supabase,
+          signatureData.deal_id,
+          signerEmail,
+          documentName,
+          dealTitle
+        );
+      }
+      
+      console.log('✅ Document signing completed and participants notified.');
     }
 
     // Get the deal ID for redirect (already set above or from URL param)
