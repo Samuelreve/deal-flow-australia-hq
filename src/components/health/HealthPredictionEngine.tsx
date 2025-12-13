@@ -293,12 +293,18 @@ const HealthPredictionEngine: React.FC<HealthPredictionEngineProps> = ({ deals, 
                         Risk Factors
                       </h5>
                       <ul className="space-y-1">
-                        {prediction.riskFactors.map((risk, index) => (
-                          <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                            {risk}
-                          </li>
-                        ))}
+                        {prediction.riskFactors.map((risk, index) => {
+                          // Handle both string and object formats from API
+                          const riskText = typeof risk === 'string' 
+                            ? risk 
+                            : (risk as any)?.risk || (risk as any)?.description || JSON.stringify(risk);
+                          return (
+                            <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                              {riskText}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
