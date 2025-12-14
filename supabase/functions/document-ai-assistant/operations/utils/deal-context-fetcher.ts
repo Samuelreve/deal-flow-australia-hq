@@ -31,6 +31,7 @@ export async function fetchDealContextData(dealId: string) {
         asking_price,
         reason_for_selling,
         created_at,
+        updated_at,
         target_completion_date,
         seller:seller_id(name),
         buyer:buyer_id(name)
