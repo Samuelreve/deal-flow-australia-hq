@@ -65,6 +65,21 @@ const extractRiskText = (risk: string | RiskFactor): string => {
 // Clamp score to valid 0-100 range
 const clampScore = (score: number): number => Math.min(100, Math.max(0, Math.round(score)));
 
+// Map AI trajectory response to frontend expected values
+const mapTrajectory = (trajectory: string): 'improving' | 'stable' | 'declining' => {
+  switch (trajectory?.toLowerCase()) {
+    case 'accelerating':
+    case 'improving':
+      return 'improving';
+    case 'decelerating':
+    case 'declining':
+    case 'critical':
+      return 'declining';
+    default:
+      return 'stable';
+  }
+};
+
 const HealthPredictionEngine: React.FC<HealthPredictionEngineProps> = ({ deals, userId }) => {
   const [predictions, setPredictions] = useState<AIPrediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -175,7 +190,7 @@ const HealthPredictionEngine: React.FC<HealthPredictionEngineProps> = ({ deals, 
         predictedScore30Days: clampedScore30,
         predictedScore60Days: clampedScore60,
         predictedScore90Days: clampedScore90,
-        trajectory: prediction.trajectory || 'stable',
+        trajectory: mapTrajectory(prediction.trajectory),
         confidence: prediction.confidence || 'medium',
         keyDrivers: prediction.keyDrivers || [],
         riskFactors: prediction.riskFactors || [],
