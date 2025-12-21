@@ -1,4 +1,4 @@
-import { DOCUMENT_GENERATION_SYSTEM_PROMPT, AUSTRALIAN_LEGAL_CONTEXT } from '../../_shared/ai-prompts.ts';
+import { DOCUMENT_GENERATION_SYSTEM_PROMPT, AUSTRALIAN_LEGAL_CONTEXT, CLAUSE_LIBRARY, DOCUMENT_EXAMPLES } from '../../_shared/ai-prompts.ts';
 
 export async function handleGenerateTemplate(
   content: string,
@@ -87,8 +87,12 @@ export async function handleGenerateTemplate(
       if (context.microDealDetails.provenance) dealContext += `- **Provenance**: ${context.microDealDetails.provenance}\n`;
     }
 
-    // Build the comprehensive system prompt
+    // Build the comprehensive system prompt with clause library and examples
     const systemPrompt = `${DOCUMENT_GENERATION_SYSTEM_PROMPT}
+
+${CLAUSE_LIBRARY}
+
+${DOCUMENT_EXAMPLES}
 
 ${AUSTRALIAN_LEGAL_CONTEXT}
 
