@@ -2270,33 +2270,6 @@ Use proper execution format:
 ${UNIVERSAL_GUARDRAILS}
 `;
 
-export default {
-  TRUSTROOM_IDENTITY,
-  UNIVERSAL_GUARDRAILS,
-  COPILOT_SYSTEM_PROMPT,
-  AI_ASSISTANT_SYSTEM_PROMPT,
-  CONTRACT_ANALYST_IDENTITY,
-  CONTRACT_SUMMARY_PROMPT,
-  CONTRACT_RISK_PROMPT,
-  CONTRACT_KEY_TERMS_PROMPT,
-  CONTRACT_SUGGESTIONS_PROMPT,
-  CLAUSE_EXPLANATION_PROMPT,
-  MILESTONE_EXPLANATION_PROMPT,
-  MILESTONE_GENERATION_PROMPT,
-  DEAL_HEALTH_PREDICTION_PROMPT,
-  NEXT_ACTION_PROMPT,
-  DEAL_CHAT_SYSTEM_PROMPT,
-  DOCUMENT_SUMMARY_PROMPT,
-  DOCUMENT_ANALYSIS_PROMPT,
-  DEAL_SUMMARY_PROMPT,
-  DOCUMENT_SUGGESTION_PROMPT,
-  DOCUMENT_GENERATION_SYSTEM_PROMPT,
-  CATEGORY_ENHANCEMENTS,
-  buildEnhancedSystemPrompt,
-  formatDealContextForPrompt,
-  AUSTRALIAN_LEGAL_CONTEXT
-};
-
 // =============================================================================
 // AUSTRALIAN LEGAL CONTEXT (Append to document/contract prompts)
 // =============================================================================
@@ -2391,3 +2364,30 @@ Include FIRB clause if deal value exceeds threshold:
 Include in every document:
 "This document has been prepared based on information provided and general knowledge of Australian law. It is not legal advice. Each party should obtain independent legal advice from a qualified Australian legal practitioner before executing this document."
 `;
+
+export default {
+  TRUSTROOM_IDENTITY,
+  UNIVERSAL_GUARDRAILS,
+  COPILOT_SYSTEM_PROMPT,
+  AI_ASSISTANT_SYSTEM_PROMPT,
+  CONTRACT_ANALYST_IDENTITY,
+  CONTRACT_SUMMARY_PROMPT,
+  CONTRACT_RISK_PROMPT,
+  CONTRACT_KEY_TERMS_PROMPT,
+  CONTRACT_SUGGESTIONS_PROMPT,
+  CLAUSE_EXPLANATION_PROMPT,
+  MILESTONE_EXPLANATION_PROMPT,
+  MILESTONE_GENERATION_PROMPT,
+  DEAL_HEALTH_PREDICTION_PROMPT,
+  NEXT_ACTION_PROMPT,
+  DEAL_CHAT_SYSTEM_PROMPT,
+  DOCUMENT_SUMMARY_PROMPT,
+  DOCUMENT_ANALYSIS_PROMPT,
+  DEAL_SUMMARY_PROMPT,
+  DOCUMENT_SUGGESTION_PROMPT,
+  DOCUMENT_GENERATION_SYSTEM_PROMPT,
+  CATEGORY_ENHANCEMENTS,
+  buildEnhancedSystemPrompt,
+  formatDealContextForPrompt,
+  AUSTRALIAN_LEGAL_CONTEXT
+};
