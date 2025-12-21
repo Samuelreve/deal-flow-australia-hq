@@ -5,12 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, X, Zap, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import jsPDF from 'jspdf';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import ConversationalTemplateModal from './ConversationalTemplateModal';
 
 interface TemplateGenerationModalProps {
   isOpen: boolean;
@@ -19,12 +18,15 @@ interface TemplateGenerationModalProps {
   onDocumentSaved: () => void;
 }
 
+type GenerationMode = 'select' | 'quick' | 'guided';
+
 const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   isOpen,
   onClose,
   dealId,
   onDocumentSaved
 }) => {
+  const [mode, setMode] = useState<GenerationMode>('select');
   const [templateType, setTemplateType] = useState('Contract');
   const [requirements, setRequirements] = useState('');
   const [generatedTemplate, setGeneratedTemplate] = useState('');
@@ -58,7 +60,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
     setIsGenerating(true);
     try {
-      // Get deal information for context
       const { data: deal, error: dealError } = await supabase
         .from('deals')
         .select('*')
@@ -69,7 +70,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         throw new Error('Failed to fetch deal information');
       }
 
-      // Call the document AI assistant edge function
       const { data: result, error } = await supabase.functions.invoke('document-ai-assistant', {
         body: {
           operation: 'generate_template',
@@ -95,7 +95,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       if (result?.success) {
         setGeneratedTemplate(result.template);
         setDisclaimer(result.disclaimer || '');
-        // Set default filename based on template type
         setCustomFileName(`${templateType.replace(/\s+/g, '_')}_Template`);
         toast({
           title: "Template generated successfully",
@@ -121,11 +120,9 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
     setIsSaving(true);
     try {
-      // Create file name from custom input or fallback to generated name
       const baseFileName = customFileName.trim() || `Generated_${templateType.replace(/\s+/g, '_')}_${Date.now()}`;
       const fileName = `${baseFileName}.${selectedFileType}`;
       
-      // Determine MIME type based on file extension (same as automated contract generation)
       const getMimeType = (extension: string) => {
         switch (extension) {
           case 'pdf':
@@ -140,9 +137,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
       const mimeType = getMimeType(selectedFileType);
       let contentBlob: Blob;
 
-      // Generate appropriate content based on file type (same as automated contract generation)
       if (selectedFileType === 'pdf') {
-        // Generate PDF content using jsPDF
         const jsPDF = (await import('jspdf')).default;
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -178,41 +173,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         });
         
         contentBlob = doc.output('blob');
-      } else if (selectedFileType === 'docx') {
-        // Generate DOCX content using docx library
-        const { Document, Packer, Paragraph, TextRun } = await import('docx');
-        
-        const lines = generatedTemplate.split('\n');
-        const paragraphs: any[] = [];
-        
-        lines.forEach((line) => {
-          const trimmedLine = line.trim();
-          
-          if (trimmedLine === '') {
-            paragraphs.push(new Paragraph({ text: '' }));
-            return;
-          }
-          
-          const textRuns: any[] = [];
-          const parts = trimmedLine.split(/(\b[A-Z]{2,}\b)/);
-          parts.forEach((part) => {
-            if (/^[A-Z]{2,}$/.test(part)) {
-              textRuns.push(new TextRun({ text: part, bold: true }));
-            } else {
-              textRuns.push(new TextRun({ text: part }));
-            }
-          });
-          
-          paragraphs.push(new Paragraph({ children: textRuns }));
-        });
-        
-        const doc = new Document({
-          sections: [{ properties: {}, children: paragraphs }],
-        });
-        
-        contentBlob = await Packer.toBlob(doc);
       } else {
-        // Default to DOCX if not recognized
         const { Document, Packer, Paragraph, TextRun } = await import('docx');
         
         const lines = generatedTemplate.split('\n');
@@ -246,7 +207,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         contentBlob = await Packer.toBlob(doc);
       }
 
-      // Create document record in database (same as automated contract generation)
       const { data: document, error: docError } = await supabase
         .from('documents')
         .insert({
@@ -264,7 +224,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
       if (docError) throw docError;
 
-      // Create document version (same as automated contract generation)
       const { error: versionError } = await supabase
         .from('document_versions')
         .insert({
@@ -279,7 +238,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
 
       if (versionError) throw versionError;
 
-      // Upload the actual file content to storage (same as automated contract generation)
       const { error: uploadError } = await supabase.storage
         .from('deal_documents')
         .upload(`${dealId}/${fileName}`, contentBlob);
@@ -291,7 +249,6 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         description: `The generated template has been saved as ${selectedFileType.toUpperCase()} file and added to your documents`,
       });
       
-      // Refresh the documents list first, then close the modal
       await onDocumentSaved();
       handleClose();
     } catch (error: any) {
@@ -307,6 +264,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   };
 
   const handleClose = () => {
+    setMode('select');
     setTemplateType('Contract');
     setRequirements('');
     setGeneratedTemplate('');
@@ -316,16 +274,73 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
     onClose();
   };
 
+  // Render Guided Generation mode using ConversationalTemplateModal
+  if (mode === 'guided') {
+    return (
+      <ConversationalTemplateModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        dealId={dealId}
+        onDocumentSaved={onDocumentSaved}
+      />
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Generate AI Template</DialogTitle>
+          <DialogTitle>
+            {mode === 'select' ? 'Generate AI Template' : 'Quick Generate Template'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
-          {!generatedTemplate ? (
-            // Generation form
+          {mode === 'select' ? (
+            // Mode selection screen
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <button
+                onClick={() => setMode('quick')}
+                className="group p-6 border rounded-lg hover:border-primary hover:bg-accent/50 transition-all text-left"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Quick Generate</h3>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Select a template type and add optional requirements. Best for simple documents when you know exactly what you need.
+                </p>
+                <ul className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <li>• Fastest option</li>
+                  <li>• Form-based input</li>
+                  <li>• Good for standard documents</li>
+                </ul>
+              </button>
+
+              <button
+                onClick={() => setMode('guided')}
+                className="group p-6 border rounded-lg hover:border-primary hover:bg-accent/50 transition-all text-left"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Guided Generation</h3>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  AI asks smart questions to understand your needs and generates a tailored document. Best for complex documents.
+                </p>
+                <ul className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <li>• Conversational interface</li>
+                  <li>• Tailored recommendations</li>
+                  <li>• Higher quality results</li>
+                </ul>
+              </button>
+            </div>
+          ) : !generatedTemplate ? (
+            // Quick Generate form
             <div className="space-y-4">
               <div>
                 <Label htmlFor="templateType">Template Type</Label>
@@ -409,10 +424,14 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
         </div>
 
         <DialogFooter>
-          {!generatedTemplate ? (
+          {mode === 'select' ? (
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          ) : !generatedTemplate ? (
             <>
-              <Button variant="outline" onClick={handleClose}>
-                Cancel
+              <Button variant="outline" onClick={() => setMode('select')}>
+                Back
               </Button>
               <Button onClick={handleGenerate} disabled={isGenerating}>
                 {isGenerating ? (
