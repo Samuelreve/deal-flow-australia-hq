@@ -12,6 +12,7 @@ import { handleAnalyzeRisks } from "../operations/analyze-risks.ts";
 import { handleSummarizeVersionChanges } from "../operations/summarize-version-changes.ts";
 import { handlePredictDealHealth } from "../operations/predict-deal-health.ts";
 import { handleDealChatQuery } from "../operations/deal-chat-query.ts";
+import { handleConversationalTemplate } from "../operations/conversational-template.ts";
 
 export async function routeOperation(payload: RequestPayload, openai: any) {
   switch (payload.operation) {
@@ -102,6 +103,18 @@ export async function routeOperation(payload: RequestPayload, openai: any) {
         payload.chatHistory || [],
         openai,
         payload.context?.dealContext
+      );
+    
+    case 'conversational_template':
+      return await handleConversationalTemplate(
+        {
+          dealId: payload.dealId!,
+          userId: payload.userId!,
+          messages: payload.messages || [],
+          state: payload.conversationalState,
+          dealContext: payload.context?.dealContext
+        },
+        openai
       );
     
     default:
