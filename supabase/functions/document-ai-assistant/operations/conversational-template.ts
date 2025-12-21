@@ -66,18 +66,49 @@ export async function handleConversationalTemplate(
     currentQuestionIndex: 0
   };
 
-  const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase().trim() || '';
 
+  const rawLastUserMessage = messages[messages.length - 1]?.content ?? '';
+  const lastUserMessage = rawLastUserMessage.toLowerCase().trim();
+
+  const normalizeText = (input: string) =>
+    input
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/\([^)]*\)/g, ' ') // remove parenthetical acronyms like (NDA)
+      .replace(/[^a-z0-9\s]/g, ' ') // strip punctuation
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const normalizedLastUserMessage = normalizeText(rawLastUserMessage);
   try {
     // Phase: Select Document Type
     if (state.phase === 'select_type') {
       const documentTypes = getAvailableDocumentTypes();
-      
-      // Check if user selected a document type
-      const selectedType = documentTypes.find(dt => 
-        lastUserMessage.includes(dt.type.toLowerCase()) ||
-        lastUserMessage.includes(dt.displayName.toLowerCase())
-      );
+
+      // Check if user selected a document type (robust matching)
+      const selectedType = documentTypes.find((dt) => {
+        const typeNorm = normalizeText(dt.type);
+        const displayNorm = normalizeText(dt.displayName);
+
+        if (!typeNorm && !displayNorm) return false;
+
+        // exact / substring matches
+        if (normalizedLastUserMessage === typeNorm) return true;
+        if (typeNorm && normalizedLastUserMessage.includes(typeNorm)) return true;
+        if (typeNorm && typeNorm.includes(normalizedLastUserMessage)) return true;
+
+        if (normalizedLastUserMessage === displayNorm) return true;
+        if (displayNorm && normalizedLastUserMessage.includes(displayNorm)) return true;
+
+        // acronym match, e.g. "NDA"
+        const acronym = dt.displayName.match(/\(([^)]+)\)/)?.[1];
+        if (acronym) {
+          const acronymNorm = normalizeText(acronym);
+          if (acronymNorm && normalizedLastUserMessage === acronymNorm) return true;
+        }
+
+        return false;
+      });
 
       if (selectedType) {
         state.documentType = selectedType.type;
@@ -91,12 +122,12 @@ export async function handleConversationalTemplate(
           success: true,
           message: `Great choice! Let's create your **${selectedType.displayName}**.\n\n${firstQuestion?.helpText || ''}\n\n**${firstQuestion?.question}**`,
           state,
-          options: firstQuestion?.options.map(o => ({
+          options: firstQuestion?.options.map((o) => ({
             label: o.label,
             value: o.value,
-            description: o.description
+            description: o.description,
           })),
-          isComplete: false
+          isComplete: false,
         };
       }
 
@@ -105,12 +136,12 @@ export async function handleConversationalTemplate(
         success: true,
         message: `Welcome! I'll help you create a professional legal document for this deal.\n\n**What type of document do you need?**`,
         state,
-        options: documentTypes.map(dt => ({
+        options: documentTypes.map((dt) => ({
           label: dt.displayName,
           value: dt.type,
-          description: dt.description
+          description: dt.description,
         })),
-        isComplete: false
+        isComplete: false,
       };
     }
 
