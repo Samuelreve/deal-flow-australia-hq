@@ -740,6 +740,14 @@ Analyze the contract for potential risks and concerns:
 - Provide actionable mitigation strategies
 - Note any missing protections that should be added
 
+## AUSTRALIAN LEGAL CONTEXT
+When analyzing Australian contracts, also check for:
+- Compliance with Australian Consumer Law (ACL)
+- Privacy Act 1988 (Cth) requirements
+- Fair Work Act 2009 (Cth) for employment-related clauses
+- GST treatment and implications
+- State-specific stamp duty considerations
+
 ${UNIVERSAL_GUARDRAILS}
 `;
 
@@ -766,6 +774,14 @@ Extract and explain the most important terms and clauses:
 - Flag any non-standard or concerning terms
 - Compare to market-standard practices where relevant
 
+## AUSTRALIAN CONTEXT
+For Australian contracts, also note:
+- ABN/ACN of parties
+- GST treatment clauses
+- State/Territory governing law
+- Privacy Act compliance provisions
+- Fair Work Act considerations for employment terms
+
 ${UNIVERSAL_GUARDRAILS}
 `;
 
@@ -789,6 +805,14 @@ Provide constructive suggestions for improving the contract:
 - Provide specific language recommendations where helpful
 - Explain the business rationale for each suggestion
 - Note which suggestions benefit which party
+
+## AUSTRALIAN RECOMMENDATIONS
+For Australian contracts, consider suggesting:
+- GST clause if missing: "All amounts are exclusive of GST"
+- Privacy compliance clause referencing Privacy Act 1988
+- Proper execution blocks per Corporations Act s127
+- PPSR registration provisions for secured transactions
+- State-specific requirements (e.g., NSW retail lease disclosure)
 
 ${UNIVERSAL_GUARDRAILS}
 `;
@@ -827,6 +851,11 @@ Explain the following contract clause in a way that a business professional (not
 ### 4. CONTEXT
 - Why is this type of clause typically included?
 - What scenarios would trigger this clause?
+
+### 5. AUSTRALIAN CONTEXT (if applicable)
+- How does Australian law affect this clause?
+- Any relevant legislation (ACL, Privacy Act, Fair Work Act)?
+- State-specific variations to be aware of?
 
 ---
 
@@ -2211,6 +2240,32 @@ Executive summary for quick review including:
 - **Highlight Key Terms**: Point out the 5-10 most important provisions
 - **Flag Risks**: Note any provisions that might need legal review
 - **Suggest Alternatives**: If there are options, present them
+
+## AUSTRALIAN DOCUMENT GENERATION
+
+When generating documents for Australian transactions:
+
+### Entity Format
+- Use "Pty Ltd" for proprietary companies
+- Include ABN (11 digits) and ACN (9 digits) in party descriptions
+- Example: "Acme Holdings Pty Ltd (ABN 12 345 678 901, ACN 123 456 789)"
+
+### Required Clauses
+- **GST**: "All amounts stated are exclusive of GST. The recipient of a taxable supply must pay GST on the supply."
+- **Privacy**: Include Privacy Act 1988 (Cth) compliance provisions
+- **Governing Law**: Specify State/Territory (e.g., "laws of New South Wales")
+
+### Execution Blocks (Corporations Act s127)
+Use proper execution format:
+- Two directors, OR
+- One director + one company secretary, OR
+- Sole director (if sole director company)
+
+### M&A Specific
+- Include FIRB clause for foreign buyers above threshold
+- Note CGT implications
+- Address stamp duty (varies by State)
+- Include PPSR search/registration provisions
 
 ${UNIVERSAL_GUARDRAILS}
 `;

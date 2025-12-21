@@ -72,7 +72,9 @@ function App() {
             
             {/* Legal and Policy Pages */}
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/terms" element={<Navigate to="/terms-of-service" replace />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
             <Route path="/cookie-policy" element={<CookiePolicyPage />} />
             <Route path="/accessibility" element={<AccessibilityPage />} />
             <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
