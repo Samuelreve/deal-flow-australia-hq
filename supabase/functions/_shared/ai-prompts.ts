@@ -2271,6 +2271,708 @@ ${UNIVERSAL_GUARDRAILS}
 `;
 
 // =============================================================================
+// CLAUSE LIBRARY - 50+ PROFESSIONAL CLAUSE VARIATIONS
+// =============================================================================
+
+export const CLAUSE_LIBRARY = `
+# PROFESSIONAL CLAUSE LIBRARY
+
+## 1. CONFIDENTIALITY CLAUSES (5 Variations)
+
+### 1.1 Standard Mutual Confidentiality
+"Each party agrees to maintain the confidentiality of all Confidential Information disclosed by the other party and shall not disclose such information to any third party without the prior written consent of the disclosing party, except to its employees, agents, and advisors who have a need to know such information for the Purpose."
+
+### 1.2 Enhanced SaaS/Tech Confidentiality
+"Confidential Information includes, without limitation: (a) source code, algorithms, and software architecture; (b) customer data and usage analytics; (c) API keys, credentials, and security protocols; (d) product roadmaps and development plans; (e) pricing models and revenue data. The Receiving Party shall implement security measures at least as protective as those used for its own confidential information, and in any event no less than industry-standard practices including encryption at rest and in transit."
+
+### 1.3 Financial Due Diligence Confidentiality
+"Confidential Information includes all financial records, statements, projections, budgets, valuations, quality of earnings analyses, tax returns, and any derived calculations or summaries. The Receiving Party acknowledges that such information, if disclosed, could cause material competitive harm and agrees to restrict access to a limited number of named individuals who must each sign a confidentiality acknowledgment."
+
+### 1.4 Time-Limited Confidentiality (Australian Standard)
+"The obligations of confidentiality shall survive the termination of this Agreement for a period of three (3) years from the date of termination, provided that with respect to trade secrets (as defined under applicable Australian law), such obligations shall continue indefinitely for so long as the information remains a trade secret."
+
+### 1.5 Carve-Outs for Required Disclosures
+"Notwithstanding the foregoing, the Receiving Party may disclose Confidential Information to the extent required by law, regulation, or court order, provided that the Receiving Party: (a) gives the Disclosing Party prompt written notice (to the extent legally permitted); (b) cooperates with the Disclosing Party in seeking a protective order; and (c) discloses only that portion of the Confidential Information as is legally required."
+
+---
+
+## 2. INDEMNIFICATION CLAUSES (6 Variations)
+
+### 2.1 Balanced Indemnification (Industry Standard)
+"Each party (as 'Indemnifying Party') shall indemnify, defend, and hold harmless the other party and its officers, directors, employees, and agents (collectively, 'Indemnified Parties') from and against any and all claims, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or related to: (a) any breach of this Agreement by the Indemnifying Party; (b) any negligent or wrongful act or omission of the Indemnifying Party; or (c) any third-party claim arising from the Indemnifying Party's performance under this Agreement."
+
+### 2.2 Seller-Friendly (Capped with Basket)
+"Subject to the limitations set forth herein, the Seller shall indemnify the Buyer for Losses arising from any breach of the representations and warranties set forth in Article [X]. The Seller's aggregate liability under this Section shall not exceed [25]% of the Purchase Price (the 'Cap'). The Buyer shall not be entitled to indemnification unless and until the aggregate amount of all Losses exceeds $[50,000] (the 'Basket'), at which point the Buyer may recover only the amount in excess of the Basket. The Cap and Basket limitations shall not apply to Losses arising from fraud or intentional misrepresentation."
+
+### 2.3 Buyer-Friendly (Uncapped Fundamentals)
+"Notwithstanding any other provision of this Agreement, there shall be no Cap on the Seller's indemnification obligations with respect to breaches of the Fundamental Representations, which include: (a) Organization and Authority; (b) Capitalization; (c) Title to Assets; (d) Tax Matters; and (e) Brokers. The Seller shall be liable for the full amount of any Losses arising from breaches of such Fundamental Representations."
+
+### 2.4 Knowledge-Qualified Indemnification
+"The Seller shall indemnify the Buyer for any Losses arising from any breach of the representations and warranties herein; provided, however, that with respect to representations qualified by 'to the Seller's knowledge,' the Seller shall only be liable for Losses if the individuals listed on Schedule [X] (the 'Knowledge Group') had actual knowledge of the inaccuracy or could reasonably have been expected to have such knowledge after reasonable inquiry."
+
+### 2.5 Survival Periods (Standard Australian)
+"The representations and warranties contained in this Agreement shall survive the Completion Date for the following periods: (a) Fundamental Representations: six (6) years; (b) Tax Representations: until the later of six (6) years or expiry of relevant limitation periods under Australian tax law; (c) All Other Representations: eighteen (18) months. Any claim for indemnification must be made in writing prior to the expiry of the applicable survival period."
+
+### 2.6 Third-Party Claim Procedures
+"If any Indemnified Party receives notice of any third-party claim that may give rise to indemnification under this Agreement, the Indemnified Party shall promptly notify the Indemnifying Party in writing. The Indemnifying Party shall have the right (but not the obligation) to assume the defense of such claim with counsel of its choice, provided that: (a) the Indemnifying Party notifies the Indemnified Party of its election within [fifteen (15)] business days; (b) the Indemnifying Party conducts the defense diligently and in good faith; and (c) the Indemnified Party may participate at its own expense."
+
+---
+
+## 3. NON-COMPETE CLAUSES (5 Variations)
+
+### 3.1 Standard Seller Non-Compete (Business Sale)
+"For a period of three (3) years following the Completion Date (the 'Restricted Period'), the Seller shall not, directly or indirectly, within Australia (the 'Restricted Territory'): (a) engage in, own, manage, operate, or participate in any business that competes with the Business; (b) solicit or accept business from any customer of the Business; or (c) solicit or hire any employee of the Business or the Buyer. The parties acknowledge that the duration, geographic scope, and activities restricted are reasonable and necessary to protect the Buyer's legitimate business interests."
+
+### 3.2 Narrow Non-Compete (Employee/Consultant)
+"During the term of this Agreement and for twelve (12) months thereafter, the Consultant shall not provide services to any entity listed on Schedule [X] ('Direct Competitors') in a capacity that is substantially similar to the services provided hereunder. This restriction applies only within the State of [New South Wales/Victoria] and does not prevent the Consultant from: (a) holding passive investments of less than 5% in publicly traded companies; or (b) providing services unrelated to the scope of this Agreement."
+
+### 3.3 Carve-Out for Existing Investments
+"Notwithstanding the foregoing, the Restricted Party may continue to hold and manage any ownership interest in the entities listed on Schedule [X] ('Permitted Investments'), provided that the Restricted Party does not: (a) increase such ownership interests; (b) take any operational role in such entities; or (c) direct such entities to compete with the Business."
+
+### 3.4 Non-Compete with Garden Leave
+"For the final three (3) months of the Restricted Period (the 'Garden Leave'), the Seller shall be entitled to compensation of $[X] per month, payable in arrears. During the Garden Leave, the Seller shall remain available for reasonable consultation with the Buyer regarding transition matters at no additional cost."
+
+### 3.5 Non-Compete with Liquidated Damages
+"The parties agree that a breach of the non-compete provisions would cause the Buyer irreparable harm that is difficult to quantify. Accordingly, in addition to any other remedies available at law or equity, the Buyer shall be entitled to: (a) liquidated damages of $[X] per month of breach (which the parties agree represents a genuine pre-estimate of loss); and (b) injunctive relief without the need to prove actual damages or post bond."
+
+---
+
+## 4. PAYMENT TERMS CLAUSES (5 Variations)
+
+### 4.1 Cash at Closing
+"The Purchase Price shall be paid in full at Completion by way of electronic funds transfer to the bank account nominated by the Seller in writing not less than five (5) business days prior to the Completion Date. The Buyer shall provide evidence of such transfer by close of business on the Completion Date."
+
+### 4.2 Deferred Consideration (Seller Financing)
+"The Purchase Price shall be paid as follows: (a) $[X] (the 'Initial Payment') at Completion by electronic funds transfer; (b) $[Y] (the 'Deferred Payment') in equal monthly instalments of $[Z] commencing on the first day of the month following Completion and continuing for [24] consecutive months. The Deferred Payment shall bear interest at [5]% per annum, calculated daily and payable monthly in arrears."
+
+### 4.3 Earnout with EBITDA Trigger
+"In addition to the Initial Purchase Price, the Buyer shall pay the Seller an Earnout Payment calculated as follows: (a) if the Business achieves EBITDA of at least $[X] in the twelve (12) months following Completion, the Buyer shall pay an Earnout of $[Y]; (b) if the Business achieves EBITDA of at least $[X+20%], the Buyer shall pay an additional Earnout of $[Z]. EBITDA shall be calculated in accordance with AASB standards applied consistently with the Business's historical practices, as set forth in Schedule [X]."
+
+### 4.4 Escrow Holdback (Standard Australian)
+"At Completion, the Buyer shall deposit $[X] (being [15]% of the Purchase Price) (the 'Escrow Amount') with [Name of Escrow Agent] (the 'Escrow Agent') pursuant to the terms of the Escrow Agreement attached as Exhibit [X]. The Escrow Amount shall be held for a period of [18] months following Completion to secure the Seller's indemnification obligations. Any undisputed portion of the Escrow Amount shall be released to the Seller within ten (10) business days following the end of the Escrow Period."
+
+### 4.5 Working Capital Adjustment
+"Within ninety (90) days following Completion, the Buyer shall prepare and deliver to the Seller a statement of the Net Working Capital as at the Completion Date (the 'Completion Working Capital'). If the Completion Working Capital is less than the Target Working Capital (being $[X]), the Seller shall pay to the Buyer the amount of such shortfall. If the Completion Working Capital exceeds the Target Working Capital, the Buyer shall pay to the Seller the amount of such excess. Such payments shall be made within ten (10) business days of the determination becoming final."
+
+---
+
+## 5. REPRESENTATIONS & WARRANTIES (10 Key Variations)
+
+### 5.1 Organization & Good Standing
+"The Seller is a company duly incorporated and validly existing under the laws of [New South Wales/Victoria/Queensland], with full power and authority to own its assets, carry on its business, and to enter into and perform its obligations under this Agreement."
+
+### 5.2 Authority and Binding Obligation
+"The execution, delivery, and performance of this Agreement by the Seller: (a) has been duly authorized by all necessary corporate action; (b) does not require any consent, approval, or authorization of any governmental authority or third party that has not been obtained; and (c) will not result in a breach of any agreement to which the Seller is a party or any law, regulation, or court order applicable to the Seller."
+
+### 5.3 Title to Assets (Absolute)
+"The Seller has good and marketable title to all of the Assets, free and clear of all Encumbrances, other than Permitted Encumbrances. Upon Completion, the Buyer shall receive good and marketable title to the Assets, free and clear of all Encumbrances other than Permitted Encumbrances."
+
+### 5.4 Financial Statements (Knowledge-Qualified)
+"To the Seller's knowledge: (a) the Financial Statements fairly present in all material respects the financial position and results of operations of the Business for the periods indicated; (b) the Financial Statements have been prepared in accordance with AASB standards applied consistently throughout the periods covered; and (c) the Financial Statements do not contain any material misstatement or omit any material fact."
+
+### 5.5 No Undisclosed Liabilities
+"Except as set forth in Schedule [X], the Business has no liabilities or obligations of any kind, whether accrued, contingent, absolute, or otherwise, except for: (a) liabilities reflected or reserved against in the Financial Statements; (b) liabilities incurred in the ordinary course of business since the date of the most recent Financial Statements; and (c) liabilities that are not, individually or in the aggregate, material."
+
+### 5.6 Material Contracts
+"Schedule [X] sets forth a true and complete list of all Material Contracts. Each Material Contract is in full force and effect, and neither the Seller nor, to the Seller's knowledge, any other party thereto is in material breach or default thereof. The Seller has delivered to the Buyer true and complete copies of all Material Contracts."
+
+### 5.7 Compliance with Laws
+"The Business has been and is being conducted in compliance with all applicable laws, regulations, and ordinances, including without limitation the Corporations Act 2001 (Cth), the Fair Work Act 2009 (Cth), the Privacy Act 1988 (Cth), and all environmental, health, and safety laws. The Seller has not received any notice of any actual or alleged violation of any such laws."
+
+### 5.8 Intellectual Property
+"The Seller owns or has the valid right to use all Intellectual Property used in or necessary for the conduct of the Business as currently conducted. No Intellectual Property infringes upon the rights of any third party, and no claim of infringement has been asserted or, to the Seller's knowledge, threatened. All registrations of Intellectual Property are valid and in full force and effect."
+
+### 5.9 Employee Matters
+"Schedule [X] sets forth a true and complete list of all employees of the Business, including their positions, tenure, and current compensation. The Seller is in compliance with all applicable employment laws, including the Fair Work Act 2009 (Cth) and the National Employment Standards. There are no pending or, to the Seller's knowledge, threatened claims, disputes, or proceedings relating to employment matters."
+
+### 5.10 Tax Matters
+"The Seller has filed all required tax returns with all relevant Australian taxation authorities, including the Australian Taxation Office, and all such returns are true and correct in all material respects. The Seller has paid all taxes due and owing. There are no pending or, to the Seller's knowledge, threatened tax audits, assessments, or claims against the Seller. The Seller has complied with all GST obligations and has properly accounted for all GST collected and remitted."
+
+---
+
+## 6. TERMINATION CLAUSES (5 Variations)
+
+### 6.1 Termination for Cause
+"Either party may terminate this Agreement immediately upon written notice if: (a) the other party commits a material breach of this Agreement and fails to cure such breach within thirty (30) days of receiving written notice thereof; (b) the other party becomes insolvent, enters voluntary administration, or has a liquidator appointed; or (c) the other party is unable to perform its obligations due to Force Majeure for a period exceeding ninety (90) days."
+
+### 6.2 Termination for Convenience
+"Either party may terminate this Agreement for any reason or no reason upon sixty (60) days' prior written notice to the other party, provided that such termination shall not affect any rights or obligations that have accrued prior to the effective date of termination."
+
+### 6.3 Termination with Wind-Down Period
+"Upon termination of this Agreement for any reason, the parties shall cooperate in good faith to effect an orderly transition of the Business. During the ninety (90) day wind-down period following notice of termination, the Seller shall: (a) continue to provide services at the agreed rates; (b) assist in the transition of customer relationships; and (c) deliver all documentation and materials to the Buyer."
+
+### 6.4 Automatic Termination
+"This Agreement shall automatically terminate upon the earlier of: (a) the Completion Date; (b) the Outside Date if Completion has not occurred by such date; (c) mutual written agreement of the parties; or (d) material breach by either party that is not cured within the applicable cure period."
+
+### 6.5 Survival of Obligations
+"The termination or expiry of this Agreement shall not affect any rights or obligations that have accrued prior to termination. The following provisions shall survive termination: [Confidentiality, Indemnification, Non-Compete, Dispute Resolution, Governing Law]. Any provision that by its nature should survive termination shall so survive."
+
+---
+
+## 7. DISPUTE RESOLUTION CLAUSES (4 Variations)
+
+### 7.1 Escalation + Mediation + Arbitration
+"Any dispute arising out of or in connection with this Agreement shall be resolved as follows: (a) the parties shall first attempt to resolve the dispute through good faith negotiations between senior executives for a period of thirty (30) days; (b) if not resolved, the dispute shall be referred to mediation administered by the Australian Disputes Centre in [Sydney/Melbourne]; (c) if mediation fails, the dispute shall be finally resolved by arbitration administered by ACICA (Australian Centre for International Commercial Arbitration) in accordance with its rules. The seat of arbitration shall be [Sydney/Melbourne], and the language shall be English."
+
+### 7.2 Court Jurisdiction (Australian Courts)
+"The parties irrevocably submit to the exclusive jurisdiction of the courts of [New South Wales/Victoria] and any courts competent to hear appeals therefrom for the purpose of any proceedings arising out of or in connection with this Agreement. Each party waives any objection to venue and any claim of inconvenient forum."
+
+### 7.3 Expert Determination (Financial Disputes)
+"Any dispute relating to the calculation of the Purchase Price, Working Capital, Earnout, or any other financial matter shall be referred to an independent expert (the 'Expert') appointed by agreement of the parties or, failing agreement within ten (10) days, by the President of Chartered Accountants Australia and New Zealand. The Expert shall act as expert and not as arbitrator, and the Expert's determination shall be final and binding on the parties, absent manifest error."
+
+### 7.4 Expedited Arbitration (Small Claims)
+"Any dispute where the amount in controversy is less than $[250,000] shall be resolved by expedited arbitration before a single arbitrator. The arbitration shall be completed within sixty (60) days of appointment of the arbitrator, and the arbitrator's decision shall be final and binding."
+
+---
+
+## 8. GST & TAX CLAUSES (Australian Specific - 4 Variations)
+
+### 8.1 Standard GST Clause
+"All amounts payable under this Agreement are exclusive of GST. If GST is payable on any supply made under this Agreement, the recipient of the supply must pay to the supplier an amount equal to the GST payable on the supply at the same time as payment for the supply is required. The supplier must issue a tax invoice complying with the requirements of the A New Tax System (Goods and Services Tax) Act 1999 (Cth)."
+
+### 8.2 GST on Going Concern
+"The parties intend that the sale of the Business constitutes a supply of a going concern for GST purposes within the meaning of section 38-325 of the A New Tax System (Goods and Services Tax) Act 1999 (Cth). Accordingly, the supply of the Business is GST-free. The Seller and the Buyer shall each use their best endeavours to ensure that the sale qualifies as a supply of a going concern, including by executing any documentation reasonably required by the other party."
+
+### 8.3 Stamp Duty Allocation
+"The Buyer shall be responsible for payment of any stamp duty payable on the transfer of the Assets. The parties agree that the Purchase Price shall be allocated among the Assets as set forth in Schedule [X] for the purposes of determining stamp duty and Capital Gains Tax. The parties shall not take any position inconsistent with such allocation in any tax return or other filing."
+
+### 8.4 Withholding Tax (Foreign Seller)
+"If the Seller is not a resident of Australia for tax purposes, the Buyer shall be entitled to withhold from any payment an amount equal to the withholding tax required to be withheld under Australian tax law. The Buyer shall remit such withheld amount to the Australian Taxation Office and shall provide the Seller with evidence of such remittance. If the Seller obtains a clearance certificate or variation from the ATO, the Buyer shall reduce the withholding accordingly."
+
+---
+
+## 9. FORCE MAJEURE CLAUSE (Standard Australian)
+
+### 9.1 Comprehensive Force Majeure
+"Neither party shall be liable for any failure or delay in performing its obligations under this Agreement if such failure or delay results from Force Majeure. 'Force Majeure' means any event beyond the reasonable control of the affected party, including: (a) acts of God, including fire, flood, earthquake, pandemic, or natural disaster; (b) war, terrorism, civil unrest, or armed conflict; (c) strike, lockout, or other industrial action (not involving employees of the affected party); (d) governmental action, law, regulation, or embargo; or (e) failure of third-party telecommunications or power supply. The affected party shall give prompt notice to the other party of the Force Majeure event and use reasonable endeavours to mitigate its effects. If the Force Majeure continues for more than ninety (90) days, either party may terminate this Agreement upon written notice."
+
+---
+
+## 10. ENTIRE AGREEMENT & AMENDMENT CLAUSES
+
+### 10.1 Entire Agreement
+"This Agreement (including all Schedules and Exhibits hereto) constitutes the entire agreement between the parties with respect to the subject matter hereof and supersedes all prior negotiations, representations, warranties, and agreements between the parties, whether written or oral. No party has relied on any representation or warranty not expressly set forth in this Agreement."
+
+### 10.2 Amendment Requirements
+"This Agreement may only be amended, modified, or supplemented by a written instrument signed by both parties. No waiver of any provision of this Agreement shall be effective unless in writing and signed by the waiving party. No failure or delay in exercising any right shall operate as a waiver thereof."
+`;
+
+// =============================================================================
+// COMPLETE DOCUMENT EXAMPLES (3 Templates)
+// =============================================================================
+
+export const DOCUMENT_EXAMPLES = `
+# COMPLETE DOCUMENT EXAMPLES
+
+## EXAMPLE 1: MUTUAL NON-DISCLOSURE AGREEMENT (AUSTRALIAN)
+
+---
+
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement (this "Agreement") is made on [INSERT DATE]
+
+BETWEEN:
+
+(1) [INSERT DISCLOSING PARTY LEGAL NAME] Pty Ltd (ABN [INSERT ABN], ACN [INSERT ACN]) of [INSERT REGISTERED ADDRESS] (the "First Party"); and
+
+(2) [INSERT RECEIVING PARTY LEGAL NAME] Pty Ltd (ABN [INSERT ABN], ACN [INSERT ACN]) of [INSERT REGISTERED ADDRESS] (the "Second Party"),
+
+(each a "Party" and together the "Parties").
+
+RECITALS
+
+A. The Parties are considering entering into discussions regarding a potential business transaction or relationship (the "Purpose").
+
+B. In connection with the Purpose, each Party may disclose to the other Party certain confidential and proprietary information.
+
+C. The Parties wish to set out the terms on which such information will be disclosed and protected.
+
+THE PARTIES AGREE AS FOLLOWS:
+
+1. DEFINITIONS AND INTERPRETATION
+
+1.1 In this Agreement:
+
+"Confidential Information" means all information disclosed by or on behalf of a Disclosing Party to a Receiving Party, whether before or after the date of this Agreement, that:
+(a) is designated as confidential or proprietary; or
+(b) the Receiving Party knows or ought reasonably to know is confidential,
+and includes, without limitation: trade secrets, business plans, financial information, customer lists, technical data, software, inventions, processes, and any copies, summaries, or analyses thereof.
+
+"Disclosing Party" means the Party disclosing Confidential Information.
+
+"Receiving Party" means the Party receiving Confidential Information.
+
+"Representatives" means, in relation to a Party, its officers, directors, employees, agents, professional advisors, and contractors who have a need to know the Confidential Information for the Purpose.
+
+1.2 In this Agreement, unless the context otherwise requires:
+(a) headings are for convenience only and do not affect interpretation;
+(b) the singular includes the plural and vice versa;
+(c) a reference to a statute includes its amendments and any replacement legislation.
+
+2. CONFIDENTIALITY OBLIGATIONS
+
+2.1 Subject to clause 3, the Receiving Party must:
+(a) keep all Confidential Information strictly confidential;
+(b) not disclose any Confidential Information to any person except as permitted by this Agreement;
+(c) not use any Confidential Information for any purpose other than the Purpose;
+(d) protect the Confidential Information using security measures at least as protective as those used by the Receiving Party to protect its own confidential information, and in any event no less than reasonable care; and
+(e) immediately notify the Disclosing Party upon becoming aware of any actual or suspected unauthorized disclosure or use of Confidential Information.
+
+2.2 The Receiving Party may disclose Confidential Information to its Representatives, provided that:
+(a) the Representative has a genuine need to know the information for the Purpose;
+(b) the Representative is bound by confidentiality obligations no less protective than those in this Agreement; and
+(c) the Receiving Party remains liable for any breach by its Representatives.
+
+3. EXCEPTIONS TO CONFIDENTIALITY
+
+3.1 The obligations in clause 2 do not apply to information that the Receiving Party can demonstrate:
+(a) was in the public domain at the time of disclosure, or subsequently enters the public domain other than through a breach of this Agreement;
+(b) was lawfully in the possession of the Receiving Party prior to disclosure, without any obligation of confidentiality;
+(c) was independently developed by the Receiving Party without reference to the Confidential Information; or
+(d) was received from a third party who was lawfully entitled to disclose it without restriction.
+
+3.2 The Receiving Party may disclose Confidential Information to the extent required by law, regulation, or court order, provided that the Receiving Party:
+(a) gives the Disclosing Party prompt written notice of the requirement (to the extent legally permitted);
+(b) cooperates with the Disclosing Party in seeking a protective order or other remedy;
+(c) discloses only that portion of the Confidential Information that is legally required; and
+(d) uses reasonable efforts to obtain confidential treatment for the information disclosed.
+
+4. RETURN OR DESTRUCTION
+
+4.1 Upon the earlier of: (a) written request by the Disclosing Party; or (b) termination of discussions regarding the Purpose, the Receiving Party must promptly:
+(a) return to the Disclosing Party all documents and materials containing Confidential Information; or
+(b) destroy such documents and materials and provide written certification of destruction.
+
+4.2 Notwithstanding clause 4.1, the Receiving Party may retain:
+(a) copies of Confidential Information required to be retained by law or regulation; and
+(b) copies stored on automatic backup systems, provided such copies remain subject to the confidentiality obligations in this Agreement.
+
+5. NO LICENCE OR WARRANTY
+
+5.1 Nothing in this Agreement grants the Receiving Party any licence or right to use the Confidential Information except as expressly set out herein.
+
+5.2 The Disclosing Party makes no representation or warranty, express or implied, as to the accuracy or completeness of the Confidential Information.
+
+6. TERM
+
+6.1 This Agreement commences on the date first written above and continues for a period of two (2) years, unless terminated earlier by either Party upon thirty (30) days' written notice.
+
+6.2 The obligations of confidentiality in clause 2 shall survive termination of this Agreement for a period of three (3) years from the date of termination, provided that with respect to trade secrets, such obligations shall continue indefinitely.
+
+7. REMEDIES
+
+7.1 The Parties acknowledge that a breach of this Agreement may cause irreparable harm for which monetary damages would be inadequate. Accordingly, the Disclosing Party shall be entitled to seek injunctive relief, specific performance, or other equitable remedies, in addition to any other remedies available at law.
+
+8. GENERAL PROVISIONS
+
+8.1 Governing Law: This Agreement is governed by the laws of [New South Wales/Victoria], and the Parties submit to the exclusive jurisdiction of the courts of that State.
+
+8.2 Entire Agreement: This Agreement constitutes the entire agreement between the Parties regarding its subject matter and supersedes all prior agreements and understandings.
+
+8.3 Amendment: This Agreement may only be amended by a written document signed by both Parties.
+
+8.4 Waiver: No failure or delay in exercising any right shall operate as a waiver thereof.
+
+8.5 Severability: If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions shall continue in full force and effect.
+
+8.6 Counterparts: This Agreement may be executed in counterparts, each of which shall be deemed an original.
+
+8.7 Privacy: Each Party must comply with the Privacy Act 1988 (Cth) and the Australian Privacy Principles in relation to any personal information disclosed under this Agreement.
+
+EXECUTED as an agreement.
+
+FIRST PARTY:
+
+Executed by [INSERT FIRST PARTY NAME] Pty Ltd
+in accordance with section 127 of the Corporations Act 2001 (Cth):
+
+Signature of Director: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+Signature of Director/Secretary: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+
+SECOND PARTY:
+
+Executed by [INSERT SECOND PARTY NAME] Pty Ltd
+in accordance with section 127 of the Corporations Act 2001 (Cth):
+
+Signature of Director: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+Signature of Director/Secretary: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+---
+
+## EXAMPLE 2: LETTER OF INTENT (LOI) - BUSINESS ACQUISITION
+
+---
+
+LETTER OF INTENT
+
+[INSERT DATE]
+
+PRIVATE AND CONFIDENTIAL
+
+[INSERT SELLER NAME]
+[INSERT SELLER ADDRESS]
+
+Dear [INSERT SELLER NAME],
+
+RE: PROPOSED ACQUISITION OF [INSERT BUSINESS NAME] (THE "BUSINESS")
+
+[INSERT BUYER NAME] Pty Ltd (ABN [INSERT ABN]) ("Buyer" or "we") is pleased to submit this Letter of Intent ("LOI") setting forth the principal terms upon which we propose to acquire the business and assets of [INSERT BUSINESS LEGAL NAME] Pty Ltd (ABN [INSERT ABN]) ("Seller" or "you").
+
+This LOI is intended to facilitate negotiations between the parties and, except as expressly stated in Section 9, is not legally binding.
+
+1. TRANSACTION STRUCTURE
+
+1.1 The Buyer proposes to acquire substantially all of the assets used in the operation of the Business (the "Assets"), subject to the assumption of certain liabilities, as an asset purchase transaction.
+
+1.2 The Assets shall include, without limitation:
+(a) All equipment, furniture, fixtures, and tangible personal property;
+(b) All inventory;
+(c) All intellectual property, including trademarks, trade names, patents, copyrights, and proprietary technology;
+(d) All customer contracts, supplier agreements, and other material contracts;
+(e) All customer lists, databases, and goodwill;
+(f) All licenses, permits, and approvals (to the extent transferable);
+(g) All books, records, and files related to the Business; and
+(h) The right to use the trade name "[INSERT BUSINESS NAME]".
+
+1.3 The following shall be excluded from the Assets:
+(a) Cash and cash equivalents;
+(b) Accounts receivable existing as at Completion;
+(c) The Seller's corporate records and tax returns;
+(d) [INSERT ANY OTHER EXCLUDED ASSETS].
+
+2. PURCHASE PRICE
+
+2.1 The total purchase price for the Assets shall be $[INSERT AMOUNT] (the "Purchase Price"), subject to adjustment as set forth below.
+
+2.2 The Purchase Price shall be paid as follows:
+(a) $[INSERT AMOUNT] in cash at Completion;
+(b) $[INSERT AMOUNT] by way of a promissory note payable over [24] months with interest at [5]% per annum; and
+(c) $[INSERT AMOUNT] as an earnout, payable upon the Business achieving EBITDA of at least $[INSERT TARGET] in the twelve (12) months following Completion.
+
+2.3 An amount equal to [15]% of the cash portion of the Purchase Price shall be deposited into escrow at Completion and held for [18] months to secure the Seller's indemnification obligations.
+
+2.4 The Purchase Price shall be subject to a working capital adjustment based on the Net Working Capital of the Business as at the Completion Date, with a target of $[INSERT TARGET].
+
+3. DUE DILIGENCE
+
+3.1 Upon execution of this LOI, the Buyer shall commence a comprehensive due diligence review of the Business (the "Due Diligence Period"). The Due Diligence Period shall conclude on the earlier of: (a) forty-five (45) days from the date of this LOI; or (b) written notice by the Buyer that due diligence is complete.
+
+3.2 During the Due Diligence Period, the Seller shall provide the Buyer and its representatives with reasonable access to:
+(a) The Business premises during normal business hours;
+(b) All books, records, contracts, and financial statements;
+(c) Key employees and management;
+(d) Customers and suppliers, upon reasonable notice; and
+(e) Such other information as the Buyer may reasonably request.
+
+3.3 The Buyer's obligation to proceed with the Transaction is subject to the satisfactory completion of due diligence in the Buyer's sole discretion.
+
+4. EXCLUSIVITY
+
+4.1 In consideration of the Buyer's time and expense in conducting due diligence, the Seller agrees that for a period of sixty (60) days from the date of this LOI (the "Exclusivity Period"), neither the Seller nor any of its officers, directors, employees, agents, or representatives shall:
+(a) Solicit, initiate, or encourage any inquiries or proposals relating to any acquisition, sale, or similar transaction involving the Business;
+(b) Participate in any discussions or negotiations with any third party regarding such a transaction; or
+(c) Provide any confidential information to any third party in connection with such a transaction.
+
+4.2 The Seller shall promptly notify the Buyer of any unsolicited inquiry or proposal received during the Exclusivity Period.
+
+5. REPRESENTATIONS AND WARRANTIES
+
+5.1 The definitive agreement shall contain representations and warranties by the Seller customary for a transaction of this type, including without limitation representations regarding:
+(a) Organization, authority, and good standing;
+(b) Title to the Assets, free and clear of encumbrances;
+(c) Accuracy of financial statements;
+(d) Absence of undisclosed liabilities;
+(e) Compliance with laws;
+(f) Material contracts;
+(g) Employees and employee benefits;
+(h) Intellectual property;
+(i) Tax matters;
+(j) Litigation and claims; and
+(k) Environmental matters.
+
+6. CONDITIONS PRECEDENT
+
+6.1 Completion of the Transaction shall be subject to customary conditions, including:
+(a) Satisfactory completion of due diligence;
+(b) Execution of definitive agreements;
+(c) Accuracy of representations and warranties;
+(d) Compliance with covenants;
+(e) Consents from third parties as required;
+(f) No material adverse change in the Business;
+(g) Release of any encumbrances on the Assets; and
+(h) Compliance with any regulatory requirements.
+
+7. EMPLOYEES
+
+7.1 The Buyer intends to make offers of employment to substantially all employees of the Business on terms reasonably comparable to their current terms.
+
+7.2 Key employees, including [INSERT KEY EMPLOYEE NAMES], shall be required to enter into new employment agreements with the Buyer as a condition of Completion.
+
+8. NON-COMPETE AND NON-SOLICITATION
+
+8.1 As a condition of Completion, the Seller and its principals shall enter into a non-compete agreement prohibiting them from:
+(a) Engaging in a competing business within Australia for a period of three (3) years; and
+(b) Soliciting customers or employees of the Business for a period of three (3) years.
+
+9. BINDING PROVISIONS
+
+9.1 While this LOI is generally non-binding, the following provisions shall be binding upon the parties: Section 4 (Exclusivity), this Section 9, Section 10 (Confidentiality), Section 11 (Costs), and Section 12 (Governing Law).
+
+10. CONFIDENTIALITY
+
+10.1 The terms of this LOI and all information exchanged between the parties in connection with the proposed Transaction shall be treated as confidential and shall not be disclosed to any third party without the prior written consent of the other party, except: (a) to professional advisors bound by confidentiality; (b) as required by law; or (c) in connection with any dispute arising from this LOI.
+
+11. COSTS
+
+11.1 Each party shall bear its own costs and expenses in connection with the negotiation and preparation of this LOI and the definitive agreements, regardless of whether the Transaction is completed.
+
+12. GOVERNING LAW
+
+12.1 This LOI shall be governed by and construed in accordance with the laws of [New South Wales/Victoria], and the parties submit to the exclusive jurisdiction of the courts of that State.
+
+13. EXPIRATION
+
+13.1 This LOI shall expire and be of no further force or effect if not countersigned by the Seller and returned to the Buyer by [INSERT EXPIRATION DATE].
+
+We believe this Transaction presents an excellent opportunity for both parties and look forward to working with you toward a successful closing.
+
+Please indicate your agreement to the terms of this LOI by signing below.
+
+Sincerely,
+
+For and on behalf of [INSERT BUYER NAME] Pty Ltd
+
+_____________________
+Name: [INSERT NAME]
+Title: Director
+Date: _____________________
+
+
+ACCEPTED AND AGREED:
+
+For and on behalf of [INSERT SELLER NAME] Pty Ltd
+
+_____________________
+Name: [INSERT NAME]
+Title: Director
+Date: _____________________
+
+---
+
+## EXAMPLE 3: ASSET PURCHASE AGREEMENT (SHORT FORM)
+
+---
+
+ASSET PURCHASE AGREEMENT
+
+This Asset Purchase Agreement (this "Agreement") is made on [INSERT DATE]
+
+BETWEEN:
+
+(1) [INSERT SELLER NAME] Pty Ltd (ABN [INSERT ABN], ACN [INSERT ACN]) of [INSERT ADDRESS] ("Seller"); and
+
+(2) [INSERT BUYER NAME] Pty Ltd (ABN [INSERT ABN], ACN [INSERT ACN]) of [INSERT ADDRESS] ("Buyer").
+
+RECITALS
+
+A. The Seller carries on the business of [INSERT BUSINESS DESCRIPTION] (the "Business").
+
+B. The Seller has agreed to sell, and the Buyer has agreed to purchase, the Assets on the terms set out in this Agreement.
+
+THE PARTIES AGREE AS FOLLOWS:
+
+1. DEFINITIONS
+
+In this Agreement:
+
+"Assets" means the assets described in Schedule 1, but excludes the Excluded Assets.
+
+"Business Day" means a day that is not a Saturday, Sunday, or public holiday in [New South Wales/Victoria].
+
+"Completion" means completion of the sale and purchase of the Assets in accordance with clause 6.
+
+"Completion Date" means [INSERT DATE] or such other date as the parties agree in writing.
+
+"Encumbrance" means any mortgage, charge, lien, pledge, security interest, or other encumbrance.
+
+"Excluded Assets" means the assets described in Schedule 2.
+
+"GST" has the meaning given in the A New Tax System (Goods and Services Tax) Act 1999 (Cth).
+
+"Purchase Price" means the amount specified in clause 3.1.
+
+2. SALE AND PURCHASE
+
+2.1 The Seller agrees to sell, and the Buyer agrees to purchase, the Assets with effect from the Completion Date.
+
+2.2 Title to and risk in the Assets shall pass to the Buyer on Completion.
+
+3. PURCHASE PRICE
+
+3.1 The Purchase Price for the Assets is $[INSERT AMOUNT] (exclusive of GST).
+
+3.2 The Purchase Price shall be allocated among the Assets as set forth in Schedule 3.
+
+3.3 The Purchase Price shall be paid at Completion by electronic funds transfer to the bank account nominated by the Seller.
+
+4. GST
+
+4.1 The parties intend that the sale of the Assets constitutes a supply of a going concern within the meaning of section 38-325 of the A New Tax System (Goods and Services Tax) Act 1999 (Cth), and accordingly is GST-free.
+
+4.2 If the sale is not GST-free, the Buyer must pay to the Seller an amount equal to the GST payable on the supply, and the Seller must issue a tax invoice to the Buyer.
+
+5. CONDITIONS PRECEDENT
+
+5.1 Completion is conditional upon:
+(a) the Buyer obtaining all necessary consents and approvals;
+(b) the Seller obtaining any third-party consents required for the transfer of the Assets; and
+(c) no Material Adverse Change occurring prior to Completion.
+
+5.2 If the conditions in clause 5.1 are not satisfied or waived by the Completion Date, either party may terminate this Agreement by written notice.
+
+6. COMPLETION
+
+6.1 Completion shall take place at [INSERT LOCATION] at [INSERT TIME] on the Completion Date.
+
+6.2 At Completion:
+(a) the Seller shall deliver to the Buyer:
+    (i) executed transfers for all Assets;
+    (ii) all documents of title relating to the Assets;
+    (iii) all keys, access cards, and security codes; and
+    (iv) a tax invoice for the Purchase Price;
+(b) the Buyer shall pay the Purchase Price to the Seller.
+
+7. SELLER WARRANTIES
+
+7.1 The Seller warrants to the Buyer that:
+(a) the Seller has full power and authority to enter into this Agreement and to sell the Assets;
+(b) the Seller has good title to the Assets, free from Encumbrances;
+(c) the Assets are in reasonable working condition, having regard to their age and use;
+(d) the Seller has disclosed to the Buyer all material information relating to the Business;
+(e) the Seller is not aware of any litigation, claim, or dispute relating to the Assets or the Business;
+(f) the Seller has complied with all applicable laws in the conduct of the Business; and
+(g) the information provided by the Seller to the Buyer in connection with this Agreement is true and accurate.
+
+7.2 Each warranty is a separate warranty and is not limited by any other warranty.
+
+8. INDEMNIFICATION
+
+8.1 The Seller shall indemnify the Buyer against all claims, losses, damages, costs, and expenses arising from:
+(a) any breach of warranty by the Seller;
+(b) any liability of the Business arising prior to Completion; and
+(c) any Excluded Assets or excluded liabilities.
+
+8.2 The Buyer shall indemnify the Seller against all claims, losses, damages, costs, and expenses arising from the Buyer's operation of the Business after Completion.
+
+9. NON-COMPETE
+
+9.1 For a period of three (3) years from Completion, the Seller shall not:
+(a) carry on or be engaged in any business in Australia that competes with the Business;
+(b) solicit or entice away any customer or supplier of the Business; or
+(c) solicit or employ any employee of the Business.
+
+10. CONFIDENTIALITY
+
+10.1 Each party shall keep confidential all information relating to the other party and the Transaction, and shall not disclose such information except as required by law or with the prior written consent of the other party.
+
+11. GENERAL
+
+11.1 Governing Law: This Agreement is governed by the laws of [New South Wales/Victoria], and the parties submit to the exclusive jurisdiction of the courts of that State.
+
+11.2 Entire Agreement: This Agreement constitutes the entire agreement between the parties and supersedes all prior agreements and understandings.
+
+11.3 Amendment: This Agreement may only be amended by a written document signed by both parties.
+
+11.4 Notices: All notices must be in writing and may be delivered by hand, prepaid post, or email to the addresses set out on page 1.
+
+11.5 Costs: Each party shall bear its own costs in connection with this Agreement.
+
+11.6 Stamp Duty: The Buyer shall pay all stamp duty payable on this Agreement and the transfer of the Assets.
+
+11.7 Counterparts: This Agreement may be executed in counterparts.
+
+11.8 Privacy: Each party must comply with the Privacy Act 1988 (Cth) in relation to any personal information disclosed under this Agreement.
+
+EXECUTED as an agreement.
+
+SELLER:
+
+Executed by [INSERT SELLER NAME] Pty Ltd
+in accordance with section 127 of the Corporations Act 2001 (Cth):
+
+Signature of Director: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+Signature of Director/Secretary: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+
+BUYER:
+
+Executed by [INSERT BUYER NAME] Pty Ltd
+in accordance with section 127 of the Corporations Act 2001 (Cth):
+
+Signature of Director: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+Signature of Director/Secretary: _____________________
+Name: [INSERT NAME]
+Date: _____________________
+
+
+SCHEDULE 1 - ASSETS
+
+[List all assets being acquired]
+
+1. All plant, equipment, and machinery described in Attachment A
+2. All inventory as at the Completion Date
+3. All intellectual property, including trademarks and trade names
+4. All customer contracts listed in Attachment B
+5. All supplier agreements listed in Attachment C
+6. Goodwill and the right to carry on the Business
+7. All business records and files
+8. [INSERT ADDITIONAL ASSETS]
+
+
+SCHEDULE 2 - EXCLUDED ASSETS
+
+1. Cash and cash equivalents
+2. Accounts receivable as at the Completion Date
+3. The Seller's corporate records and tax returns
+4. [INSERT ADDITIONAL EXCLUDED ASSETS]
+
+
+SCHEDULE 3 - PURCHASE PRICE ALLOCATION
+
+| Asset Category | Amount (AUD) |
+|----------------|--------------|
+| Equipment and Machinery | $[INSERT] |
+| Inventory | $[INSERT] |
+| Intellectual Property | $[INSERT] |
+| Goodwill | $[INSERT] |
+| Customer Contracts | $[INSERT] |
+| Other Assets | $[INSERT] |
+| TOTAL | $[INSERT TOTAL] |
+
+---
+`;
+
+// =============================================================================
 // AUSTRALIAN LEGAL CONTEXT (Append to document/contract prompts)
 // =============================================================================
 
@@ -2389,5 +3091,7 @@ export default {
   CATEGORY_ENHANCEMENTS,
   buildEnhancedSystemPrompt,
   formatDealContextForPrompt,
-  AUSTRALIAN_LEGAL_CONTEXT
+  AUSTRALIAN_LEGAL_CONTEXT,
+  CLAUSE_LIBRARY,
+  DOCUMENT_EXAMPLES
 };
