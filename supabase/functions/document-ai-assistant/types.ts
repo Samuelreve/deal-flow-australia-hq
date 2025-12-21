@@ -1,5 +1,17 @@
+export interface ConversationalMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ConversationalState {
+  phase: 'select_type' | 'gathering' | 'confirming' | 'generating' | 'complete';
+  documentType: string | null;
+  gatheredAnswers: Record<string, any>;
+  currentQuestionIndex: number;
+}
+
 export interface RequestPayload {
-  operation: 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'predict_deal_health' | 'deal_chat_query';
+  operation: 'explain_clause' | 'generate_template' | 'generate_smart_template' | 'summarize_document' | 'explain_milestone' | 'suggest_next_action' | 'generate_milestones' | 'analyze_document' | 'summarize_version_changes' | 'predict_deal_health' | 'deal_chat_query' | 'conversational_template';
   dealId?: string;
   documentId?: string;
   documentVersionId?: string;
@@ -11,10 +23,14 @@ export interface RequestPayload {
   chatHistory?: any[];
   analysisType?: string;
   documentText?: string;
+  // Conversational template specific
+  conversationalState?: ConversationalState;
+  messages?: ConversationalMessage[];
   context?: {
     analysisType?: string;
     saveAnalysis?: boolean;
     chatHistory?: any[];
+    dealContext?: Record<string, any>;
     [key: string]: any;
   };
 }
@@ -43,6 +59,13 @@ export interface AIResponse {
   // Deal chat specific fields
   answer?: string;
   response?: string;
+  
+  // Conversational template specific fields
+  message?: string;
+  state?: ConversationalState;
+  options?: Array<{ label: string; value: string; description?: string }>;
+  isComplete?: boolean;
+  generatedDocument?: string;
 }
 
 // Keep the existing OperationResult type for compatibility
