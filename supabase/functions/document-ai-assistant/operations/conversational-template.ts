@@ -45,6 +45,7 @@ interface ConversationalResponse {
   options?: Array<{ label: string; value: string; description?: string }>;
   isComplete: boolean;
   generatedDocument?: string;
+  partialDocument?: string;
   disclaimer?: string;
   error?: string;
 }
@@ -100,6 +101,174 @@ function buildSmartWelcome(dealContext: Record<string, any>): string {
   parts.push('\n\n**What type of document would you like to create?**');
   
   return parts.join('\n');
+}
+
+/**
+ * Build a partial document preview based on current answers
+ */
+function buildPartialDocumentPreview(
+  documentType: string,
+  answers: Record<string, any>,
+  dealContext: Record<string, any>
+): string {
+  const flow = getQuestionFlow(documentType);
+  if (!flow) return '';
+  
+  const docTypeDisplay = flow.displayName || documentType.replace(/_/g, ' ').toUpperCase();
+  const businessName = dealContext?.dealContext?.businessName || dealContext?.businessName || '[BUSINESS NAME]';
+  const counterparty = dealContext?.dealContext?.counterpartyName || dealContext?.counterpartyName || '[COUNTERPARTY]';
+  const dealTitle = dealContext?.dealContext?.title || dealContext?.title || '';
+  
+  const lines: string[] = [];
+  
+  // Document Header
+  lines.push(`${'═'.repeat(50)}`);
+  lines.push(`${docTypeDisplay}`);
+  lines.push(`${'═'.repeat(50)}`);
+  lines.push('');
+  lines.push(`THIS AGREEMENT is made on [DATE]`);
+  lines.push('');
+  lines.push('BETWEEN:');
+  lines.push(`(1) ${businessName} ("Party A")`);
+  lines.push(`(2) ${counterparty} ("Party B")`);
+  lines.push('');
+  
+  // Recitals based on document type
+  lines.push('RECITALS:');
+  if (documentType.includes('nda') || documentType.includes('confidentiality')) {
+    lines.push('A. The parties wish to explore a potential business relationship.');
+    lines.push('B. In connection with this, confidential information may be disclosed.');
+  } else if (documentType.includes('purchase') || documentType.includes('sale')) {
+    lines.push('A. Party A wishes to sell and Party B wishes to purchase certain assets/interests.');
+    lines.push('B. The parties have agreed to the terms set out in this Agreement.');
+  } else if (documentType.includes('service')) {
+    lines.push('A. Party A provides certain services.');
+    lines.push('B. Party B wishes to engage Party A to provide such services.');
+  } else {
+    lines.push('A. The parties wish to enter into a business arrangement.');
+    lines.push('B. The parties have agreed to the terms set out below.');
+  }
+  lines.push('');
+  
+  // Build sections from gathered answers
+  lines.push('AGREED TERMS:');
+  lines.push('');
+  
+  let clauseNum = 1;
+  
+  // Add answered sections with visual styling
+  Object.entries(answers).forEach(([questionId, value]) => {
+    const question = flow.questions.find(q => q.id === questionId);
+    const option = question?.options.find(o => o.value === value);
+    
+    if (question && option) {
+      const sectionTitle = question.id
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+      
+      lines.push(`${clauseNum}. ${sectionTitle.toUpperCase()}`);
+      lines.push('');
+      
+      // Generate clause content based on the answer
+      const clauseContent = generateClauseContent(documentType, questionId, value, option.label);
+      lines.push(`   ${clauseNum}.1 ${clauseContent}`);
+      lines.push('');
+      clauseNum++;
+    }
+  });
+  
+  // Add placeholder for remaining sections
+  const answeredIds = Object.keys(answers);
+  const remainingQuestions = flow.questions.filter(q => !answeredIds.includes(q.id));
+  
+  if (remainingQuestions.length > 0) {
+    lines.push('');
+    lines.push('┌─────────────────────────────────────────────┐');
+    lines.push('│  📝 PENDING SECTIONS                        │');
+    lines.push('├─────────────────────────────────────────────┤');
+    remainingQuestions.forEach(q => {
+      const title = q.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      lines.push(`│  ○ ${title.padEnd(40)}│`);
+    });
+    lines.push('└─────────────────────────────────────────────┘');
+  }
+  
+  // Signature block placeholder
+  lines.push('');
+  lines.push('─'.repeat(50));
+  lines.push('');
+  lines.push('EXECUTED as an agreement:');
+  lines.push('');
+  lines.push(`For ${businessName}:`);
+  lines.push('');
+  lines.push('_________________________');
+  lines.push('Signature');
+  lines.push('');
+  lines.push(`For ${counterparty}:`);
+  lines.push('');
+  lines.push('_________________________');
+  lines.push('Signature');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Generate clause content based on question and answer
+ */
+function generateClauseContent(documentType: string, questionId: string, value: string, label: string): string {
+  // Map common question patterns to clause language
+  const clauseTemplates: Record<string, Record<string, string>> = {
+    // Confidentiality/NDA clauses
+    scope: {
+      broad: 'This Agreement covers all Confidential Information disclosed by either party, whether oral, written, electronic, or in any other form.',
+      specific: 'This Agreement covers only the specific Confidential Information identified in Schedule 1.',
+      mutual: 'Both parties shall protect the confidential information of the other party with the same degree of care used to protect their own confidential information.',
+    },
+    duration: {
+      '1_year': 'The confidentiality obligations under this Agreement shall remain in effect for a period of one (1) year from the date of disclosure.',
+      '2_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of two (2) years from the date of disclosure.',
+      '3_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of three (3) years from the date of disclosure.',
+      '5_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of five (5) years from the date of disclosure.',
+      perpetual: 'The confidentiality obligations under this Agreement shall continue indefinitely and survive termination of this Agreement.',
+    },
+    // Payment terms
+    payment_terms: {
+      upfront: 'Payment shall be made in full upon execution of this Agreement.',
+      milestone: 'Payment shall be made in instalments upon completion of agreed milestones.',
+      monthly: 'Payment shall be made monthly in arrears within 14 days of invoice.',
+      completion: 'Payment shall be made upon satisfactory completion of all deliverables.',
+    },
+    // Dispute resolution
+    dispute_resolution: {
+      mediation: 'Any dispute shall first be referred to mediation in accordance with the Resolution Institute Mediation Rules.',
+      arbitration: 'Any dispute shall be finally resolved by arbitration in accordance with the ACICA Arbitration Rules.',
+      litigation: 'Any dispute shall be resolved by the courts of the relevant Australian jurisdiction.',
+    },
+    // Governing law
+    governing_law: {
+      nsw: 'This Agreement is governed by the laws of New South Wales, Australia.',
+      vic: 'This Agreement is governed by the laws of Victoria, Australia.',
+      qld: 'This Agreement is governed by the laws of Queensland, Australia.',
+      wa: 'This Agreement is governed by the laws of Western Australia.',
+      sa: 'This Agreement is governed by the laws of South Australia.',
+    },
+    // Termination
+    termination: {
+      notice_30: 'Either party may terminate this Agreement by giving 30 days written notice to the other party.',
+      notice_60: 'Either party may terminate this Agreement by giving 60 days written notice to the other party.',
+      notice_90: 'Either party may terminate this Agreement by giving 90 days written notice to the other party.',
+      immediate: 'Either party may terminate this Agreement immediately upon material breach by the other party.',
+    },
+  };
+  
+  // Try to find a matching template
+  const questionTemplates = clauseTemplates[questionId.toLowerCase()];
+  if (questionTemplates && questionTemplates[value.toLowerCase()]) {
+    return questionTemplates[value.toLowerCase()];
+  }
+  
+  // Fallback: generate generic clause from label
+  return `The parties agree that ${label.toLowerCase()} shall apply to this Agreement.`;
 }
 
 /**
@@ -170,6 +339,9 @@ export async function handleConversationalTemplate(
 
         const flow = getQuestionFlow(selectedType.type);
         const firstQuestion = flow?.questions[0];
+        
+        // Generate initial partial document preview
+        const partialDoc = buildPartialDocumentPreview(selectedType.type, {}, dealContext);
 
         return {
           success: true,
@@ -181,6 +353,7 @@ export async function handleConversationalTemplate(
             description: o.description,
           })),
           isComplete: false,
+          partialDocument: partialDoc,
         };
       }
 
@@ -242,6 +415,9 @@ export async function handleConversationalTemplate(
           if (state.currentQuestionIndex < flow.questions.length) {
             const nextQuestion = flow.questions[state.currentQuestionIndex];
             const progress = `${state.currentQuestionIndex + 1}/${flow.questions.length}`;
+            
+            // Generate updated partial document preview with new answer
+            const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
 
             return {
               success: true,
@@ -252,11 +428,15 @@ export async function handleConversationalTemplate(
                 value: o.value,
                 description: o.description
               })),
-              isComplete: false
+              isComplete: false,
+              partialDocument: partialDoc
             };
           } else {
             // All questions answered, move to confirmation
             state.phase = 'confirming';
+            
+            // Generate complete partial preview before final generation
+            const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
             
             const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
               const question = flow.questions.find(q => q.id === key);
@@ -272,7 +452,8 @@ export async function handleConversationalTemplate(
                 { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
                 { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
               ],
-              isComplete: false
+              isComplete: false,
+              partialDocument: partialDoc
             };
           }
         }

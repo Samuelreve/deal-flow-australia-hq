@@ -34,6 +34,7 @@ interface ConversationalDocGenState {
   isLoading: boolean;
   isComplete: boolean;
   generatedDocument: string | null;
+  partialDocument: string | null;
   disclaimer: string | null;
   error: string | null;
   history: HistoryEntry[];
@@ -55,6 +56,7 @@ export function useConversationalDocGen(dealId: string) {
     isLoading: false,
     isComplete: false,
     generatedDocument: null,
+    partialDocument: null,
     disclaimer: null,
     error: null,
     history: []
@@ -125,6 +127,7 @@ export function useConversationalDocGen(dealId: string) {
         isLoading: false,
         isComplete: result.isComplete || false,
         generatedDocument: result.generatedDocument || null,
+        partialDocument: result.partialDocument || prev.partialDocument,
         disclaimer: result.disclaimer || null
       }));
 
@@ -170,6 +173,7 @@ export function useConversationalDocGen(dealId: string) {
       isLoading: false,
       isComplete: false,
       generatedDocument: null,
+      partialDocument: null,
       disclaimer: null,
       error: null,
       history: []
@@ -185,6 +189,7 @@ export function useConversationalDocGen(dealId: string) {
       isLoading: false,
       isComplete: false,
       generatedDocument: null,
+      partialDocument: null,
       disclaimer: null,
       error: null,
       history: []

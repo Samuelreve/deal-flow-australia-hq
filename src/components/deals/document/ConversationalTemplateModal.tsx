@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Send, MessageSquare, Save, X, ArrowLeft, Zap, Loader2 } from "lucide-react";
+import { Send, MessageSquare, Save, X, ArrowLeft, Zap, Loader2, FileText, Eye, EyeOff } from "lucide-react";
 import { useConversationalDocGen } from '@/hooks/useConversationalDocGen';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +42,7 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
   const [isSaving, setIsSaving] = useState(false);
   const [selectedFileType, setSelectedFileType] = useState('docx');
   const [customFileName, setCustomFileName] = useState('');
+  const [showPreview, setShowPreview] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -50,6 +51,7 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     isLoading,
     isComplete,
     generatedDocument,
+    partialDocument,
     disclaimer,
     sendMessage,
     selectOption,
@@ -185,30 +187,43 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-5xl max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
               Guided Document Generation
             </DialogTitle>
-            {onSwitchToQuick && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onSwitchToQuick}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Zap className="h-3 w-3 mr-1" />
-                Switch to Quick Generate
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {partialDocument && !isComplete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showPreview ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </Button>
+              )}
+              {onSwitchToQuick && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onSwitchToQuick}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Switch to Quick Generate
+                </Button>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${isComplete ? 'w-1/2' : 'w-full'}`}>
+          <div className={`flex flex-col ${(partialDocument && showPreview) || isComplete ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
             <ScrollArea className="flex-1 p-6" ref={scrollRef}>
               <div className="space-y-4">
                 {messages.map((msg, i) => (
@@ -281,7 +296,27 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
             )}
           </div>
 
-          {/* Document Preview */}
+          {/* Live Document Preview (during questions) */}
+          {partialDocument && showPreview && !isComplete && (
+            <div className="w-1/2 border-l flex flex-col bg-muted/30">
+              <div className="p-4 border-b bg-background/80">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  Live Document Preview
+                  <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    Building...
+                  </span>
+                </div>
+              </div>
+              <ScrollArea className="flex-1 p-4">
+                <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {partialDocument}
+                </pre>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Final Document Preview (when complete) */}
           {isComplete && generatedDocument && (
             <div className="w-1/2 border-l flex flex-col">
               <div className="p-4 border-b space-y-3">
