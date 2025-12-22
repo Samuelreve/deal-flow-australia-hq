@@ -50,6 +50,59 @@ interface ConversationalResponse {
 }
 
 /**
+ * Build a smart welcome message based on deal context
+ */
+function buildSmartWelcome(dealContext: Record<string, any>): string {
+  const parts: string[] = [];
+  
+  // Personalized greeting
+  if (dealContext.title || dealContext.businessName) {
+    const dealName = dealContext.title || dealContext.businessName;
+    parts.push(`Welcome! I'll help you create professional documents for **${dealName}**.`);
+  } else {
+    parts.push(`Welcome! I'll help you create professional legal documents for this deal.`);
+  }
+  
+  // Smart recommendations based on deal type and stage
+  const recommendations: string[] = [];
+  const dealType = dealContext.dealType?.toLowerCase() || '';
+  const dealCategory = dealContext.dealCategory?.toLowerCase() || '';
+  const status = dealContext.status?.toLowerCase() || '';
+  
+  // Early stage deals - recommend NDA first
+  if (status === 'draft' || status === 'active') {
+    recommendations.push('**Non-Disclosure Agreement (NDA)** - Protect confidential information before sharing sensitive details');
+  }
+  
+  // Based on deal type
+  if (dealType.includes('asset') || dealCategory === 'business_sale') {
+    recommendations.push('**Asset Purchase Agreement** - Define what assets are being transferred');
+    recommendations.push('**Letter of Intent (LOI)** - Outline key terms before formal negotiations');
+  } else if (dealType.includes('share') || dealType.includes('equity')) {
+    recommendations.push('**Share Purchase Agreement** - Structure equity transfer terms');
+  } else if (dealCategory === 'ip_transfer') {
+    recommendations.push('**IP Assignment Agreement** - Transfer intellectual property rights');
+  }
+  
+  // Add service agreement for consulting/service deals
+  if (dealType.includes('service') || dealType.includes('consult')) {
+    recommendations.push('**Service Agreement** - Define scope, deliverables, and payment terms');
+  }
+  
+  // Build the recommendation section
+  if (recommendations.length > 0) {
+    parts.push('\n\n📋 **Recommended for your deal:**');
+    recommendations.slice(0, 3).forEach(rec => {
+      parts.push(`• ${rec}`);
+    });
+  }
+  
+  parts.push('\n\n**What type of document would you like to create?**');
+  
+  return parts.join('\n');
+}
+
+/**
  * Handle conversational template generation
  */
 export async function handleConversationalTemplate(
@@ -131,10 +184,12 @@ export async function handleConversationalTemplate(
         };
       }
 
-      // Show document type selection
+      // Show document type selection with smart welcome
+      const welcomeMessage = buildSmartWelcome(dealContext?.dealContext || dealContext || {});
+      
       return {
         success: true,
-        message: `Welcome! I'll help you create a professional legal document for this deal.\n\n**What type of document do you need?**`,
+        message: welcomeMessage,
         state,
         options: documentTypes.map((dt) => ({
           label: dt.displayName,

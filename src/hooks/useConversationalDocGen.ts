@@ -21,6 +21,12 @@ interface QuickOption {
   description?: string;
 }
 
+interface HistoryEntry {
+  messages: ConversationalMessage[];
+  state: ConversationalState;
+  options: QuickOption[];
+}
+
 interface ConversationalDocGenState {
   messages: ConversationalMessage[];
   state: ConversationalState;
@@ -30,6 +36,7 @@ interface ConversationalDocGenState {
   generatedDocument: string | null;
   disclaimer: string | null;
   error: string | null;
+  history: HistoryEntry[];
 }
 
 const initialConversationalState: ConversationalState = {
@@ -49,7 +56,8 @@ export function useConversationalDocGen(dealId: string) {
     isComplete: false,
     generatedDocument: null,
     disclaimer: null,
-    error: null
+    error: null,
+    history: []
   });
 
   const sendMessage = useCallback(async (content: string) => {
@@ -58,11 +66,19 @@ export function useConversationalDocGen(dealId: string) {
     const userMessage: ConversationalMessage = { role: 'user', content };
     const newMessages = [...state.messages, userMessage];
 
+    // Save current state to history before sending (for back button)
+    const historyEntry: HistoryEntry = {
+      messages: [...state.messages],
+      state: { ...state.state },
+      options: [...state.options]
+    };
+
     setState(prev => ({
       ...prev,
       messages: newMessages,
       isLoading: true,
-      error: null
+      error: null,
+      history: [...prev.history, historyEntry]
     }));
 
     try {
@@ -86,7 +102,9 @@ export function useConversationalDocGen(dealId: string) {
               askingPrice: deal?.asking_price,
               dealType: deal?.deal_type,
               industry: deal?.business_industry,
-              counterpartyName: deal?.counterparty_name
+              counterpartyName: deal?.counterparty_name,
+              status: deal?.status,
+              dealCategory: deal?.deal_category
             }
           }
         }
@@ -116,10 +134,29 @@ export function useConversationalDocGen(dealId: string) {
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message
+        error: error.message,
+        // Remove the history entry we just added since the request failed
+        history: prev.history.slice(0, -1)
       }));
     }
-  }, [dealId, user, state.messages, state.state]);
+  }, [dealId, user, state.messages, state.state, state.options, state.history]);
+
+  const goBack = useCallback(() => {
+    if (state.history.length === 0) return;
+
+    // Get the previous state from history
+    const previousEntry = state.history[state.history.length - 1];
+    
+    setState(prev => ({
+      ...prev,
+      messages: previousEntry.messages,
+      state: previousEntry.state,
+      options: previousEntry.options,
+      history: prev.history.slice(0, -1),
+      isLoading: false,
+      error: null
+    }));
+  }, [state.history]);
 
   const selectOption = useCallback((option: QuickOption) => {
     sendMessage(option.value);
@@ -134,7 +171,8 @@ export function useConversationalDocGen(dealId: string) {
       isComplete: false,
       generatedDocument: null,
       disclaimer: null,
-      error: null
+      error: null,
+      history: []
     });
     sendMessage('start');
   }, [sendMessage]);
@@ -148,7 +186,8 @@ export function useConversationalDocGen(dealId: string) {
       isComplete: false,
       generatedDocument: null,
       disclaimer: null,
-      error: null
+      error: null,
+      history: []
     });
   }, []);
 
@@ -157,6 +196,8 @@ export function useConversationalDocGen(dealId: string) {
     sendMessage,
     selectOption,
     startConversation,
-    reset
+    reset,
+    goBack,
+    canGoBack: state.history.length > 0 && !state.isLoading && !state.isComplete
   };
 }

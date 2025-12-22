@@ -3,11 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, Send, MessageSquare, FileText, Save, X } from "lucide-react";
+import { Send, MessageSquare, Save, X, ArrowLeft, Zap, Loader2 } from "lucide-react";
 import { useConversationalDocGen } from '@/hooks/useConversationalDocGen';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,13 +18,24 @@ interface ConversationalTemplateModalProps {
   onClose: () => void;
   dealId: string;
   onDocumentSaved: () => void;
+  onSwitchToQuick?: () => void;
 }
+
+const TypingIndicator: React.FC = () => (
+  <div className="flex items-center gap-1.5 px-3 py-2">
+    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+    <span className="ml-2 text-sm text-muted-foreground">Thinking...</span>
+  </div>
+);
 
 const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = ({
   isOpen,
   onClose,
   dealId,
-  onDocumentSaved
+  onDocumentSaved,
+  onSwitchToQuick
 }) => {
   const { user } = useAuth();
   const [input, setInput] = useState('');
@@ -44,7 +54,9 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     sendMessage,
     selectOption,
     startConversation,
-    reset
+    reset,
+    goBack,
+    canGoBack
   } = useConversationalDocGen(dealId);
 
   useEffect(() => {
@@ -175,10 +187,23 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Guided Document Generation
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Guided Document Generation
+            </DialogTitle>
+            {onSwitchToQuick && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSwitchToQuick}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Zap className="h-3 w-3 mr-1" />
+                Switch to Quick Generate
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 flex overflow-hidden">
@@ -200,8 +225,8 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
                 
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg p-3">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="bg-muted rounded-lg">
+                      <TypingIndicator />
                     </div>
                   </div>
                 )}
@@ -227,10 +252,20 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
               </div>
             )}
 
-            {/* Input Area */}
+            {/* Input Area with Back Button */}
             {!isComplete && (
               <div className="p-4 border-t">
                 <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goBack}
+                    disabled={isLoading || !canGoBack}
+                    className="shrink-0"
+                    title="Go back to previous question"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
