@@ -30,6 +30,30 @@ const TypingIndicator: React.FC = () => (
   </div>
 );
 
+const ModeSelectionScreen: React.FC<{ onSelectMode: (mode: 'chat' | 'quick') => void }> = ({ onSelectMode }) => (
+  <div className="flex flex-col items-center justify-center h-full p-8 space-y-6">
+    <h2 className="text-xl font-semibold text-center">How would you like to create your document?</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
+      <button
+        onClick={() => onSelectMode('quick')}
+        className="flex flex-col items-center p-6 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all group"
+      >
+        <Zap className="h-10 w-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+        <span className="font-medium text-lg">Quick Options</span>
+        <span className="text-sm text-muted-foreground text-center mt-1">Click through choices - fast and guided</span>
+      </button>
+      <button
+        onClick={() => onSelectMode('chat')}
+        className="flex flex-col items-center p-6 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all group"
+      >
+        <MessageSquare className="h-10 w-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
+        <span className="font-medium text-lg">Chat with AI</span>
+        <span className="text-sm text-muted-foreground text-center mt-1">Type naturally - more flexible</span>
+      </button>
+    </div>
+  </div>
+);
+
 const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = ({
   isOpen,
   onClose,
@@ -58,12 +82,18 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     startConversation,
     reset,
     goBack,
-    canGoBack
+    canGoBack,
+    interactionMode,
+    setInteractionMode
   } = useConversationalDocGen(dealId);
 
+  const handleSelectMode = (mode: 'chat' | 'quick') => {
+    startConversation(mode);
+  };
+
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      startConversation();
+    if (isOpen && !interactionMode && messages.length === 0) {
+      // Don't auto-start, wait for mode selection
     }
   }, [isOpen]);
 
@@ -191,10 +221,20 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
         <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Guided Document Generation
+              {interactionMode === 'quick' ? <Zap className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
+              {!interactionMode ? 'Document Generation' : interactionMode === 'quick' ? 'Quick Options Mode' : 'Chat Mode'}
             </DialogTitle>
             <div className="flex items-center gap-2">
+              {interactionMode && !isComplete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { reset(); }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Switch Mode
+                </Button>
+              )}
               {partialDocument && !isComplete && (
                 <Button
                   variant="ghost"
@@ -221,6 +261,13 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
           </div>
         </DialogHeader>
 
+        {/* Mode Selection Screen */}
+        {!interactionMode && (
+          <ModeSelectionScreen onSelectMode={handleSelectMode} />
+        )}
+
+        {/* Main Content */}
+        {interactionMode && (
         <div className="flex-1 flex overflow-hidden">
           {/* Chat Area */}
           <div className={`flex flex-col ${(partialDocument && showPreview) || isComplete ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
@@ -248,17 +295,17 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
               </div>
             </ScrollArea>
 
-            {/* Quick Options */}
+            {/* Quick Options - only in quick mode or show as suggestions in chat mode */}
             {options.length > 0 && !isLoading && !isComplete && (
               <div className="px-6 pb-2">
                 <div className="flex flex-wrap gap-2">
                   {options.map((opt, i) => (
                     <Button
                       key={i}
-                      variant="outline"
+                      variant={interactionMode === 'quick' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => selectOption(opt)}
-                      className="text-xs"
+                      className={interactionMode === 'quick' ? '' : 'text-xs opacity-80'}
                     >
                       {opt.label}
                     </Button>
@@ -267,7 +314,7 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
               </div>
             )}
 
-            {/* Input Area with Back Button */}
+            {/* Input Area - only show text input in chat mode */}
             {!isComplete && (
               <div className="p-4 border-t">
                 <div className="flex gap-2">
@@ -281,16 +328,25 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your response..."
-                    disabled={isLoading}
-                  />
-                  <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  {interactionMode === 'chat' && (
+                    <>
+                      <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type your response..."
+                        disabled={isLoading}
+                      />
+                      <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  {interactionMode === 'quick' && (
+                    <span className="flex-1 text-sm text-muted-foreground flex items-center">
+                      Click an option above to continue
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -369,8 +425,13 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
             </div>
           )}
         </div>
+        )}
       </DialogContent>
     </Dialog>
+  );
+};
+
+export default ConversationalTemplateModal;
   );
 };
 
