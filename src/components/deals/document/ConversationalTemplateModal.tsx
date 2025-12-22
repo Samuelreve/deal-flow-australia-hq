@@ -30,6 +30,15 @@ const TypingIndicator: React.FC = () => (
   </div>
 );
 
+// Available templates for quick selection
+const AVAILABLE_TEMPLATES = [
+  { id: 'nda', name: 'Non-Disclosure Agreement (NDA)', icon: '📄' },
+  { id: 'asset-purchase', name: 'Asset Purchase Agreement', icon: '💼' },
+  { id: 'employment-contract', name: 'Employment Contract', icon: '👔' },
+  { id: 'lease-agreement', name: 'Commercial Lease Agreement', icon: '🏢' },
+  { id: 'service-agreement', name: 'Service Agreement', icon: '🤝' }
+];
+
 const ModeSelectionScreen: React.FC<{ onSelectMode: (mode: 'chat' | 'quick') => void }> = ({ onSelectMode }) => (
   <div className="flex flex-col items-center justify-center h-full p-8 space-y-6">
     <h2 className="text-xl font-semibold text-center">How would you like to create your document?</h2>
@@ -40,7 +49,7 @@ const ModeSelectionScreen: React.FC<{ onSelectMode: (mode: 'chat' | 'quick') => 
       >
         <Zap className="h-10 w-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
         <span className="font-medium text-lg">Quick Options</span>
-        <span className="text-sm text-muted-foreground text-center mt-1">Click through choices - fast and guided</span>
+        <span className="text-sm text-muted-foreground text-center mt-1">Select a template - instant generation</span>
       </button>
       <button
         onClick={() => onSelectMode('chat')}
@@ -48,11 +57,90 @@ const ModeSelectionScreen: React.FC<{ onSelectMode: (mode: 'chat' | 'quick') => 
       >
         <MessageSquare className="h-10 w-10 text-primary mb-3 group-hover:scale-110 transition-transform" />
         <span className="font-medium text-lg">Chat with AI</span>
-        <span className="text-sm text-muted-foreground text-center mt-1">Type naturally - more flexible</span>
+        <span className="text-sm text-muted-foreground text-center mt-1">Answer questions - guided experience</span>
       </button>
     </div>
   </div>
 );
+
+interface QuickTemplateSelectionProps {
+  onSelectTemplate: (templateId: string, requirements: string) => void;
+  onBack: () => void;
+  isGenerating: boolean;
+}
+
+const QuickTemplateSelection: React.FC<QuickTemplateSelectionProps> = ({ onSelectTemplate, onBack, isGenerating }) => {
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState('');
+
+  const handleGenerate = () => {
+    if (selectedTemplate) {
+      onSelectTemplate(selectedTemplate, requirements);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+        <h2 className="text-lg font-semibold">Select a Template</h2>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        {AVAILABLE_TEMPLATES.map((template) => (
+          <button
+            key={template.id}
+            onClick={() => setSelectedTemplate(template.id)}
+            disabled={isGenerating}
+            className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-left ${
+              selectedTemplate === template.id 
+                ? 'border-primary bg-primary/10' 
+                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+            } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <span className="text-2xl">{template.icon}</span>
+            <span className="font-medium text-sm">{template.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {selectedTemplate && (
+        <div className="space-y-3 mt-2">
+          <div>
+            <Label className="text-sm">Additional Requirements (Optional)</Label>
+            <Textarea
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="Any specific clauses, terms, or details to include..."
+              className="mt-1 min-h-[80px]"
+              disabled={isGenerating}
+            />
+          </div>
+          <Button 
+            onClick={handleGenerate} 
+            disabled={isGenerating}
+            className="w-full"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Generating Document...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Document
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = ({
   isOpen,
@@ -67,6 +155,8 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
   const [selectedFileType, setSelectedFileType] = useState('docx');
   const [customFileName, setCustomFileName] = useState('');
   const [showPreview, setShowPreview] = useState(true);
+  const [quickModeView, setQuickModeView] = useState<'selection' | 'templates' | null>(null);
+  const [isQuickGenerating, setIsQuickGenerating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -88,7 +178,36 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
   } = useConversationalDocGen(dealId);
 
   const handleSelectMode = (mode: 'chat' | 'quick') => {
-    startConversation(mode);
+    if (mode === 'quick') {
+      setQuickModeView('templates');
+    } else {
+      setQuickModeView(null);
+      startConversation(mode);
+    }
+  };
+
+  const handleQuickGenerate = async (templateId: string, requirements: string) => {
+    setIsQuickGenerating(true);
+    try {
+      // Use the conversational doc gen to generate based on template
+      const templateName = AVAILABLE_TEMPLATES.find(t => t.id === templateId)?.name || templateId;
+      const prompt = requirements 
+        ? `Generate a ${templateName} with these requirements: ${requirements}`
+        : `Generate a standard ${templateName}`;
+      
+      // Start conversation with the template request
+      startConversation('chat');
+      sendMessage(prompt);
+    } catch (error) {
+      console.error('Quick generate error:', error);
+      toast.error('Failed to generate document');
+    } finally {
+      setIsQuickGenerating(false);
+    }
+  };
+
+  const handleBackFromTemplates = () => {
+    setQuickModeView(null);
   };
 
   useEffect(() => {
@@ -212,6 +331,7 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     reset();
     setInput('');
     setCustomFileName('');
+    setQuickModeView(null);
     onClose();
   };
 
@@ -221,15 +341,15 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
         <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
-              {interactionMode === 'quick' ? <Zap className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
-              {!interactionMode ? 'Document Generation' : interactionMode === 'quick' ? 'Quick Options Mode' : 'Chat Mode'}
+              {quickModeView === 'templates' ? <Zap className="h-5 w-5" /> : interactionMode === 'quick' ? <Zap className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
+              {quickModeView === 'templates' ? 'Select Template' : !interactionMode ? 'Document Generation' : 'Chat Mode'}
             </DialogTitle>
             <div className="flex items-center gap-2">
               {interactionMode && !isComplete && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => { reset(); }}
+                  onClick={() => { reset(); setQuickModeView(null); }}
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Switch Mode
@@ -262,8 +382,17 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
         </DialogHeader>
 
         {/* Mode Selection Screen */}
-        {!interactionMode && (
+        {!interactionMode && quickModeView !== 'templates' && (
           <ModeSelectionScreen onSelectMode={handleSelectMode} />
+        )}
+
+        {/* Quick Template Selection */}
+        {quickModeView === 'templates' && !interactionMode && (
+          <QuickTemplateSelection 
+            onSelectTemplate={handleQuickGenerate}
+            onBack={handleBackFromTemplates}
+            isGenerating={isQuickGenerating || isLoading}
+          />
         )}
 
         {/* Main Content */}
