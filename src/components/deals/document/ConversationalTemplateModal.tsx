@@ -432,7 +432,3 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
 };
 
 export default ConversationalTemplateModal;
-  );
-};
-
-export default ConversationalTemplateModal;
