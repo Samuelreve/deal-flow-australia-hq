@@ -8,7 +8,21 @@ import { RequestPayload } from "./types.ts";
 export async function handleRequest(req: Request, openai: any, supabaseUrl: string, supabaseKey: string) {
   try {
     const requestBody = await req.json();
-    const { operation, content = "", context = {}, dealId, userId, documentId, documentVersionId, milestoneId, chatHistory, analysisType } = requestBody;
+    const { 
+      operation, 
+      content = "", 
+      context = {}, 
+      dealId, 
+      userId, 
+      documentId, 
+      documentVersionId, 
+      milestoneId, 
+      chatHistory, 
+      analysisType,
+      // Conversational template specific fields
+      conversationalState,
+      messages
+    } = requestBody;
     
     if (!operation) {
       return createErrorResponse('Missing required field: operation', 400);
@@ -25,7 +39,10 @@ export async function handleRequest(req: Request, openai: any, supabaseUrl: stri
       documentVersionId,
       milestoneId,
       chatHistory,
-      analysisType
+      analysisType,
+      // Conversational template specific fields
+      conversationalState,
+      messages
     };
 
     // Get user from auth header
