@@ -8,11 +8,14 @@ interface ConversationalMessage {
   content: string;
 }
 
+type InteractionMode = 'chat' | 'quick' | null;
+
 interface ConversationalState {
   phase: 'select_type' | 'gathering' | 'confirming' | 'generating' | 'complete';
   documentType: string | null;
   gatheredAnswers: Record<string, any>;
   currentQuestionIndex: number;
+  interactionMode?: InteractionMode;
 }
 
 interface QuickOption {
@@ -38,13 +41,15 @@ interface ConversationalDocGenState {
   disclaimer: string | null;
   error: string | null;
   history: HistoryEntry[];
+  interactionMode: InteractionMode;
 }
 
 const initialConversationalState: ConversationalState = {
   phase: 'select_type',
   documentType: null,
   gatheredAnswers: {},
-  currentQuestionIndex: 0
+  currentQuestionIndex: 0,
+  interactionMode: null
 };
 
 export function useConversationalDocGen(dealId: string) {
@@ -59,7 +64,8 @@ export function useConversationalDocGen(dealId: string) {
     partialDocument: null,
     disclaimer: null,
     error: null,
-    history: []
+    history: [],
+    interactionMode: null
   });
 
   const sendMessage = useCallback(async (content: string) => {
@@ -165,10 +171,19 @@ export function useConversationalDocGen(dealId: string) {
     sendMessage(option.value);
   }, [sendMessage]);
 
-  const startConversation = useCallback(() => {
+  const setInteractionMode = useCallback((mode: InteractionMode) => {
+    setState(prev => ({
+      ...prev,
+      interactionMode: mode,
+      state: { ...prev.state, interactionMode: mode }
+    }));
+  }, []);
+
+  const startConversation = useCallback((mode?: InteractionMode) => {
+    const initialMode = mode || null;
     setState({
       messages: [],
-      state: initialConversationalState,
+      state: { ...initialConversationalState, interactionMode: initialMode },
       options: [],
       isLoading: false,
       isComplete: false,
@@ -176,9 +191,12 @@ export function useConversationalDocGen(dealId: string) {
       partialDocument: null,
       disclaimer: null,
       error: null,
-      history: []
+      history: [],
+      interactionMode: initialMode
     });
-    sendMessage('start');
+    if (mode) {
+      sendMessage('start');
+    }
   }, [sendMessage]);
 
   const reset = useCallback(() => {
@@ -192,7 +210,8 @@ export function useConversationalDocGen(dealId: string) {
       partialDocument: null,
       disclaimer: null,
       error: null,
-      history: []
+      history: [],
+      interactionMode: null
     });
   }, []);
 
@@ -203,6 +222,7 @@ export function useConversationalDocGen(dealId: string) {
     startConversation,
     reset,
     goBack,
+    setInteractionMode,
     canGoBack: state.history.length > 0 && !state.isLoading && !state.isComplete
   };
 }
