@@ -186,6 +186,12 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     }
   };
 
+  // Initial quick options shown in chat mode before AI responds
+  const initialChatOptions = AVAILABLE_TEMPLATES.map(t => ({
+    label: t.name,
+    value: `I want to create a ${t.name}`
+  }));
+
   const handleQuickGenerate = async (templateId: string, requirements: string) => {
     setIsQuickGenerating(true);
     try {
@@ -424,17 +430,17 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
               </div>
             </ScrollArea>
 
-            {/* Quick Options - only in quick mode or show as suggestions in chat mode */}
-            {options.length > 0 && !isLoading && !isComplete && (
+            {/* Quick Options - show AI options or initial template options in chat mode */}
+            {!isLoading && !isComplete && (
               <div className="px-6 pb-2">
                 <div className="flex flex-wrap gap-2">
-                  {options.map((opt, i) => (
+                  {(options.length > 0 ? options : (interactionMode === 'chat' && messages.length <= 1 ? initialChatOptions : [])).map((opt, i) => (
                     <Button
                       key={i}
-                      variant={interactionMode === 'quick' ? 'default' : 'outline'}
+                      variant="outline"
                       size="sm"
                       onClick={() => selectOption(opt)}
-                      className={interactionMode === 'quick' ? '' : 'text-xs opacity-80'}
+                      className="text-xs"
                     >
                       {opt.label}
                     </Button>
