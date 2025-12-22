@@ -9,17 +9,13 @@ import {
   getAvailableDocumentTypes,
   buildConversationalPrompt,
   isReadyToGenerate,
-  formatAnswersForGeneration,
-  matchDocumentType,
-  DOCUMENT_TYPE_ALIASES
+  formatAnswersForGeneration
 } from '../../_shared/conversational-questions.ts';
 import { 
   DOCUMENT_GENERATION_SYSTEM_PROMPT, 
   AUSTRALIAN_LEGAL_CONTEXT,
   CLAUSE_LIBRARY,
-  DOCUMENT_EXAMPLES,
-  IP_CLAUSE_LIBRARY,
-  IP_AUSTRALIA_CONTEXT
+  DOCUMENT_EXAMPLES
 } from '../../_shared/ai-prompts.ts';
 
 interface ConversationalMessage {
@@ -89,38 +85,30 @@ export async function handleConversationalTemplate(
     if (state.phase === 'select_type') {
       const documentTypes = getAvailableDocumentTypes();
 
-      // Check if user selected a document type using alias matching first
-      const matchedDocType = matchDocumentType(rawLastUserMessage);
-      let selectedType = matchedDocType 
-        ? documentTypes.find(dt => dt.type === matchedDocType) 
-        : null;
-      
-      // Fallback to substring matching if alias didn't match
-      if (!selectedType) {
-        selectedType = documentTypes.find((dt) => {
-          const typeNorm = normalizeText(dt.type);
-          const displayNorm = normalizeText(dt.displayName);
+      // Check if user selected a document type (robust matching)
+      const selectedType = documentTypes.find((dt) => {
+        const typeNorm = normalizeText(dt.type);
+        const displayNorm = normalizeText(dt.displayName);
 
-          if (!typeNorm && !displayNorm) return false;
+        if (!typeNorm && !displayNorm) return false;
 
-          // exact / substring matches
-          if (normalizedLastUserMessage === typeNorm) return true;
-          if (typeNorm && normalizedLastUserMessage.includes(typeNorm)) return true;
-          if (typeNorm && typeNorm.includes(normalizedLastUserMessage)) return true;
+        // exact / substring matches
+        if (normalizedLastUserMessage === typeNorm) return true;
+        if (typeNorm && normalizedLastUserMessage.includes(typeNorm)) return true;
+        if (typeNorm && typeNorm.includes(normalizedLastUserMessage)) return true;
 
-          if (normalizedLastUserMessage === displayNorm) return true;
-          if (displayNorm && normalizedLastUserMessage.includes(displayNorm)) return true;
+        if (normalizedLastUserMessage === displayNorm) return true;
+        if (displayNorm && normalizedLastUserMessage.includes(displayNorm)) return true;
 
-          // acronym match, e.g. "NDA"
-          const acronym = dt.displayName.match(/\(([^)]+)\)/)?.[1];
-          if (acronym) {
-            const acronymNorm = normalizeText(acronym);
-            if (acronymNorm && normalizedLastUserMessage === acronymNorm) return true;
-          }
+        // acronym match, e.g. "NDA"
+        const acronym = dt.displayName.match(/\(([^)]+)\)/)?.[1];
+        if (acronym) {
+          const acronymNorm = normalizeText(acronym);
+          if (acronymNorm && normalizedLastUserMessage === acronymNorm) return true;
+        }
 
-          return false;
-        });
-      }
+        return false;
+      });
 
       if (selectedType) {
         state.documentType = selectedType.type;
@@ -353,23 +341,12 @@ async function generateDocumentFromAnswers(
   
   const formattedRequirements = formatAnswersForGeneration(documentType, answers, dealContext);
   
-  // Check if this is an IP document type that needs IP-specific clauses
-  const isIPDocument = ['Patent Assignment Agreement', 'Trademark Assignment Agreement', 'IP License Agreement'].includes(documentType);
-  
   const systemPrompt = `${DOCUMENT_GENERATION_SYSTEM_PROMPT}
 
 ${AUSTRALIAN_LEGAL_CONTEXT}
 
 CLAUSE LIBRARY FOR REFERENCE:
 ${CLAUSE_LIBRARY}
-
-${isIPDocument ? `
-IP-SPECIFIC CLAUSE LIBRARY:
-${IP_CLAUSE_LIBRARY}
-
-AUSTRALIAN IP REGULATORY CONTEXT:
-${IP_AUSTRALIA_CONTEXT}
-` : ''}
 
 EXAMPLE DOCUMENTS FOR QUALITY REFERENCE:
 ${DOCUMENT_EXAMPLES}
@@ -387,10 +364,7 @@ GENERATION INSTRUCTIONS:
 4. Tailor clauses based on the user's answers
 5. Use proper legal formatting with numbered clauses
 6. Include schedules if appropriate
-7. Make it ready for immediate use with minimal editing${isIPDocument ? `
-8. Include IP Australia recordation provisions where applicable
-9. Reference the Patents Act 1990 (Cth) or Trade Marks Act 1995 (Cth) as appropriate
-10. Include chain of title warranties and further assurance clauses` : ''}`;
+7. Make it ready for immediate use with minimal editing`;
 
   const userPrompt = `Generate a complete ${documentType} document based on the requirements gathered during our conversation. The document should be professional, comprehensive, and ready for use.`;
 
