@@ -26,7 +26,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   dealId,
   onDocumentSaved
 }) => {
-  const [mode, setMode] = useState<GenerationMode>('select');
+  const [mode, setMode] = useState<GenerationMode>('guided');
   const [templateType, setTemplateType] = useState('Contract');
   const [requirements, setRequirements] = useState('');
   const [generatedTemplate, setGeneratedTemplate] = useState('');
@@ -264,7 +264,7 @@ const TemplateGenerationModal: React.FC<TemplateGenerationModalProps> = ({
   };
 
   const handleClose = () => {
-    setMode('select');
+    setMode('guided');
     setTemplateType('Contract');
     setRequirements('');
     setGeneratedTemplate('');
