@@ -288,9 +288,16 @@ export async function handleConversationalTemplate(
     currentQuestionIndex: 0
   };
 
+  // Debug logging
+  console.log('[Conversational] Received state:', JSON.stringify(state));
+  console.log('[Conversational] Messages count:', messages.length);
+  console.log('[Conversational] Last message:', messages[messages.length - 1]?.content);
 
   const rawLastUserMessage = messages[messages.length - 1]?.content ?? '';
   const lastUserMessage = rawLastUserMessage.toLowerCase().trim();
+
+  console.log('[Conversational] Phase:', state.phase);
+  console.log('[Conversational] Last user message (processed):', lastUserMessage);
 
   const normalizeText = (input: string) =>
     input
@@ -388,6 +395,10 @@ export async function handleConversationalTemplate(
 
       const currentQuestion = flow.questions[state.currentQuestionIndex];
 
+      console.log('[Conversational] Current question:', currentQuestion?.id);
+      console.log('[Conversational] Current question index:', state.currentQuestionIndex);
+      console.log('[Conversational] Available options:', currentQuestion?.options.map(o => o.value));
+
       // Try to match user's response to an option
       if (currentQuestion && lastUserMessage) {
         const matchedOption = currentQuestion.options.find(o => 
@@ -395,6 +406,8 @@ export async function handleConversationalTemplate(
           lastUserMessage.includes(o.value.toLowerCase()) ||
           lastUserMessage === o.value
         );
+
+        console.log('[Conversational] Matched option (first pass):', matchedOption?.value);
 
         // Also check for numbered responses
         const numberMatch = lastUserMessage.match(/^(\d+)\.?$/);
@@ -405,6 +418,8 @@ export async function handleConversationalTemplate(
             selectedOption = currentQuestion.options[index];
           }
         }
+
+        console.log('[Conversational] Selected option (final):', selectedOption?.value);
 
         if (selectedOption) {
           // Store the answer
