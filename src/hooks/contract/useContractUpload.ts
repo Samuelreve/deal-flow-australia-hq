@@ -16,36 +16,20 @@ export const useContractUpload = (
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🔧 useContractUpload initialized with user:', user?.id);
-
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🚀 useContractUpload.handleFileUpload started');
-    
     const file = e.target.files?.[0];
     if (!file) {
-      console.log('❌ No file selected');
       return;
     }
     
     if (!user) {
-      const errorMsg = 'Please ensure you are logged in';
-      console.error('❌ No user logged in');
-      toast.error(errorMsg);
+      toast.error('Please ensure you are logged in');
       return;
     }
 
-    console.log('📄 Processing file:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      userId: user.id
-    });
-
     // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      const errorMsg = 'File size must be under 10MB';
-      console.error('❌ File too large:', file.size);
-      toast.error(errorMsg);
+      toast.error('File size must be under 10MB');
       return;
     }
 
@@ -61,7 +45,6 @@ export const useContractUpload = (
 
     if (!supportedTypes.includes(file.type)) {
       const errorMsg = `Unsupported file type: ${file.type}. Please upload a PDF, Word document (.docx/.doc), RTF, or text file.`;
-      console.error('❌ File type validation failed:', errorMsg);
       setError(errorMsg);
       toast.error('Unsupported file type', {
         description: 'Please upload a PDF, Word document, RTF, or text file'
@@ -69,15 +52,11 @@ export const useContractUpload = (
       return;
     }
 
-    console.log('✅ File type validation passed');
-
     setUploading(true);
     setUploadProgress(0);
     setError(null);
     
     try {
-      console.log('⏳ Starting upload progress simulation...');
-      
       // Progress simulation
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -90,20 +69,14 @@ export const useContractUpload = (
         });
       }, 300);
 
-      console.log('📤 Calling realContractService.uploadContract...');
-
       // Upload contract using the service
       const contract = await realContractService.uploadContract(file);
       
       // Complete progress
       clearInterval(progressInterval);
       setUploadProgress(100);
-      
-      console.log('📥 Upload service returned:', contract ? 'Success' : 'Null');
 
       if (contract) {
-        console.log('🏗️ Creating document metadata...');
-        
         // Create document metadata from contract
         const contractMetadata: DocumentMetadata = {
           id: contract.id,
@@ -119,13 +92,10 @@ export const useContractUpload = (
 
         // Update state with extracted text content
         const textContent = contract.text_content || contract.content || '';
-        console.log('📝 Updating state with text content:', textContent.length, 'characters');
         
-        console.log('🔄 Calling state setters...');
         setDocuments([contractMetadata]);
         setSelectedDocument(contractMetadata);
         setContractText(textContent);
-        console.log('✅ State setters called');
 
         // Show success message
         const fileTypeLabel = getFileTypeLabel(file.type);
@@ -139,16 +109,14 @@ export const useContractUpload = (
           });
         }
       } else {
-        console.error('❌ Contract upload returned null');
         throw new Error('Contract upload failed - no data returned');
       }
 
       // Clear the input
       e.target.value = '';
-      console.log('🧹 Input cleared');
       
     } catch (error) {
-      console.error('❌ Error uploading contract:', error);
+      console.error('Error uploading contract:', error);
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       setError(errorMessage);
       toast.error('Failed to upload contract', {
@@ -156,7 +124,6 @@ export const useContractUpload = (
       });
     } finally {
       setUploading(false);
-      console.log('🏁 Upload process completed');
       setTimeout(() => {
         setUploadProgress(0);
       }, 2000);

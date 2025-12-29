@@ -27,25 +27,11 @@ export const useContractUploadLogic = ({
       return null;
     }
 
-    console.log('🚀 Starting contract upload:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      userId: user.id
-    });
-
     try {
       setLoading(true);
       setError(null);
 
-      console.log('📤 Calling realContractService.uploadContract...');
       const uploadedContract = await realContractService.uploadContract(file);
-
-      console.log('📋 Upload response:', {
-        success: !!uploadedContract,
-        contractId: uploadedContract?.id,
-        contentLength: uploadedContract?.content?.length || 0
-      });
 
       if (uploadedContract) {
         // Convert to Contract type with all required fields
@@ -64,18 +50,11 @@ export const useContractUploadLogic = ({
           user_id: user.id
         };
         
-        console.log('✅ Created contract object:', {
-          id: contract.id,
-          name: contract.name,
-          contentLength: contract.content.length
-        });
-        
         // Add to contracts list
         const newContracts = [contract, ...contracts];
         updateContracts(newContracts);
         
         // Auto-select the uploaded contract
-        console.log('🎯 Auto-selecting uploaded contract');
         selectContract(contract.id);
         
         toast.success('Contract uploaded and analyzed successfully!', {
@@ -84,15 +63,10 @@ export const useContractUploadLogic = ({
         
         return contract;
       } else {
-        console.error('❌ Upload failed: No contract returned from service');
         throw new Error('Upload failed: No contract data received');
       }
     } catch (error: any) {
-      console.error('❌ Upload error details:', {
-        message: error.message,
-        stack: error.stack,
-        error: error
-      });
+      console.error('Upload error:', error);
       const errorMessage = error.message || 'Failed to upload contract';
       setError(errorMessage);
       toast.error('Upload failed', {
