@@ -93,7 +93,7 @@ interface CategorySpecificData {
 }
 
 const extractTextFromDocument = async (fileBase64: string, mimeType: string, fileName: string): Promise<string> => {
-  console.log("🔧 Extracting text from:", { fileName, mimeType });
+  
 
   if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
     return await extractTextFromPDF(fileBase64);
@@ -145,7 +145,6 @@ const extractTextFromPDF = async (fileBase64: string): Promise<string> => {
 
 const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'): Promise<string> => {
   try {
-    console.log(`🔍 Starting Word document text extraction (${fileType})...`);
     
     // Clean up base64 format
     let cleanBase64 = fileBase64;
@@ -161,10 +160,10 @@ const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'
     }
     
     const arrayBuffer = bytes.buffer;
-    console.log(`📄 Word document buffer created: ${arrayBuffer.byteLength} bytes`);
+    
 
     // Extract text using mammoth (same as public-ai-analyzer)
-    console.log('🔄 Extracting text using mammoth...');
+    
     
     try {
       const result = await mammoth.extractRawText({ arrayBuffer });
@@ -178,7 +177,7 @@ const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'
         }
       }
 
-      console.log(`✅ Word text extraction successful: ${result.value.length} characters`);
+      
 
       // Clean up the extracted text (following public-ai-analyzer pattern)
       const cleanedText = String(result.value || '')
@@ -188,7 +187,7 @@ const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'
 
       return cleanedText;
     } catch (mammothError) {
-      console.error('❌ Mammoth extraction error:', mammothError);
+      console.error('Mammoth extraction error:', mammothError);
       
       // Provide specific error message for DOC files
       if (fileType === 'doc') {
@@ -199,7 +198,7 @@ const extractTextFromWord = async (fileBase64: string, fileType: string = 'docx'
     }
       
   } catch (error) {
-    console.error('❌ Word extraction error:', error);
+    console.error('Word extraction error:', error);
     
     // If it's already our custom error, re-throw it
     if (error.message.includes('Legacy DOC file') || error.message.includes('convert to DOCX')) {
@@ -239,7 +238,7 @@ const detectDealCategory = (text: string): string => {
 
 const extractCategorySpecificData = async (text: string, category: string): Promise<CategorySpecificData> => {
   if (!OPENAI_API_KEY) {
-    console.log('No OpenAI API key available - returning basic extraction');
+    
     return { dealCategory: category };
   }
 
@@ -412,7 +411,7 @@ const serve_handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    console.log(`🔍 Starting enhanced extraction for: ${fileName} (Category: ${dealCategory})`);
+    
 
     // Extract text from document (PDF or Word)
     const extractedText = await extractTextFromDocument(fileBase64, mimeType, fileName);
@@ -433,14 +432,13 @@ const serve_handler = async (req: Request): Promise<Response> => {
       const detectedCategory = detectDealCategory(extractedText);
       if (detectedCategory !== 'business_sale') {
         finalCategory = detectedCategory;
-        console.log(`🎯 Auto-detected category: ${detectedCategory} based on keywords`);
       }
     }
 
     // Extract category-specific data using AI
     const extractedData = await extractCategorySpecificData(extractedText, finalCategory);
 
-    console.log(`✅ Enhanced extraction completed for ${fileName}`);
+    
 
     return new Response(JSON.stringify({ 
       success: true, 

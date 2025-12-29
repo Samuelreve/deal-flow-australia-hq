@@ -94,7 +94,7 @@ serve(async (req) => {
         typeof versionWithText.text_content === 'string' && 
         versionWithText.text_content.trim() !== '' &&
         versionWithText.text_content !== '[object Object]') {
-      console.log('Found valid extracted text content in database');
+      
       return new Response(
         JSON.stringify({
           content: versionWithText.text_content,
@@ -112,7 +112,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('No extracted text found in database, attempting file download...');
+    
 
     // 4. Download the file from storage
     const dealBucket = 'deal_documents'; // Use the correct bucket name
@@ -128,7 +128,7 @@ serve(async (req) => {
     let successfulPath = '';
     
     for (const path of possiblePaths) {
-      console.log(`Trying to download from path: ${path}`);
+      
       const { data, error } = await supabase.storage
         .from(dealBucket)
         .download(path);
@@ -136,10 +136,7 @@ serve(async (req) => {
       if (!error && data) {
         fileData = data;
         successfulPath = path;
-        console.log(`Successfully downloaded from: ${path}`);
         break;
-      } else {
-        console.log(`Failed to download from ${path}:`, error?.message);
       }
     }
     
@@ -148,7 +145,7 @@ serve(async (req) => {
     }
 
     // 5. Extract text using the text-extractor function
-    console.log(`Converting file to base64 for text extraction...`);
+    
     const arrayBuffer = await fileData.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
@@ -161,7 +158,7 @@ serve(async (req) => {
     }
     const base64 = btoa(binary);
     
-    console.log('Calling text-extractor function...');
+    
     
     // Add timeout protection for large files
     const extractionPromise = supabase.functions
@@ -205,8 +202,7 @@ serve(async (req) => {
             .trim();
           
           if (cleanText.length > 100) {
-            content = cleanText.substring(0, 10000); // Limit to first 10k chars
-            console.log('Fallback extraction yielded:', content.length, 'characters');
+            content = cleanText.substring(0, 10000);
           } else {
             content = 'Text extraction failed for this document type. Please ensure the PDF contains extractable text.';
           }
@@ -223,7 +219,7 @@ serve(async (req) => {
       
       // If it's an object, try to extract the actual text content
       if (typeof extractedText === 'object') {
-        console.log('Extracted text is an object:', extractedText);
+        
         
         // Try common object properties that might contain text
         if (extractedText.content) {
@@ -241,8 +237,6 @@ serve(async (req) => {
       
       // Ensure we have a string
       content = typeof extractedText === 'string' ? extractedText : String(extractedText);
-      console.log('Text extraction successful:', content.length, 'characters');
-      console.log('First 200 chars of extracted text:', content.substring(0, 200));
       
       // Save extracted text back to database for future use
       await supabase
@@ -250,7 +244,7 @@ serve(async (req) => {
         .update({ text_content: content })
         .eq('id', versionId);
     } else {
-      console.log('No text content extracted:', extractionResult);
+      
       content = 'No readable text content found in this document.';
     }
 

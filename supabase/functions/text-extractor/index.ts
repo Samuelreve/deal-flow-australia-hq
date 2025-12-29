@@ -14,7 +14,7 @@ const serve_handler = async (req: Request) => {
     const { fileBase64, mimeType, fileName } = await req.json();
 
     if (!fileBase64) {
-      console.error('❌ No fileBase64 provided');
+      console.error('No fileBase64 provided');
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'No file data provided' 
@@ -24,7 +24,7 @@ const serve_handler = async (req: Request) => {
       });
     }
 
-    console.log('🔍 Starting text extraction for:', fileName, 'mimeType:', mimeType);
+    
 
     // Validate base64 format and clean up
     let cleanBase64 = fileBase64;
@@ -33,7 +33,7 @@ const serve_handler = async (req: Request) => {
     }
     
     if (!cleanBase64.match(/^[A-Za-z0-9+/]+=*$/)) {
-      console.error('❌ Invalid base64 format');
+      console.error('Invalid base64 format');
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Invalid file format - base64 expected' 
@@ -60,7 +60,7 @@ const serve_handler = async (req: Request) => {
     const isTextFile = textMimeTypes.includes(mimeType) || textExtensions.includes(fileExt);
 
     if (isTextFile) {
-      console.log('📝 Processing as text file...');
+      
       try {
         const decodedText = atob(cleanBase64);
         // Try to decode as UTF-8
@@ -71,7 +71,7 @@ const serve_handler = async (req: Request) => {
         }
         const text = decoder.decode(bytes);
         
-        console.log(`✅ Text file extracted successfully: ${text.length} characters`);
+        
         
         return new Response(JSON.stringify({ 
           success: true, 
@@ -83,7 +83,7 @@ const serve_handler = async (req: Request) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       } catch (textError) {
-        console.error('❌ Failed to decode text file:', textError);
+        console.error('Failed to decode text file:', textError);
         return new Response(JSON.stringify({ 
           success: false, 
           error: `Failed to decode text file: ${textError.message}` 
@@ -102,13 +102,13 @@ const serve_handler = async (req: Request) => {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      console.log('📄 File converted to bytes:', bytes.length);
+      
       
       // Check PDF magic number
       const pdfHeader = new TextDecoder().decode(bytes.slice(0, 4));
       if (pdfHeader !== '%PDF') {
         // If it's not a PDF and we haven't handled it as text, try to decode as text anyway
-        console.log('⚠️ File is not a PDF, attempting text decode...');
+        
         const text = new TextDecoder('utf-8').decode(bytes);
         
         return new Response(JSON.stringify({ 
@@ -122,7 +122,7 @@ const serve_handler = async (req: Request) => {
         });
       }
     } catch (error) {
-      console.error('❌ Failed to process file data:', error);
+      console.error('Failed to process file data:', error);
       return new Response(JSON.stringify({ 
         success: false, 
         error: `Invalid file data: ${error.message}` 
@@ -138,16 +138,16 @@ const serve_handler = async (req: Request) => {
     let successfulPages = 0;
 
     try {
-      console.log('🔄 Loading PDF document with PDF.js...');
+      
       
       const pdfDoc = await getDocument({ data: bytes }).promise;
       totalPages = pdfDoc.numPages;
       
-      console.log(`📖 PDF loaded successfully with ${totalPages} pages`);
+      
 
       for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         try {
-          console.log(`📄 Processing page ${pageNum}/${totalPages}...`);
+          
           
           const page = await pdfDoc.getPage(pageNum);
           const textContent = await page.getTextContent();
@@ -160,18 +160,15 @@ const serve_handler = async (req: Request) => {
           if (pageText) {
             allText += pageText + '\n\n';
             successfulPages++;
-            console.log(`✅ Page ${pageNum} processed, extracted ${pageText.length} characters`);
-          } else {
-            console.log(`⚠️ Page ${pageNum} contained no text`);
           }
         } catch (pageError) {
-          console.error(`❌ Error processing page ${pageNum}:`, pageError);
+          console.error(`Error processing page ${pageNum}:`, pageError);
           continue;
         }
       }
 
       if (!allText.trim()) {
-        console.warn('⚠️ No text could be extracted from any pages');
+        
         return new Response(JSON.stringify({ 
           success: false, 
           error: 'No readable text found in the PDF document',
@@ -189,7 +186,7 @@ const serve_handler = async (req: Request) => {
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      console.log(`✅ PDF text extraction completed: ${cleanedText.length} characters from ${successfulPages}/${totalPages} pages`);
+      
 
       return new Response(JSON.stringify({ 
         success: true, 
@@ -202,7 +199,7 @@ const serve_handler = async (req: Request) => {
       });
 
     } catch (extractionError) {
-      console.error('❌ PDF text extraction failed:', extractionError);
+      console.error('PDF text extraction failed:', extractionError);
       return new Response(JSON.stringify({ 
         success: false, 
         error: `Text extraction failed: ${extractionError.message}`,
@@ -216,7 +213,7 @@ const serve_handler = async (req: Request) => {
     }
 
   } catch (error) {
-    console.error('❌ Text extractor error:', error);
+    console.error('Text extractor error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: `Text extraction failed: ${error.message}` 

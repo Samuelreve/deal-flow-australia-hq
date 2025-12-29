@@ -130,11 +130,7 @@ const serve_handler = async (req: Request): Promise<Response> => {
   try {
     const request: SuggestionRequest = await req.json();
 
-    console.log(`🤖 Generating ${request.fieldType} suggestion for ${request.dealCategory} deal`);
-
     const suggestion = await generateSuggestion(request);
-
-    console.log(`✅ AI suggestion generated successfully`);
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -144,7 +140,7 @@ const serve_handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error('❌ AI suggestion error:', error);
+    console.error('AI suggestion error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: `AI suggestion failed: ${error.message}` 
