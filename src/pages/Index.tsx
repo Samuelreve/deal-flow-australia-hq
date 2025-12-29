@@ -16,7 +16,14 @@ import { useEffect } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
   
   // Function to handle scrolling to sections
   const scrollToSection = (sectionId: string) => {
@@ -27,9 +34,16 @@ const Index = () => {
   };
   
   // Handle hash in URL to scroll to section on page load
+  // Skip if hash contains OAuth tokens (access_token, etc.)
   useEffect(() => {
     const hash = window.location.hash.substring(1);
-    if (hash) {
+    
+    // Skip OAuth callback hashes - let auth session handle them
+    if (hash.includes('access_token') || hash.includes('error')) {
+      return;
+    }
+    
+    if (hash && !hash.includes('=')) {
       setTimeout(() => {
         const element = document.getElementById(hash);
         if (element) {
