@@ -112,7 +112,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           filter: `milestone_id=eq.${milestone.id}`
         },
         (payload) => {
-          console.log('Real-time document change for milestone:', payload);
+          // Real-time document change detected
           fetchMilestoneDocuments(); // Refresh documents when changes occur
         }
       )
@@ -134,7 +134,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         const savedArray = JSON.parse(saved) as string[];
         const savedSet = new Set<string>(savedArray);
         setSavedSignedDocuments(savedSet);
-        console.log('📂 Loaded saved signed documents for deal:', savedSet);
       }
     } catch (error) {
       console.error('Error loading saved signed documents:', error);
@@ -151,7 +150,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       
       localStorage.setItem(`savedSignedDocs_${dealId}`, JSON.stringify([...savedSet]));
       setSavedSignedDocuments(new Set<string>(savedSet));
-      console.log('✅ Marked milestone as saved:', milestoneId);
     } catch (error) {
       console.error('Error saving milestone document status:', error);
     }
@@ -176,13 +174,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       if (error) throw error;
       setMilestoneDocuments(data || []);
-      
-      // Debug logging
-      console.log('Milestone documents for', milestone.title, ':', data?.length || 0);
-      console.log('User ID:', user?.id);
-      console.log('Milestone assigned to:', milestone.assigned_to);
-      console.log('Is participant:', isParticipant);
-      console.log('Can sign milestone documents:', isParticipant && (milestone.assigned_to === user?.id || ['admin'].includes(userRole.toLowerCase())) && (data?.length || 0) > 0);
     } catch (error) {
       console.error('Error fetching milestone documents:', error);
     }
@@ -327,7 +318,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             break;
           }
         } catch (error) {
-          console.log(`Failed to get signed URL for path: ${path}`, error);
+          // Failed to get signed URL for this path, try next
           continue;
         }
       }
@@ -493,7 +484,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     setSigningInProgress(true);
     try {
-      console.log('Starting direct DocuSign process');
+      
 
       // Prepare signers with default positions (no positioning modal)
       const signersWithPositions = signersList.map(signer => ({
@@ -507,12 +498,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       const currentUserSigner = signersList.find(signer => signer.email === user.email);
       const signerName = currentUserSigner?.name || user.email;
       
-      console.log('DocuSign request details:', {
-        signerEmail: user.email,
-        signerName,
-        totalSigners: signersList.length,
-        signersWithPositions: signersWithPositions.map(s => ({ email: s.email, name: s.name, recipientId: s.recipientId }))
-      });
       
       // Call DocuSign edge function to initiate signing
       const { data, error } = await supabase.functions.invoke('docusign-sign', {
@@ -533,11 +518,9 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }
 
       if (data?.success) {
-        console.log('DocuSign envelope created successfully:', data);
         
         // Check if we have a signing URL for embedded signing
         if (data.signingUrl) {
-          console.log('Got signing URL from DocuSign:', data.signingUrl);
           
           // Open DocuSign signing URL in current window for embedded signing
           window.location.href = data.signingUrl;
@@ -548,7 +531,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           });
         } else {
           // No signing URL - user will receive email invitation
-          console.log('No signing URL provided - email invitations sent to all signers');
           toast({
             title: 'Document sent for signing',
             description: 'All assigned signers will receive email invitations to sign the document.'
@@ -596,7 +578,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
     setSigningInProgress(true);
     try {
-      console.log('Starting DocuSign process with custom positions:', positions);
+      
 
       // Prepare signers with positions
       const signersWithPositions = signers.map(signer => {
@@ -613,12 +595,6 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       const currentUserSigner = signers.find(signer => signer.email === user.email);
       const signerName = currentUserSigner?.name || user.email;
       
-      console.log('DocuSign request details:', {
-        signerEmail: user.email,
-        signerName,
-        totalSigners: signers.length,
-        signersWithPositions: signersWithPositions.map(s => ({ email: s.email, name: s.name, recipientId: s.recipientId }))
-      });
       
       // Call DocuSign edge function to initiate signing
       const { data, error } = await supabase.functions.invoke('docusign-sign', {
@@ -639,11 +615,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       }
 
       if (data?.success) {
-        console.log('DocuSign envelope created successfully:', data);
+        
         
         // Check if we have a signing URL for embedded signing
         if (data.signingUrl) {
-          console.log('Got signing URL from DocuSign:', data.signingUrl);
+          
           
           // Open DocuSign signing URL in current window for embedded signing
           window.location.href = data.signingUrl;
@@ -654,7 +630,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
           });
         } else {
           // No signing URL - user will receive email invitation
-          console.log('No signing URL provided - email invitations sent to all signers');
+          // No signing URL - email invitations will be sent
           toast({
             title: 'Document sent for signing',
             description: 'All assigned signers will receive email invitations to sign the document.'
@@ -739,7 +715,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
       // Download signed documents for each completed envelope
       for (const signature of signatures) {
-        console.log('💾 Processing envelope for saving:', signature.envelope_id);
+        
         
         const { data, error } = await supabase.functions.invoke('docusign-download-signed', {
           body: {
@@ -751,7 +727,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
         // Check for error from invoke or from response data
         if (error) {
-          console.error('❌ Error downloading envelope:', signature.envelope_id, error);
+          console.error('Error downloading envelope:', signature.envelope_id, error);
           lastError = error.message || 'Unknown error';
           errorCount++;
           continue;
@@ -759,13 +735,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
         // Also check if response indicates failure
         if (data && !data.success) {
-          console.error('❌ Download failed for envelope:', signature.envelope_id, data.error);
+          console.error('Download failed for envelope:', signature.envelope_id, data.error);
           lastError = data.error || 'Download failed';
           errorCount++;
           continue;
         }
 
-        console.log('✅ Successfully downloaded signed document:', data);
+        
         downloadedCount++;
       }
 
@@ -806,7 +782,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
 
   // Modified save button handler that also updates persistent state
   const handleSaveSignedDocumentToDealRoom = async () => {
-    console.log('🚀 Starting save signed document to deal room process...');
+    
     await handleDownloadSignedDocument();
   };
   
@@ -957,27 +933,11 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             {milestone.status === 'in_progress' && (
               <button
                 onClick={() => {
-                  console.log('🖱️ Mark as completed clicked:', { 
-                    milestoneId: milestone.id, 
-                    milestoneTitle: milestone.title,
-                    isDocumentSigning,
-                    milestoneSigningStatus,
-                    canUpdateMilestone,
-                    userRole,
-                    assignedTo: milestone.assigned_to,
-                    currentUserId: user?.id,
-                    assignedUser: milestone.assignedUser,
-                    isUserAssigned: milestone.assigned_to === user?.id,
-                    buttonDisabled: updatingMilestoneId === milestone.id || (isDocumentSigning && milestoneSigningStatus !== 'completed')
-                  });
-                  
                   if (isDocumentSigning && milestoneSigningStatus !== 'completed') {
-                    console.log('❌ Blocking completion - documents not signed');
                     alert('Documents must be signed by all parties before completing the Document Signing milestone.');
                     return;
                   }
                   
-                  console.log('✅ Proceeding with milestone completion');
                   onUpdateStatus(milestone.id, 'completed');
                 }}
                 disabled={
