@@ -380,7 +380,7 @@ async function executeFunctionCall(
   supabase: any,
   userId: string
 ): Promise<{ success: boolean; result?: any; error?: string }> {
-  console.log(`Executing function: ${functionName}`, args);
+  
 
   try {
     switch (functionName) {
@@ -612,16 +612,6 @@ serve(async (req) => {
       userId = user?.id || null;
     }
 
-    console.log('Processing AI assistant request:', { 
-      message: message.substring(0, 100), 
-      category, 
-      hasDocument: !!documentContext,
-      historyLength: chatHistory.length,
-      stream,
-      dealId,
-      enableFunctions,
-      hasAuth: !!userId
-    });
 
     // Build system prompt with category enhancement
     let systemPrompt = ENHANCED_SYSTEM_PROMPT;
@@ -662,7 +652,7 @@ User Question: ${message}`;
     const useComplexModel = needsComplexModel(message, !!documentContext, !!dealId);
     const model = useComplexModel ? 'gpt-4o' : 'gpt-4o-mini';
     
-    console.log(`Using model: ${model} (complex: ${useComplexModel}, functions: ${enableFunctions && !!userId})`);
+    
 
     // Prepare request body
     const requestBody: any = {
@@ -706,7 +696,7 @@ User Question: ${message}`;
 
     while (assistantMessage?.tool_calls && iterations < maxIterations && supabase && userId) {
       iterations++;
-      console.log(`Processing ${assistantMessage.tool_calls.length} tool calls (iteration ${iterations})`);
+      
       
       // Execute all tool calls
       for (const toolCall of assistantMessage.tool_calls) {
@@ -772,10 +762,6 @@ User Question: ${message}`;
       throw new Error('No response from AI');
     }
 
-    console.log('AI assistant response generated successfully', {
-      hasContent: !!aiResponse,
-      functionCallCount: functionResults.length
-    });
 
     // For streaming responses (not supported with function calling currently)
     if (stream && !functionResults.length) {

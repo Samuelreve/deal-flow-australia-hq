@@ -35,13 +35,13 @@ export const useLoginForm = () => {
     setErrorMsg("");
     setIsLoading(true);
     
-    console.log('Starting login process for:', email);
+    
     
     try {
       const success = await login(email, password);
       
       if (success) {
-        console.log('Login successful');
+        
         setShowSuccess(true);
         toast({
           title: "Welcome back!",
