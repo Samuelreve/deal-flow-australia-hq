@@ -39,13 +39,10 @@ const FinalReviewStep: React.FC<FinalReviewStepProps> = ({
 
   const downloadPDF = () => {
     // TODO: Implement PDF generation
-    console.log('Downloading PDF summary...');
   };
 
   const handleSubmit = () => {
     if (onSubmit) {
-      console.log('Submitting final deal with temp ID:', tempDealId);
-      console.log('Auto-generate contract:', checklist.autoGenerateContract);
       onSubmit(checklist.autoGenerateContract);
     }
   };

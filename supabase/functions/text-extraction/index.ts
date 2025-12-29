@@ -49,7 +49,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Starting text extraction for: ${fileName} (${mimeType})`);
+    
 
     // Download file from storage
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
@@ -76,7 +76,7 @@ serve(async (req) => {
       if (mimeType === 'text/plain' || mimeType === 'text/rtf' || mimeType === 'application/rtf') {
         // Handle text files directly
         extractedText = await fileData.text();
-        console.log(`Text extraction successful for ${fileName}: ${extractedText.length} characters`);
+        
       } else if (mimeType === 'application/pdf') {
         // For PDF files, we'll use a simple extraction approach
         // In a production environment, you'd use a proper PDF parsing library
@@ -104,7 +104,7 @@ serve(async (req) => {
           extractedText = `PDF document "${fileName}" uploaded successfully. Advanced PDF text extraction requires additional processing. This is a ${(arrayBuffer.byteLength / 1024).toFixed(1)}KB PDF file.`;
         }
         
-        console.log(`PDF text extraction completed for ${fileName}: ${extractedText.length} characters`);
+        
       } else if (mimeType.includes('officedocument.wordprocessingml') || mimeType === 'application/msword') {
         // For Word documents, we'll provide a placeholder approach
         // In production, you'd use mammoth.js or similar
@@ -113,7 +113,7 @@ serve(async (req) => {
         // Basic Word document handling (placeholder)
         extractedText = `Word document "${fileName}" uploaded successfully. Advanced Word document text extraction requires additional processing. This is a ${(arrayBuffer.byteLength / 1024).toFixed(1)}KB Word document.`;
         
-        console.log(`Word document processing completed for ${fileName}`);
+        
       } else {
         throw new Error(`Unsupported file type: ${mimeType}`);
       }

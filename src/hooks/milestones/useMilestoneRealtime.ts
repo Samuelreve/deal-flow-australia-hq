@@ -32,7 +32,7 @@ export function useMilestoneRealtime(
           filter: `deal_id=eq.${dealId}` 
         },
         (payload) => {
-          console.log('Realtime milestone UPDATE received:', payload);
+          
           const updatedMilestone = payload.new;
           if (onUpdate) onUpdate(updatedMilestone);
         }
@@ -46,7 +46,7 @@ export function useMilestoneRealtime(
           filter: `deal_id=eq.${dealId}` 
         },
         (payload) => {
-          console.log('Realtime milestone INSERT received:', payload);
+          
           const newMilestone = payload.new;
           if (onInsert) onInsert(newMilestone);
         }
@@ -60,7 +60,7 @@ export function useMilestoneRealtime(
           filter: `deal_id=eq.${dealId}` 
         },
         (payload) => {
-          console.log('Realtime milestone DELETE received:', payload);
+          
           const deletedMilestone = payload.old;
           if (onDelete) onDelete(deletedMilestone);
         }
@@ -71,7 +71,7 @@ export function useMilestoneRealtime(
     
     // Cleanup function
     return () => {
-      console.log('Cleaning up milestones subscription');
+      
       if (channel) {
         supabase.removeChannel(channel);
       }
