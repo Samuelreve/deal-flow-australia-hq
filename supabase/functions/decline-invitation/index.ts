@@ -61,7 +61,7 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log('Invitation declined successfully:', data.id);
+    
 
     return new Response(
       JSON.stringify({ 

@@ -30,18 +30,17 @@ async function getJWTAccessToken(): Promise<string> {
 
   // Check cached token
   if (cachedToken && Date.now() < cachedToken.expiresAt - 300000) {
-    console.log('✅ Using cached JWT access token');
     return cachedToken.accessToken;
   }
 
-  console.log('🔐 Getting new JWT access token...');
+  
 
   // Clean and format the private key
   let cleanPrivateKey = privateKey.trim();
   
   // Convert PKCS#1 to PKCS#8 if needed
   if (cleanPrivateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-    console.log('Converting PKCS#1 key to PKCS#8 format');
+    
     cleanPrivateKey = await convertPkcs1ToPkcs8(cleanPrivateKey);
   } else if (!cleanPrivateKey.includes('-----BEGIN PRIVATE KEY-----')) {
     cleanPrivateKey = `-----BEGIN PRIVATE KEY-----\n${cleanPrivateKey}\n-----END PRIVATE KEY-----`;
@@ -102,7 +101,7 @@ async function getJWTAccessToken(): Promise<string> {
     expiresAt: Date.now() + (tokenData.expires_in * 1000)
   };
 
-  console.log('✅ Successfully obtained JWT access token');
+
   return tokenData.access_token;
 }
 
@@ -163,10 +162,6 @@ async function downloadDocumentFromDocuSign(
   envelopeId: string,
   documentId: string = 'combined'
 ): Promise<Uint8Array> {
-  console.log('📥 Downloading document from DocuSign REST API...');
-  console.log('🏢 Account ID:', accountId);
-  console.log('📋 Envelope ID:', envelopeId);
-  console.log('📄 Document ID:', documentId);
 
   // First check envelope status
   const statusResponse = await fetch(
@@ -186,7 +181,7 @@ async function downloadDocumentFromDocuSign(
   }
 
   const envelopeInfo = await statusResponse.json();
-  console.log('📋 Envelope status:', envelopeInfo.status);
+  
 
   if (envelopeInfo.status !== 'completed') {
     throw new Error(`Envelope is not completed. Current status: ${envelopeInfo.status}`);
@@ -212,12 +207,11 @@ async function downloadDocumentFromDocuSign(
   const arrayBuffer = await downloadResponse.arrayBuffer();
   const documentBytes = new Uint8Array(arrayBuffer);
   
-  console.log(`✅ Downloaded document: ${documentBytes.length} bytes`);
-  return documentBytes;
-}
 
-serve(async (req: Request) => {
-  console.log('=== DocuSign Download Signed Document Function Started ===');
+  return documentBytes;
+
+}
+  serve(async (req: Request) => {
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -257,15 +251,15 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log('🎯 Processing request for envelope:', envelopeId, 'deal:', dealId);
+    
 
     // Step 1: Get DocuSign access token
-    console.log('🔐 Step 1: Getting DocuSign access token...');
+    
     const accessToken = await getJWTAccessToken();
     const accountId = Deno.env.get('DOCUSIGN_ACCOUNT_ID') ?? '';
 
     // Step 2: Download document from DocuSign
-    console.log('📥 Step 2: Downloading document from DocuSign...');
+    
     const documentBytes = await downloadDocumentFromDocuSign(
       accessToken,
       accountId,
@@ -273,7 +267,7 @@ serve(async (req: Request) => {
       documentId
     );
 
-    console.log(`📊 Downloaded document size: ${documentBytes.length} bytes`);
+    
 
     // Step 3: Get original document name
     const { data: signature } = await supabase
@@ -299,7 +293,7 @@ serve(async (req: Request) => {
     }
 
     // Step 4: Save to Supabase Storage
-    console.log('💾 Step 3: Saving to Supabase storage...');
+    
     const storagePath = `${dealId}/${fileName}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -310,11 +304,11 @@ serve(async (req: Request) => {
       });
 
     if (uploadError) {
-      console.error('❌ Storage upload failed:', uploadError);
+      console.error('Storage upload failed:', uploadError);
       throw new Error(`Failed to save document to storage: ${uploadError.message}`);
     }
 
-    console.log('✅ Document saved to storage:', storagePath);
+    
 
     // Step 5: Create document record
     const { data: newDoc, error: createError } = await supabase
@@ -334,11 +328,11 @@ serve(async (req: Request) => {
       .single();
 
     if (createError) {
-      console.error('❌ Failed to create document record:', createError);
+      console.error('Failed to create document record:', createError);
       throw new Error(`Failed to create document record: ${createError.message}`);
     }
 
-    console.log('✅ Created document record:', newDoc.id);
+    
 
     // Step 6: Create document version record
     const { error: versionError } = await supabase
@@ -366,7 +360,7 @@ serve(async (req: Request) => {
       })
       .eq('envelope_id', envelopeId);
 
-    console.log('✅ Successfully downloaded and processed signed document');
+    
 
     return new Response(
       JSON.stringify({
@@ -386,7 +380,7 @@ serve(async (req: Request) => {
     );
 
   } catch (error: any) {
-    console.error('❌ DocuSign download error:', error);
+    console.error('DocuSign download error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,

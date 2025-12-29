@@ -27,7 +27,7 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('Checking if user exists for email:', email);
+    
 
     // Check auth.users table using admin client
     const { data: users, error: authError } = await supabaseAdmin.auth.admin.listUsers();
@@ -48,7 +48,7 @@ serve(async (req: Request) => {
       user.email?.toLowerCase() === email.toLowerCase()
     );
 
-    console.log('User exists check result:', { email, exists: userExists });
+    
 
     return new Response(
       JSON.stringify({ exists: userExists }),

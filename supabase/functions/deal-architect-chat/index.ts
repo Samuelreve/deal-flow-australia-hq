@@ -246,7 +246,7 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    console.log('Calling OpenAI API with messages:', messages.length);
+    
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -316,11 +316,6 @@ serve(async (req) => {
       };
     }
 
-    console.log('AI response parsed successfully:', {
-      hasMessage: !!parsedResponse.message,
-      hasDealData: !!parsedResponse.dealData,
-      isComplete: parsedResponse.isComplete
-    });
 
     return new Response(
       JSON.stringify(parsedResponse),

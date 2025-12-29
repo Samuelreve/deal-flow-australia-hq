@@ -79,7 +79,7 @@ function cleanAIResponse(text: string): string {
 
 async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: string, fileName: string): Promise<string> {
   try {
-    console.log("🔧 Extracting text from:", { fileName, contentType, size: fileBuffer.byteLength });
+    
 
     if (contentType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
       const text = await extractPdfText(new Uint8Array(fileBuffer));
@@ -152,31 +152,22 @@ async function analyzeContractWithAI(text: string, openai: any): Promise<any> {
 
 serve(async (req) => {
   try {
-    console.log(`📥 Received ${req.method} request`);
+    
     
     if (req.method === "OPTIONS") {
-      console.log("✅ Handling OPTIONS preflight request");
       return new Response(null, { headers: corsHeaders, status: 204 });
     }
     
     if (req.method !== "POST") {
-      console.log(`❌ Method ${req.method} not allowed`);
       return new Response(
         JSON.stringify({ error: "Method not allowed" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 405 }
       );
     }
 
-    console.log("📝 Processing POST request...");
     
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    
-    console.log("📁 File received:", {
-      name: file?.name || 'unknown',
-      type: file?.type || 'unknown',
-      size: file?.size || 0
-    });
     
     if (!file) {
       return new Response(
@@ -215,14 +206,14 @@ serve(async (req) => {
       );
     }
     
-    console.log("✅ File validation passed!");
+    
     
     let text: string;
     try {
       const fileBuffer = await file.arrayBuffer();
       text = await extractTextFromDocument(fileBuffer, file.type, file.name);
     } catch (extractionError) {
-      console.error("❌ Text extraction failed:", extractionError);
+      console.error("Text extraction failed:", extractionError);
       return new Response(
         JSON.stringify({ 
           error: extractionError instanceof Error ? extractionError.message : "Failed to extract text from file",
@@ -239,7 +230,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("✅ Text extraction successful, length:", text?.length || 0);
+    
     
     const textString = typeof text === 'string' ? text : String(text || '');
     const cleanedText = textString
@@ -247,15 +238,14 @@ serve(async (req) => {
       .replace(new RegExp('[' + String.fromCharCode(0) + '-' + String.fromCharCode(8) + String.fromCharCode(11) + String.fromCharCode(12) + String.fromCharCode(14) + '-' + String.fromCharCode(31) + String.fromCharCode(127) + '-' + String.fromCharCode(159) + ']', 'g'), '')
       .trim();
     
-    console.log("🧹 Text cleaned, final length:", cleanedText.length);
+    
 
     let analysisResult;
     if (openAIApiKey) {
-      console.log("🤖 Starting AI analysis...");
       const openai = new OpenAI({ apiKey: openAIApiKey });
       analysisResult = await analyzeContractWithAI(cleanedText, openai);
     } else {
-      console.log("⚠️ No OpenAI API key, using basic analysis");
+      
       analysisResult = {
         overview: "Document uploaded and processed successfully. AI analysis requires OpenAI API key configuration.",
         keyParties: "Parties identified in document",
@@ -283,7 +273,7 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error("❌ Error in public-ai-analyzer:", error);
+    console.error("Error in public-ai-analyzer:", error);
     
     return new Response(
       JSON.stringify({

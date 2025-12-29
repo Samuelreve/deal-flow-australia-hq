@@ -36,7 +36,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       return false;
     }
     
-    console.log(`✅ Email sent to ${to}`);
+    
     return true;
   } catch (error) {
     console.error("Error sending email:", error);
@@ -51,7 +51,7 @@ async function notifyParticipants(
   documentName: string,
   dealTitle: string
 ) {
-  console.log('📧 Notifying participants for deal:', dealId);
+  
   
   // Get all deal participants with their profiles
   const { data: participants, error: participantsError } = await supabase
@@ -76,7 +76,7 @@ async function notifyParticipants(
     return;
   }
 
-  console.log(`Found ${participants.length} participants to notify`);
+  
 
   const baseUrl = 'https://deal-flow-australia-hq.lovable.app';
   const dealUrl = `${baseUrl}/deals/${dealId}`;
@@ -108,7 +108,7 @@ async function notifyParticipants(
     if (notifError) {
       console.error(`Error creating notification for ${userId}:`, notifError);
     } else {
-      console.log(`✅ In-app notification created for ${recipientName}`);
+      
     }
 
     // 2. Check if user wants email notifications for deal updates
@@ -136,7 +136,7 @@ async function notifyParticipants(
         emailHtml
       );
     } else {
-      console.log(`📧 Email notifications disabled for ${recipientName}`);
+      
     }
   }
 }
@@ -153,11 +153,6 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Log the full request details
-    console.log('=== DocuSign Webhook Request ===');
-    console.log('Method:', req.method);
-    console.log('URL:', req.url);
-    console.log('Headers:', Object.fromEntries(req.headers.entries()));
 
     // Get query parameters
     const url = new URL(req.url);
@@ -165,7 +160,7 @@ serve(async (req: Request) => {
     const envelopeId = url.searchParams.get('envelopeId');
     const dealId = url.searchParams.get('dealId');
     
-    console.log('Query Parameters:', { event, envelopeId, dealId });
+    
 
     // Try to read request body if it exists
     let requestBody = null;
@@ -173,29 +168,10 @@ serve(async (req: Request) => {
       const bodyText = await req.text();
       if (bodyText) {
         requestBody = JSON.parse(bodyText);
-        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
       }
     } catch (e) {
-      console.log('No JSON body or parsing failed:', e.message);
+      // No JSON body or parsing failed
     }
-
-    // Log document and status information if available
-    if (requestBody) {
-      if (requestBody.status) {
-        console.log('🔄 Document Status:', requestBody.status);
-      }
-      if (requestBody.envelopeId || requestBody.envelope_id) {
-        console.log('📄 Envelope ID:', requestBody.envelopeId || requestBody.envelope_id);
-      }
-      if (requestBody.documents) {
-        console.log('📁 Documents:', requestBody.documents);
-      }
-      if (requestBody.recipients) {
-        console.log('👥 Recipients:', requestBody.recipients);
-      }
-    }
-
-    console.log('=== End Webhook Data ===');
 
     // Handle webhook events and check if it's from request body
     let webhookEvent = event;
@@ -209,11 +185,11 @@ serve(async (req: Request) => {
       webhookStatus = requestBody.data?.envelopeSummary?.status || requestBody.status;
     }
 
-    console.log('Processing webhook:', { webhookEvent, webhookEnvelopeId, webhookStatus });
+    
 
     // Update signature status based on webhook event
     if (webhookEnvelopeId) {
-      console.log('🔍 Looking up deal ID for envelope:', webhookEnvelopeId);
+      
       
       let newStatus = 'pending'; // default
       
@@ -226,7 +202,7 @@ serve(async (req: Request) => {
         newStatus = 'completed'; // Full envelope completed
       }
       
-      console.log(`📋 Setting signature status to: ${newStatus} for envelope: ${webhookEnvelopeId}`);
+      
       
       // Update signature status
       const { error: statusError } = await supabase
@@ -240,7 +216,7 @@ serve(async (req: Request) => {
       if (statusError) {
         console.error('Error updating signature status:', statusError);
       } else {
-        console.log(`✅ Signature status updated to: ${newStatus}`);
+        
       }
       
       // Get the deal ID from the signature record for redirect
@@ -251,14 +227,13 @@ serve(async (req: Request) => {
         .single();
         
       if (!sigError && signature) {
-        console.log('📋 Found deal ID from signature:', signature.deal_id);
+        
         redirectDealId = signature.deal_id;
       }
     }
 
     if ((webhookEvent === 'envelope-completed' || webhookStatus === 'completed') && webhookEnvelopeId) {
-      console.log('📝 Processing completed signing for envelope:', webhookEnvelopeId);
-      console.log('🔍 Webhook event:', webhookEvent, 'Status:', webhookStatus);
+      
       
       // Get document and deal details for notification
       const { data: signatureData, error: sigDataError } = await supabase
@@ -298,7 +273,7 @@ serve(async (req: Request) => {
 
         const signerEmail = signatureData.signer_email;
 
-        console.log(`📄 Document: ${documentName}, Deal: ${dealTitle}, Signer: ${signerEmail}`);
+        
 
         // Notify all participants
         await notifyParticipants(
@@ -310,7 +285,7 @@ serve(async (req: Request) => {
         );
       }
       
-      console.log('✅ Document signing completed and participants notified.');
+      
     }
 
     // Get the deal ID for redirect (already set above or from URL param)
@@ -329,7 +304,7 @@ serve(async (req: Request) => {
       ? `${baseUrl}/deals/${redirectDealId}`
       : `${baseUrl}`;
       
-    console.log('🔄 Redirecting to:', redirectUrl);
+    
 
     // Redirect immediately to the documents tab
     return new Response(null, {

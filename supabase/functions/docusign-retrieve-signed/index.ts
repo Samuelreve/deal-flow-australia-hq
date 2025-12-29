@@ -14,7 +14,7 @@ interface DocuSignTokenData {
 }
 
 serve(async (req: Request) => {
-  console.log('=== DocuSign Retrieve Signed Function Started ===');
+  
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -36,7 +36,7 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log('🔍 Looking for signed documents in Signed Documents bucket for deal:', dealId);
+    
 
     // List files in the Signed Documents bucket for this deal
     const { data: files, error: listError } = await supabase.storage
@@ -44,19 +44,19 @@ serve(async (req: Request) => {
       .list(dealId);
 
     if (listError) {
-      console.error('❌ Error listing signed documents:', listError);
+      console.error('Error listing signed documents:', listError);
       throw new Error('Failed to list signed documents');
     }
 
     if (!files || files.length === 0) {
-      console.log('📄 No signed documents found for deal:', dealId);
+      return new Response(
       return new Response(
         JSON.stringify({ message: 'No signed documents available yet' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('📄 Found signed documents:', files.map(f => f.name));
+    
 
     const processedDocuments = [];
 
@@ -71,7 +71,7 @@ serve(async (req: Request) => {
           .download(signedDocPath);
 
         if (downloadError || !fileData) {
-          console.error('❌ Error downloading file:', file.name, downloadError);
+          console.error('Error downloading file:', file.name, downloadError);
           continue;
         }
 
@@ -90,7 +90,7 @@ serve(async (req: Request) => {
           });
 
         if (uploadError) {
-          console.error('❌ Error uploading to deal_documents:', uploadError);
+          console.error('Error uploading to deal_documents:', uploadError);
           continue;
         }
 
@@ -116,8 +116,8 @@ serve(async (req: Request) => {
           .select()
           .single();
 
-        if (createError) {
-          console.error('❌ Error creating document record:', createError);
+        console.error('Error creating document record:', createError);
+          if (createError) {
           continue;
         }
 
@@ -146,15 +146,14 @@ serve(async (req: Request) => {
           size: documentBytes.length
         });
 
-        console.log('✅ Successfully processed signed document:', file.name);
 
       } catch (error) {
-        console.error('❌ Error processing file:', file.name, error);
+        console.error('Error processing file:', file.name, error);
         continue;
       }
     }
 
-    console.log('✅ Successfully processed signed documents');
+    
 
     return new Response(
       JSON.stringify({
