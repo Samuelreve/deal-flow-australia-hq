@@ -1,27 +1,14 @@
-
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import OpenAI from "https://esm.sh/openai@4.20.1";
 import { createCorsResponse } from "./utils/response-handler.ts";
 import { handleRequest } from "./request-handler.ts";
 
-console.log('Document AI Assistant function starting...');
-
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-if (!openAIApiKey) {
-  console.error('OPENAI_API_KEY not found in environment variables');
-}
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase configuration not found in environment variables');
-}
-
 serve(async (req) => {
-  console.log('Document AI Assistant request received:', req.method, req.url);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return createCorsResponse();

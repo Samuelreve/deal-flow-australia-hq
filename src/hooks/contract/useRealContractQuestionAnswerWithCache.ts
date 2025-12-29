@@ -1,28 +1,17 @@
-
 import { useState, useCallback } from 'react';
 import { realContractService } from '@/services/realContractService';
 import { QuestionHistoryItem } from '@/types/contract';
-import { toast } from 'sonner';
 
 export const useRealContractQuestionAnswerWithCache = (contractId: string | null) => {
   const [questionHistory, setQuestionHistory] = useState<QuestionHistoryItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🤖 useRealContractQuestionAnswerWithCache initialized with contractId:', contractId);
-
   // Handle asking a question
   const handleAskQuestion = useCallback(async (question: string, contractText: string) => {
     if (!contractId) {
-      console.log('❌ No contract ID available for question');
       return null;
     }
-
-    console.log('❓ Processing question:', {
-      contractId,
-      questionLength: question.length,
-      contractTextLength: contractText.length
-    });
 
     setIsProcessing(true);
     setError(null);
@@ -43,8 +32,6 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
       // Call the service
       const response = await realContractService.askQuestion(contractId, question);
 
-      console.log('✅ Question response received:', response);
-
       // Update the history item with the response
       const updatedItem: QuestionHistoryItem = {
         ...newItem,
@@ -59,7 +46,7 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
 
       return updatedItem;
     } catch (error: any) {
-      console.error('❌ Error asking question:', error);
+      console.error('Error asking question:', error);
       const errorMessage = error.message || 'Failed to process question';
       setError(errorMessage);
 
@@ -81,15 +68,8 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
   // Handle contract analysis
   const handleAnalyzeContract = useCallback(async (analysisType: string, contractText: string) => {
     if (!contractId) {
-      console.log('❌ No contract ID available for analysis');
       return null;
     }
-
-    console.log('🔍 Processing analysis:', {
-      contractId,
-      analysisType,
-      contractTextLength: contractText.length
-    });
 
     setIsProcessing(true);
     setError(null);
@@ -114,8 +94,6 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
       // Call the service with the analysis question
       const response = await realContractService.askQuestion(contractId, analysisQuestion);
 
-      console.log('✅ Analysis response received:', response);
-
       // Update the history item with the response
       const updatedItem: QuestionHistoryItem = {
         ...newItem,
@@ -133,7 +111,7 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
         sources: response.sources || []
       };
     } catch (error: any) {
-      console.error('❌ Error analyzing contract:', error);
+      console.error('Error analyzing contract:', error);
       const errorMessage = error.message || 'Failed to analyze contract';
       setError(errorMessage);
 
@@ -154,17 +132,9 @@ export const useRealContractQuestionAnswerWithCache = (contractId: string | null
 
   // Clear cache/history
   const invalidateCache = useCallback(() => {
-    console.log('🧹 Clearing question history cache');
     setQuestionHistory([]);
     setError(null);
   }, []);
-
-  console.log('📊 useRealContractQuestionAnswerWithCache state:', {
-    contractId,
-    questionHistoryLength: questionHistory.length,
-    isProcessing,
-    error
-  });
 
   return {
     questionHistory,

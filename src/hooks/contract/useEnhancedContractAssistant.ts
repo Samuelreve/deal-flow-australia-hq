@@ -9,7 +9,7 @@ interface UseEnhancedContractAssistantProps {
   dealId?: string;
   documentId?: string;
   versionId?: string;
-  contract?: Contract; // Use proper Contract type
+  contract?: Contract;
 }
 
 export const useEnhancedContractAssistant = ({
@@ -23,35 +23,17 @@ export const useEnhancedContractAssistant = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🤖 useEnhancedContractAssistant initialized:', {
-    dealId,
-    documentId,
-    versionId,
-    hasContract: !!contract,
-    contractId: contract?.id,
-    contractContentLength: contract?.content?.length || 0,
-    userId: user?.id
-  });
-
   // Ask a question about the contract using legacy format
   const askQuestion = useCallback(async (question: string) => {
     if (!contract?.content) {
-      console.error('❌ No contract content available for question');
       toast.error('Contract content not available');
       return null;
     }
 
     if (!user) {
-      console.error('❌ User not authenticated');
       toast.error('Please log in to ask questions');
       return null;
     }
-
-    console.log('❓ Asking question using legacy format:', {
-      question: question.substring(0, 100),
-      contractId: contract.id,
-      contentLength: contract.content.length
-    });
 
     setIsProcessing(true);
     setError(null);
@@ -79,16 +61,12 @@ export const useEnhancedContractAssistant = ({
       });
 
       if (functionError) {
-        console.error('❌ Function error:', functionError);
         throw new Error(functionError.message || 'Failed to process question');
       }
 
       if (!data?.answer) {
-        console.error('❌ No answer received:', data);
         throw new Error('No answer received from AI service');
       }
-
-      console.log('✅ Question answered successfully');
 
       // Update the question in history with the answer
       const answeredItem: QuestionHistoryItem = {
@@ -109,7 +87,7 @@ export const useEnhancedContractAssistant = ({
       };
 
     } catch (error) {
-      console.error('❌ Error asking question:', error);
+      console.error('Error asking question:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to process question';
       setError(errorMessage);
 
@@ -131,21 +109,14 @@ export const useEnhancedContractAssistant = ({
   // Summarize contract terms using legacy format
   const summarizeContractTerms = useCallback(async () => {
     if (!contract?.content) {
-      console.error('❌ No contract content available for summarization');
       toast.error('Contract content not available');
       return null;
     }
 
     if (!user) {
-      console.error('❌ User not authenticated');
       toast.error('Please log in to generate summary');
       return null;
     }
-
-    console.log('📄 Summarizing contract terms using legacy format:', {
-      contractId: contract.id,
-      contentLength: contract.content.length
-    });
 
     try {
       // Use legacy format with summary question
@@ -160,16 +131,12 @@ export const useEnhancedContractAssistant = ({
       });
 
       if (functionError) {
-        console.error('❌ Function error:', functionError);
         throw new Error(functionError.message || 'Failed to generate summary');
       }
 
       if (!data?.answer) {
-        console.error('❌ No analysis received:', data);
         throw new Error('No analysis received from AI service');
       }
-
-      console.log('✅ Summary generated successfully');
 
       // Add summary to history as an analysis item
       const summaryItem: QuestionHistoryItem = {
@@ -190,7 +157,7 @@ export const useEnhancedContractAssistant = ({
       };
 
     } catch (error) {
-      console.error('❌ Error generating summary:', error);
+      console.error('Error generating summary:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate summary';
       setError(errorMessage);
       throw error;
@@ -198,20 +165,12 @@ export const useEnhancedContractAssistant = ({
   }, [contract, user]);
 
   const analyzeContract = useCallback(async (analysisType: string) => {
-    console.log('🔍 Analyzing contract using enhanced format:', { 
-      analysisType, 
-      contractId: contract?.id,
-      contentLength: contract?.content?.length || 0
-    });
-
     if (!contract?.content) {
-      console.error('❌ No contract content available for analysis');
       toast.error('Contract content not available');
       return null;
     }
 
     if (!user) {
-      console.error('❌ User not authenticated');
       toast.error('Please log in to perform analysis');
       return null;
     }
@@ -257,19 +216,12 @@ export const useEnhancedContractAssistant = ({
       });
 
       if (functionError) {
-        console.error('❌ Function error:', functionError);
         throw new Error(functionError.message || 'Failed to complete analysis');
       }
 
       if (!data?.analysis) {
-        console.error('❌ No analysis received:', data);
         throw new Error('No analysis received from AI service');
       }
-
-      console.log('✅ Analysis completed successfully:', {
-        analysisType: backendAnalysisType,
-        analysisLength: data.analysis.length
-      });
 
       // Update the analysis item with results
       const completedAnalysis: QuestionHistoryItem = {
@@ -291,7 +243,7 @@ export const useEnhancedContractAssistant = ({
       };
 
     } catch (error) {
-      console.error('❌ Error in contract analysis:', error);
+      console.error('Error in contract analysis:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete analysis';
       setError(errorMessage);
 
