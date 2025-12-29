@@ -41,9 +41,6 @@ interface DocuSignRequest {
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
 serve(async (req: Request) => {
-  console.log("=== DocuSign Function Started ===");
-  console.log("Request method:", req.method);
-
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -51,8 +48,6 @@ serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
     const operation = url.pathname.split("/").pop();
-
-    console.log("Operation:", operation);
 
     if (operation === "status") {
       return await handleStatusRequest();
@@ -102,7 +97,6 @@ async function handleStatusRequest(): Promise<Response> {
 async function getJWTAccessToken(): Promise<string> {
   // Check cache first
   if (cachedAccessToken && cachedAccessToken.expiresAt > Date.now() + 60000) {
-    console.log("Using cached access token");
     return cachedAccessToken.token;
   }
 
@@ -116,12 +110,8 @@ async function getJWTAccessToken(): Promise<string> {
     );
   }
 
-  console.log("Generating JWT for DocuSign authentication...");
-
   // Create signed JWT using jose library
   const jwt = await createSignedJWT(integrationKey, userId, privateKeyPem);
-
-  console.log("JWT generated, exchanging for access token...");
 
   // Exchange JWT for access token
   const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/token`, {
@@ -142,7 +132,6 @@ async function getJWTAccessToken(): Promise<string> {
   }
 
   const tokenData = await response.json();
-  console.log("✅ Successfully obtained access token via JWT Grant");
 
   // Cache the token
   cachedAccessToken = {
@@ -155,8 +144,6 @@ async function getJWTAccessToken(): Promise<string> {
 
 /**
  * Convert PKCS#1 RSA private key to PKCS#8 format
- * PKCS#1: -----BEGIN RSA PRIVATE KEY-----
- * PKCS#8: -----BEGIN PRIVATE KEY-----
  */
 function convertPkcs1ToPkcs8(pkcs1Pem: string): string {
   // Extract base64 content from PEM
@@ -169,7 +156,6 @@ function convertPkcs1ToPkcs8(pkcs1Pem: string): string {
   const pkcs1Bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
 
   // PKCS#8 header for RSA keys (OID 1.2.840.113549.1.1.1)
-  // SEQUENCE { INTEGER 0, SEQUENCE { OID, NULL }, OCTET STRING { pkcs1Key } }
   const pkcs8Header = new Uint8Array([
     0x30, 0x82, 0x00, 0x00, // SEQUENCE with 2-byte length placeholder
     0x02, 0x01, 0x00, // INTEGER 0 (version)
@@ -219,16 +205,10 @@ async function createSignedJWT(
   // Normalize line endings in private key
   let normalizedKey = privateKeyPem.replace(/\\n/g, "\n").trim();
 
-  console.log("Processing private key...");
-
   // Check if the key is PKCS#1 format and convert to PKCS#8
   if (normalizedKey.includes("BEGIN RSA PRIVATE KEY")) {
-    console.log("Detected PKCS#1 format, converting to PKCS#8...");
     normalizedKey = convertPkcs1ToPkcs8(normalizedKey);
-    console.log("Converted to PKCS#8 format");
   }
-
-  console.log("Importing private key with jose...");
 
   // Import the private key using jose
   const privateKey = await jose.importPKCS8(normalizedKey, "RS256");
@@ -254,8 +234,6 @@ async function createSignedJWT(
  * Handle the main signing request using JWT Grant authentication
  */
 async function handleSigningRequest(req: Request): Promise<Response> {
-  console.log("=== Starting DocuSign Signing Request (JWT Grant) ===");
-
   // Get authenticated user from request
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
@@ -267,7 +245,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
 
   // Parse request body
   const requestData: DocuSignRequest = await req.json();
-  console.log("Request data:", JSON.stringify(requestData, null, 2));
 
   const { documentId, dealId, signerEmail, signerName, signerRole, signaturePositions } = requestData;
 
@@ -298,8 +275,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     });
   }
 
-  console.log("Authenticated user:", user.id);
-
   // Get DocuSign access token via JWT Grant
   let accessToken: string;
   try {
@@ -325,8 +300,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     });
   }
 
-  console.log("Using DocuSign account:", accountId);
-
   // Get document from storage
   const { data: documentRecord, error: docError } = await supabase
     .from("documents")
@@ -342,8 +315,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     });
   }
 
-  console.log("Document record:", documentRecord);
-
   // Try to download document from storage
   const pathsToTry = [
     documentRecord.storage_path,
@@ -356,15 +327,12 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   let downloadedData: Blob | null = null;
 
   for (const path of pathsToTry) {
-    console.log("Trying to download from path:", path);
     const { data, error } = await supabase.storage.from("deal_documents").download(path);
 
     if (!error && data) {
       downloadedData = data;
-      console.log("Successfully downloaded from:", path);
       break;
     }
-    console.log("Failed to download from path:", path, error?.message);
   }
 
   if (!downloadedData) {
@@ -383,10 +351,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   }
   const documentBase64 = btoa(binary);
 
-  console.log("Document converted to base64, length:", documentBase64.length);
-
   // Build signers with clientUserId for embedded signing
-  // IMPORTANT: The current user (signerEmail) must be the embedded signer
   const signers: any[] = [];
   let embeddedSignerEmail = signerEmail;
   let embeddedSignerName = signerName;
@@ -396,10 +361,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     const currentUserIndex = signaturePositions.findIndex(
       pos => pos.email.toLowerCase() === signerEmail.toLowerCase()
     );
-    
-    console.log("Current user email:", signerEmail);
-    console.log("Current user index in positions:", currentUserIndex);
-    console.log("All positions:", JSON.stringify(signaturePositions.map(p => p.email)));
 
     // Calculate routing orders: current user gets "1", others get "2", "3", etc.
     let otherSignerOrder = 2;
@@ -412,8 +373,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
         email: pos.email,
         name: pos.name,
         recipientId: pos.recipientId || String(index + 1),
-        // Current user gets routingOrder "1" to sign first
-        // Other signers get incrementing orders to receive emails after
         routingOrder: isCurrentUser ? "1" : String(otherSignerOrder++),
         tabs: {
           signHereTabs: [
@@ -428,12 +387,10 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       };
       
       // Only the CURRENT USER gets clientUserId for embedded signing
-      // Other signers will receive email invitations from DocuSign after current user signs
       if (isCurrentUser) {
         signerConfig.clientUserId = pos.email;
         embeddedSignerEmail = pos.email;
         embeddedSignerName = pos.name;
-        console.log("Setting embedded signer:", pos.email, "with position x:", pos.xPosition, "y:", pos.yPosition);
       }
       
       signers.push(signerConfig);
@@ -441,7 +398,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     
     // If current user wasn't found in positions, add them as the embedded signer
     if (currentUserIndex === -1) {
-      console.log("Current user not in positions, adding as embedded signer");
       signers.unshift({
         email: signerEmail,
         name: signerName,
@@ -469,7 +425,7 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       name: signerName,
       recipientId: "1",
       routingOrder: "1",
-      clientUserId: signerEmail, // Required for embedded signing
+      clientUserId: signerEmail,
       tabs: {
         signHereTabs: [
           {
@@ -482,8 +438,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
       },
     });
   }
-
-  console.log("Signers:", JSON.stringify(signers, null, 2));
 
   // Create envelope using DocuSign REST API (status: "sent" for embedded signing)
   const envelopeDefinition = {
@@ -501,8 +455,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     },
     status: "sent",
   };
-
-  console.log("Creating envelope with DocuSign REST API...");
 
   const envelopeResponse = await fetch(`${DOCUSIGN_API_BASE_URL}/restapi/v2.1/accounts/${accountId}/envelopes`, {
     method: "POST",
@@ -526,12 +478,9 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   }
 
   const envelopeResult = await envelopeResponse.json();
-  console.log("Envelope created:", envelopeResult);
 
   // Generate embedded signing URL for the current user (embedded signer)
   const returnUrl = `https://deal-flow-australia-hq.lovable.app/deals/${dealId}?signing=complete`;
-  
-  console.log("Generating signing URL for embedded signer:", embeddedSignerEmail);
   
   const recipientViewRequest = {
     returnUrl: returnUrl,
@@ -540,8 +489,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
     userName: embeddedSignerName,
     clientUserId: embeddedSignerEmail,
   };
-
-  console.log("Requesting recipient view URL...");
 
   const viewResponse = await fetch(
     `${DOCUSIGN_API_BASE_URL}/restapi/v2.1/accounts/${accountId}/envelopes/${envelopeResult.envelopeId}/views/recipient`,
@@ -560,7 +507,6 @@ async function handleSigningRequest(req: Request): Promise<Response> {
   if (viewResponse.ok) {
     const viewResult = await viewResponse.json();
     signingUrl = viewResult.url;
-    console.log("Signing URL generated successfully");
   } else {
     const viewError = await viewResponse.text();
     console.error("Failed to get signing URL:", viewResponse.status, viewError);

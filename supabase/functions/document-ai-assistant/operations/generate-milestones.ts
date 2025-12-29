@@ -14,9 +14,6 @@ export async function handleGenerateMilestones(
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    console.log(`🎯 Starting milestone generation for deal ${dealId} with context:`, context);
-    console.log(`👤 User ID: ${userId}`);
-    
     // Fetch comprehensive deal data
     const dealContext = await fetchDealContextData(dealId);
     const { deal, documents, participants, milestones: existingMilestones } = dealContext;
@@ -68,7 +65,6 @@ Generate milestones appropriate for this ${dealType} transaction.`;
     });
 
     const response = completion.choices[0].message.content;
-    console.log('OpenAI response for milestones:', response);
 
     // Parse the response and extract milestones
     let generatedMilestones;
@@ -103,8 +99,6 @@ Generate milestones appropriate for this ${dealType} transaction.`;
       // Fallback: generate default milestones based on deal type
       generatedMilestones = generateDefaultMilestones(dealType);
     }
-
-    console.log(`Generated ${generatedMilestones.length} milestones for deal ${dealId}`);
     
     return {
       success: true,

@@ -2,20 +2,6 @@
  * DocuSign OAuth Token Acquisition Function
  * 
  * This function handles the OAuth Authorization Code Grant flow for DocuSign.
- * It follows the pattern shown in the DocuSign Node.js SDK documentation.
- * Token data is stored as variables within the function for direct access.
- * 
- * REQUIRED ENVIRONMENT VARIABLES:
- * - DOCUSIGN_INTEGRATION_KEY: Your DocuSign app's integration key
- * - DOCUSIGN_CLIENT_SECRET: Your DocuSign app's client secret
- * - DOCUSIGN_REDIRECT_URI: Your configured redirect URI
- * 
- * ENDPOINTS:
- * - POST /auth - Initiate OAuth flow (returns authorization URL)
- * - POST /token - Exchange authorization code for access token
- * - POST /refresh - Refresh an expired access token
- * - GET /userinfo - Get user information with current token
- * - GET /status - Get current token status and authentication state
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -67,8 +53,6 @@ interface DocuSignUserInfo {
 }
 
 serve(async (req: Request) => {
-  console.log('=== DocuSign OAuth Function Started ===');
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -78,8 +62,6 @@ serve(async (req: Request) => {
     // Parse URL to determine the operation
     const url = new URL(req.url);
     const operation = url.pathname.split('/').pop();
-
-    console.log('OAuth operation:', operation);
 
     switch (operation) {
       case 'auth':
@@ -119,7 +101,6 @@ serve(async (req: Request) => {
 
 /**
  * Handle authorization request - return authorization URL
- * No authentication required for this endpoint
  */
 async function handleAuthorizationRequest(req: Request): Promise<Response> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
@@ -166,7 +147,6 @@ async function handleAuthorizationRequest(req: Request): Promise<Response> {
 
 /**
  * Handle token request - exchange authorization code for access token
- * Following the pattern: apiClient.generateAccessToken(IntegratorKeyAuthCode, ClientSecret, code)
  */
 async function handleTokenRequest(req: Request): Promise<Response> {
   const integrationKey = Deno.env.get('DOCUSIGN_INTEGRATION_KEY');
@@ -237,11 +217,6 @@ async function handleTokenRequest(req: Request): Promise<Response> {
       expires_at: expiresAt,
       user_info: userInfo
     };
-
-    console.log('✅ Successfully obtained DocuSign access token');
-    console.log('Token expires in:', oAuthToken.expires_in, 'seconds');
-    console.log('User:', userInfo.name, '(', userInfo.email, ')');
-    console.log('Account:', defaultAccount.account_name);
 
     return new Response(
       JSON.stringify({
@@ -484,7 +459,6 @@ async function handleStatusRequest(req: Request): Promise<Response> {
 
 /**
  * Get DocuSign user information
- * Following the pattern: apiClient.getUserInfo(oAuthToken.accessToken)
  */
 async function getUserInfo(accessToken: string): Promise<DocuSignUserInfo> {
   const response = await fetch(`${DOCUSIGN_AUTH_BASE_URL}/oauth/userinfo`, {
@@ -563,7 +537,6 @@ async function getValidAccessToken(): Promise<string | null> {
           expires_at: expiresAt
         };
         
-        console.log('✅ Token automatically refreshed');
         return docusignTokenData.access_token;
       }
     } catch (error) {
@@ -572,4 +545,4 @@ async function getValidAccessToken(): Promise<string | null> {
   }
 
   return docusignTokenData.access_token;
-} 
+}
