@@ -197,31 +197,42 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       // Convert DOCX to HTML pages
       convertDocxToPages();
     } else {
-      // Load PDF document (metadata only, not pages)
+      // Load PDF document - fetch as ArrayBuffer first to avoid CORS issues
       console.log(`Loading PDF document: ${documentUrl}`);
       setIsLoadingPdf(true);
       
-      const loadingTask = PDFJS.getDocument(documentUrl);
-      loadingTask.promise.then(
-        (loadedDoc) => {
+      const loadPdf = async () => {
+        try {
+          // Fetch the PDF as ArrayBuffer to bypass CORS restrictions
+          const response = await fetch(documentUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          
+          // Load PDF from ArrayBuffer instead of URL
+          const loadingTask = PDFJS.getDocument({ data: arrayBuffer });
+          const loadedDoc = await loadingTask.promise;
+          
           setPdfDocument(loadedDoc);
           setTotalPages(loadedDoc.numPages);
-          setCurrentPage(1); // This will trigger first page render
+          setCurrentPage(1);
           setIsLoadingPdf(false);
           console.log(`✅ PDF metadata loaded - ${loadedDoc.numPages} pages available`);
-        },
-        (error) => {
+        } catch (error) {
           console.error('PDF loading error:', error);
           setError('Failed to load PDF document');
           setIsLoadingPdf(false);
-          loadedDocumentUrlRef.current = null; // Reset on error
+          loadedDocumentUrlRef.current = null;
           toast({
             title: 'Error loading PDF',
-            description: 'Failed to load PDF document',
+            description: error instanceof Error ? error.message : 'Failed to load PDF document',
             variant: 'destructive'
           });
         }
-      );
+      };
+      
+      loadPdf();
     }
   }, [documentUrl, isOpen, documentType, toast]);
 
