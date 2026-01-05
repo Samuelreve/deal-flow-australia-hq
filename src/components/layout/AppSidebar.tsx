@@ -108,8 +108,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
           collapsed ? 'w-16' : 'w-64'
         )}
       >
-        {/* Toggle Button - Top Right */}
-        <div className="absolute top-3 right-3">
+        {/* Toggle Button - Top Right (always visible) */}
+        <div className={cn('flex justify-end p-3', collapsed && 'justify-center')}>
           <Button
             variant="ghost"
             size="icon"
@@ -120,9 +120,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
           </Button>
         </div>
 
-        {/* Logo */}
+        {/* Logo - only when expanded */}
         {!collapsed && (
-          <div className="flex flex-col items-center pt-12 pb-4 px-4">
+          <div className="flex flex-col items-center pb-4 px-4">
             <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-24" />
           </div>
         )}
