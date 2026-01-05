@@ -108,13 +108,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
           collapsed ? 'w-16' : 'w-64'
         )}
       >
-        {/* Logo & Toggle */}
-        <div className="flex flex-col items-center py-4 px-4">
-          {!collapsed && (
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-20 mb-2" />
-          )}
-        </div>
-        <div className={cn('flex px-3 mb-2', collapsed ? 'justify-center' : 'justify-end')}>
+        {/* Toggle Button - Top Right */}
+        <div className="absolute top-3 right-3">
           <Button
             variant="ghost"
             size="icon"
@@ -124,6 +119,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
             <ChevronLeft className={cn('h-5 w-5 transition-transform', collapsed && 'rotate-180')} />
           </Button>
         </div>
+
+        {/* Logo */}
+        {!collapsed && (
+          <div className="flex flex-col items-center pt-12 pb-4 px-4">
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-24" />
+          </div>
+        )}
 
         {/* Main Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
