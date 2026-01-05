@@ -28,16 +28,16 @@ const Footer = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 items-center"
         >
           {/* Brand Section */}
-          <div className="flex flex-col items-center text-center space-y-6">
+          <div className="flex flex-col items-center text-center space-y-4">
             <img 
               src="/trustroom-logo.webp" 
               alt="Trustroom.ai" 
-              className="h-20 w-auto object-contain" 
+              className="h-24 w-auto object-contain" 
             />
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-[200px]">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-[220px]">
               Revolutionizing business exchange with AI-powered tools and seamless document management.
             </p>
             {/* Social Links */}
