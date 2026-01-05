@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import AppLayout from '@/components/layout/AppLayout';
 
 interface PlanFeature {
   text: string;
@@ -163,36 +165,11 @@ const PricingPage: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold text-primary">
-            Trustroom.ai
-          </Link>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <Button asChild>
-                <Link to="/dashboard">Go to Dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" asChild>
-                  <Link to="/login">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/login">Get Started</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
+  const PageContent = (
+    <>
       {/* Hero Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto text-center max-w-3xl">
+      <section className="py-12 px-4">
+        <div className="text-center max-w-3xl mx-auto">
           <Badge variant="secondary" className="mb-4">
             Simple, transparent pricing
           </Badge>
@@ -208,124 +185,122 @@ const PricingPage: React.FC = () => {
 
       {/* Pricing Cards */}
       <section className="pb-16 px-4">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {pricingPlans.map((plan) => (
-              <Card 
-                key={plan.id}
-                className={`relative flex flex-col ${
-                  plan.popular 
-                    ? 'border-primary shadow-lg ring-2 ring-primary/20' 
-                    : 'border-border'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                
-                <CardHeader className="text-center pb-4">
-                  <div className={`mx-auto mb-4 p-3 rounded-full ${
-                    plan.popular 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {plan.icon}
-                  </div>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription className="min-h-[48px]">
-                    {plan.description}
-                  </CardDescription>
-                  <Badge variant="outline" className="w-fit mx-auto mt-2">
-                    {plan.targetMarket}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          {pricingPlans.map((plan) => (
+            <Card 
+              key={plan.id}
+              className={`relative flex flex-col ${
+                plan.popular 
+                  ? 'border-primary shadow-lg ring-2 ring-primary/20' 
+                  : 'border-border'
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground">
+                    Most Popular
                   </Badge>
-                </CardHeader>
+                </div>
+              )}
+              
+              <CardHeader className="text-center pb-4">
+                <div className={`mx-auto mb-4 p-3 rounded-full ${
+                  plan.popular 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'bg-muted text-muted-foreground'
+                }`}>
+                  {plan.icon}
+                </div>
+                <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                <CardDescription className="min-h-[48px]">
+                  {plan.description}
+                </CardDescription>
+                <Badge variant="outline" className="w-fit mx-auto mt-2">
+                  {plan.targetMarket}
+                </Badge>
+              </CardHeader>
 
-                <CardContent className="flex-1">
-                  <div className="text-center mb-6">
-                    <span className="text-4xl font-bold text-foreground">
-                      {plan.price === 0 ? 'Free' : `$${plan.price}`}
-                    </span>
-                    <span className="text-muted-foreground ml-2">{plan.priceLabel}</span>
+              <CardContent className="flex-1">
+                <div className="text-center mb-6">
+                  <span className="text-4xl font-bold text-foreground">
+                    {plan.price === 0 ? 'Free' : `$${plan.price}`}
+                  </span>
+                  <span className="text-muted-foreground ml-2">{plan.priceLabel}</span>
+                </div>
+
+                {/* Quick limits overview */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.participants} participants</span>
                   </div>
-
-                  {/* Quick limits overview */}
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{plan.limits.participants} participants</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span>{plan.limits.documents} docs</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Brain className="h-4 w-4 text-muted-foreground" />
-                      <span>{plan.limits.aiQueries} AI queries</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <PenTool className="h-4 w-4 text-muted-foreground" />
-                      <span>{plan.limits.docusignEnvelopes} signatures</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm col-span-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{plan.limits.dealDuration} duration</span>
-                    </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.documents} docs</span>
                   </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Brain className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.aiQueries} AI queries</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <PenTool className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.docusignEnvelopes} signatures</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm col-span-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.dealDuration} duration</span>
+                  </div>
+                </div>
 
-                  <Separator className="mb-6" />
+                <Separator className="mb-6" />
 
-                  {/* Features list */}
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, index) => (
-                      <li 
-                        key={index}
-                        className={`flex items-start gap-3 text-sm ${
+                {/* Features list */}
+                <ul className="space-y-3">
+                  {plan.features.map((feature, index) => (
+                    <li 
+                      key={index}
+                      className={`flex items-start gap-3 text-sm ${
+                        feature.included 
+                          ? 'text-foreground' 
+                          : 'text-muted-foreground line-through'
+                      }`}
+                    >
+                      <Check 
+                        className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
                           feature.included 
-                            ? 'text-foreground' 
-                            : 'text-muted-foreground line-through'
-                        }`}
-                      >
-                        <Check 
-                          className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-                            feature.included 
-                              ? feature.highlight 
-                                ? 'text-primary' 
-                                : 'text-success' 
-                              : 'text-muted-foreground/40'
-                          }`} 
-                        />
-                        <span className={feature.highlight ? 'font-medium' : ''}>
-                          {feature.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
+                            ? feature.highlight 
+                              ? 'text-primary' 
+                              : 'text-success' 
+                            : 'text-muted-foreground/40'
+                        }`} 
+                      />
+                      <span className={feature.highlight ? 'font-medium' : ''}>
+                        {feature.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
 
-                <CardFooter className="pt-4">
-                  <Button 
-                    className="w-full" 
-                    variant={plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
-                    size="lg"
-                    onClick={() => handleSelectPlan(plan.id)}
-                  >
-                    {plan.id === 'free' ? 'Try Free' : 'Get Started'}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+              <CardFooter className="pt-4">
+                <Button 
+                  className="w-full" 
+                  variant={plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
+                  size="lg"
+                  onClick={() => handleSelectPlan(plan.id)}
+                >
+                  {plan.id === 'free' ? 'Try Free' : 'Get Started'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-4 bg-muted/50">
-        <div className="container mx-auto max-w-3xl">
+      <section className="py-16 px-4 bg-muted/50 rounded-lg">
+        <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">
             Frequently Asked Questions
           </h2>
@@ -386,7 +361,7 @@ const PricingPage: React.FC = () => {
 
       {/* CTA Section */}
       <section className="py-16 px-4">
-        <div className="container mx-auto text-center max-w-2xl">
+        <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold mb-4">
             Ready to close your next deal?
           </h2>
@@ -404,26 +379,15 @@ const PricingPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t py-8 px-4">
-        <div className="container mx-auto text-center text-muted-foreground text-sm">
-          <p>© {new Date().getFullYear()} Trustroom.ai. All rights reserved.</p>
-          <div className="flex justify-center gap-6 mt-4">
-            <Link to="/terms-of-service" className="hover:text-foreground transition-colors">
-              Terms of Service
-            </Link>
-            <Link to="/privacy-policy" className="hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-            <Link to="/faq" className="hover:text-foreground transition-colors">
-              FAQ
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
+
+  // Use AuthenticatedLayout for logged-in users, AppLayout for guests
+  if (user) {
+    return <AuthenticatedLayout>{PageContent}</AuthenticatedLayout>;
+  }
+
+  return <AppLayout>{PageContent}</AppLayout>;
 };
 
 export default PricingPage;
