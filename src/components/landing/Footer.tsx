@@ -31,12 +31,14 @@ const Footer = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8"
         >
           {/* Brand Section */}
-          <div className="sm:col-span-2 lg:col-span-1 space-y-4">
-            <img 
-              src="/trustroom-logo.webp" 
-              alt="Trustroom.ai" 
-              className="h-16 object-contain" 
-            />
+          <div className="sm:col-span-2 lg:col-span-1 space-y-5">
+            <div className="flex items-center">
+              <img 
+                src="/trustroom-logo.webp" 
+                alt="Trustroom.ai" 
+                className="h-24 w-auto object-contain" 
+              />
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Revolutionizing business exchange with AI-powered tools and seamless document management.
             </p>
