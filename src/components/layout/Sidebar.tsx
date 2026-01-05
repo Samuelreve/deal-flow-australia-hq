@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Activity, Zap, LayoutDashboard, FileText, Settings, Plus, Users } from "lucide-react";
+import { LogOut, Activity, Zap, LayoutDashboard, FileText, Settings, Plus, Users, CreditCard } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigationState } from "@/hooks/navigation/useNavigationState";
 import AppErrorBoundary from "@/components/common/AppErrorBoundary";
@@ -142,6 +142,17 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             )}
+            
+            {/* Pricing - Available to all */}
+            <li>
+              <NavLink
+                to="/pricing"
+                className={() => `flex items-center rounded-md px-3 py-2 transition-colors ${getActiveClass('/pricing')}`}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                Pricing
+              </NavLink>
+            </li>
             
             {/* Settings - Available to all */}
             <li>
