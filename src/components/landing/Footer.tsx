@@ -17,17 +17,11 @@ const Footer = () => {
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
         >
           {/* Company Information */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-20 flex-shrink-0" />
-              <p className="text-sm text-muted-foreground">
-                Revolutionizing business exchange with AI-powered tools and seamless document management.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <Copyright className="h-4 w-4" />
-              <span>{currentYear} Trustroom.ai. All rights reserved.</span>
-            </div>
+          <div className="flex items-start gap-4">
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-24 flex-shrink-0" />
+            <p className="text-sm text-muted-foreground max-w-[220px]">
+              Revolutionizing business exchange with AI-powered tools and seamless document management.
+            </p>
           </div>
           
           {/* Resources */}
@@ -93,13 +87,25 @@ const Footer = () => {
           </div>
         </motion.div>
         
+        {/* Copyright */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="flex items-center space-x-2 text-sm text-muted-foreground mt-8"
+        >
+          <Copyright className="h-4 w-4" />
+          <span>{currentYear} Trustroom.ai. All rights reserved.</span>
+        </motion.div>
+        
         {/* Lower Footer - Links */}
         <motion.div 
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex flex-col sm:flex-row justify-center items-center mt-12 pt-6 border-t border-border/40"
+          className="flex flex-col sm:flex-row justify-center items-center mt-8 pt-6 border-t border-border/40"
         >
           <div className="flex flex-wrap justify-center gap-6">
             <Link to="/terms-of-service" className="text-muted-foreground hover:text-primary transition-colors text-sm">Terms of Service</Link>
