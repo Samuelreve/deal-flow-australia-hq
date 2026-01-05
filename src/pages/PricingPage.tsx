@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock } from 'lucide-react';
+import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ interface PlanFeature {
 }
 
 interface PricingPlan {
-  id: 'starter' | 'professional' | 'enterprise';
+  id: 'free' | 'starter' | 'professional' | 'enterprise';
   name: string;
   description: string;
   price: number;
@@ -34,6 +34,34 @@ interface PricingPlan {
 }
 
 const pricingPlans: PricingPlan[] = [
+  {
+    id: 'free',
+    name: 'Free',
+    description: 'Try Trustroom with a simple deal - no credit card required',
+    price: 0,
+    priceLabel: 'forever',
+    targetMarket: 'Try it out',
+    icon: <Gift className="h-6 w-6" />,
+    features: [
+      { text: 'Up to 2 participants', included: true },
+      { text: 'Up to 5 documents', included: true },
+      { text: '3 AI queries/month', included: true },
+      { text: 'No DocuSign signatures', included: false },
+      { text: '14-day deal duration', included: true },
+      { text: 'Basic health monitoring', included: true },
+      { text: 'Community support', included: true },
+      { text: 'Advanced predictions', included: false },
+      { text: 'Custom thresholds', included: false },
+      { text: 'Custom branding', included: false },
+    ],
+    limits: {
+      participants: '2',
+      documents: '5',
+      aiQueries: '3',
+      docusignEnvelopes: '0',
+      dealDuration: '14 days',
+    },
+  },
   {
     id: 'starter',
     name: 'Starter',
@@ -181,7 +209,7 @@ const PricingPage: React.FC = () => {
       {/* Pricing Cards */}
       <section className="pb-16 px-4">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {pricingPlans.map((plan) => (
               <Card 
                 key={plan.id}
@@ -218,7 +246,9 @@ const PricingPage: React.FC = () => {
 
                 <CardContent className="flex-1">
                   <div className="text-center mb-6">
-                    <span className="text-4xl font-bold text-foreground">${plan.price}</span>
+                    <span className="text-4xl font-bold text-foreground">
+                      {plan.price === 0 ? 'Free' : `$${plan.price}`}
+                    </span>
                     <span className="text-muted-foreground ml-2">{plan.priceLabel}</span>
                   </div>
 
@@ -279,11 +309,11 @@ const PricingPage: React.FC = () => {
                 <CardFooter className="pt-4">
                   <Button 
                     className="w-full" 
-                    variant={plan.popular ? 'default' : 'outline'}
+                    variant={plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
                     size="lg"
                     onClick={() => handleSelectPlan(plan.id)}
                   >
-                    Get Started
+                    {plan.id === 'free' ? 'Try Free' : 'Get Started'}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>

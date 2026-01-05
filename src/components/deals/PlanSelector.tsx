@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { Check, Zap, Shield, Building2, Users, FileText, Brain, PenTool, Clock } from 'lucide-react';
+import { Check, Zap, Shield, Building2, Users, FileText, Brain, PenTool, Clock, Gift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-export type PlanType = 'starter' | 'professional' | 'enterprise';
+export type PlanType = 'free' | 'starter' | 'professional' | 'enterprise';
 
 interface PlanOption {
   id: PlanType;
@@ -27,6 +27,21 @@ interface PlanOption {
 }
 
 const planOptions: PlanOption[] = [
+  {
+    id: 'free',
+    name: 'Free',
+    description: 'Try it out with a simple deal',
+    price: 0,
+    targetMarket: 'Trial',
+    icon: <Gift className="h-5 w-5" />,
+    limits: {
+      participants: '2',
+      documents: '5',
+      aiQueries: '3/mo',
+      docusignEnvelopes: '0',
+      dealDuration: '14 days',
+    },
+  },
   {
     id: 'starter',
     name: 'Starter',
@@ -127,8 +142,8 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
               </div>
               <div className="text-right">
-                <span className="text-xl font-bold">${plan.price}</span>
-                <span className="text-muted-foreground text-sm">/deal</span>
+                <span className="text-xl font-bold">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
+                {plan.price > 0 && <span className="text-muted-foreground text-sm">/deal</span>}
               </div>
             </Label>
           </div>
@@ -138,7 +153,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
   }
 
   return (
-    <div className={cn('grid grid-cols-1 md:grid-cols-3 gap-4', className)}>
+    <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4', className)}>
       {planOptions.map((plan) => (
         <Card
           key={plan.id}
@@ -179,8 +194,8 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
 
           <CardContent className="pt-0">
             <div className="mb-4">
-              <span className="text-3xl font-bold">${plan.price}</span>
-              <span className="text-muted-foreground">/deal</span>
+              <span className="text-3xl font-bold">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
+              {plan.price > 0 && <span className="text-muted-foreground">/deal</span>}
             </div>
 
             <div className="space-y-2 text-sm">

@@ -164,13 +164,20 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({
   );
 };
 
-export const getUsageLimitsForPlan = (planType: 'starter' | 'professional' | 'enterprise'): {
+export const getUsageLimitsForPlan = (planType: 'free' | 'starter' | 'professional' | 'enterprise'): {
   participants: number | null;
   documents: number | null;
   aiQueries: number | null;
   docusignEnvelopes: number | null;
 } => {
   switch (planType) {
+    case 'free':
+      return {
+        participants: 2,
+        documents: 5,
+        aiQueries: 3,
+        docusignEnvelopes: 0,
+      };
     case 'starter':
       return {
         participants: 4,
