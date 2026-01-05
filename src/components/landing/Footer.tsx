@@ -18,7 +18,7 @@ const Footer = () => {
         >
           {/* Company Information */}
           <div className="space-y-4">
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-10" />
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-12" />
             <p className="text-sm text-muted-foreground mt-1">
               Revolutionizing business exchange with AI-powered tools and seamless document management.
             </p>

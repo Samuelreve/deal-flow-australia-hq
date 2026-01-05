@@ -19,7 +19,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <Link to="/" className="flex items-center">
-          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-10" />
+          <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-12" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -60,7 +60,7 @@ const Header = () => {
           <SheetContent side="right" className="w-[300px] sm:w-[400px]">
             <div className="flex flex-col h-full">
               <div className="flex items-center pb-6">
-                <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-10" />
+                <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-12" />
               </div>
               
               <nav className="flex flex-col space-y-4 flex-1">
