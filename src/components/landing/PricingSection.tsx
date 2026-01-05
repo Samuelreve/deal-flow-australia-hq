@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PricingPlan {
   id: 'free' | 'starter' | 'professional' | 'enterprise';
@@ -132,11 +133,16 @@ interface PricingSectionProps {
 
 export function PricingSection({ className, showTitle = true, onSelectPlan }: PricingSectionProps) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleSelectPlan = (planId: string) => {
     if (onSelectPlan) {
       onSelectPlan(planId);
+    } else if (isAuthenticated) {
+      // Authenticated users go to dashboard
+      navigate('/dashboard');
     } else {
+      // Unauthenticated users go to auth page
       navigate(`/auth?mode=signup&plan=${planId}`);
     }
   };
