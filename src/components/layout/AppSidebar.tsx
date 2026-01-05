@@ -11,7 +11,8 @@ import {
   Plus,
   Bell,
   ChevronLeft,
-  User
+  User,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ const navigation = [
 const secondaryNavigation = [
   { name: 'Create Deal', href: '/create-deal', icon: Plus, tourId: 'sidebar-create-deal' },
   { name: 'Notifications', href: '/notifications', icon: Bell, tourId: 'sidebar-notifications' },
+  { name: 'Pricing', href: '/pricing', icon: CreditCard, tourId: 'sidebar-pricing' },
 ];
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
