@@ -18,10 +18,12 @@ const Footer = () => {
         >
           {/* Company Information */}
           <div className="space-y-4">
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-28" />
-            <p className="text-sm text-muted-foreground mt-1">
-              Revolutionizing business exchange with AI-powered tools and seamless document management.
-            </p>
+            <div className="flex items-center gap-4">
+              <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-20 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                Revolutionizing business exchange with AI-powered tools and seamless document management.
+              </p>
+            </div>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Copyright className="h-4 w-4" />
               <span>{currentYear} Trustroom.ai. All rights reserved.</span>
