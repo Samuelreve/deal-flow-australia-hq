@@ -12,6 +12,7 @@ import Footer from "@/components/landing/Footer";
 import SocialProof from "@/components/landing/SocialProof";
 import ComparisonTable from "@/components/landing/ComparisonTable";
 import DealCategories from "@/components/landing/DealCategories";
+import { PricingSection } from "@/components/landing/PricingSection";
 import { useEffect } from "react";
 
 const Index = () => {
@@ -64,6 +65,7 @@ const Index = () => {
         <DealCategories />
         <HowItWorksSection />
         <BenefitsSection />
+        <PricingSection className="bg-muted/30" />
         <TrustSection />
         <FAQSection />
         <CTASection />

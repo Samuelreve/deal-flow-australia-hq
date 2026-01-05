@@ -137,7 +137,7 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
     if (onSelectPlan) {
       onSelectPlan(planId);
     } else {
-      navigate('/auth?mode=signup');
+      navigate(`/auth?mode=signup&plan=${planId}`);
     }
   };
 
@@ -150,7 +150,7 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose the plan that fits your deal. Pay per transaction, no monthly fees.
+              No monthly subscriptions. Pay only for the deals you close. Start free and upgrade when you're ready.
             </p>
           </div>
         )}
