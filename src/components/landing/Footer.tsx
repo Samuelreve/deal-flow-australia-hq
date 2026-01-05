@@ -31,17 +31,19 @@ const Footer = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8"
         >
           {/* Brand Section */}
-          <div className="space-y-6">
-            <img 
-              src="/trustroom-logo.webp" 
-              alt="Trustroom.ai" 
-              className="h-14 w-auto object-contain" 
-            />
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Revolutionizing business exchange with AI-powered tools and seamless document management.
-            </p>
-            {/* Social Links */}
+          <div className="space-y-5">
             <div className="flex items-center gap-4">
+              <img 
+                src="/trustroom-logo.webp" 
+                alt="Trustroom.ai" 
+                className="h-16 w-auto object-contain flex-shrink-0" 
+              />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Revolutionizing business exchange with AI-powered tools and seamless document management.
+              </p>
+            </div>
+            {/* Social Links */}
+            <div className="flex items-center justify-center gap-4">
               <a 
                 href="https://twitter.com" 
                 target="_blank" 
