@@ -28,6 +28,7 @@ import AcceptInvitePage from "@/pages/AcceptInvitePage";
 import IntentCapturePage from "@/pages/onboarding/IntentCapturePage";
 import ProfessionalProfileSetupPage from "@/pages/onboarding/ProfessionalProfileSetupPage";
 import InstallPage from "@/pages/InstallPage";
+import PricingPage from "@/pages/PricingPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -80,6 +81,7 @@ function App() {
             <Route path="/ai-disclaimer" element={<AIDisclaimerPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/install" element={<InstallPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             
             {/* AI Assistant - accessible to everyone */}
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
