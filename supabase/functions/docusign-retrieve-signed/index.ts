@@ -115,8 +115,8 @@ serve(async (req: Request) => {
           .select()
           .single();
 
-        console.error('Error creating document record:', createError);
-          if (createError) {
+        if (createError) {
+          console.error('Error creating document record:', createError);
           continue;
         }
 
