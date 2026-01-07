@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift } from 'lucide-react';
+import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import AppLayout from '@/components/layout/AppLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlanFeature {
   text: string;
@@ -154,14 +155,57 @@ const pricingPlans: PricingPlan[] = [
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [loadingPlan, setLoadingPlan] = React.useState<string | null>(null);
 
-  const handleSelectPlan = (planId: string) => {
-    if (user) {
-      // Redirect to create deal with plan pre-selected
-      navigate(`/create-deal?plan=${planId}`);
-    } else {
-      // Redirect to login, then back to create deal
-      navigate(`/login?redirect=/create-deal?plan=${planId}`);
+  const handleSelectPlan = async (planId: string) => {
+    // Free plan - just go to create deal
+    if (planId === 'free') {
+      if (user) {
+        navigate(`/create-deal?plan=${planId}`);
+      } else {
+        navigate(`/login?redirect=/create-deal?plan=${planId}`);
+      }
+      return;
+    }
+
+    // Paid plans - require authentication
+    if (!user) {
+      navigate(`/login?redirect=/pricing`);
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to purchase a plan.",
+      });
+      return;
+    }
+
+    // Start Stripe checkout
+    setLoadingPlan(planId);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planId },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+
+      if (data?.url) {
+        // Open Stripe checkout in new tab
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        variant: "destructive",
+        title: "Checkout failed",
+        description: error instanceof Error ? error.message : "Failed to start checkout. Please try again.",
+      });
+    } finally {
+      setLoadingPlan(null);
     }
   };
 
@@ -288,9 +332,19 @@ const PricingPage: React.FC = () => {
                   variant={plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
                   size="lg"
                   onClick={() => handleSelectPlan(plan.id)}
+                  disabled={loadingPlan === plan.id}
                 >
-                  {plan.id === 'free' ? 'Try Free' : 'Get Started'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {loadingPlan === plan.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      {plan.id === 'free' ? 'Try Free' : 'Get Started'}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -369,9 +423,22 @@ const PricingPage: React.FC = () => {
             Join thousands of businesses using Trustroom.ai to streamline their M&A transactions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => handleSelectPlan('professional')}>
-              Start with Professional
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <Button 
+              size="lg" 
+              onClick={() => handleSelectPlan('professional')}
+              disabled={loadingPlan === 'professional'}
+            >
+              {loadingPlan === 'professional' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Start with Professional
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link to="/contact">Contact Sales</Link>

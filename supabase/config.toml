@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.ai-assistant]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
