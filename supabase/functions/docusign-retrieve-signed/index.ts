@@ -50,7 +50,6 @@ serve(async (req: Request) => {
 
     if (!files || files.length === 0) {
       return new Response(
-      return new Response(
         JSON.stringify({ message: 'No signed documents available yet' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
