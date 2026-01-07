@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift, Loader2 } from 'lucide-react';
+import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -156,7 +156,39 @@ const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loadingPlan, setLoadingPlan] = React.useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [loadingCurrentPlan, setLoadingCurrentPlan] = useState(false);
+
+  // Fetch current plan on mount when user is authenticated
+  useEffect(() => {
+    const fetchCurrentPlan = async () => {
+      if (!user) {
+        setCurrentPlan(null);
+        return;
+      }
+
+      setLoadingCurrentPlan(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('check-subscription');
+        
+        if (error) {
+          console.error('Error checking subscription:', error);
+          return;
+        }
+        
+        if (data?.currentPlan) {
+          setCurrentPlan(data.currentPlan);
+        }
+      } catch (error) {
+        console.error('Error fetching current plan:', error);
+      } finally {
+        setLoadingCurrentPlan(false);
+      }
+    };
+
+    fetchCurrentPlan();
+  }, [user]);
 
   const handleSelectPlan = async (planId: string) => {
     // Free plan - just go to create deal
@@ -230,16 +262,28 @@ const PricingPage: React.FC = () => {
       {/* Pricing Cards */}
       <section className="pb-16 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-          {pricingPlans.map((plan) => (
+          {pricingPlans.map((plan) => {
+            const isCurrentPlan = currentPlan === plan.id;
+            
+            return (
             <Card 
               key={plan.id}
               className={`relative flex flex-col ${
-                plan.popular 
-                  ? 'border-primary shadow-lg ring-2 ring-primary/20' 
-                  : 'border-border'
+                isCurrentPlan
+                  ? 'border-green-500 shadow-lg ring-2 ring-green-500/20'
+                  : plan.popular 
+                    ? 'border-primary shadow-lg ring-2 ring-primary/20' 
+                    : 'border-border'
               }`}
             >
-              {plan.popular && (
+              {isCurrentPlan ? (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-green-500 text-white flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Your Plan
+                  </Badge>
+                </div>
+              ) : plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground">
                     Most Popular
@@ -329,15 +373,20 @@ const PricingPage: React.FC = () => {
               <CardFooter className="pt-4">
                 <Button 
                   className="w-full" 
-                  variant={plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
+                  variant={isCurrentPlan ? 'secondary' : plan.popular ? 'default' : plan.id === 'free' ? 'secondary' : 'outline'}
                   size="lg"
                   onClick={() => handleSelectPlan(plan.id)}
-                  disabled={loadingPlan === plan.id}
+                  disabled={loadingPlan === plan.id || isCurrentPlan}
                 >
                   {loadingPlan === plan.id ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
+                    </>
+                  ) : isCurrentPlan ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Current Plan
                     </>
                   ) : (
                     <>
@@ -348,7 +397,8 @@ const PricingPage: React.FC = () => {
                 </Button>
               </CardFooter>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </section>
 
