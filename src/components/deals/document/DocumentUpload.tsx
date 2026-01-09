@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Document } from "@/types/deal";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Upload, FolderOpen } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DocumentUploadForm from "./DocumentUploadForm";
+import DealRoomDocumentSelector from "./DealRoomDocumentSelector";
 
 interface DocumentUploadProps {
   dealId: string;
@@ -32,6 +34,9 @@ const DocumentUpload = ({
   milestoneId,
   milestoneTitle
 }: DocumentUploadProps) => {
+  const [isDealRoomSelectorOpen, setIsDealRoomSelectorOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("upload");
+  
   // Check if user has permission to upload documents
   const canUploadDocuments = permissions?.canUpload ?? isParticipant;
   
@@ -59,10 +64,78 @@ const DocumentUpload = ({
     onUpload?.();
   };
 
+  const handleDocumentLinked = () => {
+    // Call the onUpload callback if provided (same behavior after linking)
+    onUpload?.();
+  };
+
+  // If milestoneId is provided, show tabs for upload vs deal room selection
+  if (milestoneId) {
+    return (
+      <div className="border-t pt-4 mt-4">
+        <h4 className="text-lg font-semibold mb-3">
+          {milestoneTitle ? `Add Document for: ${milestoneTitle}` : 'Add Document'}
+        </h4>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload New
+            </TabsTrigger>
+            <TabsTrigger value="dealroom" className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              Choose from Deal Room
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="mt-0">
+            <div className="mb-4">
+              <DocumentUploadForm 
+                dealId={dealId}
+                onUpload={handleDocumentUpload}
+                documents={documents}
+                milestoneId={milestoneId}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="dealroom" className="mt-0">
+            <div className="mb-4">
+              <div className="p-4 border rounded-lg bg-muted/30">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Select an existing document from the deal room to link it to this milestone.
+                </p>
+                <button
+                  onClick={() => setIsDealRoomSelectorOpen(true)}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Browse Deal Room Documents
+                </button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        {/* Deal Room Document Selector Modal */}
+        <DealRoomDocumentSelector
+          isOpen={isDealRoomSelectorOpen}
+          onClose={() => setIsDealRoomSelectorOpen(false)}
+          dealId={dealId}
+          milestoneId={milestoneId}
+          milestoneTitle={milestoneTitle}
+          onDocumentLinked={handleDocumentLinked}
+        />
+      </div>
+    );
+  }
+
+  // Default behavior without milestone (just upload form)
   return (
     <div className="border-t pt-4 mt-4">
       <h4 className="text-lg font-semibold mb-3">
-        {milestoneTitle ? `Upload Document for: ${milestoneTitle}` : 'Upload Document'}
+        Upload Document
       </h4>
       
       <div className="mb-4">
@@ -70,7 +143,6 @@ const DocumentUpload = ({
           dealId={dealId}
           onUpload={handleDocumentUpload}
           documents={documents}
-          milestoneId={milestoneId}
         />
       </div>
     </div>
