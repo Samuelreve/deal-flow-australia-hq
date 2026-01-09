@@ -89,11 +89,14 @@ export function useDealArchitect(options?: UseDealArchitectOptions) {
         throw new Error(data.error);
       }
 
-      // Add assistant response
+      // Add assistant response - handle various response formats
+      const responseContent = data.message || data.response || data.text || data.content || 
+        (typeof data === 'string' ? data : "I'm processing your request...");
+      
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.message || "I'm processing your request...",
+        content: responseContent,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
