@@ -58,8 +58,8 @@ async function extractTextWithOCR(fileData: Blob, fileName: string): Promise<str
 }
 
 async function analyzeDocumentWithAI(text: string, analysisType: string, openai: any): Promise<any> {
-  // Import enhanced prompts
-  const { DOCUMENT_ANALYSIS_PROMPT, CONTRACT_SUMMARY_PROMPT, CONTRACT_KEY_TERMS_PROMPT, CONTRACT_RISK_PROMPT } = await import("../_shared/ai-prompts.ts");
+  // Import enhanced prompts - correct path: operations -> document-ai-assistant -> _shared
+  const { DOCUMENT_ANALYSIS_PROMPT, CONTRACT_SUMMARY_PROMPT, CONTRACT_KEY_TERMS_PROMPT, CONTRACT_RISK_PROMPT } = await import("../../_shared/ai-prompts.ts");
   
   const prompts = {
     'summary': `${CONTRACT_SUMMARY_PROMPT}\n\nDocument content:\n\n${text}`,
