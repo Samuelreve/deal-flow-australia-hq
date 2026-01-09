@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Send, Sparkles, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useDealArchitect, GeneratedMilestone } from './hooks/useDealArchitect';
@@ -101,7 +99,7 @@ export function DealArchitectChat({ onDealCreated, onCancel }: DealArchitectChat
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
         <div className="space-y-4 max-w-3xl mx-auto">
           {messages.map((message) => (
             <div
@@ -116,7 +114,7 @@ export function DealArchitectChat({ onDealCreated, onCancel }: DealArchitectChat
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {message.content}
+                  {message.content || '(No response received)'}
                 </p>
                 <span className="text-xs opacity-60 mt-1 block">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -137,7 +135,7 @@ export function DealArchitectChat({ onDealCreated, onCancel }: DealArchitectChat
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Deal Preview (when complete) */}
       {isComplete && Object.keys(dealData).length > 0 && (
