@@ -90,8 +90,8 @@ const NavBar = () => {
 
   return (
     <AppErrorBoundary>
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm overflow-visible">
+        <div className="h-16 px-4 md:px-6 flex items-center justify-between overflow-visible">
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-28" />
