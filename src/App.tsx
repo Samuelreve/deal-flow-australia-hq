@@ -35,6 +35,7 @@ import { Toaster } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import OnboardingCheck from "@/components/auth/OnboardingCheck";
 import AuthenticatedLayout from "@/components/layout/AuthenticatedLayout";
+import { TermsAcceptanceCheck } from "@/components/auth/TermsAcceptanceCheck";
 
 // Layout wrapper for authenticated pages
 const AuthenticatedLayoutWrapper = () => (
@@ -91,8 +92,8 @@ function App() {
             {/* Contract Analysis - accessible to everyone */}
             <Route path="/contract-analysis" element={<ContractAnalysisPage />} />
             
-            {/* Protected routes - require authentication */}
-            <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+            {/* Protected routes - require authentication and terms acceptance */}
+            <Route element={<ProtectedRoute><TermsAcceptanceCheck><Outlet /></TermsAcceptanceCheck></ProtectedRoute>}>
               {/* Routes that require onboarding completion - with sidebar layout */}
               <Route element={<OnboardingCheck />}>
                 <Route element={<AuthenticatedLayoutWrapper />}>
