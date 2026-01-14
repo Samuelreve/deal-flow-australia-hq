@@ -4,8 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { invitationService } from "@/services/invitationService";
 import { authService } from "@/services/authService";
+import { supabase } from "@/integrations/supabase/client";
+import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from "@/lib/legal-versions";
 
-export const useSignUpForm = (inviteToken?: string | null, redirect?: string | null) => {
+export const useSignUpForm = (
+  inviteToken?: string | null, 
+  redirect?: string | null,
+  termsAccepted?: boolean,
+  privacyAccepted?: boolean
+) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -18,6 +25,10 @@ export const useSignUpForm = (inviteToken?: string | null, redirect?: string | n
   const navigate = useNavigate();
 
   const validateForm = () => {
+    if (!termsAccepted || !privacyAccepted) {
+      setError("You must accept the Terms & Conditions and Privacy Policy to create an account");
+      return false;
+    }
     if (!email) {
       setError("Email is required");
       return false;
@@ -31,6 +42,55 @@ export const useSignUpForm = (inviteToken?: string | null, redirect?: string | n
       return false;
     }
     return true;
+  };
+
+  const recordLegalAcceptance = async (userId: string, userEmail: string) => {
+    try {
+      // Try to get IP address (may fail due to CORS, that's okay)
+      let ipAddress = '0.0.0.0';
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        ipAddress = data.ip || '0.0.0.0';
+      } catch {
+        // IP fetch failed, use default
+      }
+
+      const { error: insertError } = await supabase
+        .from('legal_acceptances')
+        .insert({
+          user_id: userId,
+          email: userEmail,
+          terms_version: CURRENT_TERMS_VERSION,
+          privacy_version: CURRENT_PRIVACY_VERSION,
+          ip_address: ipAddress,
+          user_agent: navigator.userAgent,
+          accepted_at: new Date().toISOString()
+        });
+
+      if (insertError) {
+        console.error("Error recording legal acceptance:", insertError);
+      }
+
+      // Also update profile with acceptance flags
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          terms_accepted: true,
+          terms_accepted_at: new Date().toISOString(),
+          terms_version: CURRENT_TERMS_VERSION,
+          privacy_accepted: true,
+          privacy_accepted_at: new Date().toISOString(),
+          privacy_version: CURRENT_PRIVACY_VERSION
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error("Error updating profile with acceptance:", profileError);
+      }
+    } catch (err) {
+      console.error("Error in recordLegalAcceptance:", err);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +119,9 @@ export const useSignUpForm = (inviteToken?: string | null, redirect?: string | n
       const signupData = await authService.signup(email, password, name);
       
       if (signupData.user) {
+        // Record legal acceptance immediately after account creation
+        await recordLegalAcceptance(signupData.user.id, email);
+        
         setShowSuccess(true);
         
         // If there's an invitation token, accept it automatically using the user ID from signup

@@ -3,20 +3,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from "@/lib/legal-versions";
 
 interface OAuthButtonsProps {
   mode: "signin" | "signup";
   disabled?: boolean;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }
 
-const OAuthButtons = ({ mode, disabled = false }: OAuthButtonsProps) => {
+const OAuthButtons = ({ mode, disabled = false, termsAccepted, privacyAccepted }: OAuthButtonsProps) => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const { signInWithGoogle, signInWithApple } = useAuth();
 
+  const storeAcceptanceForOAuth = () => {
+    // Store acceptance in sessionStorage for OAuth callback to use
+    if (mode === "signup" && termsAccepted && privacyAccepted) {
+      sessionStorage.setItem('oauth_terms_acceptance', JSON.stringify({
+        termsAccepted: true,
+        privacyAccepted: true,
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  };
+
   const handleGoogleAuth = async () => {
     try {
       setIsGoogleLoading(true);
+      storeAcceptanceForOAuth();
       await signInWithGoogle();
       toast.success(`${mode === 'signin' ? 'Signed in' : 'Signed up'} with Google successfully!`);
     } catch (error: any) {
@@ -30,6 +47,7 @@ const OAuthButtons = ({ mode, disabled = false }: OAuthButtonsProps) => {
   const handleAppleAuth = async () => {
     try {
       setIsAppleLoading(true);
+      storeAcceptanceForOAuth();
       await signInWithApple();
       toast.success(`${mode === 'signin' ? 'Signed in' : 'Signed up'} with Apple successfully!`);
     } catch (error: any) {

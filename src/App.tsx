@@ -25,6 +25,7 @@ import DealHealthPage from "@/pages/DealHealthPage";
 import HealthMonitoring from "@/pages/HealthMonitoring";
 import ProfilePage from "@/pages/ProfilePage";
 import AcceptInvitePage from "@/pages/AcceptInvitePage";
+import OAuthCallback from "@/pages/auth/OAuthCallback";
 import IntentCapturePage from "@/pages/onboarding/IntentCapturePage";
 import ProfessionalProfileSetupPage from "@/pages/onboarding/ProfessionalProfileSetupPage";
 import InstallPage from "@/pages/InstallPage";
@@ -72,6 +73,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
             
             {/* Legal and Policy Pages */}
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
