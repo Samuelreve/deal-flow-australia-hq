@@ -1091,6 +1091,42 @@ export type Database = {
           },
         ]
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          email: string
+          id: string
+          ip_address: unknown
+          privacy_version: string
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: unknown
+          privacy_version: string
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: unknown
+          privacy_version?: string
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string | null
@@ -1391,6 +1427,9 @@ export type Database = {
           name: string
           onboarding_complete: boolean
           phone: string | null
+          privacy_accepted: boolean
+          privacy_accepted_at: string | null
+          privacy_version: string | null
           professional_bio: string | null
           professional_contact_email: string | null
           professional_firm_name: string | null
@@ -1400,6 +1439,9 @@ export type Database = {
           professional_specializations: Json | null
           professional_website: string | null
           role: Database["public"]["Enums"]["user_role"]
+          terms_accepted: boolean
+          terms_accepted_at: string | null
+          terms_version: string | null
           tour_completed: boolean | null
           updated_at: string
         }
@@ -1413,6 +1455,9 @@ export type Database = {
           name: string
           onboarding_complete?: boolean
           phone?: string | null
+          privacy_accepted?: boolean
+          privacy_accepted_at?: string | null
+          privacy_version?: string | null
           professional_bio?: string | null
           professional_contact_email?: string | null
           professional_firm_name?: string | null
@@ -1422,6 +1467,9 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           tour_completed?: boolean | null
           updated_at?: string
         }
@@ -1435,6 +1483,9 @@ export type Database = {
           name?: string
           onboarding_complete?: boolean
           phone?: string | null
+          privacy_accepted?: boolean
+          privacy_accepted_at?: string | null
+          privacy_version?: string | null
           professional_bio?: string | null
           professional_contact_email?: string | null
           professional_firm_name?: string | null
@@ -1444,6 +1495,9 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           tour_completed?: boolean | null
           updated_at?: string
         }
@@ -1536,6 +1590,14 @@ export type Database = {
       }
       check_deal_participation: {
         Args: { p_deal_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_terms_acceptance_required: {
+        Args: {
+          p_privacy_version: string
+          p_terms_version: string
+          p_user_id: string
+        }
         Returns: boolean
       }
       create_deal_invitation: {
