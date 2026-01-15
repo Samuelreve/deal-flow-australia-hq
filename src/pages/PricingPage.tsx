@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift, Loader2, CheckCircle2 } from 'lucide-react';
+import { Check, Zap, Shield, Building2, ArrowRight, Users, FileText, Brain, PenTool, Clock, Gift, Loader2, CheckCircle2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,11 +28,11 @@ interface PricingPlan {
   popular?: boolean;
   features: PlanFeature[];
   limits: {
+    activeDeals: string;
     participants: string;
     documents: string;
     aiQueries: string;
     docusignEnvelopes: string;
-    dealDuration: string;
   };
 }
 
@@ -46,11 +46,11 @@ const pricingPlans: PricingPlan[] = [
     targetMarket: 'Try it out',
     icon: <Gift className="h-6 w-6" />,
     features: [
+      { text: '1 active deal', included: true },
       { text: 'Up to 2 participants', included: true },
       { text: 'Up to 5 documents', included: true },
-      { text: '3 AI queries/month', included: true },
+      { text: '10 AI queries/month', included: true },
       { text: 'No DocuSign signatures', included: false },
-      { text: '14-day deal duration', included: true },
       { text: 'Basic health monitoring', included: true },
       { text: 'Community support', included: true },
       { text: 'Advanced predictions', included: false },
@@ -58,27 +58,27 @@ const pricingPlans: PricingPlan[] = [
       { text: 'Custom branding', included: false },
     ],
     limits: {
+      activeDeals: '1',
       participants: '2',
       documents: '5',
-      aiQueries: '3',
+      aiQueries: '10',
       docusignEnvelopes: '0',
-      dealDuration: '14 days',
     },
   },
   {
     id: 'starter',
     name: 'Starter',
     description: 'Perfect for small business acquisitions and straightforward deals',
-    price: 49,
-    priceLabel: 'per deal',
-    targetMarket: 'Deals under $500K',
+    price: 39,
+    priceLabel: '/month',
+    targetMarket: 'Small Teams',
     icon: <Zap className="h-6 w-6" />,
     features: [
-      { text: 'Up to 4 participants', included: true },
-      { text: 'Up to 20 documents', included: true },
-      { text: '10 AI queries/month', included: true },
-      { text: '5 DocuSign envelopes', included: true },
-      { text: '60-day deal duration', included: true },
+      { text: '3 active deals', included: true },
+      { text: 'Up to 5 participants per deal', included: true },
+      { text: 'Up to 25 documents per deal', included: true },
+      { text: '100 AI queries/month', included: true },
+      { text: '10 DocuSign envelopes/month', included: true },
       { text: 'Basic health monitoring', included: true },
       { text: 'Email support', included: true },
       { text: 'Advanced predictions', included: false },
@@ -86,28 +86,28 @@ const pricingPlans: PricingPlan[] = [
       { text: 'Custom branding', included: false },
     ],
     limits: {
-      participants: '4',
-      documents: '20',
-      aiQueries: '10',
-      docusignEnvelopes: '5',
-      dealDuration: '60 days',
+      activeDeals: '3',
+      participants: '5',
+      documents: '25',
+      aiQueries: '100',
+      docusignEnvelopes: '10',
     },
   },
   {
     id: 'professional',
     name: 'Professional',
     description: 'Ideal for mid-market transactions requiring deeper analysis',
-    price: 149,
-    priceLabel: 'per deal',
-    targetMarket: 'Deals $500K - $10M',
+    price: 99,
+    priceLabel: '/month',
+    targetMarket: 'Growing Teams',
     icon: <Shield className="h-6 w-6" />,
     popular: true,
     features: [
-      { text: 'Up to 10 participants', included: true, highlight: true },
-      { text: 'Up to 50 documents', included: true, highlight: true },
-      { text: '50 AI queries/month', included: true, highlight: true },
-      { text: '20 DocuSign envelopes', included: true, highlight: true },
-      { text: '180-day deal duration', included: true },
+      { text: '10 active deals', included: true, highlight: true },
+      { text: 'Up to 15 participants per deal', included: true, highlight: true },
+      { text: 'Up to 100 documents per deal', included: true, highlight: true },
+      { text: '500 AI queries/month', included: true, highlight: true },
+      { text: '50 DocuSign envelopes/month', included: true, highlight: true },
       { text: 'Advanced health monitoring', included: true },
       { text: 'Deal health predictions', included: true, highlight: true },
       { text: 'Priority email support', included: true },
@@ -115,27 +115,27 @@ const pricingPlans: PricingPlan[] = [
       { text: 'Custom branding', included: false },
     ],
     limits: {
-      participants: '10',
-      documents: '50',
-      aiQueries: '50',
-      docusignEnvelopes: '20',
-      dealDuration: '180 days',
+      activeDeals: '10',
+      participants: '15',
+      documents: '100',
+      aiQueries: '500',
+      docusignEnvelopes: '50',
     },
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Full-featured solution for large, complex transactions',
-    price: 399,
-    priceLabel: 'per deal',
-    targetMarket: 'Deals $10M+',
+    price: 299,
+    priceLabel: '/month',
+    targetMarket: 'Large Teams',
     icon: <Building2 className="h-6 w-6" />,
     features: [
+      { text: 'Unlimited active deals', included: true, highlight: true },
       { text: 'Unlimited participants', included: true, highlight: true },
       { text: 'Unlimited documents', included: true, highlight: true },
       { text: 'Unlimited AI queries', included: true, highlight: true },
       { text: 'Unlimited DocuSign envelopes', included: true, highlight: true },
-      { text: '365-day deal duration', included: true },
       { text: 'Advanced health monitoring', included: true },
       { text: 'Deal health predictions', included: true },
       { text: 'Custom alert thresholds', included: true, highlight: true },
@@ -143,11 +143,11 @@ const pricingPlans: PricingPlan[] = [
       { text: 'Custom branding', included: true, highlight: true },
     ],
     limits: {
+      activeDeals: 'Unlimited',
       participants: 'Unlimited',
       documents: 'Unlimited',
       aiQueries: 'Unlimited',
       docusignEnvelopes: 'Unlimited',
-      dealDuration: '365 days',
     },
   },
 ];
@@ -157,7 +157,9 @@ const PricingPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingPortal, setLoadingPortal] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loadingCurrentPlan, setLoadingCurrentPlan] = useState(false);
 
   // Fetch current plan on mount when user is authenticated
@@ -179,6 +181,9 @@ const PricingPage: React.FC = () => {
         
         if (data?.currentPlan) {
           setCurrentPlan(data.currentPlan);
+        }
+        if (data?.subscriptionEnd) {
+          setSubscriptionEnd(data.subscriptionEnd);
         }
       } catch (error) {
         console.error('Error fetching current plan:', error);
@@ -206,7 +211,7 @@ const PricingPage: React.FC = () => {
       navigate(`/login?redirect=/pricing`);
       toast({
         title: "Sign in required",
-        description: "Please sign in to purchase a plan.",
+        description: "Please sign in to subscribe to a plan.",
       });
       return;
     }
@@ -241,6 +246,32 @@ const PricingPage: React.FC = () => {
     }
   };
 
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+
+      if (error) {
+        throw new Error(error.message || 'Failed to open customer portal');
+      }
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error) {
+      console.error('Portal error:', error);
+      toast({
+        variant: "destructive",
+        title: "Portal failed",
+        description: error instanceof Error ? error.message : "Failed to open portal. Please try again.",
+      });
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
   const PageContent = (
     <>
       {/* Hero Section */}
@@ -250,12 +281,31 @@ const PricingPage: React.FC = () => {
             Simple, transparent pricing
           </Badge>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Pay per deal, not per seat
+            Simple monthly plans for every team size
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            Choose the plan that fits your deal size. No hidden fees, no long-term contracts.
+            Choose the plan that fits your needs. Cancel anytime, no hidden fees.
             Every plan includes AI-powered analysis and DocuSign integration.
           </p>
+          {currentPlan && currentPlan !== 'free' && (
+            <Button 
+              variant="outline" 
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+            >
+              {loadingPortal ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Manage Subscription
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </section>
 
@@ -313,30 +363,26 @@ const PricingPage: React.FC = () => {
                   <span className="text-4xl font-bold text-foreground">
                     {plan.price === 0 ? 'Free' : `$${plan.price}`}
                   </span>
-                  <span className="text-muted-foreground ml-2">{plan.priceLabel}</span>
+                  <span className="text-muted-foreground ml-1">{plan.priceLabel}</span>
                 </div>
 
                 {/* Quick limits overview */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{plan.limits.participants} participants</span>
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.activeDeals} deals</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>{plan.limits.documents} docs</span>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span>{plan.limits.participants} users</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Brain className="h-4 w-4 text-muted-foreground" />
-                    <span>{plan.limits.aiQueries} AI queries</span>
+                    <span>{plan.limits.aiQueries} AI</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <PenTool className="h-4 w-4 text-muted-foreground" />
-                    <span>{plan.limits.docusignEnvelopes} signatures</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm col-span-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{plan.limits.dealDuration} duration</span>
+                    <span>{plan.limits.docusignEnvelopes} sigs</span>
                   </div>
                 </div>
 
@@ -390,7 +436,7 @@ const PricingPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      {plan.id === 'free' ? 'Try Free' : 'Get Started'}
+                      {plan.id === 'free' ? 'Try Free' : 'Subscribe'}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -412,21 +458,31 @@ const PricingPage: React.FC = () => {
           <div className="space-y-8">
             <div>
               <h3 className="text-lg font-semibold mb-2">
-                What happens when my deal duration expires?
+                How does the monthly subscription work?
               </h3>
               <p className="text-muted-foreground">
-                You'll have read-only access to your deal room. To continue making changes or 
-                uploading documents, you can extend your deal by purchasing additional time.
+                Your subscription renews automatically each month. You'll have access to all features 
+                included in your plan for as long as your subscription is active. Cancel anytime.
               </p>
             </div>
 
             <div>
               <h3 className="text-lg font-semibold mb-2">
-                Can I upgrade my plan mid-deal?
+                Can I upgrade or downgrade my plan?
               </h3>
               <p className="text-muted-foreground">
-                Yes! You can upgrade at any time. You'll only pay the difference between your 
-                current plan and the new one, prorated for the remaining deal duration.
+                Yes! You can change your plan at any time from the subscription management portal. 
+                Changes take effect immediately, and you'll be prorated for the difference.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-2">
+                What happens if I cancel my subscription?
+              </h3>
+              <p className="text-muted-foreground">
+                Your subscription will remain active until the end of the current billing period. 
+                After that, you'll be moved to the Free plan with limited features.
               </p>
             </div>
 
@@ -446,7 +502,7 @@ const PricingPage: React.FC = () => {
               </h3>
               <p className="text-muted-foreground">
                 Yes! Each envelope includes up to 10 signers. We handle all DocuSign fees as part 
-                of your plan, so you can focus on closing your deal.
+                of your plan, so you can focus on closing your deals.
               </p>
             </div>
 
@@ -455,8 +511,8 @@ const PricingPage: React.FC = () => {
                 What if I need more than the Enterprise plan offers?
               </h3>
               <p className="text-muted-foreground">
-                For extremely large or complex transactions, contact us for custom pricing. 
-                We can accommodate multiple concurrent deals, custom integrations, and dedicated support.
+                For extremely large organizations or custom requirements, contact us for custom pricing. 
+                We can accommodate additional integrations, SSO, and dedicated support.
               </p>
             </div>
           </div>
@@ -472,26 +528,12 @@ const PricingPage: React.FC = () => {
           <p className="text-xl text-muted-foreground mb-8">
             Join thousands of businesses using Trustroom.ai to streamline their M&A transactions.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              onClick={() => handleSelectPlan('professional')}
-              disabled={loadingPlan === 'professional'}
-            >
-              {loadingPlan === 'professional' ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  Start with Professional
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/contact">Contact Sales</Link>
+          <div className="flex justify-center gap-4">
+            <Button size="lg" asChild>
+              <Link to={user ? "/dashboard" : "/login"}>
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </div>
         </div>
@@ -499,12 +541,24 @@ const PricingPage: React.FC = () => {
     </>
   );
 
-  // Use AuthenticatedLayout for logged-in users, AppLayout for guests
+  // Render with appropriate layout
   if (user) {
-    return <AuthenticatedLayout>{PageContent}</AuthenticatedLayout>;
+    return (
+      <AuthenticatedLayout>
+        <div className="container mx-auto max-w-7xl">
+          {PageContent}
+        </div>
+      </AuthenticatedLayout>
+    );
   }
 
-  return <AppLayout>{PageContent}</AppLayout>;
+  return (
+    <AppLayout>
+      <div className="container mx-auto max-w-7xl">
+        {PageContent}
+      </div>
+    </AppLayout>
+  );
 };
 
 export default PricingPage;

@@ -7,11 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Price IDs for each plan
+// Monthly subscription price IDs
 const PRICE_IDS: Record<string, string> = {
-  starter: "price_1SmzgwFhoTBiax7lsgGrO59U",
-  professional: "price_1SmzhGFhoTBiax7lOKMDevkU",
-  enterprise: "price_1SmzhXFhoTBiax7ldmeFdreo",
+  starter: "price_1SphBkFhoTBiax7l5qkO0J3t",
+  professional: "price_1SphC0FhoTBiax7lXCoILnDT",
+  enterprise: "price_1SphCFFhoTBiax7lk0DD0kUi",
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -77,6 +77,18 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
+      
+      // Check if customer already has an active subscription
+      const existingSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+      
+      if (existingSubscriptions.data.length > 0) {
+        logStep("Customer already has active subscription");
+        throw new Error("You already have an active subscription. Please manage it from the Customer Portal.");
+      }
     } else {
       logStep("No existing customer found, will create new");
     }
@@ -85,7 +97,7 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://trustroom.ai";
     logStep("Origin", { origin });
 
-    // Create a one-time payment session
+    // Create a subscription checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -95,7 +107,7 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: "payment",
+      mode: "subscription",
       success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${planId}`,
       cancel_url: `${origin}/pricing`,
       metadata: {

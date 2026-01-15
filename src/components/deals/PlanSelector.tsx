@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Zap, Shield, Building2, Users, FileText, Brain, PenTool, Clock, Gift } from 'lucide-react';
+import { Check, Zap, Shield, Building2, Users, FileText, Brain, PenTool, Gift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,11 +18,11 @@ interface PlanOption {
   icon: React.ReactNode;
   popular?: boolean;
   limits: {
+    activeDeals: string;
     participants: string;
     documents: string;
     aiQueries: string;
     docusignEnvelopes: string;
-    dealDuration: string;
   };
 }
 
@@ -35,57 +35,57 @@ const planOptions: PlanOption[] = [
     targetMarket: 'Trial',
     icon: <Gift className="h-5 w-5" />,
     limits: {
+      activeDeals: '1',
       participants: '2',
       documents: '5',
-      aiQueries: '3/mo',
+      aiQueries: '10/mo',
       docusignEnvelopes: '0',
-      dealDuration: '14 days',
     },
   },
   {
     id: 'starter',
     name: 'Starter',
-    description: 'For small deals under $500K',
-    price: 49,
-    targetMarket: 'Small Business',
+    description: 'For small teams',
+    price: 39,
+    targetMarket: 'Small Teams',
     icon: <Zap className="h-5 w-5" />,
     limits: {
-      participants: '4',
-      documents: '20',
-      aiQueries: '10/mo',
-      docusignEnvelopes: '5',
-      dealDuration: '60 days',
+      activeDeals: '3',
+      participants: '5',
+      documents: '25',
+      aiQueries: '100/mo',
+      docusignEnvelopes: '10/mo',
     },
   },
   {
     id: 'professional',
     name: 'Professional',
-    description: 'For mid-market deals $500K-$10M',
-    price: 149,
-    targetMarket: 'Mid-Market',
+    description: 'For growing teams',
+    price: 99,
+    targetMarket: 'Growing Teams',
     icon: <Shield className="h-5 w-5" />,
     popular: true,
     limits: {
-      participants: '10',
-      documents: '50',
-      aiQueries: '50/mo',
-      docusignEnvelopes: '20',
-      dealDuration: '180 days',
+      activeDeals: '10',
+      participants: '15',
+      documents: '100',
+      aiQueries: '500/mo',
+      docusignEnvelopes: '50/mo',
     },
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    description: 'For large deals $10M+',
-    price: 399,
-    targetMarket: 'Enterprise',
+    description: 'For large teams',
+    price: 299,
+    targetMarket: 'Large Teams',
     icon: <Building2 className="h-5 w-5" />,
     limits: {
+      activeDeals: 'Unlimited',
       participants: 'Unlimited',
       documents: 'Unlimited',
       aiQueries: 'Unlimited',
       docusignEnvelopes: 'Unlimited',
-      dealDuration: '365 days',
     },
   },
 ];
@@ -143,7 +143,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
               </div>
               <div className="text-right">
                 <span className="text-xl font-bold">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
-                {plan.price > 0 && <span className="text-muted-foreground text-sm">/deal</span>}
+                {plan.price > 0 && <span className="text-muted-foreground text-sm">/mo</span>}
               </div>
             </Label>
           </div>
@@ -195,17 +195,17 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
           <CardContent className="pt-0">
             <div className="mb-4">
               <span className="text-3xl font-bold">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
-              {plan.price > 0 && <span className="text-muted-foreground">/deal</span>}
+              {plan.price > 0 && <span className="text-muted-foreground">/month</span>}
             </div>
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>{plan.limits.participants} participants</span>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span>{plan.limits.activeDeals} active deals</span>
               </div>
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>{plan.limits.documents} documents</span>
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span>{plan.limits.participants} participants</span>
               </div>
               <div className="flex items-center gap-2">
                 <Brain className="h-4 w-4 text-muted-foreground" />
@@ -214,10 +214,6 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
               <div className="flex items-center gap-2">
                 <PenTool className="h-4 w-4 text-muted-foreground" />
                 <span>{plan.limits.docusignEnvelopes} signatures</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>{plan.limits.dealDuration} duration</span>
               </div>
             </div>
           </CardContent>

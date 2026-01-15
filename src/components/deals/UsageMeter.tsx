@@ -143,7 +143,7 @@ export const UsageMeter: React.FC<UsageMeterProps> = ({
     <Card className={className}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-medium">Usage</CardTitle>
+          <CardTitle className="text-base font-medium">Usage This Month</CardTitle>
           {planName && (
             <Badge variant="outline">{planName} Plan</Badge>
           )}
@@ -175,22 +175,22 @@ export const getUsageLimitsForPlan = (planType: 'free' | 'starter' | 'profession
       return {
         participants: 2,
         documents: 5,
-        aiQueries: 3,
+        aiQueries: 10,
         docusignEnvelopes: 0,
       };
     case 'starter':
       return {
-        participants: 4,
-        documents: 20,
-        aiQueries: 10,
-        docusignEnvelopes: 5,
+        participants: 5,
+        documents: 25,
+        aiQueries: 100,
+        docusignEnvelopes: 10,
       };
     case 'professional':
       return {
-        participants: 10,
-        documents: 50,
-        aiQueries: 50,
-        docusignEnvelopes: 20,
+        participants: 15,
+        documents: 100,
+        aiQueries: 500,
+        docusignEnvelopes: 50,
       };
     case 'enterprise':
       return {
