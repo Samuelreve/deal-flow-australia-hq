@@ -162,32 +162,52 @@ const PricingPage: React.FC = () => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loadingCurrentPlan, setLoadingCurrentPlan] = useState(false);
 
-  // Fetch current plan on mount when user is authenticated
+  // Fetch current plan on mount - first from DB (cached), then sync with Stripe
   useEffect(() => {
     const fetchCurrentPlan = async () => {
       if (!user) {
         setCurrentPlan(null);
+        setSubscriptionEnd(null);
         return;
       }
 
       setLoadingCurrentPlan(true);
+      
       try {
+        // Step 1: Immediately fetch cached plan from profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('subscription_plan, subscription_end, subscription_status')
+          .eq('id', user.id)
+          .single();
+        
+        if (!profileError && profileData) {
+          // Show cached data immediately
+          setCurrentPlan(profileData.subscription_plan || 'free');
+          setSubscriptionEnd(profileData.subscription_end || null);
+          console.log('Loaded cached plan from DB:', profileData.subscription_plan);
+        }
+        
+        setLoadingCurrentPlan(false);
+        
+        // Step 2: Sync with Stripe in background
         const { data, error } = await supabase.functions.invoke('check-subscription');
         
         if (error) {
-          console.error('Error checking subscription:', error);
+          console.error('Error syncing subscription with Stripe:', error);
           return;
         }
         
-        if (data?.currentPlan) {
+        // Update if Stripe data differs from cached
+        if (data?.currentPlan && data.currentPlan !== currentPlan) {
           setCurrentPlan(data.currentPlan);
+          console.log('Updated plan from Stripe sync:', data.currentPlan);
         }
         if (data?.subscriptionEnd) {
           setSubscriptionEnd(data.subscriptionEnd);
         }
       } catch (error) {
         console.error('Error fetching current plan:', error);
-      } finally {
         setLoadingCurrentPlan(false);
       }
     };
