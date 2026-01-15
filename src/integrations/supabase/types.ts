@@ -1439,6 +1439,12 @@ export type Database = {
           professional_specializations: Json | null
           professional_website: string | null
           role: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id: string | null
+          subscription_end: string | null
+          subscription_id: string | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          subscription_updated_at: string | null
           terms_accepted: boolean
           terms_accepted_at: string | null
           terms_version: string | null
@@ -1467,6 +1473,12 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
+          subscription_end?: string | null
+          subscription_id?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          subscription_updated_at?: string | null
           terms_accepted?: boolean
           terms_accepted_at?: string | null
           terms_version?: string | null
@@ -1495,6 +1507,12 @@ export type Database = {
           professional_specializations?: Json | null
           professional_website?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
+          subscription_end?: string | null
+          subscription_id?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          subscription_updated_at?: string | null
           terms_accepted?: boolean
           terms_accepted_at?: string | null
           terms_version?: string | null

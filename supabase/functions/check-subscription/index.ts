@@ -33,9 +33,11 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
+    // Use service role key to update profiles table
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
     );
 
     const authHeader = req.headers.get("Authorization");
@@ -63,7 +65,18 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, returning free plan");
+      logStep("No customer found, updating profile with free plan");
+      
+      // Update profile with free plan
+      await supabaseClient.from('profiles').update({
+        subscription_plan: 'free',
+        subscription_status: 'inactive',
+        subscription_end: null,
+        stripe_customer_id: null,
+        subscription_id: null,
+        subscription_updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      
       return new Response(JSON.stringify({ 
         subscribed: false,
         currentPlan: "free",
@@ -84,7 +97,18 @@ serve(async (req) => {
     });
 
     if (subscriptions.data.length === 0) {
-      logStep("No active subscription found");
+      logStep("No active subscription found, updating profile");
+      
+      // Update profile with free plan (no active subscription)
+      await supabaseClient.from('profiles').update({
+        subscription_plan: 'free',
+        subscription_status: 'inactive',
+        subscription_end: null,
+        stripe_customer_id: customerId,
+        subscription_id: null,
+        subscription_updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      
       return new Response(JSON.stringify({ 
         subscribed: false,
         currentPlan: "free",
@@ -112,6 +136,22 @@ serve(async (req) => {
       planId,
       endDate: subscriptionEnd 
     });
+
+    // Update profile with subscription data
+    const { error: updateError } = await supabaseClient.from('profiles').update({
+      subscription_plan: planId,
+      subscription_status: subscription.cancel_at_period_end ? 'canceled' : 'active',
+      subscription_end: subscriptionEnd,
+      stripe_customer_id: customerId,
+      subscription_id: subscription.id,
+      subscription_updated_at: new Date().toISOString(),
+    }).eq('id', user.id);
+
+    if (updateError) {
+      logStep("Error updating profile", { error: updateError.message });
+    } else {
+      logStep("Profile updated with subscription data");
+    }
 
     return new Response(JSON.stringify({
       subscribed: true,
