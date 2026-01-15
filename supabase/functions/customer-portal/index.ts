@@ -7,16 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Product IDs mapped to plan names
-const PRODUCT_TO_PLAN: Record<string, string> = {
-  "prod_TnHlT6KrIbKBNv": "starter",
-  "prod_TnHlmpj0mDHqsW": "professional",
-  "prod_TnHlKo54AEAwIR": "enterprise",
-};
-
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -33,6 +26,7 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -63,67 +57,29 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, returning free plan");
-      return new Response(JSON.stringify({ 
-        subscribed: false,
-        currentPlan: "free",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      throw new Error("No Stripe customer found for this user. Please subscribe to a plan first.");
     }
 
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check for active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
+    const origin = req.headers.get("origin") || "https://trustroom.ai";
+    
+    // Create a billing portal session
+    const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      status: 'active',
-      limit: 1,
+      return_url: `${origin}/pricing`,
     });
-
-    if (subscriptions.data.length === 0) {
-      logStep("No active subscription found");
-      return new Response(JSON.stringify({ 
-        subscribed: false,
-        currentPlan: "free",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    const subscription = subscriptions.data[0];
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-    const subscriptionStart = new Date(subscription.current_period_start * 1000).toISOString();
     
-    // Get the product ID from the subscription
-    const productId = subscription.items.data[0]?.price?.product as string;
-    const planId = PRODUCT_TO_PLAN[productId] || "unknown";
-    
-    logStep("Active subscription found", { 
-      subscriptionId: subscription.id, 
-      productId,
-      planId,
-      endDate: subscriptionEnd 
-    });
+    logStep("Customer portal session created", { sessionId: portalSession.id, url: portalSession.url });
 
-    return new Response(JSON.stringify({
-      subscribed: true,
-      currentPlan: planId,
-      productId,
-      subscriptionId: subscription.id,
-      subscriptionEnd,
-      subscriptionStart,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
-    }), {
+    return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in check-subscription", { message: errorMessage });
+    logStep("ERROR in customer-portal", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

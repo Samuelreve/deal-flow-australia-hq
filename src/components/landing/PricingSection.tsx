@@ -14,11 +14,11 @@ interface PricingPlan {
   description: string;
   features: { name: string; included: boolean }[];
   limits: {
+    activeDeals: number;
     participants: number;
     documents: number;
     aiQueries: string;
     docusign: boolean;
-    dealDuration: string;
   };
   popular?: boolean;
   icon: React.ComponentType<{ className?: string }>;
@@ -35,17 +35,17 @@ const pricingPlans: PricingPlan[] = [
     icon: Gift,
     cta: 'Try Free',
     limits: {
+      activeDeals: 1,
       participants: 2,
       documents: 5,
-      aiQueries: '3/month',
+      aiQueries: '10/month',
       docusign: false,
-      dealDuration: '14 days',
     },
     features: [
+      { name: '1 active deal', included: true },
       { name: 'Up to 2 participants', included: true },
-      { name: 'Up to 5 documents', included: true },
-      { name: '3 AI queries/month', included: true },
-      { name: '14-day deal duration', included: true },
+      { name: '10 AI queries/month', included: true },
+      { name: 'Basic health monitoring', included: true },
       { name: 'DocuSign integration', included: false },
       { name: 'Priority support', included: false },
     ],
@@ -53,74 +53,74 @@ const pricingPlans: PricingPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 49,
-    priceLabel: 'per deal',
-    description: 'Perfect for simple transactions',
+    price: 39,
+    priceLabel: '/month',
+    description: 'Perfect for small teams',
     icon: Zap,
-    cta: 'Get Started',
+    cta: 'Subscribe',
     limits: {
+      activeDeals: 3,
       participants: 5,
-      documents: 20,
-      aiQueries: '50/month',
+      documents: 25,
+      aiQueries: '100/month',
       docusign: true,
-      dealDuration: '90 days',
     },
     features: [
-      { name: 'Up to 5 participants', included: true },
-      { name: 'Up to 20 documents', included: true },
-      { name: '50 AI queries/month', included: true },
-      { name: '90-day deal duration', included: true },
-      { name: 'DocuSign integration', included: true },
+      { name: '3 active deals', included: true },
+      { name: 'Up to 5 participants per deal', included: true },
+      { name: '100 AI queries/month', included: true },
+      { name: '10 DocuSign envelopes/month', included: true },
+      { name: 'Email support', included: true },
       { name: 'Priority support', included: false },
     ],
   },
   {
     id: 'professional',
     name: 'Professional',
-    price: 149,
-    priceLabel: 'per deal',
-    description: 'For complex deals with multiple parties',
+    price: 99,
+    priceLabel: '/month',
+    description: 'For growing teams with multiple deals',
     icon: Crown,
-    cta: 'Choose Professional',
+    cta: 'Subscribe',
     popular: true,
     limits: {
+      activeDeals: 10,
       participants: 15,
       documents: 100,
-      aiQueries: '200/month',
+      aiQueries: '500/month',
       docusign: true,
-      dealDuration: '180 days',
     },
     features: [
-      { name: 'Up to 15 participants', included: true },
-      { name: 'Up to 100 documents', included: true },
-      { name: '200 AI queries/month', included: true },
-      { name: '180-day deal duration', included: true },
-      { name: 'DocuSign integration', included: true },
+      { name: '10 active deals', included: true },
+      { name: 'Up to 15 participants per deal', included: true },
+      { name: '500 AI queries/month', included: true },
+      { name: '50 DocuSign envelopes/month', included: true },
+      { name: 'Deal health predictions', included: true },
       { name: 'Priority support', included: true },
     ],
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 499,
-    priceLabel: 'per deal',
-    description: 'Unlimited power for large transactions',
+    price: 299,
+    priceLabel: '/month',
+    description: 'Unlimited power for large teams',
     icon: Building2,
-    cta: 'Contact Sales',
+    cta: 'Subscribe',
     limits: {
+      activeDeals: -1,
       participants: -1,
       documents: -1,
       aiQueries: 'Unlimited',
       docusign: true,
-      dealDuration: 'Unlimited',
     },
     features: [
+      { name: 'Unlimited active deals', included: true },
       { name: 'Unlimited participants', included: true },
-      { name: 'Unlimited documents', included: true },
       { name: 'Unlimited AI queries', included: true },
-      { name: 'Unlimited deal duration', included: true },
-      { name: 'DocuSign integration', included: true },
-      { name: 'Priority support', included: true },
+      { name: 'Unlimited DocuSign envelopes', included: true },
+      { name: 'Custom branding', included: true },
+      { name: 'Dedicated account manager', included: true },
     ],
   },
 ];
@@ -139,8 +139,8 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
     if (onSelectPlan) {
       onSelectPlan(planId);
     } else if (isAuthenticated) {
-      // Authenticated users go to dashboard
-      navigate('/dashboard');
+      // Authenticated users go to pricing page
+      navigate('/pricing');
     } else {
       // Unauthenticated users go to auth page
       navigate(`/auth?mode=signup&plan=${planId}`);
@@ -156,7 +156,7 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              No monthly subscriptions. Pay only for the deals you close. Start free and upgrade when you're ready.
+              Simple monthly plans. Cancel anytime. Start free and upgrade when you're ready.
             </p>
           </div>
         )}
@@ -198,7 +198,7 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
                       {plan.price === 0 ? 'Free' : `$${plan.price}`}
                     </span>
                     {plan.price > 0 && (
-                      <span className="text-muted-foreground ml-1">/{plan.priceLabel}</span>
+                      <span className="text-muted-foreground ml-1">{plan.priceLabel}</span>
                     )}
                   </div>
                 </CardHeader>
