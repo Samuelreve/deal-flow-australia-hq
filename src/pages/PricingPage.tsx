@@ -248,9 +248,22 @@ const PricingPage: React.FC = () => {
         throw new Error(error.message || 'Failed to create checkout session');
       }
 
+      // Handle case where user already has active subscription
+      if (data?.hasActiveSubscription) {
+        toast({
+          title: "You already have an active subscription",
+          description: "Opening the Customer Portal to manage your subscription...",
+        });
+        // Redirect to customer portal instead
+        handleManageSubscription();
+        return;
+      }
+
       if (data?.url) {
         // Open Stripe checkout in new tab
         window.open(data.url, '_blank');
+      } else if (data?.error) {
+        throw new Error(data.error);
       } else {
         throw new Error('No checkout URL returned');
       }

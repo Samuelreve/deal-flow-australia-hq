@@ -87,7 +87,13 @@ serve(async (req) => {
       
       if (existingSubscriptions.data.length > 0) {
         logStep("Customer already has active subscription");
-        throw new Error("You already have an active subscription. Please manage it from the Customer Portal.");
+        return new Response(JSON.stringify({ 
+          error: "You already have an active subscription. Please manage it from the Customer Portal.",
+          hasActiveSubscription: true
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
       }
     } else {
       logStep("No existing customer found, will create new");
