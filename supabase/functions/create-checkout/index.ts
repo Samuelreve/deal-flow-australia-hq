@@ -88,11 +88,11 @@ serve(async (req) => {
       if (existingSubscriptions.data.length > 0) {
         logStep("Customer already has active subscription");
         return new Response(JSON.stringify({ 
-          error: "You already have an active subscription. Please manage it from the Customer Portal.",
-          hasActiveSubscription: true
+          hasActiveSubscription: true,
+          message: "You already have an active subscription. Please manage it from the Customer Portal."
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
+          status: 200,
         });
       }
     } else {
