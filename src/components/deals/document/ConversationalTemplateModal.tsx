@@ -192,23 +192,145 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     value: `I want to create a ${t.name}`
   }));
 
+  // State for direct quick generation result
+  const [quickGeneratedDocument, setQuickGeneratedDocument] = useState<string | null>(null);
+  const [quickGenerationView, setQuickGenerationView] = useState<'generating' | 'preview' | null>(null);
+
   const handleQuickGenerate = async (templateId: string, requirements: string) => {
     setIsQuickGenerating(true);
+    setQuickGenerationView('generating');
+    
     try {
-      // Use the conversational doc gen to generate based on template
       const templateName = AVAILABLE_TEMPLATES.find(t => t.id === templateId)?.name || templateId;
-      const prompt = requirements 
-        ? `Generate a ${templateName} with these requirements: ${requirements}`
-        : `Generate a standard ${templateName}`;
       
-      // Start conversation with the template request
-      startConversation('chat');
-      sendMessage(prompt);
-    } catch (error) {
+      // Call the document-ai-assistant edge function directly to generate document
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('document-ai-assistant', {
+        body: {
+          operation: 'generate_template',
+          dealId,
+          userId: user?.id,
+          content: requirements || `Generate a complete ${templateName} document`,
+          context: {
+            templateType: templateName,
+            operationType: 'quick_template_generation',
+            additionalRequirements: requirements
+          }
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate document');
+      }
+
+      const generatedText = response.data?.result || response.data?.document || response.data?.content || '';
+      
+      if (!generatedText) {
+        throw new Error('No document content was generated');
+      }
+
+      setQuickGeneratedDocument(generatedText);
+      setQuickGenerationView('preview');
+      setCustomFileName(`${templateName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}`);
+    } catch (error: any) {
       console.error('Quick generate error:', error);
-      toast.error('Failed to generate document');
+      toast.error(error.message || 'Failed to generate document');
+      setQuickGenerationView(null);
     } finally {
       setIsQuickGenerating(false);
+    }
+  };
+
+  const handleSaveQuickDocument = async () => {
+    if (!user || !quickGeneratedDocument) return;
+    setIsSaving(true);
+
+    try {
+      const baseFileName = customFileName.trim() || `AI_Generated_Document_${Date.now()}`;
+      const fileName = `${baseFileName}.${selectedFileType}`;
+      const mimeType = selectedFileType === 'pdf' 
+        ? 'application/pdf' 
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+      let contentBlob: Blob;
+
+      if (selectedFileType === 'pdf') {
+        const jsPDF = (await import('jspdf')).default;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margins = 20;
+        const maxLineWidth = pageWidth - (margins * 2);
+        const lines = quickGeneratedDocument.split('\n');
+        let yPosition = margins;
+        doc.setFontSize(10);
+        
+        lines.forEach((line) => {
+          if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+            doc.addPage();
+            yPosition = margins;
+          }
+          if (line.trim() === '') {
+            yPosition += 7;
+            return;
+          }
+          const wrappedLines = doc.splitTextToSize(line, maxLineWidth);
+          wrappedLines.forEach((wrappedLine: string) => {
+            if (yPosition > doc.internal.pageSize.getHeight() - margins) {
+              doc.addPage();
+              yPosition = margins;
+            }
+            doc.text(wrappedLine, margins, yPosition);
+            yPosition += 7;
+          });
+        });
+        contentBlob = doc.output('blob');
+      } else {
+        const lines = quickGeneratedDocument.split('\n');
+        const paragraphs = lines.map(line => new Paragraph({ 
+          children: [new TextRun({ text: line })] 
+        }));
+        const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+        contentBlob = await Packer.toBlob(doc);
+      }
+
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          deal_id: dealId,
+          name: fileName,
+          category: 'contract',
+          uploaded_by: user.id,
+          storage_path: `${dealId}/${fileName}`,
+          size: contentBlob.size,
+          type: mimeType,
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      await supabase.from('document_versions').insert({
+        document_id: document.id,
+        version_number: 1,
+        storage_path: `${dealId}/${fileName}`,
+        size: contentBlob.size,
+        type: mimeType,
+        uploaded_by: user.id,
+        description: 'AI-generated document via quick template'
+      });
+
+      await supabase.storage.from('deal_documents').upload(`${dealId}/${fileName}`, contentBlob);
+
+      toast.success('Document saved successfully');
+      await onDocumentSaved();
+      handleClose();
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast.error(error.message || 'Failed to save document');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -338,6 +460,8 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
     setInput('');
     setCustomFileName('');
     setQuickModeView(null);
+    setQuickGeneratedDocument(null);
+    setQuickGenerationView(null);
     onClose();
   };
 
@@ -388,17 +512,88 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
         </DialogHeader>
 
         {/* Mode Selection Screen */}
-        {!interactionMode && quickModeView !== 'templates' && (
+        {!interactionMode && quickModeView !== 'templates' && !quickGenerationView && (
           <ModeSelectionScreen onSelectMode={handleSelectMode} />
         )}
 
-        {/* Quick Template Selection */}
-        {quickModeView === 'templates' && !interactionMode && (
+        {/* Quick Template Selection - only show if not generating/preview */}
+        {quickModeView === 'templates' && !interactionMode && !quickGenerationView && (
           <QuickTemplateSelection 
             onSelectTemplate={handleQuickGenerate}
             onBack={handleBackFromTemplates}
             isGenerating={isQuickGenerating || isLoading}
           />
+        )}
+
+        {/* Quick Generation Loading View */}
+        {quickGenerationView === 'generating' && (
+          <div className="flex flex-col items-center justify-center h-[400px] p-8 space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <h3 className="text-lg font-semibold">Generating Document...</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              AI is creating your document based on the selected template and deal context
+            </p>
+          </div>
+        )}
+
+        {/* Quick Generation Preview View */}
+        {quickGenerationView === 'preview' && quickGeneratedDocument && (
+          <div className="flex flex-col h-[500px]">
+            <div className="p-4 border-b space-y-3">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Label className="text-xs">File Name</Label>
+                  <Input
+                    value={customFileName}
+                    onChange={(e) => setCustomFileName(e.target.value)}
+                    placeholder="Document name"
+                    className="h-9"
+                  />
+                </div>
+                <div className="w-32">
+                  <Label className="text-xs">Format</Label>
+                  <Select value={selectedFileType} onValueChange={setSelectedFileType}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="docx">DOCX</SelectItem>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <ScrollArea className="flex-1 p-4">
+              <Textarea
+                value={quickGeneratedDocument}
+                readOnly
+                className="min-h-[300px] font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground mt-2 italic">
+                This is an AI-generated draft and should be reviewed by a qualified legal professional before use.
+              </p>
+            </ScrollArea>
+
+            <div className="p-4 border-t flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setQuickGenerationView(null);
+                  setQuickGeneratedDocument(null);
+                }} 
+                className="flex-1"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button onClick={handleSaveQuickDocument} disabled={isSaving} className="flex-1">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Document
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Main Content */}
