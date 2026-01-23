@@ -437,6 +437,15 @@ export async function handleConversationalTemplate(
 
       const currentQuestion = flow.questions[state.currentQuestionIndex];
 
+      // Check if user is asking a question - if so, always use AI to provide advice
+      const isAskingQuestion = rawLastUserMessage.includes('?') || 
+        rawLastUserMessage.toLowerCase().includes('what do you think') ||
+        rawLastUserMessage.toLowerCase().includes('your opinion') ||
+        rawLastUserMessage.toLowerCase().includes('recommend') ||
+        rawLastUserMessage.toLowerCase().includes('suggest') ||
+        rawLastUserMessage.toLowerCase().includes('which one') ||
+        rawLastUserMessage.toLowerCase().includes('help me');
+
       // Try to match user's response to an option
       if (currentQuestion && lastUserMessage) {
         const matchedOption = currentQuestion.options.find(o => 
@@ -453,6 +462,56 @@ export async function handleConversationalTemplate(
           if (index >= 0 && index < currentQuestion.options.length) {
             selectedOption = currentQuestion.options[index];
           }
+        }
+
+        // If user is asking a question, use AI to provide real advice instead of just matching
+        if (isAskingQuestion) {
+          const aiResponse = await handleFreeFormChat(
+            rawLastUserMessage,
+            state,
+            currentQuestion,
+            dealContext,
+            openai
+          );
+          
+          // If AI matched an option AND user seems to want that, proceed
+          if (aiResponse.matchedOption && !rawLastUserMessage.toLowerCase().includes('what do you think')) {
+            state.gatheredAnswers[currentQuestion.id] = aiResponse.matchedOption;
+            state.currentQuestionIndex++;
+
+            const flow = getQuestionFlow(state.documentType!);
+            if (flow && state.currentQuestionIndex < flow.questions.length) {
+              const nextQuestion = flow.questions[state.currentQuestionIndex];
+              const progress = `${state.currentQuestionIndex + 1}/${flow.questions.length}`;
+              const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
+
+              return {
+                success: true,
+                message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ''}\n\n**${nextQuestion.question}**`,
+                state,
+                options: nextQuestion.options.map(o => ({
+                  label: o.label,
+                  value: o.value,
+                  description: o.description
+                })),
+                isComplete: false,
+                partialDocument: partialDoc
+              };
+            }
+          }
+          
+          // AI provided advice - show it without advancing
+          return {
+            success: true,
+            message: `${aiResponse.message}\n\n**${currentQuestion.question}**`,
+            state,
+            options: currentQuestion.options.map(o => ({
+              label: o.label,
+              value: o.value,
+              description: o.description
+            })),
+            isComplete: false
+          };
         }
 
         if (selectedOption) {
@@ -746,19 +805,39 @@ async function handleFreeFormChat(
       .map(o => `- "${o.value}": ${o.label}${o.description ? ` (${o.description})` : ''}`)
       .join('\n');
 
-    const systemPrompt = `You are a helpful legal document assistant. The user is creating a ${state.documentType} document.
+    // Extract deal context for personalized advice
+    const dealInfo = dealContext?.dealContext || dealContext || {};
+    const dealType = dealInfo.dealType || dealInfo.dealCategory || '';
+    const industry = dealInfo.industry || dealInfo.businessIndustry || '';
+    const businessName = dealInfo.businessName || dealInfo.title || '';
 
-Current question: "${currentQuestion.question}"
+    const systemPrompt = `You are a helpful and knowledgeable legal document assistant with expertise in Australian business law. You're helping create a ${state.documentType} document${businessName ? ` for "${businessName}"` : ''}${industry ? ` in the ${industry} industry` : ''}.
 
-Available options:
+Current question being asked: "${currentQuestion.question}"
+
+Available options the user can choose from:
 ${optionsDescription}
 
-Your task:
-1. If the user's message clearly indicates a preference that matches one of the available options, respond with a JSON object: {"matchedOption": "option_value", "message": "Your friendly acknowledgment"}
-2. If the user is asking a question about the options or needs clarification, provide a helpful explanation and end with asking them to choose an option. Respond with: {"matchedOption": null, "message": "Your helpful response"}
-3. If the user's response is ambiguous, ask a clarifying question. Respond with: {"matchedOption": null, "message": "Your clarifying question"}
+IMPORTANT INSTRUCTIONS:
+1. If the user asks "what do you think?", "your opinion?", "recommend?", "which one should I choose?", or similar advice-seeking questions:
+   - Provide genuine, helpful professional advice based on the context
+   - Explain the pros and cons of relevant options
+   - Make a recommendation if appropriate, explaining your reasoning
+   - Consider industry best practices and Australian legal standards
+   - Respond with: {"matchedOption": null, "message": "Your detailed helpful advice here. Include why you recommend certain options."}
 
-Always respond with valid JSON only. Be concise and helpful.`;
+2. If the user clearly states a preference (e.g., "I want upfront payment"), respond with:
+   {"matchedOption": "matching_option_value", "message": "Brief acknowledgment of their choice"}
+
+3. If the user's intent is unclear, ask for clarification:
+   {"matchedOption": null, "message": "Your clarifying question"}
+
+Context about the deal:
+- Deal type: ${dealType || 'Not specified'}
+- Industry: ${industry || 'Not specified'}
+- Business: ${businessName || 'Not specified'}
+
+Be genuinely helpful and provide real professional insight. Always respond with valid JSON only.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -766,8 +845,8 @@ Always respond with valid JSON only. Be concise and helpful.`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
-      max_tokens: 300,
-      temperature: 0.3
+      max_tokens: 500,
+      temperature: 0.4
     });
 
     const aiContent = response.choices[0]?.message?.content || '';
