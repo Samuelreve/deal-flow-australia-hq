@@ -356,6 +356,56 @@ export async function handleConversationalTemplate(
         };
       }
 
+      // If user typed something but didn't match a document type, use AI to understand
+      if (rawLastUserMessage && rawLastUserMessage.toLowerCase() !== 'start') {
+        const aiDocTypeResponse = await handleDocumentTypeChat(
+          rawLastUserMessage,
+          documentTypes,
+          dealContext,
+          openai
+        );
+        
+        if (aiDocTypeResponse.matchedType) {
+          // AI understood and matched to a document type
+          const matchedDocType = documentTypes.find(dt => dt.type === aiDocTypeResponse.matchedType);
+          if (matchedDocType) {
+            state.documentType = matchedDocType.type;
+            state.phase = 'gathering';
+            state.currentQuestionIndex = 0;
+
+            const flow = getQuestionFlow(matchedDocType.type);
+            const firstQuestion = flow?.questions[0];
+            const partialDoc = buildPartialDocumentPreview(matchedDocType.type, {}, dealContext);
+
+            return {
+              success: true,
+              message: `${aiDocTypeResponse.message}\n\n${firstQuestion?.helpText || ''}\n\n**${firstQuestion?.question}**`,
+              state,
+              options: firstQuestion?.options.map((o) => ({
+                label: o.label,
+                value: o.value,
+                description: o.description,
+              })),
+              isComplete: false,
+              partialDocument: partialDoc,
+            };
+          }
+        }
+        
+        // AI provided helpful response but no match
+        return {
+          success: true,
+          message: `${aiDocTypeResponse.message}\n\n**What type of document would you like to create?**`,
+          state,
+          options: documentTypes.map((dt) => ({
+            label: dt.displayName,
+            value: dt.type,
+            description: dt.description,
+          })),
+          isComplete: false,
+        };
+      }
+
       // Show document type selection with smart welcome
       const welcomeMessage = buildSmartWelcome(dealContext?.dealContext || dealContext || {});
       
@@ -458,11 +508,67 @@ export async function handleConversationalTemplate(
         }
       }
 
-      // If no match, re-ask the current question
+      // If no match, use AI to understand the user's intent and respond intelligently
       if (currentQuestion) {
+        const aiResponse = await handleFreeFormChat(
+          rawLastUserMessage,
+          state,
+          currentQuestion,
+          dealContext,
+          openai
+        );
+        
+        if (aiResponse.matchedOption) {
+          // AI understood the user's intent and matched it to an option
+          state.gatheredAnswers[currentQuestion.id] = aiResponse.matchedOption;
+          state.currentQuestionIndex++;
+
+          const flow = getQuestionFlow(state.documentType!);
+          if (flow && state.currentQuestionIndex < flow.questions.length) {
+            const nextQuestion = flow.questions[state.currentQuestionIndex];
+            const progress = `${state.currentQuestionIndex + 1}/${flow.questions.length}`;
+            const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
+
+            return {
+              success: true,
+              message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ''}\n\n**${nextQuestion.question}**`,
+              state,
+              options: nextQuestion.options.map(o => ({
+                label: o.label,
+                value: o.value,
+                description: o.description
+              })),
+              isComplete: false,
+              partialDocument: partialDoc
+            };
+          } else if (flow) {
+            // All questions answered
+            state.phase = 'confirming';
+            const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
+            const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
+              const question = flow.questions.find(q => q.id === key);
+              const option = question?.options.find(o => o.value === value);
+              return `• **${question?.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**: ${option?.label || value}`;
+            }).join('\n');
+
+            return {
+              success: true,
+              message: `${aiResponse.message}\n\n**Document Summary:**\n${summary}\n\n**Ready to generate your ${flow.displayName}?**`,
+              state,
+              options: [
+                { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
+                { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+              ],
+              isComplete: false,
+              partialDocument: partialDoc
+            };
+          }
+        }
+        
+        // AI provided a helpful response but didn't match an option
         return {
           success: true,
-          message: `I didn't quite catch that. Please select one of the options below.\n\n**${currentQuestion.question}**`,
+          message: `${aiResponse.message}\n\n**${currentQuestion.question}**`,
           state,
           options: currentQuestion.options.map(o => ({
             label: o.label,
@@ -560,6 +666,130 @@ export async function handleConversationalTemplate(
       state,
       isComplete: false,
       error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Handle free-form chat for document type selection
+ */
+async function handleDocumentTypeChat(
+  userMessage: string,
+  documentTypes: Array<{ type: string; displayName: string; description: string }>,
+  dealContext: Record<string, any>,
+  openai: any
+): Promise<{ message: string; matchedType?: string }> {
+  try {
+    const typesDescription = documentTypes
+      .map(dt => `- "${dt.type}": ${dt.displayName} - ${dt.description}`)
+      .join('\n');
+
+    const systemPrompt = `You are a helpful legal document assistant. The user wants to create a document but you need to understand which type.
+
+Available document types:
+${typesDescription}
+
+Your task:
+1. If the user clearly indicates what document they need, respond with: {"matchedType": "document_type_value", "message": "Great choice! Let's create your [document name]."}
+2. If the user asks what documents are available or needs help choosing, explain the options briefly. Respond with: {"matchedType": null, "message": "Your helpful explanation of options"}
+3. If ambiguous, ask what they're trying to accomplish. Respond with: {"matchedType": null, "message": "Your clarifying question"}
+
+Context about the deal: ${JSON.stringify(dealContext?.dealContext || dealContext || {})}
+
+Always respond with valid JSON only. Be concise and helpful.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      max_tokens: 400,
+      temperature: 0.3
+    });
+
+    const aiContent = response.choices[0]?.message?.content || '';
+    
+    try {
+      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleanedContent);
+      return {
+        message: parsed.message || "I'd be happy to help you create a document.",
+        matchedType: parsed.matchedType || undefined
+      };
+    } catch {
+      return {
+        message: aiContent || "I can help you create various legal documents. Which type would you like?"
+      };
+    }
+  } catch (error) {
+    console.error('Document type chat AI error:', error);
+    return {
+      message: "I can help you create NDAs, contracts, agreements, and more. Please select a document type from the options above."
+    };
+  }
+}
+
+/**
+ * Handle free-form chat messages using AI
+ * This enables users to type natural language instead of just clicking buttons
+ */
+async function handleFreeFormChat(
+  userMessage: string,
+  state: ConversationalState,
+  currentQuestion: { id: string; question: string; options: Array<{ label: string; value: string; description?: string }> },
+  dealContext: Record<string, any>,
+  openai: any
+): Promise<{ message: string; matchedOption?: string }> {
+  try {
+    const optionsDescription = currentQuestion.options
+      .map(o => `- "${o.value}": ${o.label}${o.description ? ` (${o.description})` : ''}`)
+      .join('\n');
+
+    const systemPrompt = `You are a helpful legal document assistant. The user is creating a ${state.documentType} document.
+
+Current question: "${currentQuestion.question}"
+
+Available options:
+${optionsDescription}
+
+Your task:
+1. If the user's message clearly indicates a preference that matches one of the available options, respond with a JSON object: {"matchedOption": "option_value", "message": "Your friendly acknowledgment"}
+2. If the user is asking a question about the options or needs clarification, provide a helpful explanation and end with asking them to choose an option. Respond with: {"matchedOption": null, "message": "Your helpful response"}
+3. If the user's response is ambiguous, ask a clarifying question. Respond with: {"matchedOption": null, "message": "Your clarifying question"}
+
+Always respond with valid JSON only. Be concise and helpful.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      max_tokens: 300,
+      temperature: 0.3
+    });
+
+    const aiContent = response.choices[0]?.message?.content || '';
+    
+    try {
+      // Try to parse JSON response
+      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleanedContent);
+      return {
+        message: parsed.message || "I understand. Let me help you with that.",
+        matchedOption: parsed.matchedOption || undefined
+      };
+    } catch {
+      // If not valid JSON, treat as a plain message
+      return {
+        message: aiContent || "I'm here to help! Please select one of the options above, or ask me any questions about them."
+      };
+    }
+  } catch (error) {
+    console.error('Free-form chat AI error:', error);
+    return {
+      message: "I'd be happy to help clarify the options. Could you please select one of the choices above, or let me know what you'd like to understand better?"
     };
   }
 }
