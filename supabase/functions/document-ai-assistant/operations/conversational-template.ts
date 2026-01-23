@@ -641,6 +641,45 @@ export async function handleConversationalTemplate(
 
     // Phase: Confirming
     if (state.phase === 'confirming') {
+      const flow = getQuestionFlow(state.documentType!);
+      
+      // Check if user is asking for AI review of their choices
+      const isAskingForReview = rawLastUserMessage.includes('?') || 
+        rawLastUserMessage.toLowerCase().includes('think') ||
+        rawLastUserMessage.toLowerCase().includes('good') ||
+        rawLastUserMessage.toLowerCase().includes('review') ||
+        rawLastUserMessage.toLowerCase().includes('feedback') ||
+        rawLastUserMessage.toLowerCase().includes('opinion');
+      
+      if (isAskingForReview && flow) {
+        // Use AI to review the user's choices
+        const aiReview = await handleChoicesReview(
+          rawLastUserMessage,
+          state.documentType!,
+          state.gatheredAnswers,
+          flow,
+          dealContext,
+          openai
+        );
+        
+        const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
+          const question = flow.questions.find(q => q.id === key);
+          const option = question?.options.find(o => o.value === value);
+          return `• **${question?.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**: ${option?.label || value}`;
+        }).join('\n');
+        
+        return {
+          success: true,
+          message: `${aiReview}\n\n**Your current selections:**\n${summary}\n\n**Ready to generate, or would you like to modify?**`,
+          state,
+          options: [
+            { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
+            { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+          ],
+          isComplete: false
+        };
+      }
+      
       if (lastUserMessage.includes('generate') || lastUserMessage.includes('yes') || lastUserMessage.includes('create')) {
         state.phase = 'generating';
         
@@ -670,7 +709,6 @@ export async function handleConversationalTemplate(
         state.currentQuestionIndex = 0;
         state.gatheredAnswers = {};
 
-        const flow = getQuestionFlow(state.documentType!);
         const firstQuestion = flow?.questions[0];
 
         return {
@@ -786,6 +824,67 @@ Always respond with valid JSON only. Be concise and helpful.`;
     return {
       message: "I can help you create NDAs, contracts, agreements, and more. Please select a document type from the options above."
     };
+  }
+}
+
+/**
+ * Handle AI review of user's document choices
+ */
+async function handleChoicesReview(
+  userMessage: string,
+  documentType: string,
+  gatheredAnswers: Record<string, any>,
+  flow: { displayName: string; questions: Array<{ id: string; question: string; options: Array<{ label: string; value: string; description?: string }> }> },
+  dealContext: Record<string, any>,
+  openai: any
+): Promise<string> {
+  try {
+    const dealInfo = dealContext?.dealContext || dealContext || {};
+    const industry = dealInfo.industry || dealInfo.businessIndustry || '';
+    const businessName = dealInfo.businessName || dealInfo.title || '';
+    
+    // Build a summary of what the user chose
+    const choicesSummary = Object.entries(gatheredAnswers).map(([questionId, value]) => {
+      const question = flow.questions.find(q => q.id === questionId);
+      const option = question?.options.find(o => o.value === value);
+      return `- ${question?.question}: ${option?.label || value}`;
+    }).join('\n');
+
+    const systemPrompt = `You are an expert legal document advisor with deep knowledge of Australian business law and best practices.
+
+The user has made the following selections for their ${flow.displayName}:
+${choicesSummary}
+
+Context:
+- Business: ${businessName || 'Not specified'}
+- Industry: ${industry || 'Not specified'}
+- Document Type: ${flow.displayName}
+
+The user is asking: "${userMessage}"
+
+Provide a thoughtful, professional review of their choices:
+1. Comment on whether the selections are appropriate for their situation
+2. Highlight any potential concerns or things to consider
+3. Note any particularly good choices they made
+4. If relevant, mention industry-specific considerations
+5. Be encouraging but honest
+
+Keep your response concise (2-4 sentences) but genuinely helpful. Don't use JSON formatting, just respond naturally.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      max_tokens: 400,
+      temperature: 0.4
+    });
+
+    return response.choices[0]?.message?.content || "Your selections look good! Feel free to generate the document or modify if needed.";
+  } catch (error) {
+    console.error('Choices review AI error:', error);
+    return "Your selections look appropriate for this type of document. You can proceed with generation or modify if you'd like to make changes.";
   }
 }
 
