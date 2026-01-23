@@ -224,7 +224,7 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
         throw new Error(response.error.message || 'Failed to generate document');
       }
 
-      const generatedText = response.data?.result || response.data?.document || response.data?.content || '';
+      const generatedText = response.data?.template || response.data?.result || response.data?.document || response.data?.content || '';
       
       if (!generatedText) {
         throw new Error('No document content was generated');
