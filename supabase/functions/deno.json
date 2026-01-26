@@ -1,0 +1,20 @@
+{
+  "tasks": {
+    "test": "SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU deno test __tests__/milestone-rbac.test.ts --allow-all --no-check --no-lock",
+    "test:all": "SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU deno test __tests__/ --allow-all --no-check",
+    "test:watch": "SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU deno test __tests__/milestone-rbac.test.ts __tests__/milestone-authorization.test.ts --allow-all --no-check --watch"
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.200.0/",
+    "supabase/": "https://deno.land/x/supabase_runtime@1.0.0/",
+    "pdf-parse": "npm:pdf-parse@1.1.1",
+    "mammoth": "npm:mammoth@1.6.0"
+  },
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.window", "esnext"]
+  },
+  "test": {
+    "include": ["__tests__/milestone-rbac.test.ts", "__tests__/milestone-authorization.test.ts"]
+  }
+}

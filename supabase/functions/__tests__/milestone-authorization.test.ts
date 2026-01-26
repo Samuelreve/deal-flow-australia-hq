@@ -1,6 +1,6 @@
 
 import { assertEquals } from "https://deno.land/std@0.192.0/testing/asserts.ts";
-import { beforeEach, describe, it } from "https://deno.land/std@0.192.0/testing/bdd.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std@0.192.0/testing/bdd.ts";
 import * as mf from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 import { mockSupabase } from "./setup.ts";
 
