@@ -1,4 +1,27 @@
-# Welcome to your Lovable project
+# Deal Flow Australia HQ
+
+An internal tool for managing deal flow and analysing documents for due diligence.
+
+## Local Setup
+
+1. Install dependencies:
+   ```sh
+   npm i
+   ```
+2. Start the Vite development server:
+   ```sh
+   npm run dev
+   ```
+3. Run Supabase Edge Function tests with Deno:
+   ```sh
+   cd supabase/functions
+   deno test --allow-env --allow-net --allow-read __tests__/*.test.ts
+   ```
+
+## Architecture Overview
+
+- `src/` – React front-end application code.
+- `supabase/functions/` – Deno edge functions and their tests.
 
 ## Project info
 
