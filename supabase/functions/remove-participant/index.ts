@@ -173,7 +173,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

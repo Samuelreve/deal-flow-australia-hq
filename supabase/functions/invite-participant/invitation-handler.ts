@@ -148,7 +148,7 @@ The Deal Pilot Team`
           message: "Invitation created but email could not be sent. Please check your email configuration.",
           invitationCreated: true,
           emailSent: false,
-          error: emailError.message
+          error: emailError instanceof Error ? emailError.message : 'Unknown email error'
         }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

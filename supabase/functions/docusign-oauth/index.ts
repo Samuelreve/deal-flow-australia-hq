@@ -89,7 +89,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        message: error.message || 'An unexpected error occurred'
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
       { 
         status: 500,
@@ -253,7 +253,7 @@ async function handleTokenRequest(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({ 
         error: 'Token exchange failed',
-        message: error.message
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
       { 
         status: 500,
@@ -347,7 +347,7 @@ async function handleRefreshRequest(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({ 
         error: 'Token refresh failed',
-        message: error.message
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
       { 
         status: 500,
@@ -401,7 +401,7 @@ async function handleUserInfoRequest(req: Request): Promise<Response> {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to get user info',
-        message: error.message
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
       { 
         status: 500,
