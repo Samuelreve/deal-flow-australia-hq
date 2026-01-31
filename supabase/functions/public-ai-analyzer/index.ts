@@ -105,7 +105,7 @@ async function extractTextFromDocument(fileBuffer: ArrayBuffer, contentType: str
     }
   } catch (error) {
     console.error('Text extraction error:', error);
-    throw new Error(`Failed to extract text from ${fileName}: ${error.message}`);
+    throw new Error(`Failed to extract text from ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
