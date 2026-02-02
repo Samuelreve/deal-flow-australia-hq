@@ -129,9 +129,10 @@ interface PricingSectionProps {
   className?: string;
   showTitle?: boolean;
   onSelectPlan?: (planId: string) => void;
+  currentPlan?: string | null;
 }
 
-export function PricingSection({ className, showTitle = true, onSelectPlan }: PricingSectionProps) {
+export function PricingSection({ className, showTitle = true, onSelectPlan, currentPlan }: PricingSectionProps) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -164,16 +165,23 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {pricingPlans.map((plan) => {
             const IconComponent = plan.icon;
+            const isCurrentPlan = currentPlan === plan.id;
             return (
               <Card
                 key={plan.id}
                 className={cn(
                   "relative flex flex-col transition-all duration-200 hover:shadow-lg",
-                  plan.popular && "border-primary shadow-md ring-2 ring-primary/20",
-                  plan.id === 'free' && "border-muted bg-muted/30"
+                  isCurrentPlan && "border-emerald-500 ring-2 ring-emerald-500/20",
+                  !isCurrentPlan && plan.popular && "border-primary shadow-md ring-2 ring-primary/20",
+                  !isCurrentPlan && plan.id === 'free' && "border-muted bg-muted/30"
                 )}
               >
-                {plan.popular && (
+                {isCurrentPlan && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white">
+                    Your Plan
+                  </Badge>
+                )}
+                {!isCurrentPlan && plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
                     Most Popular
                   </Badge>
@@ -225,10 +233,11 @@ export function PricingSection({ className, showTitle = true, onSelectPlan }: Pr
                 <CardFooter className="pt-4">
                   <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : plan.id === 'free' ? "outline" : "secondary"}
+                    variant={isCurrentPlan ? "outline" : plan.popular ? "default" : plan.id === 'free' ? "outline" : "secondary"}
                     onClick={() => handleSelectPlan(plan.id)}
+                    disabled={isCurrentPlan}
                   >
-                    {plan.cta}
+                    {isCurrentPlan ? 'Current Plan' : plan.cta}
                   </Button>
                 </CardFooter>
               </Card>
