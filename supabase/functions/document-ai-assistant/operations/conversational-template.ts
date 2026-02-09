@@ -3,28 +3,28 @@
  * Handles multi-turn conversations for document requirement gathering
  */
 
-import { 
-  QUESTION_FLOWS, 
-  getQuestionFlow, 
+import {
+  QUESTION_FLOWS,
+  getQuestionFlow,
   getAvailableDocumentTypes,
   buildConversationalPrompt,
   isReadyToGenerate,
-  formatAnswersForGeneration
-} from '../../_shared/conversational-questions.ts';
-import { 
-  DOCUMENT_GENERATION_SYSTEM_PROMPT, 
+  formatAnswersForGeneration,
+} from "../../_shared/conversational-questions.ts";
+import {
+  DOCUMENT_GENERATION_SYSTEM_PROMPT,
   AUSTRALIAN_LEGAL_CONTEXT,
   CLAUSE_LIBRARY,
-  DOCUMENT_EXAMPLES
-} from '../../_shared/ai-prompts.ts';
+  DOCUMENT_EXAMPLES,
+} from "../../_shared/ai-prompts.ts";
 
 interface ConversationalMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
 interface ConversationalState {
-  phase: 'select_type' | 'gathering' | 'confirming' | 'generating' | 'complete';
+  phase: "select_type" | "gathering" | "confirming" | "generating" | "complete";
   documentType: string | null;
   gatheredAnswers: Record<string, any>;
   currentQuestionIndex: number;
@@ -55,7 +55,7 @@ interface ConversationalResponse {
  */
 function buildSmartWelcome(dealContext: Record<string, any>): string {
   const parts: string[] = [];
-  
+
   // Personalized greeting
   if (dealContext.title || dealContext.businessName) {
     const dealName = dealContext.title || dealContext.businessName;
@@ -63,44 +63,46 @@ function buildSmartWelcome(dealContext: Record<string, any>): string {
   } else {
     parts.push(`Welcome! I'll help you create professional legal documents for this deal.`);
   }
-  
+
   // Smart recommendations based on deal type and stage
   const recommendations: string[] = [];
-  const dealType = dealContext.dealType?.toLowerCase() || '';
-  const dealCategory = dealContext.dealCategory?.toLowerCase() || '';
-  const status = dealContext.status?.toLowerCase() || '';
-  
+  const dealType = dealContext.dealType?.toLowerCase() || "";
+  const dealCategory = dealContext.dealCategory?.toLowerCase() || "";
+  const status = dealContext.status?.toLowerCase() || "";
+
   // Early stage deals - recommend NDA first
-  if (status === 'draft' || status === 'active') {
-    recommendations.push('**Non-Disclosure Agreement (NDA)** - Protect confidential information before sharing sensitive details');
+  if (status === "draft" || status === "active") {
+    recommendations.push(
+      "Non-Disclosure Agreement (NDA) - Protect confidential information before sharing sensitive details",
+    );
   }
-  
+
   // Based on deal type
-  if (dealType.includes('asset') || dealCategory === 'business_sale') {
-    recommendations.push('**Asset Purchase Agreement** - Define what assets are being transferred');
-    recommendations.push('**Letter of Intent (LOI)** - Outline key terms before formal negotiations');
-  } else if (dealType.includes('share') || dealType.includes('equity')) {
-    recommendations.push('**Share Purchase Agreement** - Structure equity transfer terms');
-  } else if (dealCategory === 'ip_transfer') {
-    recommendations.push('**IP Assignment Agreement** - Transfer intellectual property rights');
+  if (dealType.includes("asset") || dealCategory === "business_sale") {
+    recommendations.push("Asset Purchase Agreement - Define what assets are being transferred");
+    recommendations.push("Letter of Intent (LOI) - Outline key terms before formal negotiations");
+  } else if (dealType.includes("share") || dealType.includes("equity")) {
+    recommendations.push("Share Purchase Agreement - Structure equity transfer terms");
+  } else if (dealCategory === "ip_transfer") {
+    recommendations.push("IP Assignment Agreement - Transfer intellectual property rights");
   }
-  
+
   // Add service agreement for consulting/service deals
-  if (dealType.includes('service') || dealType.includes('consult')) {
-    recommendations.push('**Service Agreement** - Define scope, deliverables, and payment terms');
+  if (dealType.includes("service") || dealType.includes("consult")) {
+    recommendations.push("Service Agreement - Define scope, deliverables, and payment terms");
   }
-  
+
   // Build the recommendation section
   if (recommendations.length > 0) {
-    parts.push('\n\n📋 **Recommended for your deal:**');
-    recommendations.slice(0, 3).forEach(rec => {
+    parts.push("\n\n📋 Recommended for your deal:");
+    recommendations.slice(0, 3).forEach((rec) => {
       parts.push(`• ${rec}`);
     });
   }
-  
-  parts.push('\n\n**What type of document would you like to create?**');
-  
-  return parts.join('\n');
+
+  parts.push("\n\nWhat type of document would you like to create?");
+
+  return parts.join("\n");
 }
 
 /**
@@ -109,107 +111,105 @@ function buildSmartWelcome(dealContext: Record<string, any>): string {
 function buildPartialDocumentPreview(
   documentType: string,
   answers: Record<string, any>,
-  dealContext: Record<string, any>
+  dealContext: Record<string, any>,
 ): string {
   const flow = getQuestionFlow(documentType);
-  if (!flow) return '';
-  
-  const docTypeDisplay = flow.displayName || documentType.replace(/_/g, ' ').toUpperCase();
-  const businessName = dealContext?.dealContext?.businessName || dealContext?.businessName || '[BUSINESS NAME]';
-  const counterparty = dealContext?.dealContext?.counterpartyName || dealContext?.counterpartyName || '[COUNTERPARTY]';
-  const dealTitle = dealContext?.dealContext?.title || dealContext?.title || '';
-  
+  if (!flow) return "";
+
+  const docTypeDisplay = flow.displayName || documentType.replace(/_/g, " ").toUpperCase();
+  const businessName = dealContext?.dealContext?.businessName || dealContext?.businessName || "[BUSINESS NAME]";
+  const counterparty = dealContext?.dealContext?.counterpartyName || dealContext?.counterpartyName || "[COUNTERPARTY]";
+  const dealTitle = dealContext?.dealContext?.title || dealContext?.title || "";
+
   const lines: string[] = [];
-  
+
   // Document Header
-  lines.push(`${'═'.repeat(50)}`);
+  lines.push(`${"═".repeat(50)}`);
   lines.push(`${docTypeDisplay}`);
-  lines.push(`${'═'.repeat(50)}`);
-  lines.push('');
+  lines.push(`${"═".repeat(50)}`);
+  lines.push("");
   lines.push(`THIS AGREEMENT is made on [DATE]`);
-  lines.push('');
-  lines.push('BETWEEN:');
+  lines.push("");
+  lines.push("BETWEEN:");
   lines.push(`(1) ${businessName} ("Party A")`);
   lines.push(`(2) ${counterparty} ("Party B")`);
-  lines.push('');
-  
+  lines.push("");
+
   // Recitals based on document type
-  lines.push('RECITALS:');
-  if (documentType.includes('nda') || documentType.includes('confidentiality')) {
-    lines.push('A. The parties wish to explore a potential business relationship.');
-    lines.push('B. In connection with this, confidential information may be disclosed.');
-  } else if (documentType.includes('purchase') || documentType.includes('sale')) {
-    lines.push('A. Party A wishes to sell and Party B wishes to purchase certain assets/interests.');
-    lines.push('B. The parties have agreed to the terms set out in this Agreement.');
-  } else if (documentType.includes('service')) {
-    lines.push('A. Party A provides certain services.');
-    lines.push('B. Party B wishes to engage Party A to provide such services.');
+  lines.push("RECITALS:");
+  if (documentType.includes("nda") || documentType.includes("confidentiality")) {
+    lines.push("A. The parties wish to explore a potential business relationship.");
+    lines.push("B. In connection with this, confidential information may be disclosed.");
+  } else if (documentType.includes("purchase") || documentType.includes("sale")) {
+    lines.push("A. Party A wishes to sell and Party B wishes to purchase certain assets/interests.");
+    lines.push("B. The parties have agreed to the terms set out in this Agreement.");
+  } else if (documentType.includes("service")) {
+    lines.push("A. Party A provides certain services.");
+    lines.push("B. Party B wishes to engage Party A to provide such services.");
   } else {
-    lines.push('A. The parties wish to enter into a business arrangement.');
-    lines.push('B. The parties have agreed to the terms set out below.');
+    lines.push("A. The parties wish to enter into a business arrangement.");
+    lines.push("B. The parties have agreed to the terms set out below.");
   }
-  lines.push('');
-  
+  lines.push("");
+
   // Build sections from gathered answers
-  lines.push('AGREED TERMS:');
-  lines.push('');
-  
+  lines.push("AGREED TERMS:");
+  lines.push("");
+
   let clauseNum = 1;
-  
+
   // Add answered sections with visual styling
   Object.entries(answers).forEach(([questionId, value]) => {
-    const question = flow.questions.find(q => q.id === questionId);
-    const option = question?.options.find(o => o.value === value);
-    
+    const question = flow.questions.find((q) => q.id === questionId);
+    const option = question?.options.find((o) => o.value === value);
+
     if (question && option) {
-      const sectionTitle = question.id
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
-      
+      const sectionTitle = question.id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
       lines.push(`${clauseNum}. ${sectionTitle.toUpperCase()}`);
-      lines.push('');
-      
+      lines.push("");
+
       // Generate clause content based on the answer
       const clauseContent = generateClauseContent(documentType, questionId, value, option.label);
       lines.push(`   ${clauseNum}.1 ${clauseContent}`);
-      lines.push('');
+      lines.push("");
       clauseNum++;
     }
   });
-  
+
   // Add placeholder for remaining sections
   const answeredIds = Object.keys(answers);
-  const remainingQuestions = flow.questions.filter(q => !answeredIds.includes(q.id));
-  
+  const remainingQuestions = flow.questions.filter((q) => !answeredIds.includes(q.id));
+
   if (remainingQuestions.length > 0) {
-    lines.push('');
-    lines.push('┌─────────────────────────────────────────────┐');
-    lines.push('│  📝 PENDING SECTIONS                        │');
-    lines.push('├─────────────────────────────────────────────┤');
-    remainingQuestions.forEach(q => {
-      const title = q.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    lines.push("");
+    lines.push("┌─────────────────────────────────────────────┐");
+    lines.push("│  📝 PENDING SECTIONS                        │");
+    lines.push("├─────────────────────────────────────────────┤");
+    remainingQuestions.forEach((q) => {
+      const title = q.id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
       lines.push(`│  ○ ${title.padEnd(40)}│`);
     });
-    lines.push('└─────────────────────────────────────────────┘');
+    lines.push("└─────────────────────────────────────────────┘");
   }
-  
+
   // Signature block placeholder
-  lines.push('');
-  lines.push('─'.repeat(50));
-  lines.push('');
-  lines.push('EXECUTED as an agreement:');
-  lines.push('');
+  lines.push("");
+  lines.push("─".repeat(50));
+  lines.push("");
+  lines.push("EXECUTED as an agreement:");
+  lines.push("");
   lines.push(`For ${businessName}:`);
-  lines.push('');
-  lines.push('_________________________');
-  lines.push('Signature');
-  lines.push('');
+  lines.push("");
+  lines.push("_________________________");
+  lines.push("Signature");
+  lines.push("");
   lines.push(`For ${counterparty}:`);
-  lines.push('');
-  lines.push('_________________________');
-  lines.push('Signature');
-  
-  return lines.join('\n');
+  lines.push("");
+  lines.push("_________________________");
+  lines.push("Signature");
+
+  return lines.join("\n");
 }
 
 /**
@@ -220,53 +220,62 @@ function generateClauseContent(documentType: string, questionId: string, value: 
   const clauseTemplates: Record<string, Record<string, string>> = {
     // Confidentiality/NDA clauses
     scope: {
-      broad: 'This Agreement covers all Confidential Information disclosed by either party, whether oral, written, electronic, or in any other form.',
-      specific: 'This Agreement covers only the specific Confidential Information identified in Schedule 1.',
-      mutual: 'Both parties shall protect the confidential information of the other party with the same degree of care used to protect their own confidential information.',
+      broad:
+        "This Agreement covers all Confidential Information disclosed by either party, whether oral, written, electronic, or in any other form.",
+      specific: "This Agreement covers only the specific Confidential Information identified in Schedule 1.",
+      mutual:
+        "Both parties shall protect the confidential information of the other party with the same degree of care used to protect their own confidential information.",
     },
     duration: {
-      '1_year': 'The confidentiality obligations under this Agreement shall remain in effect for a period of one (1) year from the date of disclosure.',
-      '2_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of two (2) years from the date of disclosure.',
-      '3_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of three (3) years from the date of disclosure.',
-      '5_years': 'The confidentiality obligations under this Agreement shall remain in effect for a period of five (5) years from the date of disclosure.',
-      perpetual: 'The confidentiality obligations under this Agreement shall continue indefinitely and survive termination of this Agreement.',
+      "1_year":
+        "The confidentiality obligations under this Agreement shall remain in effect for a period of one (1) year from the date of disclosure.",
+      "2_years":
+        "The confidentiality obligations under this Agreement shall remain in effect for a period of two (2) years from the date of disclosure.",
+      "3_years":
+        "The confidentiality obligations under this Agreement shall remain in effect for a period of three (3) years from the date of disclosure.",
+      "5_years":
+        "The confidentiality obligations under this Agreement shall remain in effect for a period of five (5) years from the date of disclosure.",
+      perpetual:
+        "The confidentiality obligations under this Agreement shall continue indefinitely and survive termination of this Agreement.",
     },
     // Payment terms
     payment_terms: {
-      upfront: 'Payment shall be made in full upon execution of this Agreement.',
-      milestone: 'Payment shall be made in instalments upon completion of agreed milestones.',
-      monthly: 'Payment shall be made monthly in arrears within 14 days of invoice.',
-      completion: 'Payment shall be made upon satisfactory completion of all deliverables.',
+      upfront: "Payment shall be made in full upon execution of this Agreement.",
+      milestone: "Payment shall be made in instalments upon completion of agreed milestones.",
+      monthly: "Payment shall be made monthly in arrears within 14 days of invoice.",
+      completion: "Payment shall be made upon satisfactory completion of all deliverables.",
     },
     // Dispute resolution
     dispute_resolution: {
-      mediation: 'Any dispute shall first be referred to mediation in accordance with the Resolution Institute Mediation Rules.',
-      arbitration: 'Any dispute shall be finally resolved by arbitration in accordance with the ACICA Arbitration Rules.',
-      litigation: 'Any dispute shall be resolved by the courts of the relevant Australian jurisdiction.',
+      mediation:
+        "Any dispute shall first be referred to mediation in accordance with the Resolution Institute Mediation Rules.",
+      arbitration:
+        "Any dispute shall be finally resolved by arbitration in accordance with the ACICA Arbitration Rules.",
+      litigation: "Any dispute shall be resolved by the courts of the relevant Australian jurisdiction.",
     },
     // Governing law
     governing_law: {
-      nsw: 'This Agreement is governed by the laws of New South Wales, Australia.',
-      vic: 'This Agreement is governed by the laws of Victoria, Australia.',
-      qld: 'This Agreement is governed by the laws of Queensland, Australia.',
-      wa: 'This Agreement is governed by the laws of Western Australia.',
-      sa: 'This Agreement is governed by the laws of South Australia.',
+      nsw: "This Agreement is governed by the laws of New South Wales, Australia.",
+      vic: "This Agreement is governed by the laws of Victoria, Australia.",
+      qld: "This Agreement is governed by the laws of Queensland, Australia.",
+      wa: "This Agreement is governed by the laws of Western Australia.",
+      sa: "This Agreement is governed by the laws of South Australia.",
     },
     // Termination
     termination: {
-      notice_30: 'Either party may terminate this Agreement by giving 30 days written notice to the other party.',
-      notice_60: 'Either party may terminate this Agreement by giving 60 days written notice to the other party.',
-      notice_90: 'Either party may terminate this Agreement by giving 90 days written notice to the other party.',
-      immediate: 'Either party may terminate this Agreement immediately upon material breach by the other party.',
+      notice_30: "Either party may terminate this Agreement by giving 30 days written notice to the other party.",
+      notice_60: "Either party may terminate this Agreement by giving 60 days written notice to the other party.",
+      notice_90: "Either party may terminate this Agreement by giving 90 days written notice to the other party.",
+      immediate: "Either party may terminate this Agreement immediately upon material breach by the other party.",
     },
   };
-  
+
   // Try to find a matching template
   const questionTemplates = clauseTemplates[questionId.toLowerCase()];
   if (questionTemplates && questionTemplates[value.toLowerCase()]) {
     return questionTemplates[value.toLowerCase()];
   }
-  
+
   // Fallback: generate generic clause from label
   return `The parties agree that ${label.toLowerCase()} shall apply to this Agreement.`;
 }
@@ -276,34 +285,34 @@ function generateClauseContent(documentType: string, questionId: string, value: 
  */
 export async function handleConversationalTemplate(
   payload: ConversationalRequest,
-  openai: any
+  openai: any,
 ): Promise<ConversationalResponse> {
   const { dealId, userId, messages, dealContext = {} } = payload;
-  
+
   // Initialize or restore state
   let state: ConversationalState = payload.state || {
-    phase: 'select_type',
+    phase: "select_type",
     documentType: null,
     gatheredAnswers: {},
-    currentQuestionIndex: 0
+    currentQuestionIndex: 0,
   };
 
-  const rawLastUserMessage = messages[messages.length - 1]?.content ?? '';
+  const rawLastUserMessage = messages[messages.length - 1]?.content ?? "";
   const lastUserMessage = rawLastUserMessage.toLowerCase().trim();
 
   const normalizeText = (input: string) =>
     input
       .toLowerCase()
-      .replace(/&/g, 'and')
-      .replace(/\([^)]*\)/g, ' ') // remove parenthetical acronyms like (NDA)
-      .replace(/[^a-z0-9\s]/g, ' ') // strip punctuation
-      .replace(/\s+/g, ' ')
+      .replace(/&/g, "and")
+      .replace(/\([^)]*\)/g, " ") // remove parenthetical acronyms like (NDA)
+      .replace(/[^a-z0-9\s]/g, " ") // strip punctuation
+      .replace(/\s+/g, " ")
       .trim();
 
   const normalizedLastUserMessage = normalizeText(rawLastUserMessage);
   try {
     // Phase: Select Document Type
-    if (state.phase === 'select_type') {
+    if (state.phase === "select_type") {
       const documentTypes = getAvailableDocumentTypes();
 
       // Check if user selected a document type (robust matching)
@@ -333,18 +342,18 @@ export async function handleConversationalTemplate(
 
       if (selectedType) {
         state.documentType = selectedType.type;
-        state.phase = 'gathering';
+        state.phase = "gathering";
         state.currentQuestionIndex = 0;
 
         const flow = getQuestionFlow(selectedType.type);
         const firstQuestion = flow?.questions[0];
-        
+
         // Generate initial partial document preview
         const partialDoc = buildPartialDocumentPreview(selectedType.type, {}, dealContext);
 
         return {
           success: true,
-          message: `Great choice! Let's create your **${selectedType.displayName}**.\n\n${firstQuestion?.helpText || ''}\n\n**${firstQuestion?.question}**`,
+          message: `Great choice! Let's create your **${selectedType.displayName}**.\n\n${firstQuestion?.helpText || ""}\n\n**${firstQuestion?.question}**`,
           state,
           options: firstQuestion?.options.map((o) => ({
             label: o.label,
@@ -357,20 +366,15 @@ export async function handleConversationalTemplate(
       }
 
       // If user typed something but didn't match a document type, use AI to understand
-      if (rawLastUserMessage && rawLastUserMessage.toLowerCase() !== 'start') {
-        const aiDocTypeResponse = await handleDocumentTypeChat(
-          rawLastUserMessage,
-          documentTypes,
-          dealContext,
-          openai
-        );
-        
+      if (rawLastUserMessage && rawLastUserMessage.toLowerCase() !== "start") {
+        const aiDocTypeResponse = await handleDocumentTypeChat(rawLastUserMessage, documentTypes, dealContext, openai);
+
         if (aiDocTypeResponse.matchedType) {
           // AI understood and matched to a document type
-          const matchedDocType = documentTypes.find(dt => dt.type === aiDocTypeResponse.matchedType);
+          const matchedDocType = documentTypes.find((dt) => dt.type === aiDocTypeResponse.matchedType);
           if (matchedDocType) {
             state.documentType = matchedDocType.type;
-            state.phase = 'gathering';
+            state.phase = "gathering";
             state.currentQuestionIndex = 0;
 
             const flow = getQuestionFlow(matchedDocType.type);
@@ -379,7 +383,7 @@ export async function handleConversationalTemplate(
 
             return {
               success: true,
-              message: `${aiDocTypeResponse.message}\n\n${firstQuestion?.helpText || ''}\n\n**${firstQuestion?.question}**`,
+              message: `${aiDocTypeResponse.message}\n\n${firstQuestion?.helpText || ""}\n\n**${firstQuestion?.question}**`,
               state,
               options: firstQuestion?.options.map((o) => ({
                 label: o.label,
@@ -391,7 +395,7 @@ export async function handleConversationalTemplate(
             };
           }
         }
-        
+
         // AI provided helpful response but no match
         return {
           success: true,
@@ -408,7 +412,7 @@ export async function handleConversationalTemplate(
 
       // Show document type selection with smart welcome
       const welcomeMessage = buildSmartWelcome(dealContext?.dealContext || dealContext || {});
-      
+
       return {
         success: true,
         message: welcomeMessage,
@@ -423,35 +427,37 @@ export async function handleConversationalTemplate(
     }
 
     // Phase: Gathering Requirements
-    if (state.phase === 'gathering' && state.documentType) {
+    if (state.phase === "gathering" && state.documentType) {
       const flow = getQuestionFlow(state.documentType);
       if (!flow) {
         return {
           success: false,
-          message: 'Invalid document type selected.',
+          message: "Invalid document type selected.",
           state,
           isComplete: false,
-          error: 'Invalid document type'
+          error: "Invalid document type",
         };
       }
 
       const currentQuestion = flow.questions[state.currentQuestionIndex];
 
       // Check if user is asking a question - if so, always use AI to provide advice
-      const isAskingQuestion = rawLastUserMessage.includes('?') || 
-        rawLastUserMessage.toLowerCase().includes('what do you think') ||
-        rawLastUserMessage.toLowerCase().includes('your opinion') ||
-        rawLastUserMessage.toLowerCase().includes('recommend') ||
-        rawLastUserMessage.toLowerCase().includes('suggest') ||
-        rawLastUserMessage.toLowerCase().includes('which one') ||
-        rawLastUserMessage.toLowerCase().includes('help me');
+      const isAskingQuestion =
+        rawLastUserMessage.includes("?") ||
+        rawLastUserMessage.toLowerCase().includes("what do you think") ||
+        rawLastUserMessage.toLowerCase().includes("your opinion") ||
+        rawLastUserMessage.toLowerCase().includes("recommend") ||
+        rawLastUserMessage.toLowerCase().includes("suggest") ||
+        rawLastUserMessage.toLowerCase().includes("which one") ||
+        rawLastUserMessage.toLowerCase().includes("help me");
 
       // Try to match user's response to an option
       if (currentQuestion && lastUserMessage) {
-        const matchedOption = currentQuestion.options.find(o => 
-          lastUserMessage.includes(o.label.toLowerCase()) ||
-          lastUserMessage.includes(o.value.toLowerCase()) ||
-          lastUserMessage === o.value
+        const matchedOption = currentQuestion.options.find(
+          (o) =>
+            lastUserMessage.includes(o.label.toLowerCase()) ||
+            lastUserMessage.includes(o.value.toLowerCase()) ||
+            lastUserMessage === o.value,
         );
 
         // Also check for numbered responses
@@ -466,16 +472,10 @@ export async function handleConversationalTemplate(
 
         // If user is asking a question, use AI to provide real advice instead of just matching
         if (isAskingQuestion) {
-          const aiResponse = await handleFreeFormChat(
-            rawLastUserMessage,
-            state,
-            currentQuestion,
-            dealContext,
-            openai
-          );
-          
+          const aiResponse = await handleFreeFormChat(rawLastUserMessage, state, currentQuestion, dealContext, openai);
+
           // If AI matched an option AND user seems to want that, proceed
-          if (aiResponse.matchedOption && !rawLastUserMessage.toLowerCase().includes('what do you think')) {
+          if (aiResponse.matchedOption && !rawLastUserMessage.toLowerCase().includes("what do you think")) {
             state.gatheredAnswers[currentQuestion.id] = aiResponse.matchedOption;
             state.currentQuestionIndex++;
 
@@ -487,30 +487,30 @@ export async function handleConversationalTemplate(
 
               return {
                 success: true,
-                message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ''}\n\n**${nextQuestion.question}**`,
+                message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ""}\n\n**${nextQuestion.question}**`,
                 state,
-                options: nextQuestion.options.map(o => ({
+                options: nextQuestion.options.map((o) => ({
                   label: o.label,
                   value: o.value,
-                  description: o.description
+                  description: o.description,
                 })),
                 isComplete: false,
-                partialDocument: partialDoc
+                partialDocument: partialDoc,
               };
             }
           }
-          
+
           // AI provided advice - show it without advancing
           return {
             success: true,
             message: `${aiResponse.message}\n\n**${currentQuestion.question}**`,
             state,
-            options: currentQuestion.options.map(o => ({
+            options: currentQuestion.options.map((o) => ({
               label: o.label,
               value: o.value,
-              description: o.description
+              description: o.description,
             })),
-            isComplete: false
+            isComplete: false,
           };
         }
 
@@ -523,45 +523,47 @@ export async function handleConversationalTemplate(
           if (state.currentQuestionIndex < flow.questions.length) {
             const nextQuestion = flow.questions[state.currentQuestionIndex];
             const progress = `${state.currentQuestionIndex + 1}/${flow.questions.length}`;
-            
+
             // Generate updated partial document preview with new answer
             const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
 
             return {
               success: true,
-              message: `Got it! *${selectedOption.label}*\n\n*(${progress})* ${nextQuestion.helpText || ''}\n\n**${nextQuestion.question}**`,
+              message: `Got it! *${selectedOption.label}*\n\n*(${progress})* ${nextQuestion.helpText || ""}\n\n**${nextQuestion.question}**`,
               state,
-              options: nextQuestion.options.map(o => ({
+              options: nextQuestion.options.map((o) => ({
                 label: o.label,
                 value: o.value,
-                description: o.description
+                description: o.description,
               })),
               isComplete: false,
-              partialDocument: partialDoc
+              partialDocument: partialDoc,
             };
           } else {
             // All questions answered, move to confirmation
-            state.phase = 'confirming';
-            
+            state.phase = "confirming";
+
             // Generate complete partial preview before final generation
             const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
-            
-            const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
-              const question = flow.questions.find(q => q.id === key);
-              const option = question?.options.find(o => o.value === value);
-              return `• **${question?.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**: ${option?.label || value}`;
-            }).join('\n');
+
+            const summary = Object.entries(state.gatheredAnswers)
+              .map(([key, value]) => {
+                const question = flow.questions.find((q) => q.id === key);
+                const option = question?.options.find((o) => o.value === value);
+                return `• **${question?.id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}**: ${option?.label || value}`;
+              })
+              .join("\n");
 
             return {
               success: true,
               message: `Excellent! I have all the information I need.\n\n**Document Summary:**\n${summary}\n\n**Ready to generate your ${flow.displayName}?**`,
               state,
               options: [
-                { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
-                { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+                { label: "Generate Document", value: "generate", description: "Create the document now" },
+                { label: "Modify Answers", value: "modify", description: "Go back and change something" },
               ],
               isComplete: false,
-              partialDocument: partialDoc
+              partialDocument: partialDoc,
             };
           }
         }
@@ -569,14 +571,8 @@ export async function handleConversationalTemplate(
 
       // If no match, use AI to understand the user's intent and respond intelligently
       if (currentQuestion) {
-        const aiResponse = await handleFreeFormChat(
-          rawLastUserMessage,
-          state,
-          currentQuestion,
-          dealContext,
-          openai
-        );
-        
+        const aiResponse = await handleFreeFormChat(rawLastUserMessage, state, currentQuestion, dealContext, openai);
+
         if (aiResponse.matchedOption) {
           // AI understood the user's intent and matched it to an option
           state.gatheredAnswers[currentQuestion.id] = aiResponse.matchedOption;
@@ -590,67 +586,70 @@ export async function handleConversationalTemplate(
 
             return {
               success: true,
-              message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ''}\n\n**${nextQuestion.question}**`,
+              message: `${aiResponse.message}\n\n*(${progress})* ${nextQuestion.helpText || ""}\n\n**${nextQuestion.question}**`,
               state,
-              options: nextQuestion.options.map(o => ({
+              options: nextQuestion.options.map((o) => ({
                 label: o.label,
                 value: o.value,
-                description: o.description
+                description: o.description,
               })),
               isComplete: false,
-              partialDocument: partialDoc
+              partialDocument: partialDoc,
             };
           } else if (flow) {
             // All questions answered
-            state.phase = 'confirming';
+            state.phase = "confirming";
             const partialDoc = buildPartialDocumentPreview(state.documentType!, state.gatheredAnswers, dealContext);
-            const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
-              const question = flow.questions.find(q => q.id === key);
-              const option = question?.options.find(o => o.value === value);
-              return `• **${question?.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**: ${option?.label || value}`;
-            }).join('\n');
+            const summary = Object.entries(state.gatheredAnswers)
+              .map(([key, value]) => {
+                const question = flow.questions.find((q) => q.id === key);
+                const option = question?.options.find((o) => o.value === value);
+                return `• **${question?.id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}**: ${option?.label || value}`;
+              })
+              .join("\n");
 
             return {
               success: true,
               message: `${aiResponse.message}\n\n**Document Summary:**\n${summary}\n\n**Ready to generate your ${flow.displayName}?**`,
               state,
               options: [
-                { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
-                { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+                { label: "Generate Document", value: "generate", description: "Create the document now" },
+                { label: "Modify Answers", value: "modify", description: "Go back and change something" },
               ],
               isComplete: false,
-              partialDocument: partialDoc
+              partialDocument: partialDoc,
             };
           }
         }
-        
+
         // AI provided a helpful response but didn't match an option
         return {
           success: true,
           message: `${aiResponse.message}\n\n**${currentQuestion.question}**`,
           state,
-          options: currentQuestion.options.map(o => ({
+          options: currentQuestion.options.map((o) => ({
             label: o.label,
             value: o.value,
-            description: o.description
+            description: o.description,
           })),
-          isComplete: false
+          isComplete: false,
         };
       }
     }
 
     // Phase: Confirming
-    if (state.phase === 'confirming') {
+    if (state.phase === "confirming") {
       const flow = getQuestionFlow(state.documentType!);
-      
+
       // Check if user is asking for AI review of their choices
-      const isAskingForReview = rawLastUserMessage.includes('?') || 
-        rawLastUserMessage.toLowerCase().includes('think') ||
-        rawLastUserMessage.toLowerCase().includes('good') ||
-        rawLastUserMessage.toLowerCase().includes('review') ||
-        rawLastUserMessage.toLowerCase().includes('feedback') ||
-        rawLastUserMessage.toLowerCase().includes('opinion');
-      
+      const isAskingForReview =
+        rawLastUserMessage.includes("?") ||
+        rawLastUserMessage.toLowerCase().includes("think") ||
+        rawLastUserMessage.toLowerCase().includes("good") ||
+        rawLastUserMessage.toLowerCase().includes("review") ||
+        rawLastUserMessage.toLowerCase().includes("feedback") ||
+        rawLastUserMessage.toLowerCase().includes("opinion");
+
       if (isAskingForReview && flow) {
         // Use AI to review the user's choices
         const aiReview = await handleChoicesReview(
@@ -659,39 +658,45 @@ export async function handleConversationalTemplate(
           state.gatheredAnswers,
           flow,
           dealContext,
-          openai
+          openai,
         );
-        
-        const summary = Object.entries(state.gatheredAnswers).map(([key, value]) => {
-          const question = flow.questions.find(q => q.id === key);
-          const option = question?.options.find(o => o.value === value);
-          return `• **${question?.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**: ${option?.label || value}`;
-        }).join('\n');
-        
+
+        const summary = Object.entries(state.gatheredAnswers)
+          .map(([key, value]) => {
+            const question = flow.questions.find((q) => q.id === key);
+            const option = question?.options.find((o) => o.value === value);
+            return `• **${question?.id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}**: ${option?.label || value}`;
+          })
+          .join("\n");
+
         return {
           success: true,
           message: `${aiReview}\n\n**Your current selections:**\n${summary}\n\n**Ready to generate, or would you like to modify?**`,
           state,
           options: [
-            { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
-            { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+            { label: "Generate Document", value: "generate", description: "Create the document now" },
+            { label: "Modify Answers", value: "modify", description: "Go back and change something" },
           ],
-          isComplete: false
+          isComplete: false,
         };
       }
-      
-      if (lastUserMessage.includes('generate') || lastUserMessage.includes('yes') || lastUserMessage.includes('create')) {
-        state.phase = 'generating';
-        
+
+      if (
+        lastUserMessage.includes("generate") ||
+        lastUserMessage.includes("yes") ||
+        lastUserMessage.includes("create")
+      ) {
+        state.phase = "generating";
+
         // Generate the document
         const generatedDoc = await generateDocumentFromAnswers(
           state.documentType!,
           state.gatheredAnswers,
           dealContext,
-          openai
+          openai,
         );
 
-        state.phase = 'complete';
+        state.phase = "complete";
 
         return {
           success: true,
@@ -699,13 +704,17 @@ export async function handleConversationalTemplate(
           state,
           isComplete: true,
           generatedDocument: generatedDoc.content,
-          disclaimer: generatedDoc.disclaimer
+          disclaimer: generatedDoc.disclaimer,
         };
       }
 
-      if (lastUserMessage.includes('modify') || lastUserMessage.includes('change') || lastUserMessage.includes('back')) {
+      if (
+        lastUserMessage.includes("modify") ||
+        lastUserMessage.includes("change") ||
+        lastUserMessage.includes("back")
+      ) {
         // Reset to gathering phase
-        state.phase = 'gathering';
+        state.phase = "gathering";
         state.currentQuestionIndex = 0;
         state.gatheredAnswers = {};
 
@@ -715,12 +724,12 @@ export async function handleConversationalTemplate(
           success: true,
           message: `No problem! Let's start over.\n\n**${firstQuestion?.question}**`,
           state,
-          options: firstQuestion?.options.map(o => ({
+          options: firstQuestion?.options.map((o) => ({
             label: o.label,
             value: o.value,
-            description: o.description
+            description: o.description,
           })),
-          isComplete: false
+          isComplete: false,
         };
       }
 
@@ -730,10 +739,10 @@ export async function handleConversationalTemplate(
         message: `Would you like me to generate the document now, or would you like to modify your answers?`,
         state,
         options: [
-          { label: 'Generate Document', value: 'generate', description: 'Create the document now' },
-          { label: 'Modify Answers', value: 'modify', description: 'Go back and change something' }
+          { label: "Generate Document", value: "generate", description: "Create the document now" },
+          { label: "Modify Answers", value: "modify", description: "Go back and change something" },
         ],
-        isComplete: false
+        isComplete: false,
       };
     }
 
@@ -742,27 +751,26 @@ export async function handleConversationalTemplate(
       success: true,
       message: `I'm here to help you create legal documents. What type of document would you like to generate?`,
       state: {
-        phase: 'select_type',
+        phase: "select_type",
         documentType: null,
         gatheredAnswers: {},
-        currentQuestionIndex: 0
+        currentQuestionIndex: 0,
       },
-      options: getAvailableDocumentTypes().map(dt => ({
+      options: getAvailableDocumentTypes().map((dt) => ({
         label: dt.displayName,
         value: dt.type,
-        description: dt.description
+        description: dt.description,
       })),
-      isComplete: false
+      isComplete: false,
     };
-
   } catch (error) {
-    console.error('Conversational template error:', error);
+    console.error("Conversational template error:", error);
     return {
       success: false,
-      message: 'An error occurred. Please try again.',
+      message: "An error occurred. Please try again.",
       state,
       isComplete: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -774,12 +782,12 @@ async function handleDocumentTypeChat(
   userMessage: string,
   documentTypes: Array<{ type: string; displayName: string; description: string }>,
   dealContext: Record<string, any>,
-  openai: any
+  openai: any,
 ): Promise<{ message: string; matchedType?: string }> {
   try {
     const typesDescription = documentTypes
-      .map(dt => `- "${dt.type}": ${dt.displayName} - ${dt.description}`)
-      .join('\n');
+      .map((dt) => `- "${dt.type}": ${dt.displayName} - ${dt.description}`)
+      .join("\n");
 
     const systemPrompt = `You are a helpful legal document assistant. The user wants to create a document but you need to understand which type.
 
@@ -796,33 +804,37 @@ Context about the deal: ${JSON.stringify(dealContext?.dealContext || dealContext
 Always respond with valid JSON only. Be concise and helpful.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
       ],
       max_tokens: 400,
-      temperature: 0.3
+      temperature: 0.3,
     });
 
-    const aiContent = response.choices[0]?.message?.content || '';
-    
+    const aiContent = response.choices[0]?.message?.content || "";
+
     try {
-      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const cleanedContent = aiContent
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
       const parsed = JSON.parse(cleanedContent);
       return {
         message: parsed.message || "I'd be happy to help you create a document.",
-        matchedType: parsed.matchedType || undefined
+        matchedType: parsed.matchedType || undefined,
       };
     } catch {
       return {
-        message: aiContent || "I can help you create various legal documents. Which type would you like?"
+        message: aiContent || "I can help you create various legal documents. Which type would you like?",
       };
     }
   } catch (error) {
-    console.error('Document type chat AI error:', error);
+    console.error("Document type chat AI error:", error);
     return {
-      message: "I can help you create NDAs, contracts, agreements, and more. Please select a document type from the options above."
+      message:
+        "I can help you create NDAs, contracts, agreements, and more. Please select a document type from the options above.",
     };
   }
 }
@@ -834,21 +846,30 @@ async function handleChoicesReview(
   userMessage: string,
   documentType: string,
   gatheredAnswers: Record<string, any>,
-  flow: { displayName: string; questions: Array<{ id: string; question: string; options: Array<{ label: string; value: string; description?: string }> }> },
+  flow: {
+    displayName: string;
+    questions: Array<{
+      id: string;
+      question: string;
+      options: Array<{ label: string; value: string; description?: string }>;
+    }>;
+  },
   dealContext: Record<string, any>,
-  openai: any
+  openai: any,
 ): Promise<string> {
   try {
     const dealInfo = dealContext?.dealContext || dealContext || {};
-    const industry = dealInfo.industry || dealInfo.businessIndustry || '';
-    const businessName = dealInfo.businessName || dealInfo.title || '';
-    
+    const industry = dealInfo.industry || dealInfo.businessIndustry || "";
+    const businessName = dealInfo.businessName || dealInfo.title || "";
+
     // Build a summary of what the user chose
-    const choicesSummary = Object.entries(gatheredAnswers).map(([questionId, value]) => {
-      const question = flow.questions.find(q => q.id === questionId);
-      const option = question?.options.find(o => o.value === value);
-      return `- ${question?.question}: ${option?.label || value}`;
-    }).join('\n');
+    const choicesSummary = Object.entries(gatheredAnswers)
+      .map(([questionId, value]) => {
+        const question = flow.questions.find((q) => q.id === questionId);
+        const option = question?.options.find((o) => o.value === value);
+        return `- ${question?.question}: ${option?.label || value}`;
+      })
+      .join("\n");
 
     const systemPrompt = `You are an expert legal document advisor with deep knowledge of Australian business law and best practices.
 
@@ -856,8 +877,8 @@ The user has made the following selections for their ${flow.displayName}:
 ${choicesSummary}
 
 Context:
-- Business: ${businessName || 'Not specified'}
-- Industry: ${industry || 'Not specified'}
+- Business: ${businessName || "Not specified"}
+- Industry: ${industry || "Not specified"}
 - Document Type: ${flow.displayName}
 
 The user is asking: "${userMessage}"
@@ -872,18 +893,21 @@ Provide a thoughtful, professional review of their choices:
 Keep your response concise (2-4 sentences) but genuinely helpful. Don't use JSON formatting, just respond naturally.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
       ],
       max_tokens: 400,
-      temperature: 0.4
+      temperature: 0.4,
     });
 
-    return response.choices[0]?.message?.content || "Your selections look good! Feel free to generate the document or modify if needed.";
+    return (
+      response.choices[0]?.message?.content ||
+      "Your selections look good! Feel free to generate the document or modify if needed."
+    );
   } catch (error) {
-    console.error('Choices review AI error:', error);
+    console.error("Choices review AI error:", error);
     return "Your selections look appropriate for this type of document. You can proceed with generation or modify if you'd like to make changes.";
   }
 }
@@ -895,22 +919,26 @@ Keep your response concise (2-4 sentences) but genuinely helpful. Don't use JSON
 async function handleFreeFormChat(
   userMessage: string,
   state: ConversationalState,
-  currentQuestion: { id: string; question: string; options: Array<{ label: string; value: string; description?: string }> },
+  currentQuestion: {
+    id: string;
+    question: string;
+    options: Array<{ label: string; value: string; description?: string }>;
+  },
   dealContext: Record<string, any>,
-  openai: any
+  openai: any,
 ): Promise<{ message: string; matchedOption?: string }> {
   try {
     const optionsDescription = currentQuestion.options
-      .map(o => `- "${o.value}": ${o.label}${o.description ? ` (${o.description})` : ''}`)
-      .join('\n');
+      .map((o) => `- "${o.value}": ${o.label}${o.description ? ` (${o.description})` : ""}`)
+      .join("\n");
 
     // Extract deal context for personalized advice
     const dealInfo = dealContext?.dealContext || dealContext || {};
-    const dealType = dealInfo.dealType || dealInfo.dealCategory || '';
-    const industry = dealInfo.industry || dealInfo.businessIndustry || '';
-    const businessName = dealInfo.businessName || dealInfo.title || '';
+    const dealType = dealInfo.dealType || dealInfo.dealCategory || "";
+    const industry = dealInfo.industry || dealInfo.businessIndustry || "";
+    const businessName = dealInfo.businessName || dealInfo.title || "";
 
-    const systemPrompt = `You are a helpful and knowledgeable legal document assistant with expertise in Australian business law. You're helping create a ${state.documentType} document${businessName ? ` for "${businessName}"` : ''}${industry ? ` in the ${industry} industry` : ''}.
+    const systemPrompt = `You are a helpful and knowledgeable legal document assistant with expertise in Australian business law. You're helping create a ${state.documentType} document${businessName ? ` for "${businessName}"` : ""}${industry ? ` in the ${industry} industry` : ""}.
 
 Current question being asked: "${currentQuestion.question}"
 
@@ -932,42 +960,47 @@ IMPORTANT INSTRUCTIONS:
    {"matchedOption": null, "message": "Your clarifying question"}
 
 Context about the deal:
-- Deal type: ${dealType || 'Not specified'}
-- Industry: ${industry || 'Not specified'}
-- Business: ${businessName || 'Not specified'}
+- Deal type: ${dealType || "Not specified"}
+- Industry: ${industry || "Not specified"}
+- Business: ${businessName || "Not specified"}
 
 Be genuinely helpful and provide real professional insight. Always respond with valid JSON only.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
       ],
       max_tokens: 500,
-      temperature: 0.4
+      temperature: 0.4,
     });
 
-    const aiContent = response.choices[0]?.message?.content || '';
-    
+    const aiContent = response.choices[0]?.message?.content || "";
+
     try {
       // Try to parse JSON response
-      const cleanedContent = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const cleanedContent = aiContent
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
       const parsed = JSON.parse(cleanedContent);
       return {
         message: parsed.message || "I understand. Let me help you with that.",
-        matchedOption: parsed.matchedOption || undefined
+        matchedOption: parsed.matchedOption || undefined,
       };
     } catch {
       // If not valid JSON, treat as a plain message
       return {
-        message: aiContent || "I'm here to help! Please select one of the options above, or ask me any questions about them."
+        message:
+          aiContent || "I'm here to help! Please select one of the options above, or ask me any questions about them.",
       };
     }
   } catch (error) {
-    console.error('Free-form chat AI error:', error);
+    console.error("Free-form chat AI error:", error);
     return {
-      message: "I'd be happy to help clarify the options. Could you please select one of the choices above, or let me know what you'd like to understand better?"
+      message:
+        "I'd be happy to help clarify the options. Could you please select one of the choices above, or let me know what you'd like to understand better?",
     };
   }
 }
@@ -979,11 +1012,10 @@ async function generateDocumentFromAnswers(
   documentType: string,
   answers: Record<string, any>,
   dealContext: Record<string, any>,
-  openai: any
+  openai: any,
 ): Promise<{ content: string; disclaimer: string }> {
-  
   const formattedRequirements = formatAnswersForGeneration(documentType, answers, dealContext);
-  
+
   const systemPrompt = `${DOCUMENT_GENERATION_SYSTEM_PROMPT}
 
 ${AUSTRALIAN_LEGAL_CONTEXT}
@@ -1012,27 +1044,27 @@ GENERATION INSTRUCTIONS:
   const userPrompt = `Generate a complete ${documentType} document based on the requirements gathered during our conversation. The document should be professional, comprehensive, and ready for use.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: "gpt-4o",
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
     max_tokens: 8000,
-    temperature: 0.3
+    temperature: 0.3,
   });
 
-  const generatedContent = response.choices[0]?.message?.content || '';
+  const generatedContent = response.choices[0]?.message?.content || "";
 
   // Clean up the content
   let cleanedContent = generatedContent
-    .replace(/```[\w]*\n?/g, '')
-    .replace(/\*\*/g, '')
+    .replace(/```[\w]*\n?/g, "")
+    .replace(/\*\*/g, "")
     .trim();
 
   const disclaimer = `IMPORTANT DISCLAIMER: This document was generated by AI based on your inputs and is provided for informational purposes only. It does not constitute legal advice. This document should be reviewed by a qualified Australian legal professional before use. Laws and regulations may have changed since this document was generated. The accuracy, completeness, and applicability of this document to your specific situation cannot be guaranteed.`;
 
   return {
     content: cleanedContent,
-    disclaimer
+    disclaimer,
   };
 }
