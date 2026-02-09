@@ -84,7 +84,7 @@ export const useEnhancedAIConversation = (options: UseEnhancedAIConversationOpti
 
 I'm your expert AI advisor for mergers, acquisitions, and business transactions. With expertise across thousands of deals, I can help you with:
 
-🎯 What I Can Do: 
+🎯 What I Can Do: \n
 • Deal Strategy — Structure deals, evaluate options, develop negotiation tactics
 • Valuation — EBITDA multiples, DCF analysis, comparable transactions
 • Due Diligence — Financial, legal, commercial, and operational checklists
