@@ -59,7 +59,7 @@ function buildSmartWelcome(dealContext: Record<string, any>): string {
   // Personalized greeting
   if (dealContext.title || dealContext.businessName) {
     const dealName = dealContext.title || dealContext.businessName;
-    parts.push(`Welcome! I'll help you create professional documents for **${dealName}**.`);
+    parts.push(`Welcome! I'll help you create professional documents for ${dealName}.`);
   } else {
     parts.push(`Welcome! I'll help you create professional legal documents for this deal.`);
   }
