@@ -86,8 +86,8 @@ const Login = () => {
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         
         <div className="w-full max-w-md relative z-10 animate-fade-in">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient">Trustroom.ai</h1>
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-16 md:h-20 mb-2" />
             <p className="text-muted-foreground mt-2">
               Streamline your business exchange journey
             </p>
