@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
@@ -87,7 +87,9 @@ const Login = () => {
         
         <div className="w-full max-w-md relative z-10 animate-fade-in">
           <div className="mb-8 flex flex-col items-center">
-            <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-16 md:h-20 mb-2" />
+            <Link to="/">
+              <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-24 md:h-28 mb-2 cursor-pointer hover:opacity-80 transition-opacity" />
+            </Link>
             <p className="text-muted-foreground mt-2">
               Streamline your business exchange journey
             </p>
