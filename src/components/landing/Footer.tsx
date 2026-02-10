@@ -25,9 +25,9 @@ const Footer = () => {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6 }}
-      className="border-t border-border/50 bg-muted/30"
+      className="border-t border-border/30 bg-muted/30"
     >
-      <div className="container mx-auto max-w-6xl px-4 md:px-6 py-14">
+      <div className="container mx-auto max-w-6xl px-6 py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
           {/* Brand */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-4">
@@ -36,7 +36,7 @@ const Footer = () => {
               alt="Trustroom.ai"
               className="h-16 w-auto object-contain"
             />
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-[240px]">
+            <p className="text-[15px] text-muted-foreground leading-[1.7] max-w-[240px]">
               AI-powered deal rooms for M&A lawyers. Close deals faster with
               secure document management and intelligent workflows.
             </p>
@@ -65,12 +65,12 @@ const Footer = () => {
           {/* Resources */}
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground text-sm">Resources</h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-3">
               {resourceLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
+                    className="text-[15px] text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
                   >
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200" />
                     {link.name}
@@ -83,12 +83,12 @@ const Footer = () => {
           {/* Legal */}
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground text-sm">Legal</h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-3">
               {legalLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
+                    className="text-[15px] text-muted-foreground hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
                   >
                     <ArrowRight className="h-3 w-3 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200" />
                     {link.name}
@@ -101,20 +101,20 @@ const Footer = () => {
           {/* Contact */}
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground text-sm">Contact Us</h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-3">
               <li>
-                <a href="mailto:contact@trustroom.ai" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2">
+                <a href="mailto:contact@trustroom.ai" className="text-[15px] text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2">
                   <Mail className="h-4 w-4 text-primary/60" /> contact@trustroom.ai
                 </a>
               </li>
               <li>
-                <a href="tel:+6100000000" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2">
+                <a href="tel:+6100000000" className="text-[15px] text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center gap-2">
                   <Phone className="h-4 w-4 text-primary/60" /> +61 0000 0000
                 </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary/60 mt-0.5 flex-shrink-0" />
-                <address className="text-sm text-muted-foreground not-italic">
+                <address className="text-[15px] text-muted-foreground not-italic leading-[1.7]">
                   123 Business Street<br />Sydney, NSW 2000<br />Australia
                 </address>
               </li>
@@ -123,8 +123,8 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="border-t border-border/40 bg-muted/20">
-        <div className="container mx-auto max-w-6xl px-4 md:px-6 py-5">
+      <div className="border-t border-border/30 bg-muted/20">
+        <div className="container mx-auto max-w-6xl px-6 py-5">
           <p className="text-xs text-muted-foreground text-center">
             © {currentYear} Trustroom.ai. All rights reserved.
           </p>

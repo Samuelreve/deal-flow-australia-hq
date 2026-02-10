@@ -58,7 +58,7 @@ const BenefitsSection = () => {
   return (
     <section
       id="benefits"
-      className="py-20 md:py-28 px-4 md:px-6 bg-muted/20 relative overflow-hidden"
+      className="py-[100px] px-6 bg-muted/20 relative overflow-hidden"
     >
       <motion.div
         initial={{ opacity: 0 }}
@@ -74,19 +74,19 @@ const BenefitsSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="text-center mb-14"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             Why Choose Trustroom
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             Built for{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Results
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             Whether you're buying, selling, or advising — Trustroom.ai gives every party
             a competitive edge.
           </p>
@@ -103,14 +103,14 @@ const BenefitsSection = () => {
             <motion.div
               key={benefit.title}
               variants={cardVariants}
-              whileHover={{ y: -4, transition: { duration: 0.25, ease: "easeOut" } }}
-              className="bg-card border border-border/50 rounded-2xl p-6 hover:border-border hover:shadow-lg transition-all duration-300 group"
+              whileHover={{ y: -4, transition: { duration: 0.3, ease: "easeOut" } }}
+              className="bg-card border border-border/50 rounded-3xl p-8 hover:border-border hover:shadow-lg transition-all duration-300 group"
             >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
-                <benefit.icon className="h-5 w-5 text-primary" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center mb-5 group-hover:scale-110 transition-all duration-300">
+                <benefit.icon className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="font-semibold text-foreground mb-2 text-lg font-serif">{benefit.title}</h3>
+              <p className="text-[15px] text-muted-foreground leading-[1.7]">
                 {benefit.description}
               </p>
             </motion.div>
