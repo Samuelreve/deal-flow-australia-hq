@@ -86,10 +86,10 @@ export async function handleDealChatQuery(
     }
 
     // Import enhanced system prompt
-    const { DEAL_CHAT_SYSTEM_PROMPT } = await import("../_shared/ai-prompts.ts");
+    const { DEAL_CHAT_SYSTEM_PROMPT: systemPromptBase } = await import("../_shared/ai-prompts.ts");
     
     // Use enhanced AI responses with deal context
-    const systemPrompt = DEAL_CHAT_SYSTEM_PROMPT;
+    const systemPrompt = systemPromptBase + "\n\nCRITICAL FORMATTING RULE: NEVER use markdown bold syntax (double asterisks **) or any asterisks (*) in your responses. Use plain text only. For emphasis, use CAPS or natural sentence structure. Use dashes (-) for lists.";
 
     const userMessage = `Deal ID: ${dealId}
 User Query: ${query}
