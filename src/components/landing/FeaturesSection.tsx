@@ -58,20 +58,20 @@ const cardVariants = {
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-20 md:py-28 px-4 md:px-6 bg-background">
+    <section id="features" className="py-[100px] px-6 bg-background">
       <div className="container mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="text-center mb-14 max-w-2xl mx-auto"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             Platform Features
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             Everything You Need to{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Close Deals
@@ -88,26 +88,26 @@ const FeaturesSection = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {features.map((feature) => (
             <motion.div
               key={feature.title}
               variants={cardVariants}
-              whileHover={{ y: -6, transition: { duration: 0.25, ease: "easeOut" } }}
-              className="group bg-muted/30 border border-border/50 rounded-2xl p-7 hover:bg-card hover:border-border hover:shadow-lg transition-all duration-300"
+              whileHover={{ y: -4, transition: { duration: 0.3, ease: "easeOut" } }}
+              className="group bg-muted/30 border border-border/30 rounded-3xl p-10 hover:bg-card hover:border-border hover:shadow-lg transition-all duration-300"
             >
               <motion.div
-                className="w-12 h-12 bg-gradient-to-br from-primary to-purple-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300"
+                className="w-14 h-14 bg-gradient-to-br from-primary to-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300"
                 whileHover={{ rotate: [0, -5, 5, 0] }}
                 transition={{ duration: 0.4 }}
               >
-                <feature.icon className="h-6 w-6 text-white" />
+                <feature.icon className="h-6 w-6 text-primary-foreground" />
               </motion.div>
-              <h3 className="text-lg font-semibold mb-2 text-foreground">
+              <h3 className="text-xl font-semibold mb-3 text-foreground font-serif">
                 {feature.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-[15px] text-muted-foreground leading-[1.7]">
                 {feature.description}
               </p>
             </motion.div>

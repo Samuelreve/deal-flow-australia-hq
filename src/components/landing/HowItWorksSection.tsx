@@ -36,7 +36,7 @@ const HowItWorksSection = () => {
   return (
     <section
       id="how-it-works"
-      className="py-20 md:py-28 px-4 md:px-6 bg-background relative overflow-hidden"
+      className="py-[100px] px-6 bg-background relative overflow-hidden"
     >
       <motion.div
         initial={{ opacity: 0 }}
@@ -46,25 +46,25 @@ const HowItWorksSection = () => {
         className="absolute top-40 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="container mx-auto max-w-4xl relative">
+      <div className="container mx-auto max-w-[800px] relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="text-center mb-14"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             Simple 4-Step Process
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             From Upload to{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Close
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             A structured approach that guides every transaction from start to finish
           </p>
         </motion.div>
@@ -82,7 +82,7 @@ const HowItWorksSection = () => {
               {/* Number + Line */}
               <div className="flex flex-col items-center flex-shrink-0">
                 <motion.div
-                  className="w-11 h-11 bg-gradient-to-br from-primary to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg shadow-primary/25"
+                  className="w-12 h-12 bg-gradient-to-br from-primary to-purple-500 text-primary-foreground rounded-full flex items-center justify-center font-bold text-lg shadow-[0_4px_14px_0_hsl(var(--primary)/0.35)]"
                   whileHover={{ scale: 1.15, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 >
@@ -101,16 +101,16 @@ const HowItWorksSection = () => {
 
               {/* Content Card */}
               <motion.div
-                whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                className="bg-card border border-border/50 rounded-2xl p-6 md:p-7 flex-1 hover:border-border hover:shadow-md transition-all duration-300 group"
+                whileHover={{ y: -4, transition: { duration: 0.3 } }}
+                className="bg-card border border-border/50 rounded-3xl p-7 md:p-8 flex-1 hover:border-border hover:shadow-lg transition-all duration-300 group"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
+                  <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
                     <step.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
+                  <h3 className="text-lg font-semibold text-foreground font-serif">{step.title}</h3>
                 </div>
-                <p className="text-muted-foreground leading-relaxed text-sm pl-[52px]">
+                <p className="text-muted-foreground leading-[1.7] text-[15px] pl-[56px]">
                   {step.description}
                 </p>
               </motion.div>

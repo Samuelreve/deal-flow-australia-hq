@@ -9,9 +9,9 @@ const stats = [
 
 const SocialProof = () => {
   return (
-    <section className="py-14 border-y border-border/50 bg-card">
-      <div className="container max-w-5xl mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+    <section className="py-[60px] border-y border-border/30 bg-card">
+      <div className="container max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -22,7 +22,7 @@ const SocialProof = () => {
               whileHover={{ scale: 1.05 }}
               className="text-center cursor-default"
             >
-              <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
+              <div className="text-4xl font-bold text-foreground mb-1.5 font-serif">
                 {stat.value}
               </div>
               <div className="text-sm text-muted-foreground font-medium">

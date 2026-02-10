@@ -45,26 +45,26 @@ const cardVariants = {
 
 const DealCategories = () => {
   return (
-    <section id="deal-categories" className="py-20 md:py-28 px-4 md:px-6 bg-background">
+    <section id="deal-categories" className="py-[100px] px-6 bg-background">
       <div className="container max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             Transaction Types
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             Every Deal Type,{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               One Platform
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             Purpose-built workflows for every transaction category
           </p>
         </motion.div>
@@ -80,18 +80,18 @@ const DealCategories = () => {
             <motion.div
               key={category.title}
               variants={cardVariants}
-              whileHover={{ y: -4, transition: { duration: 0.25, ease: "easeOut" } }}
-              className="bg-card border border-border/50 rounded-2xl p-6 hover:border-border hover:shadow-lg transition-all duration-300 group"
+              whileHover={{ y: -4, transition: { duration: 0.3, ease: "easeOut" } }}
+              className="bg-muted/30 border border-border/30 rounded-3xl p-8 hover:bg-card hover:border-border hover:shadow-lg transition-all duration-300 group"
             >
               <motion.div
-                className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300"
+                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300"
                 whileHover={{ rotate: [0, -5, 5, 0] }}
                 transition={{ duration: 0.4 }}
               >
-                <category.icon className="h-6 w-6 text-white" />
+                <category.icon className="h-6 w-6 text-primary-foreground" />
               </motion.div>
-              <h3 className="font-semibold text-lg mb-2 text-foreground">{category.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="font-semibold text-lg mb-2 text-foreground font-serif">{category.title}</h3>
+              <p className="text-[15px] text-muted-foreground leading-[1.7]">
                 {category.description}
               </p>
             </motion.div>

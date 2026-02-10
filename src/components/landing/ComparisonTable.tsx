@@ -20,26 +20,26 @@ const comparisonData: ComparisonItem[] = [
 
 const ComparisonTable = () => {
   return (
-    <section id="comparison" className="py-20 md:py-28 bg-muted/30 px-4 md:px-6">
-      <div className="container max-w-4xl mx-auto">
+    <section id="comparison" className="py-[100px] bg-muted/30 px-6">
+      <div className="container max-w-[800px] mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             The Difference
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             Traditional M&A vs{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Trustroom.ai
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             See why leading law firms are switching to AI-powered deal management
           </p>
         </motion.div>
@@ -53,11 +53,11 @@ const ComparisonTable = () => {
         >
           {/* Header */}
           <div className="grid grid-cols-3 bg-muted/60 border-b border-border">
-            <div className="p-4 md:p-5 font-semibold text-muted-foreground text-sm">Feature</div>
-            <div className="p-4 md:p-5 font-semibold text-center text-muted-foreground text-sm border-l border-border">
+            <div className="p-5 font-semibold text-muted-foreground text-sm">Feature</div>
+            <div className="p-5 font-semibold text-center text-muted-foreground text-sm border-l border-border">
               Traditional M&A
             </div>
-            <div className="p-4 md:p-5 font-semibold text-center border-l border-border text-sm">
+            <div className="p-5 font-semibold text-center border-l border-border text-sm">
               <span className="inline-flex items-center gap-1.5 text-primary">
                 <Zap className="h-4 w-4" /> Trustroom.ai
               </span>
@@ -76,8 +76,8 @@ const ComparisonTable = () => {
                 index !== comparisonData.length - 1 ? "border-b border-border/50" : ""
               } hover:bg-muted/30 transition-colors duration-200`}
             >
-              <div className="p-4 md:p-5 font-medium text-sm">{item.feature}</div>
-              <div className="p-4 md:p-5 text-center border-l border-border/50 text-muted-foreground text-sm">
+              <div className="p-5 font-medium text-sm">{item.feature}</div>
+              <div className="p-5 text-center border-l border-border/50 text-muted-foreground text-sm">
                 {typeof item.traditional === "boolean" ? (
                   item.traditional ? (
                     <Check className="h-5 w-5 text-primary mx-auto" />
@@ -88,7 +88,7 @@ const ComparisonTable = () => {
                   item.traditional
                 )}
               </div>
-              <div className="p-4 md:p-5 text-center border-l border-border/50 text-sm">
+              <div className="p-5 text-center border-l border-border/50 text-sm">
                 {typeof item.trustroom === "boolean" ? (
                   item.trustroom ? (
                     <Check className="h-5 w-5 text-primary mx-auto" />

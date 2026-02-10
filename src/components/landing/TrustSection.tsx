@@ -41,26 +41,26 @@ const cardVariants = {
 
 const TrustSection = () => {
   return (
-    <section className="py-20 md:py-28 px-4 md:px-6 bg-background">
+    <section className="py-[100px] px-6 bg-background">
       <div className="container mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="text-center mb-14"
+          className="text-center mb-[60px] max-w-[700px] mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold text-primary bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full" />
             Trusted by Professionals
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground font-serif">
             What Our{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Clients Say
             </span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg">
             Hear from M&A professionals who transformed their deal workflow
           </p>
         </motion.div>
@@ -76,15 +76,15 @@ const TrustSection = () => {
             <motion.div
               key={t.name}
               variants={cardVariants}
-              whileHover={{ y: -6, transition: { duration: 0.25 } }}
-              className="bg-card border border-border/50 rounded-2xl p-7 hover:border-border hover:shadow-lg transition-all duration-300 flex flex-col"
+              whileHover={{ y: -4, transition: { duration: 0.3 } }}
+              className="bg-card border border-border/50 rounded-3xl p-8 hover:border-border hover:shadow-lg transition-all duration-300 flex flex-col"
             >
               <Quote className="h-8 w-8 text-primary/20 mb-4 flex-shrink-0" />
-              <p className="text-foreground/80 leading-relaxed mb-6 flex-1 italic">
+              <p className="text-foreground/80 leading-[1.7] mb-6 flex-1 italic text-[15px]">
                 "{t.quote}"
               </p>
               <div className="flex items-center gap-3 pt-4 border-t border-border/50">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-primary-foreground text-sm font-bold">
                   {t.initials}
                 </div>
                 <div>
