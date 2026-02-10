@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Send, Sparkles, TrendingUp, AlertTriangle, FileText, StopCircle } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStreamingAI } from "@/hooks/useStreamingAI";
 import { toast } from "sonner";
@@ -241,8 +242,8 @@ What would you like to know about this deal?`,
                       : 'bg-muted border'
                   }`}
                 >
-                  <div className="text-sm whitespace-pre-wrap">
-                    {message.content}
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>code]:bg-muted [&>code]:px-1 [&>code]:rounded [&>pre]:bg-muted [&>pre]:p-2 [&>pre]:rounded-lg [&>blockquote]:border-l-2 [&>blockquote]:pl-3 [&>blockquote]:italic text-sm">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
                     {message.isStreaming && <StreamingCursor />}
                   </div>
                   
