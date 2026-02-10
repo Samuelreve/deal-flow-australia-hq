@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Bot, StopCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,88 +27,29 @@ const StreamingResponseDisplay: React.FC<StreamingResponseDisplayProps> = ({
   onCancel,
   timestamp
 }) => {
-  const formatResponse = (text: string) => {
+  const renderMarkdown = (text: string) => {
     if (!text) return null;
-    
-    // Split by double newlines to get paragraphs
-    const paragraphs = text.split('\n\n');
-    
-    return paragraphs.map((paragraph, index) => {
-      // Check if this is a list item
-      if (paragraph.startsWith('•') || paragraph.startsWith('-') || paragraph.startsWith('*')) {
-        const items = paragraph.split('\n').filter(item => item.trim());
-        return (
-          <ul key={index} className="list-disc list-inside space-y-1 mb-4">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm">
-                {item.replace(/^[•\-*]\s*/, '')}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-      
-      // Check if this is a numbered list
-      if (/^\d+\./.test(paragraph)) {
-        const items = paragraph.split('\n').filter(item => item.trim());
-        return (
-          <ol key={index} className="list-decimal list-inside space-y-1 mb-4">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm">
-                {item.replace(/^\d+\.\s*/, '')}
-              </li>
-            ))}
-          </ol>
-        );
-      }
-      
-      // Check if this looks like a header with **bold** markers
-      if (paragraph.startsWith('**') && paragraph.includes(':**')) {
-        const headerMatch = paragraph.match(/^\*\*([^*]+)\*\*/);
-        if (headerMatch) {
-          const headerText = headerMatch[1];
-          const rest = paragraph.slice(headerMatch[0].length);
-          return (
-            <div key={index} className="mb-3">
-              <h4 className="font-semibold text-sm text-primary mb-1">
-                {headerText}
-              </h4>
-              {rest && (
-                <p className="text-sm leading-relaxed">
-                  {rest.replace(/^\s*:?\s*/, '')}
-                </p>
-              )}
-            </div>
-          );
-        }
-      }
-      
-      // Check if this looks like a section header
-      if (paragraph.length < 100 && (
-        paragraph.toUpperCase() === paragraph ||
-        /^(Key|Important|Summary|Recommendation|Analysis|Risk|Opportunity|✅|❌|🎯|✨)/i.test(paragraph)
-      )) {
-        return (
-          <h4 key={index} className="font-semibold text-sm mb-2 text-primary">
-            {paragraph}
-          </h4>
-        );
-      }
-      
-      // Regular paragraph - handle inline bold
-      const formattedParagraph = paragraph.split(/(\*\*[^*]+\*\*)/).map((part, partIndex) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
-      
-      return (
-        <p key={index} className="text-sm mb-3 leading-relaxed">
-          {formattedParagraph}
-        </p>
-      );
-    });
+    return (
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <p className="text-sm mb-3 leading-relaxed">{children}</p>,
+          h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-primary">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-primary">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold mb-2 text-primary">{children}</h3>,
+          h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-primary">{children}</h4>,
+          ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-4 text-sm">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-4 text-sm">{children}</ol>,
+          li: ({ children }) => <li className="text-sm">{children}</li>,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          code: ({ children }) => <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+          pre: ({ children }) => <pre className="bg-muted p-3 rounded-md overflow-x-auto mb-3 text-xs">{children}</pre>,
+          blockquote: ({ children }) => <blockquote className="border-l-2 border-primary/30 pl-3 italic text-muted-foreground mb-3">{children}</blockquote>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   };
 
   // Initial loading state (no content yet)
@@ -152,7 +94,7 @@ const StreamingResponseDisplay: React.FC<StreamingResponseDisplayProps> = ({
         <Card className="bg-muted/50 border-border">
           <CardContent className="p-4">
             <div className="mb-3">
-              {formatResponse(content)}
+              {renderMarkdown(content)}
               {isStreaming && <StreamingCursor />}
             </div>
             
