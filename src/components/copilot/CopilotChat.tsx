@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain, Loader2, Send, Compass, ListChecks, FileText, Activity, Upload, X } from "lucide-react";
 import { useCopilot } from "./useCopilot";
+import ReactMarkdown from "react-markdown";
 
 const QuickActions: React.FC<{
   onNext: () => void;
@@ -169,7 +170,9 @@ const CopilotChat: React.FC<{ dealId?: string; onHeaderMouseDown?: (e: React.Mou
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  {m.content}
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>h4]:text-sm [&>code]:bg-muted [&>code]:px-1 [&>code]:rounded [&>pre]:bg-muted [&>pre]:p-2 [&>pre]:rounded-lg [&>blockquote]:border-l-2 [&>blockquote]:pl-3 [&>blockquote]:italic">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             ))}
