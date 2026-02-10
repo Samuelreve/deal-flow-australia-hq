@@ -17,18 +17,22 @@ interface HeroSectionProps {
   scrollToSection: (sectionId: string) => void;
 }
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+
 const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const getInitials = () => {
     if (user?.name) {
-      return user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
+      return user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
     }
     return user?.email?.charAt(0).toUpperCase() || "U";
   };
@@ -40,47 +44,40 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
 
   return (
     <header className="relative bg-gradient-to-b from-muted/40 to-background overflow-hidden">
-      {/* Subtle radial glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle,hsl(var(--primary)/0.08)_0%,transparent_70%)] pointer-events-none" />
+      {/* Animated radial glow */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-[radial-gradient(circle,hsl(var(--primary)/0.08)_0%,transparent_70%)] pointer-events-none"
+      />
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border/50">
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border/50"
+      >
         <div className="container mx-auto max-w-6xl px-4 md:px-6 flex items-center justify-between h-16">
-          <motion.a
-            href="/"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2.5"
-          >
+          <a href="/" className="flex items-center gap-2.5">
             <img src="/trustroom-logo.webp" alt="Trustroom.ai" className="h-20" />
-          </motion.a>
+          </a>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">
-            <button
-              onClick={() => scrollToSection("features")}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            >
-              Features
-            </button>
-            <button
-              onClick={() => scrollToSection("comparison")}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            >
-              Why Us
-            </button>
-            <button
-              onClick={() => scrollToSection("how-it-works")}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            >
-              How It Works
-            </button>
-            <button
-              onClick={() => scrollToSection("pricing")}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            >
-              Pricing
-            </button>
+            {["features", "comparison", "how-it-works", "pricing"].map((id, i) => (
+              <motion.button
+                key={id}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 + i * 0.06 }}
+                onClick={() => scrollToSection(id)}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all duration-200"
+              >
+                {id === "features" ? "Features" : id === "comparison" ? "Why Us" : id === "how-it-works" ? "How It Works" : "Pricing"}
+              </motion.button>
+            ))}
           </div>
 
           {/* Actions */}
@@ -89,7 +86,7 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
               variant="ghost"
               size="sm"
               onClick={() => navigate("/ai-assistant")}
-              className="hidden sm:inline-flex gap-2 text-muted-foreground hover:text-foreground"
+              className="hidden sm:inline-flex gap-2 text-muted-foreground hover:text-foreground transition-all duration-200"
             >
               <Bot className="h-4 w-4" />
               AI Assistant
@@ -122,21 +119,17 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Dashboard
+                    <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
+                    <User className="mr-2 h-4 w-4" /> Profile
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                    <Settings className="mr-2 h-4 w-4" /> Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
+                    <LogOut className="mr-2 h-4 w-4" /> Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -146,22 +139,24 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/login")}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground transition-all duration-200"
                 >
                   Log in
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => navigate("/signup")}
-                  className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0 shadow-md shadow-primary/25"
-                >
-                  Get Started
-                </Button>
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/signup")}
+                    className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0 shadow-md shadow-primary/25 transition-all duration-300"
+                  >
+                    Get Started
+                  </Button>
+                </motion.div>
               </div>
             )}
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Content */}
       <div className="relative py-20 md:py-32 px-4 md:px-6">
@@ -169,22 +164,28 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
           <div className="text-center">
             {/* Badge */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              custom={0}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
               className="mb-6"
             >
               <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full">
-                <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                <motion.span
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
+                  animate={{ scale: [1, 1.4, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                />
                 AI-Powered Deal Room for M&A Lawyers
               </span>
             </motion.div>
 
             {/* Headline */}
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
+              custom={0.12}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
               className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-primary"
             >
               Close M&A Deals
@@ -194,9 +195,10 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
 
             {/* Subtitle */}
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              custom={0.24}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
               className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
             >
               The all-in-one deal room with integrated DocuSign, AI-powered due diligence,
@@ -206,43 +208,51 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
 
             {/* CTAs */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              custom={0.36}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
             >
-              <Button
-                size="lg"
-                onClick={() => navigate("/signup")}
-                className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all h-13 px-8 text-base"
-              >
-                Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => scrollToSection("how-it-works")}
-                className="border-border hover:bg-muted/50 transition-all h-13 px-8 text-base"
-              >
-                See How It Works
-              </Button>
+              <motion.div whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  size="lg"
+                  onClick={() => navigate("/signup")}
+                  className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white border-0 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 h-13 px-8 text-base"
+                >
+                  Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => scrollToSection("how-it-works")}
+                  className="border-border hover:bg-muted/50 transition-all duration-300 h-13 px-8 text-base"
+                >
+                  See How It Works
+                </Button>
+              </motion.div>
             </motion.div>
 
             {/* Stats */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
+              initial="hidden"
+              animate="visible"
               className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto"
             >
               {[
                 { value: "60%", label: "Faster Deal Completion" },
                 { value: "90%", label: "Fewer Documentation Errors" },
                 { value: "3x", label: "More Deals Per Quarter" },
-              ].map((stat) => (
-                <div
+              ].map((stat, i) => (
+                <motion.div
                   key={stat.label}
-                  className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+                  custom={0.48 + i * 0.1}
+                  variants={fadeUp}
+                  whileHover={{ y: -6, boxShadow: "0 12px 24px -8px hsl(var(--primary) / 0.15)" }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="bg-card border border-border rounded-2xl p-6 text-center shadow-sm transition-all duration-300 cursor-default"
                 >
                   <div className="text-3xl md:text-4xl font-bold text-primary mb-1">
                     {stat.value}
@@ -250,7 +260,7 @@ const HeroSection = ({ isAuthenticated, scrollToSection }: HeroSectionProps) => 
                   <div className="text-sm text-muted-foreground font-medium">
                     {stat.label}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
           </div>

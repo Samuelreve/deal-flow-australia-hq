@@ -15,11 +15,12 @@ const SocialProof = () => {
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
               viewport={{ once: true }}
-              className="text-center"
+              whileHover={{ scale: 1.05 }}
+              className="text-center cursor-default"
             >
               <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
                 {stat.value}

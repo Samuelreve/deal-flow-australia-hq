@@ -41,7 +41,7 @@ const FAQSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="text-center mb-14"
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
@@ -67,18 +67,25 @@ const FAQSection = () => {
         >
           <Accordion type="single" collapsible className="w-full space-y-3">
             {faqs.map((faq, index) => (
-              <AccordionItem
+              <motion.div
                 key={index}
-                value={`item-${index}`}
-                className="border border-border/50 rounded-xl bg-card px-5 data-[state=open]:border-primary/20 data-[state=open]:shadow-sm transition-all"
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.06 }}
               >
-                <AccordionTrigger className="text-left hover:no-underline py-5 text-sm font-medium">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
+                <AccordionItem
+                  value={`item-${index}`}
+                  className="border border-border/50 rounded-xl bg-card px-5 data-[state=open]:border-primary/20 data-[state=open]:shadow-sm transition-all duration-300"
+                >
+                  <AccordionTrigger className="text-left hover:no-underline py-5 text-sm font-medium">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              </motion.div>
             ))}
           </Accordion>
         </motion.div>

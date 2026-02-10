@@ -8,46 +8,14 @@ interface ComparisonItem {
 }
 
 const comparisonData: ComparisonItem[] = [
-  {
-    feature: "Average Deal Timeline",
-    traditional: "4–8 months",
-    trustroom: "6–12 weeks",
-  },
-  {
-    feature: "Document Review",
-    traditional: "Manual, days per batch",
-    trustroom: "AI-powered, minutes",
-  },
-  {
-    feature: "Legal Back-and-Forth",
-    traditional: "Endless email threads",
-    trustroom: "60% reduction",
-  },
-  {
-    feature: "Due Diligence Checklists",
-    traditional: "Spreadsheets & email",
-    trustroom: "Automated & AI-generated",
-  },
-  {
-    feature: "Real-time Deal Tracking",
-    traditional: false,
-    trustroom: true,
-  },
-  {
-    feature: "AI Deal Health Scoring",
-    traditional: false,
-    trustroom: true,
-  },
-  {
-    feature: "Integrated e-Signatures",
-    traditional: "External tools required",
-    trustroom: "Built-in DocuSign",
-  },
-  {
-    feature: "Role-Based Data Room",
-    traditional: "Basic folder sharing",
-    trustroom: "Granular permissions",
-  },
+  { feature: "Average Deal Timeline", traditional: "4–8 months", trustroom: "6–12 weeks" },
+  { feature: "Document Review", traditional: "Manual, days per batch", trustroom: "AI-powered, minutes" },
+  { feature: "Legal Back-and-Forth", traditional: "Endless email threads", trustroom: "60% reduction" },
+  { feature: "Due Diligence Checklists", traditional: "Spreadsheets & email", trustroom: "Automated & AI-generated" },
+  { feature: "Real-time Deal Tracking", traditional: false, trustroom: true },
+  { feature: "AI Deal Health Scoring", traditional: false, trustroom: true },
+  { feature: "Integrated e-Signatures", traditional: "External tools required", trustroom: "Built-in DocuSign" },
+  { feature: "Role-Based Data Room", traditional: "Basic folder sharing", trustroom: "Granular permissions" },
 ];
 
 const ComparisonTable = () => {
@@ -57,7 +25,7 @@ const ComparisonTable = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           viewport={{ once: true }}
           className="text-center mb-12"
         >
@@ -77,35 +45,36 @@ const ComparisonTable = () => {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
           viewport={{ once: true }}
           className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
         >
           {/* Header */}
           <div className="grid grid-cols-3 bg-muted/60 border-b border-border">
-            <div className="p-4 md:p-5 font-semibold text-muted-foreground text-sm">
-              Feature
-            </div>
+            <div className="p-4 md:p-5 font-semibold text-muted-foreground text-sm">Feature</div>
             <div className="p-4 md:p-5 font-semibold text-center text-muted-foreground text-sm border-l border-border">
               Traditional M&A
             </div>
             <div className="p-4 md:p-5 font-semibold text-center border-l border-border text-sm">
               <span className="inline-flex items-center gap-1.5 text-primary">
-                <Zap className="h-4 w-4" />
-                Trustroom.ai
+                <Zap className="h-4 w-4" /> Trustroom.ai
               </span>
             </div>
           </div>
 
           {/* Rows */}
           {comparisonData.map((item, index) => (
-            <div
+            <motion.div
               key={item.feature}
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: index * 0.04 }}
               className={`grid grid-cols-3 ${
                 index !== comparisonData.length - 1 ? "border-b border-border/50" : ""
-              } hover:bg-muted/30 transition-colors`}
+              } hover:bg-muted/30 transition-colors duration-200`}
             >
               <div className="p-4 md:p-5 font-medium text-sm">{item.feature}</div>
               <div className="p-4 md:p-5 text-center border-l border-border/50 text-muted-foreground text-sm">
@@ -130,7 +99,7 @@ const ComparisonTable = () => {
                   <span className="font-semibold text-primary">{item.trustroom}</span>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
       </div>
