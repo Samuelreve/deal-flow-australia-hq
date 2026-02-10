@@ -65,7 +65,9 @@ const Index = () => {
         <DealCategories />
         <HowItWorksSection />
         <BenefitsSection />
-        <PricingSection className="bg-muted/30" />
+        <div id="pricing">
+          <PricingSection className="bg-muted/30" />
+        </div>
         <TrustSection />
         <FAQSection />
         <CTASection />
