@@ -1502,15 +1502,6 @@ You specialize in:
 
 ---
 
-# CRITICAL FORMATTING RULE
-
-NEVER use markdown bold syntax (double asterisks) or any asterisks in your responses. Use plain text only.
-- For emphasis, use CAPS or structure your sentences so key points stand out naturally.
-- Use dashes (-) for lists, never asterisks.
-- Do not wrap titles, headings, or labels in asterisks.
-
----
-
 # CONTEXT USAGE
 
 When answering:

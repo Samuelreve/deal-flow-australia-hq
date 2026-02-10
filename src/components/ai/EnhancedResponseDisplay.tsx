@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Bot, CheckCircle, AlertTriangle, Info, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,58 +24,28 @@ const EnhancedResponseDisplay: React.FC<EnhancedResponseDisplayProps> = ({
   onFeedback,
   timestamp
 }) => {
-  const formatResponse = (text: string) => {
-    // Split by double newlines to get paragraphs
-    const paragraphs = text.split('\n\n');
-    
-    return paragraphs.map((paragraph, index) => {
-      // Check if this is a list item
-      if (paragraph.startsWith('•') || paragraph.startsWith('-') || paragraph.startsWith('*')) {
-        const items = paragraph.split('\n').filter(item => item.trim());
-        return (
-          <ul key={index} className="list-disc list-inside space-y-1 mb-4">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm">
-                {item.replace(/^[•\-*]\s*/, '')}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-      
-      // Check if this is a numbered list
-      if (/^\d+\./.test(paragraph)) {
-        const items = paragraph.split('\n').filter(item => item.trim());
-        return (
-          <ol key={index} className="list-decimal list-inside space-y-1 mb-4">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm">
-                {item.replace(/^\d+\.\s*/, '')}
-              </li>
-            ))}
-          </ol>
-        );
-      }
-      
-      // Check if this looks like a header (all caps or starts with specific words)
-      if (paragraph.length < 100 && (
-        paragraph.toUpperCase() === paragraph ||
-        /^(Key|Important|Summary|Recommendation|Analysis|Risk|Opportunity)/i.test(paragraph)
-      )) {
-        return (
-          <h4 key={index} className="font-semibold text-sm mb-2 text-primary">
-            {paragraph}
-          </h4>
-        );
-      }
-      
-      // Regular paragraph
-      return (
-        <p key={index} className="text-sm mb-3 leading-relaxed">
-          {paragraph}
-        </p>
-      );
-    });
+  const renderMarkdown = (text: string) => {
+    return (
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <p className="text-sm mb-3 leading-relaxed">{children}</p>,
+          h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-primary">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-primary">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold mb-2 text-primary">{children}</h3>,
+          h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-primary">{children}</h4>,
+          ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-4 text-sm">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-4 text-sm">{children}</ol>,
+          li: ({ children }) => <li className="text-sm">{children}</li>,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          code: ({ children }) => <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+          pre: ({ children }) => <pre className="bg-muted p-3 rounded-md overflow-x-auto mb-3 text-xs">{children}</pre>,
+          blockquote: ({ children }) => <blockquote className="border-l-2 border-primary/30 pl-3 italic text-muted-foreground mb-3">{children}</blockquote>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   };
 
   const getCategoryIcon = (cat?: string) => {
@@ -127,7 +98,7 @@ const EnhancedResponseDisplay: React.FC<EnhancedResponseDisplayProps> = ({
         <Card className="bg-gray-50 border-gray-200">
           <CardContent className="p-4">
             <div className="mb-3">
-              {formatResponse(content)}
+              {renderMarkdown(content)}
             </div>
             
             {/* Footer with just timestamp */}
