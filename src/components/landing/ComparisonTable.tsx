@@ -9,46 +9,51 @@ interface ComparisonItem {
 
 const comparisonData: ComparisonItem[] = [
   {
-    feature: "Deal Timeline",
-    traditional: "3-6 months",
-    trustroom: "4-8 weeks",
+    feature: "Average Deal Timeline",
+    traditional: "4–8 months",
+    trustroom: "6–12 weeks",
   },
   {
     feature: "Document Review",
-    traditional: "Manual, days",
+    traditional: "Manual, days per batch",
     trustroom: "AI-powered, minutes",
   },
   {
     feature: "Legal Back-and-Forth",
-    traditional: "Endless emails",
+    traditional: "Endless email threads",
     trustroom: "60% reduction",
   },
   {
-    feature: "Due Diligence",
-    traditional: "Paper-based",
-    trustroom: "Automated checklists",
+    feature: "Due Diligence Checklists",
+    traditional: "Spreadsheets & email",
+    trustroom: "Automated & AI-generated",
   },
   {
-    feature: "Real-time Updates",
+    feature: "Real-time Deal Tracking",
     traditional: false,
     trustroom: true,
   },
   {
-    feature: "AI Deal Advisor",
+    feature: "AI Deal Health Scoring",
     traditional: false,
     trustroom: true,
   },
   {
-    feature: "Signature Integration",
-    traditional: "External tools",
+    feature: "Integrated e-Signatures",
+    traditional: "External tools required",
     trustroom: "Built-in DocuSign",
+  },
+  {
+    feature: "Role-Based Data Room",
+    traditional: "Basic folder sharing",
+    trustroom: "Granular permissions",
   },
 ];
 
 const ComparisonTable = () => {
   return (
-    <section className="py-16 md:py-24 bg-muted/30">
-      <div className="container max-w-5xl mx-auto px-4">
+    <section id="comparison" className="py-20 md:py-28 bg-muted/30 px-4 md:px-6">
+      <div className="container max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -56,14 +61,18 @@ const ComparisonTable = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Why Businesses Choose{" "}
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+            The Difference
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            Traditional M&A vs{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               Trustroom.ai
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            See how AI-powered deal management transforms the traditional process
+            See why leading law firms are switching to AI-powered deal management
           </p>
         </motion.div>
 
@@ -72,15 +81,17 @@ const ComparisonTable = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           viewport={{ once: true }}
-          className="overflow-hidden rounded-xl border border-border bg-card"
+          className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
         >
           {/* Header */}
-          <div className="grid grid-cols-3 bg-muted/50 border-b border-border">
-            <div className="p-4 font-medium text-muted-foreground">Feature</div>
-            <div className="p-4 font-medium text-center text-muted-foreground border-l border-border">
+          <div className="grid grid-cols-3 bg-muted/60 border-b border-border">
+            <div className="p-4 md:p-5 font-semibold text-muted-foreground text-sm">
+              Feature
+            </div>
+            <div className="p-4 md:p-5 font-semibold text-center text-muted-foreground text-sm border-l border-border">
               Traditional M&A
             </div>
-            <div className="p-4 font-medium text-center border-l border-border">
+            <div className="p-4 md:p-5 font-semibold text-center border-l border-border text-sm">
               <span className="inline-flex items-center gap-1.5 text-primary">
                 <Zap className="h-4 w-4" />
                 Trustroom.ai
@@ -90,40 +101,36 @@ const ComparisonTable = () => {
 
           {/* Rows */}
           {comparisonData.map((item, index) => (
-            <motion.div
+            <div
               key={item.feature}
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-              viewport={{ once: true }}
               className={`grid grid-cols-3 ${
-                index !== comparisonData.length - 1 ? "border-b border-border" : ""
+                index !== comparisonData.length - 1 ? "border-b border-border/50" : ""
               } hover:bg-muted/30 transition-colors`}
             >
-              <div className="p-4 font-medium">{item.feature}</div>
-              <div className="p-4 text-center border-l border-border text-muted-foreground">
+              <div className="p-4 md:p-5 font-medium text-sm">{item.feature}</div>
+              <div className="p-4 md:p-5 text-center border-l border-border/50 text-muted-foreground text-sm">
                 {typeof item.traditional === "boolean" ? (
                   item.traditional ? (
                     <Check className="h-5 w-5 text-primary mx-auto" />
                   ) : (
-                    <X className="h-5 w-5 text-muted-foreground/50 mx-auto" />
+                    <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />
                   )
                 ) : (
                   item.traditional
                 )}
               </div>
-              <div className="p-4 text-center border-l border-border">
+              <div className="p-4 md:p-5 text-center border-l border-border/50 text-sm">
                 {typeof item.trustroom === "boolean" ? (
                   item.trustroom ? (
                     <Check className="h-5 w-5 text-primary mx-auto" />
                   ) : (
-                    <X className="h-5 w-5 text-muted-foreground/50 mx-auto" />
+                    <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />
                   )
                 ) : (
-                  <span className="font-medium text-primary">{item.trustroom}</span>
+                  <span className="font-semibold text-primary">{item.trustroom}</span>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </motion.div>
       </div>

@@ -1,82 +1,85 @@
-
 import { motion } from "framer-motion";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger
+  AccordionTrigger,
 } from "@/components/ui/accordion";
+
+const faqs = [
+  {
+    q: "How does Trustroom.ai speed up the M&A process?",
+    a: "Trustroom.ai eliminates common bottlenecks through AI-powered document review, automated due diligence checklists, integrated e-signatures, and structured milestone tracking. This typically reduces deal timelines from months to weeks by minimizing manual work and back-and-forth communication.",
+  },
+  {
+    q: "Is my sensitive deal data secure on the platform?",
+    a: "Absolutely. We use bank-level encryption at rest and in transit, row-level security policies, and granular role-based access controls. Each participant only sees documents and data they're authorized to access based on their deal role. Full audit trails are maintained for compliance.",
+  },
+  {
+    q: "Can my legal team, accountant, and advisors all collaborate?",
+    a: "Yes. Trustroom.ai supports multi-party collaboration with role-based permissions for sellers, buyers, lawyers, advisors, and other stakeholders. Each role gets tailored views and appropriate access levels within the deal room.",
+  },
+  {
+    q: "How accurate is the AI document analysis?",
+    a: "Our AI is trained on extensive legal and business transaction datasets and provides excellent assistance for summarizing contracts, flagging risks, and explaining complex clauses. While it dramatically accelerates review, we always recommend professional legal review for final decisions — the AI is a powerful efficiency tool, not a replacement for legal counsel.",
+  },
+  {
+    q: "What types of transactions does Trustroom.ai support?",
+    a: "We support business sales, IP transfers, real estate transactions, cross-border deals, and micro-deals. Each category has purpose-built workflows, checklists, and milestone templates designed for that specific transaction type. The platform is most valuable for deals between $500K and $50M.",
+  },
+  {
+    q: "Do I need to install anything or can I start immediately?",
+    a: "Trustroom.ai is fully cloud-based — no installation required. Create your free account, set up your first deal room in minutes, and invite stakeholders immediately. The platform works on any modern browser, on desktop and mobile.",
+  },
+];
 
 const FAQSection = () => {
   return (
-    <section className="py-24 px-4 md:px-6 bg-gradient-to-b from-background to-muted/30">
+    <section className="py-20 md:py-28 px-4 md:px-6 bg-muted/20">
       <div className="container mx-auto max-w-3xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-14"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            Frequently Asked Questions
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+            FAQ
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            Frequently Asked{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+              Questions
+            </span>
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Get answers to commonly asked questions about our platform
+          <p className="text-muted-foreground text-lg">
+            Everything you need to know about getting started
           </p>
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1" className="border-b border-border/50">
-              <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                How does Trustroom.ai speed up the business sale process?
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
-                Trustroom.ai eliminates common bottlenecks by providing a structured workflow, automated document management, clear milestone tracking, and AI-assisted document creation and review. This significantly reduces the back-and-forth between parties and minimizes delays.
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="item-2" className="border-b border-border/50">
-              <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                Is my sensitive business information secure on the platform?
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
-                Absolutely. Trustroom.ai uses bank-level encryption, role-based access controls, and secure cloud infrastructure. Each participant only sees the information they're authorized to access based on their role in the transaction.
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="item-3" className="border-b border-border/50">
-              <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                Can my lawyer and accountant collaborate on the platform?
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
-                Yes, Trustroom.ai is designed for multi-party collaboration. You can invite any professional advisors to the platform and assign them appropriate roles and permissions. They'll be able to review documents, provide input, and communicate efficiently with all parties.
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="item-4" className="border-b border-border/50">
-              <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                How accurate is the AI document assistance?
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
-                Our AI tools are trained on extensive legal and business transaction datasets. While they provide excellent assistance for understanding and generating standard documents, we always recommend professional review for critical legal documents. The AI serves as an efficiency tool, not a replacement for professional advice.
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="item-5" className="border-b border-border/50">
-              <AccordionTrigger className="text-left hover:text-primary transition-colors py-5">
-                What types of businesses is Trustroom.ai appropriate for?
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground">
-                Trustroom.ai is flexible and works for businesses of all sizes, from small local establishments to mid-market companies. The platform is particularly valuable for transactions between $500,000 and $50 million where efficiency and organization are critical, but legal resources might be limited.
-              </AccordionContent>
-            </AccordionItem>
+          <Accordion type="single" collapsible className="w-full space-y-3">
+            {faqs.map((faq, index) => (
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border border-border/50 rounded-xl bg-card px-5 data-[state=open]:border-primary/20 data-[state=open]:shadow-sm transition-all"
+              >
+                <AccordionTrigger className="text-left hover:no-underline py-5 text-sm font-medium">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
           </Accordion>
         </motion.div>
       </div>
