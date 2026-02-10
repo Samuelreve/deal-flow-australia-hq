@@ -61,7 +61,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onDelete }) => {
         </AvatarFallback>
       </Avatar>
       
-      <div className={`flex-1 max-w-[75%] ${isCurrentUser ? 'items-end' : ''}`}>
+      <div className={`flex flex-col max-w-[75%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
         {/* Header */}
         <div className={`flex items-center gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
           <span className="text-xs font-medium">
@@ -78,7 +78,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onDelete }) => {
         </div>
 
         {/* Message Bubble */}
-        <div className={`rounded-lg px-3 py-2 ${
+        <div className={`inline-block rounded-lg px-3 py-2 ${
           isCurrentUser 
             ? 'bg-primary text-primary-foreground' 
             : 'bg-muted'
