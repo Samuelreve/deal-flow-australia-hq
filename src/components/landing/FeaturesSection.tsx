@@ -1,65 +1,95 @@
-
 import { motion } from "framer-motion";
-import FeatureCard from "./FeatureCard";
-import { ShieldCheck, FileText, MessageSquare, BarChart3 } from "lucide-react";
+import { ShieldCheck, FileText, MessageSquare, BarChart3, Brain, PenTool } from "lucide-react";
+
+const features = [
+  {
+    icon: Brain,
+    title: "AI-Powered Due Diligence",
+    description:
+      "Our AI reviews hundreds of documents in minutes, flags risks, and generates plain-language summaries so your team can focus on strategy instead of manual review.",
+  },
+  {
+    icon: FileText,
+    title: "Smart Document Management",
+    description:
+      "Secure virtual data room with version control, role-based access, automated organization, and full audit trails — everything you need for compliant deal execution.",
+  },
+  {
+    icon: PenTool,
+    title: "Integrated DocuSign",
+    description:
+      "Execute agreements directly within the platform. Track signature status, manage envelopes, and maintain a complete signing audit trail without switching tools.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Unified Communication",
+    description:
+      "Contextual messaging, document annotations, and threaded comments keep all deal communications in one place — eliminating scattered email chains.",
+  },
+  {
+    icon: BarChart3,
+    title: "Deal Health Monitoring",
+    description:
+      "Real-time dashboards track milestone progress, flag delays, and provide AI-powered predictions on deal completion probability with actionable recommendations.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Bank-Level Security",
+    description:
+      "Enterprise-grade encryption, row-level security, and granular permissions ensure sensitive deal data is only accessible to authorized participants.",
+  },
+];
 
 const FeaturesSection = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
   return (
-    <section id="features" className="py-24 bg-gradient-to-b from-muted/30 to-background px-4 md:px-6">
-      <div className="container mx-auto max-w-5xl">
+    <section id="features" className="py-20 md:py-28 px-4 md:px-6 bg-background">
+      <div className="container mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
+          className="text-center mb-14 max-w-2xl mx-auto"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">Our Platform Features</h2>
-          <p className="text-center text-muted-foreground mb-16 max-w-3xl mx-auto">
-            Trustroom.ai combines cutting-edge technology with industry expertise to streamline every aspect of business sales.
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+            Platform Features
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            Everything You Need to{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+              Close Deals
+            </span>
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Purpose-built tools that eliminate the friction in M&A transactions,
+            from first review to final signature.
           </p>
         </motion.div>
-        
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          <FeatureCard 
-            icon={<ShieldCheck className="h-6 w-6 text-primary" />}
-            title="AI-Powered Document Intelligence"
-            description="Our advanced AI explains complex legal clauses in plain language, generates customized document templates, and provides quick summaries."
-          />
-          
-          <FeatureCard 
-            icon={<FileText className="h-6 w-6 text-primary" />}
-            title="Smart Document Management"
-            description="Secure storage with version history, automated organization, and role-based access ensures everyone sees exactly what they need."
-          />
-          
-          <FeatureCard 
-            icon={<MessageSquare className="h-6 w-6 text-primary" />}
-            title="Unified Communication"
-            description="Centralized messaging, contextual commenting, and document annotations keep all communications in one place, eliminating confusion."
-          />
-          
-          <FeatureCard 
-            icon={<BarChart3 className="h-6 w-6 text-primary" />}
-            title="Progress Tracking"
-            description="Visual milestone tracking with automated updates keeps everyone informed of deal progress and upcoming steps."
-          />
-        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, index) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: index * 0.08 }}
+              whileHover={{ y: -6 }}
+              className="group bg-muted/30 border border-border/50 rounded-2xl p-7 hover:bg-card hover:border-border hover:shadow-lg transition-all duration-300"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-500 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                <feature.icon className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-foreground">
+                {feature.title}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {feature.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );

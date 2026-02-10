@@ -1,58 +1,50 @@
 import { motion } from "framer-motion";
-import { Building2, Globe, Briefcase, Lightbulb, Home, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Building2, Globe, Briefcase, Lightbulb, Home } from "lucide-react";
 
 const categories = [
   {
     icon: Building2,
-    title: "Business Sale",
-    description: "Full business acquisitions with comprehensive due diligence",
-    color: "from-blue-500 to-cyan-500",
+    title: "Business Sales",
+    description: "Full business acquisitions with comprehensive due diligence, milestone tracking, and structured settlement workflows.",
   },
   {
     icon: Lightbulb,
-    title: "IP Transfer",
-    description: "Patents, trademarks, and intellectual property deals",
-    color: "from-amber-500 to-orange-500",
+    title: "IP Transfers",
+    description: "Patent, trademark, and intellectual property transactions with specialized compliance checklists and valuation support.",
   },
   {
     icon: Home,
     title: "Real Estate",
-    description: "Commercial and residential property transactions",
-    color: "from-green-500 to-emerald-500",
+    description: "Commercial and residential property deals with contract review, title analysis, and settlement coordination.",
   },
   {
     icon: Globe,
-    title: "Cross-Border",
-    description: "International deals with multi-jurisdiction support",
-    color: "from-purple-500 to-pink-500",
+    title: "Cross-Border Deals",
+    description: "International transactions with multi-jurisdiction support, currency handling, and regulatory compliance tracking.",
   },
   {
     icon: Briefcase,
     title: "Micro Deals",
-    description: "Smaller transactions with streamlined workflows",
-    color: "from-rose-500 to-red-500",
-  },
-  {
-    icon: Sparkles,
-    title: "AI-Powered",
-    description: "Let AI guide you through custom deal structures",
-    color: "from-primary to-purple-600",
+    description: "Streamlined workflows for smaller transactions — get the same professional deal room without the overhead.",
   },
 ];
 
 const DealCategories = () => {
   return (
-    <section id="deal-categories" className="py-16 md:py-24">
-      <div className="container max-w-6xl mx-auto px-4">
+    <section id="deal-categories" className="py-20 md:py-28 px-4 md:px-6 bg-background">
+      <div className="container max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-14"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+            Transaction Types
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
             Every Deal Type,{" "}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
               One Platform
@@ -69,20 +61,18 @@ const DealCategories = () => {
               key={category.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.5, delay: index * 0.08 }}
               viewport={{ once: true }}
+              whileHover={{ y: -4 }}
+              className="bg-card border border-border/50 rounded-2xl p-6 hover:border-border hover:shadow-lg transition-all duration-300 group"
             >
-              <Card className="group h-full hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="p-6">
-                  <div
-                    className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${category.color} mb-4 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <category.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{category.title}</h3>
-                  <p className="text-sm text-muted-foreground">{category.description}</p>
-                </CardContent>
-              </Card>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                <category.icon className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2 text-foreground">{category.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {category.description}
+              </p>
             </motion.div>
           ))}
         </div>

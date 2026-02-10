@@ -1,45 +1,33 @@
 import { motion } from "framer-motion";
-import { Users, FileText, TrendingUp, Clock } from "lucide-react";
 
-interface StatProps {
-  value: string;
-  label: string;
-  icon: React.ElementType;
-  delay: number;
-}
-
-const StatItem = ({ value, label, icon: Icon, delay }: StatProps) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.9 }}
-    whileInView={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.5, delay }}
-    viewport={{ once: true }}
-    className="text-center"
-  >
-    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
-      <Icon className="h-6 w-6 text-primary" />
-    </div>
-    <div className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
-      {value}
-    </div>
-    <div className="text-sm text-muted-foreground mt-1">{label}</div>
-  </motion.div>
-);
+const stats = [
+  { value: "500+", label: "Deals Completed" },
+  { value: "200+", label: "Law Firms Trust Us" },
+  { value: "$2B+", label: "Transaction Value" },
+  { value: "99.9%", label: "Uptime SLA" },
+];
 
 const SocialProof = () => {
-  const stats = [
-    { value: "180+", label: "Active Deals", icon: FileText, delay: 0 },
-    { value: "300+", label: "Documents Managed", icon: TrendingUp, delay: 0.1 },
-    { value: "40%", label: "Faster Closings", icon: Clock, delay: 0.2 },
-    { value: "5", label: "Deal Categories", icon: Users, delay: 0.3 },
-  ];
-
   return (
-    <section className="py-12 border-y border-border bg-muted/20">
+    <section className="py-14 border-y border-border/50 bg-card">
       <div className="container max-w-5xl mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat) => (
-            <StatItem key={stat.label} {...stat} />
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
+                {stat.value}
+              </div>
+              <div className="text-sm text-muted-foreground font-medium">
+                {stat.label}
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

@@ -1,100 +1,98 @@
-
 import { motion } from "framer-motion";
-import BenefitCard from "./BenefitCard";
 import { Zap, Eye, DollarSign, Shield, Heart, TrendingUp } from "lucide-react";
 
+const benefits = [
+  {
+    icon: Zap,
+    title: "Close 60% Faster",
+    description:
+      "Automated workflows, AI document review, and integrated signatures eliminate weeks of manual work from every transaction.",
+  },
+  {
+    icon: DollarSign,
+    title: "Cut Legal Costs by 40%",
+    description:
+      "AI-powered document analysis reduces billable review hours, generating plain-language summaries and flagging issues automatically.",
+  },
+  {
+    icon: Eye,
+    title: "Full Deal Transparency",
+    description:
+      "Every stakeholder gets real-time visibility into deal progress, document status, and upcoming milestones — no status meetings needed.",
+  },
+  {
+    icon: Shield,
+    title: "Enterprise Security",
+    description:
+      "Bank-level encryption, row-level access control, and full audit trails meet the strictest compliance requirements for sensitive M&A data.",
+  },
+  {
+    icon: Heart,
+    title: "Reduce Deal Fatigue",
+    description:
+      "Automated reminders, clear checklists, and structured processes eliminate confusion and reduce the anxiety that kills deals.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Higher Completion Rate",
+    description:
+      "AI-powered deal health scoring and proactive alerts help you intervene early and keep transactions on track to close.",
+  },
+];
+
 const BenefitsSection = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const benefits = [
-    {
-      icon: Zap,
-      iconColor: "text-yellow-500",
-      title: "Speed & Efficiency",
-      description: "Complete transactions up to 60% faster with streamlined workflows and automated document processing."
-    },
-    {
-      icon: Eye,
-      iconColor: "text-blue-500",
-      title: "Full Transparency",
-      description: "Every stakeholder has clear visibility into deal progress, documents, and next steps at all times."
-    },
-    {
-      icon: DollarSign,
-      iconColor: "text-green-500",
-      title: "Reduced Legal Costs",
-      description: "AI-powered document analysis reduces the need for extensive legal review, saving thousands in fees."
-    },
-    {
-      icon: Shield,
-      iconColor: "text-purple-500",
-      title: "Security & Compliance",
-      description: "Enterprise-grade encryption and compliance features protect sensitive business information."
-    },
-    {
-      icon: Heart,
-      iconColor: "text-pink-500",
-      title: "Stress Reduction",
-      description: "Clear processes and automated reminders eliminate confusion and reduce transaction anxiety."
-    },
-    {
-      icon: TrendingUp,
-      iconColor: "text-emerald-500",
-      title: "Higher Success Rate",
-      description: "Structured approach and professional tools increase the likelihood of successful deal completion."
-    }
-  ];
-
   return (
-    <section id="benefits" className="py-24 px-4 md:px-6 bg-gradient-to-b from-background via-muted/10 to-background relative overflow-hidden">
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
-      
+    <section
+      id="benefits"
+      className="py-20 md:py-28 px-4 md:px-6 bg-muted/20 relative overflow-hidden"
+    >
+      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
       <div className="container mx-auto max-w-6xl relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-14"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Why Choose Us
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full mb-4">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+            Why Choose Trustroom
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            Benefits for All Parties
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            Built for{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+              Results
+            </span>
           </h2>
-          <p className="text-muted-foreground max-w-3xl mx-auto">
-            Whether you're buying, selling, or advising, Trustroom.ai provides advantages that make the entire process smoother.
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Whether you're buying, selling, or advising — Trustroom.ai gives every party
+            a competitive edge.
           </p>
         </motion.div>
-        
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (
-            <BenefitCard 
-              key={index}
-              icon={benefit.icon}
-              iconColor={benefit.iconColor}
-              title={benefit.title}
-              description={benefit.description}
-            />
+            <motion.div
+              key={benefit.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: index * 0.08 }}
+              whileHover={{ y: -4 }}
+              className="bg-card border border-border/50 rounded-2xl p-6 hover:border-border hover:shadow-lg transition-all duration-300 group"
+            >
+              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 group-hover:scale-110 transition-all duration-300">
+                <benefit.icon className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {benefit.description}
+              </p>
+            </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
