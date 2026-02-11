@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -27,25 +28,31 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
     );
   }
 
-  // Display analysis results based on the type
   if (result) {
-    // If result is a string, display it directly
     if (typeof result === 'string') {
-      return <div className="whitespace-pre-line">{result}</div>;
+      return (
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <ReactMarkdown>{result}</ReactMarkdown>
+        </div>
+      );
     }
     
-    // If result is an object with content property
     if (result.content) {
       if (typeof result.content === 'string') {
-        return <div className="whitespace-pre-line">{result.content}</div>;
+        return (
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown>{result.content}</ReactMarkdown>
+          </div>
+        );
       } else {
-        // Render structured content
         return (
           <div>
             {result.content.summary && (
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">Summary</h3>
-                <p className="text-muted-foreground">{result.content.summary}</p>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{result.content.summary}</ReactMarkdown>
+                </div>
               </div>
             )}
             
@@ -56,7 +63,11 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
                   {result.content.details.map((item: any, index: number) => (
                     <li key={index} className="p-3 bg-muted/50 rounded">
                       {item.title && <div className="font-medium">{item.title}</div>}
-                      {item.description && <div className="text-muted-foreground">{item.description}</div>}
+                      {item.description && (
+                        <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                          <ReactMarkdown>{item.description}</ReactMarkdown>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -67,11 +78,9 @@ const AnalysisContent: React.FC<AnalysisContentProps> = ({
       }
     }
     
-    // Fallback for any other result structure
     return <pre className="text-sm overflow-auto">{JSON.stringify(result, null, 2)}</pre>;
   }
 
-  // This shouldn't be reached as loading states should be handled by the parent component
   return null;
 };
 

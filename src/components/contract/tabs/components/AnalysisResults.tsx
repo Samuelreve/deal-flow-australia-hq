@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, ExternalLink } from 'lucide-react';
@@ -16,7 +17,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   currentSources = [],
   questionHistory
 }) => {
-  // Show current analysis if available
   if (currentAnalysis) {
     return (
       <Card className="border-green-200 bg-green-50">
@@ -27,8 +27,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm max-w-none">
-            <p className="whitespace-pre-wrap text-green-900">{currentAnalysis}</p>
+          <div className="prose prose-sm max-w-none dark:prose-invert text-green-900">
+            <ReactMarkdown>{currentAnalysis}</ReactMarkdown>
           </div>
           
           {currentSources.length > 0 && (
@@ -49,7 +49,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
     );
   }
 
-  // Show recent analysis from history
   const recentAnalysis = questionHistory
     .filter(item => item.type === 'analysis')
     .slice(0, 3);
@@ -73,12 +72,14 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">
-              {typeof item.answer === 'string' 
-                ? item.answer.substring(0, 300) + (item.answer.length > 300 ? '...' : '')
-                : 'Analysis completed'
-              }
-            </p>
+            <div className="prose prose-sm max-w-none dark:prose-invert text-slate-700">
+              <ReactMarkdown>
+                {typeof item.answer === 'string' 
+                  ? item.answer.substring(0, 300) + (item.answer.length > 300 ? '...' : '')
+                  : 'Analysis completed'
+                }
+              </ReactMarkdown>
+            </div>
           </CardContent>
         </Card>
       ))}

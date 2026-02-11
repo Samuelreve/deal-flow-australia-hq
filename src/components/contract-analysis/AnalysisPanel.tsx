@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Brain, Download, Loader2 } from "lucide-react";
@@ -36,9 +37,9 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Summary</h4>
-              <p className="text-sm text-muted-foreground">
-                {summaryData.summary || "Analysis complete. Key insights have been identified."}
-              </p>
+              <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                <ReactMarkdown>{summaryData.summary || "Analysis complete. Key insights have been identified."}</ReactMarkdown>
+              </div>
             </div>
             
             {summaryData.keyTerms && (
@@ -46,7 +47,7 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 <h4 className="font-semibold mb-2">Key Terms</h4>
                 <div className="space-y-1">
                   {summaryData.keyTerms.slice(0, 3).map((term: string, index: number) => (
-                    <div key={index} className="text-sm bg-blue-50 rounded px-2 py-1">
+                    <div key={index} className="text-sm bg-primary/10 rounded px-2 py-1">
                       {term}
                     </div>
                   ))}
@@ -59,7 +60,7 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 <h4 className="font-semibold mb-2">Identified Risks</h4>
                 <div className="space-y-1">
                   {summaryData.risks.slice(0, 2).map((risk: string, index: number) => (
-                    <div key={index} className="text-sm bg-red-50 rounded px-2 py-1 text-red-800">
+                    <div key={index} className="text-sm bg-destructive/10 rounded px-2 py-1 text-destructive">
                       {risk}
                     </div>
                   ))}
