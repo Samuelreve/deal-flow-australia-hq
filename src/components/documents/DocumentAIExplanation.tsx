@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { X, Loader2 } from 'lucide-react';
 
@@ -39,7 +40,9 @@ const DocumentAIExplanation: React.FC<DocumentAIExplanationProps> = ({
         </div>
       ) : explanationResult ? (
         <div>
-          <p className="text-foreground">{explanationResult.explanation}</p>
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown>{explanationResult.explanation || ''}</ReactMarkdown>
+          </div>
           {explanationResult.disclaimer && (
             <p className="text-sm text-muted-foreground italic mt-2">{explanationResult.disclaimer}</p>
           )}

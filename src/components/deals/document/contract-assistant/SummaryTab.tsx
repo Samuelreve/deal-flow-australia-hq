@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Loader2 } from 'lucide-react';
 
 interface SummaryTabProps {
@@ -29,11 +30,9 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ summaryResult, isAnalyzing }) =
   
   return (
     <div className="space-y-4">
-      <div className="prose prose-sm max-w-none">
+      <div className="prose prose-sm max-w-none dark:prose-invert">
         <h3 className="text-lg font-medium">Contract Summary</h3>
-        <div className="whitespace-pre-wrap">
-          {summaryResult.summary}
-        </div>
+        <ReactMarkdown>{summaryResult.summary || ''}</ReactMarkdown>
       </div>
     </div>
   );
