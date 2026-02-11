@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, FileText, AlertTriangle, Key } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -220,9 +221,9 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
           <div className="space-y-4">
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm leading-relaxed">
-                  {result.summary || 'No summary available'}
-                </p>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{result.summary || 'No summary available'}</ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
             <Button 
@@ -241,8 +242,8 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
             {result.keyTerms && result.keyTerms.length > 0 ? (
               <div className="space-y-2">
                 {result.keyTerms.map((term, index) => (
-                  <Badge key={index} variant="outline" className="mr-2 mb-2">
-                    {term}
+                   <Badge key={index} variant="outline" className="mr-2 mb-2">
+                    <span className="prose prose-sm max-w-none dark:prose-invert [&>p]:m-0"><ReactMarkdown>{term}</ReactMarkdown></span>
                   </Badge>
                 ))}
               </div>
@@ -268,8 +269,10 @@ const DocumentAnalysisModal: React.FC<DocumentAnalysisModalProps> = ({
                   <Card key={index}>
                     <CardContent className="pt-4">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5" />
-                        <p className="text-sm">{risk}</p>
+                       <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{risk}</ReactMarkdown>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
