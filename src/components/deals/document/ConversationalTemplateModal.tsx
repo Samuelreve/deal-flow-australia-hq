@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from 'sonner';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+import ReactMarkdown from 'react-markdown';
 
 interface ConversationalTemplateModalProps {
   isOpen: boolean;
@@ -610,7 +611,13 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
                     }`}>
-                      <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                      {msg.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -695,9 +702,9 @@ const ConversationalTemplateModal: React.FC<ConversationalTemplateModalProps> = 
                 </div>
               </div>
               <ScrollArea className="flex-1 p-4">
-                <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {partialDocument}
-                </pre>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-xs">
+                  <ReactMarkdown>{partialDocument}</ReactMarkdown>
+                </div>
               </ScrollArea>
             </div>
           )}
