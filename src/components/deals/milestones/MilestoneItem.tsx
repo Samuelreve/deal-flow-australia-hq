@@ -474,7 +474,15 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
         });
       }
 
-      // Set up for signature positioning
+      // Check if DOCX/DOC - send directly to DocuSign without positioning modal
+      const ext = document.name?.split('.').pop()?.toLowerCase() || '';
+      if (['docx', 'doc'].includes(ext)) {
+        // DocuSign converts DOCX to PDF internally - skip positioning modal
+        await initiateDocuSignSigning(documentId, signersList);
+        return;
+      }
+
+      // For PDF and other files, open signature positioning modal
       setSelectedDocument({ id: documentId, url: urlData.signedUrl, name: document.name });
       setSigners(signersList);
       setIsSignatureModalOpen(true);
