@@ -271,8 +271,13 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
       return;
     }
 
-    // Use the first document for the milestone
-    const documentToSign = milestoneDocuments[0];
+    // Prefer PDF/DOCX documents for signing, fall back to first document
+    const signableExtensions = ['pdf', 'docx', 'doc'];
+    const preferredDoc = milestoneDocuments.find(doc => {
+      const ext = doc.name?.split('.').pop()?.toLowerCase() || '';
+      return signableExtensions.includes(ext);
+    });
+    const documentToSign = preferredDoc || milestoneDocuments[0];
     await handleDocumentSelected(documentToSign.id);
   };
 
