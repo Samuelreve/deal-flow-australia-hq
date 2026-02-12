@@ -136,7 +136,8 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
     
     const docType = getDocumentType();
     
-    if (isPdfDocument()) {
+    // Use Google Docs Viewer for PDFs and text files
+    if (isPdfDocument() || docType === 'txt') {
       return `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
     }
     
@@ -150,15 +151,18 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
 
   const shouldUseIframe = () => {
     const docType = getDocumentType();
-    return ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(docType);
+    return ['pdf', 'txt', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(docType);
   };
 
   const shouldShowTextPreview = () => {
-    return isTextFile() && documentPreview && !previewLoading;
+    // Text files now use external viewer, not inline preview
+    const docType = getDocumentType();
+    const isInlineTextFile = ['md', 'csv', 'json', 'xml'].includes(docType);
+    return isInlineTextFile && documentPreview && !previewLoading;
   };
 
   const getIframeUrl = () => {
-    if (isPdfDocument()) {
+    if (isPdfDocument() || getDocumentType() === 'txt') {
       return `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
     }
     return getExternalViewerUrl();
