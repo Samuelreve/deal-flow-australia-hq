@@ -31,13 +31,19 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
   useEffect(() => {
     if (isOpen && document) {
       generateDocumentUrl();
-      fetchDocumentPreview();
     } else {
       setDocumentUrl('');
       setDocumentPreview('');
       setIframeError(false);
     }
   }, [isOpen, document]);
+
+  // Fetch text content after URL is available for text files
+  useEffect(() => {
+    if (documentUrl && document) {
+      fetchDocumentPreview();
+    }
+  }, [documentUrl, document]);
 
   const generateDocumentUrl = async () => {
     if (!document) return;
@@ -84,27 +90,29 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
     }
   };
 
+  const isTextFile = () => {
+    const ext = getDocumentType();
+    return ['txt', 'md', 'csv', 'json', 'xml'].includes(ext);
+  };
+
   const fetchDocumentPreview = async () => {
     if (!document) return;
     
     setPreviewLoading(true);
     
     try {
-      // Try to get text content if available
-      const { data: docs, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('id', document.id)
-        .single();
-
-      if (error) {
-        setDocumentPreview('Unable to load document preview.');
-        return;
+      // For text-based files, download and display content directly
+      if (isTextFile() && documentUrl) {
+        const response = await fetch(documentUrl);
+        if (response.ok) {
+          const text = await response.text();
+          setDocumentPreview(text);
+        } else {
+          setDocumentPreview('Unable to load document preview.');
+        }
+      } else {
+        setDocumentPreview(`Document: ${document.name}\n\nThis document has been uploaded for this milestone.\nUse the external link to view the full document.`);
       }
-
-      // For now, we'll just show basic document info since text_content 
-      // field doesn't exist in the documents table
-      setDocumentPreview(`Document: ${document.name}\n\nThis document has been uploaded for this milestone.\nUse the external link to view the full document.`);
     } catch (error) {
       console.error('Error fetching document preview:', error);
       setDocumentPreview('Error loading document preview.');
@@ -143,6 +151,10 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
   const shouldUseIframe = () => {
     const docType = getDocumentType();
     return ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(docType);
+  };
+
+  const shouldShowTextPreview = () => {
+    return isTextFile() && documentPreview && !previewLoading;
   };
 
   const getIframeUrl = () => {
@@ -191,6 +203,12 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
                     {isLoadingUrl ? "Preparing document..." : "Loading preview..."}
                   </p>
                 </div>
+              ) : shouldShowTextPreview() ? (
+                <div className="flex-1 p-4 overflow-auto h-full">
+                  <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground bg-muted/30 p-4 rounded-md h-full overflow-auto">
+                    {documentPreview}
+                  </pre>
+                </div>
               ) : shouldUseIframe() && documentUrl && !iframeError ? (
                 <div className="h-full flex flex-col">
                   <iframe
@@ -216,11 +234,9 @@ const MilestoneDocumentPreviewModal: React.FC<MilestoneDocumentPreviewModalProps
                 </div>
               ) : (
                 <div className="flex-1 p-4 overflow-auto">
-                  <div className="custom-scrollbar">
-                    <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground bg-muted/30 p-4 rounded-md">
-                      {getDisplayText(documentPreview)}
-                    </pre>
-                  </div>
+                  <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground bg-muted/30 p-4 rounded-md">
+                    {getDisplayText(documentPreview)}
+                  </pre>
                 </div>
               )}
             </div>
