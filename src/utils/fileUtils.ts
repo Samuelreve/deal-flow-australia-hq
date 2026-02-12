@@ -66,9 +66,10 @@ export function requiresConversionForSigning(filename: string): boolean {
 /**
  * Get document type for signature positioning
  */
-export function getDocumentTypeForSigning(filename: string): 'pdf' | 'convertible' {
+export function getDocumentTypeForSigning(filename: string): 'pdf' | 'text' | 'convertible' {
   const extension = getFileExtension(filename).toLowerCase();
   if (extension === 'pdf') return 'pdf';
+  if (['txt', 'md', 'csv'].includes(extension)) return 'text';
   if (['docx', 'doc'].includes(extension)) return 'convertible';
   return 'pdf'; // fallback
 }
