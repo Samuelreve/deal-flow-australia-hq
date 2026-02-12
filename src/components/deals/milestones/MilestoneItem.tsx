@@ -258,9 +258,14 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
   const canMarkAsCompleted = milestone.status === 'in_progress' && 
     (!isDocumentSigning || milestoneSigningStatus === 'completed');
 
-  const handleSignDocument = async () => {
+   const handleSignDocument = async (specificDocumentId?: string) => {
     console.log('Sign document clicked for milestone:', milestone.id, milestone.title);
     
+    if (specificDocumentId) {
+      await handleDocumentSelected(specificDocumentId);
+      return;
+    }
+
     // Skip document selection modal and directly use milestone documents
     if (milestoneDocuments.length === 0) {
       toast({
@@ -1062,7 +1067,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
             milestoneSigningStatus === 'not_started' && showSignButton && (
               <div className="flex gap-2">
                 <button
-                  onClick={handleSignDocument}
+onClick={() => handleSignDocument()}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:z-10 focus:ring-4 focus:outline-none focus:ring-emerald-300 animate-fade-in"
                   disabled={signingInProgress}
                 >
@@ -1212,7 +1217,7 @@ const MilestoneItem: React.FC<MilestoneItemProps> = ({
                            </Button>
                          ) : (
                            <Button
-                             onClick={() => handleSignDocument()}
+                              onClick={() => handleSignDocument(doc.id)}
                              size="sm"
                              variant="outline"
                              className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
