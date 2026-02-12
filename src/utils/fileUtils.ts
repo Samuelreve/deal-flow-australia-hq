@@ -70,6 +70,8 @@ export function getDocumentTypeForSigning(filename: string): 'pdf' | 'text' | 'c
   const extension = getFileExtension(filename).toLowerCase();
   if (extension === 'pdf') return 'pdf';
   if (['txt', 'md', 'csv'].includes(extension)) return 'text';
-  if (['docx', 'doc'].includes(extension)) return 'convertible';
+  // DOCX/DOC files are sent directly to DocuSign which converts them to PDF internally
+  // We treat them as 'pdf' type and show a placeholder page for signature positioning
+  if (['docx', 'doc'].includes(extension)) return 'pdf';
   return 'pdf'; // fallback
 }

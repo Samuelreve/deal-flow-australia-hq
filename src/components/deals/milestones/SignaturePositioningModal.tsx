@@ -11,7 +11,7 @@ import type {
 import { getDocumentTypeForSigning } from '@/utils/fileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import TextSignaturePositioning from './TextSignaturePositioning';
-import DocxPageViewer from '@/components/documents/DocxPageViewer';
+// DocxPageViewer no longer needed - DocuSign converts DOCX internally
 
 // Configure PDF.js worker - use local worker file with matching version
 PDFJS.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -65,9 +65,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState<'pdf' | 'text' | 'convertible'>('pdf');
   const [documentContent, setDocumentContent] = useState<string>('');
-  const [convertedPdfUrl, setConvertedPdfUrl] = useState<string | null>(null);
-  const [isConverting, setIsConverting] = useState(false);
-  const [docxPages, setDocxPages] = useState<string[]>([]);
+  const [isDocxFile, setIsDocxFile] = useState(false);
   const [dragState, setDragState] = useState<{
     isDragging: boolean;
     recipientId: string | null;
@@ -93,6 +91,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     if (documentFilename) {
       const type = getDocumentTypeForSigning(documentFilename);
       setDocumentType(type);
+      const ext = documentFilename.split('.').pop()?.toLowerCase() || '';
+      setIsDocxFile(['docx', 'doc'].includes(ext));
     }
   }, [documentFilename]);
 
@@ -118,57 +118,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     }
   }, [isOpen, signers, documentType]);
 
-  // Convert document to HTML pages
-  const convertDocxToPages = async () => {
-    if (!documentUrl || !documentFilename) return;
-
-    setIsConverting(true);
-    setIsLoadingPdf(true);
-    setError(null);
-
-    try {
-      // Fetch the document
-      const response = await fetch(documentUrl);
-      const arrayBuffer = await response.arrayBuffer();
-      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      // Convert to HTML pages
-      const { data, error } = await supabase.functions.invoke('docx-to-images', {
-        body: {
-          fileData: base64Data,
-          mimeType: response.headers.get('content-type') || 'application/octet-stream',
-          filename: documentFilename
-        }
-      });
-
-      if (error || !data.success) {
-        throw new Error(data?.error || 'Conversion failed');
-      }
-
-      setDocxPages(data.pages);
-      setTotalPages(data.totalPages);
-      setCurrentPage(1);
-      setIsLoadingPdf(false);
-      setIsConverting(false);
-
-      toast({
-        title: 'Document loaded',
-        description: 'Document has been loaded for signature positioning',
-      });
-
-    } catch (error) {
-      console.error('Document conversion error:', error);
-      setError('Failed to convert document');
-      setIsLoadingPdf(false);
-      setIsConverting(false);
-      loadedDocumentUrlRef.current = null;
-      toast({
-        title: 'Conversion failed',
-        description: 'Could not load document. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
+  // No DOCX conversion needed - DocuSign converts DOCX to PDF internally
 
   // Load document based on type
   useEffect(() => {
@@ -193,9 +143,11 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           setIsLoadingPdf(false);
           loadedDocumentUrlRef.current = null;
         });
-    } else if (documentType === 'convertible') {
-      // Convert DOCX to HTML pages
-      convertDocxToPages();
+    } else if (isDocxFile) {
+      // DOCX files - just show placeholder, DocuSign converts internally
+      setIsLoadingPdf(false);
+      setTotalPages(1);
+      setCurrentPage(1);
     } else {
       // Load PDF document - fetch as ArrayBuffer first to avoid CORS issues
       console.log(`Loading PDF document: ${documentUrl}`);
@@ -203,14 +155,12 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       
       const loadPdf = async () => {
         try {
-          // Fetch the PDF as ArrayBuffer to bypass CORS restrictions
           const response = await fetch(documentUrl);
           if (!response.ok) {
             throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
           }
           const arrayBuffer = await response.arrayBuffer();
           
-          // Load PDF from ArrayBuffer instead of URL
           const loadingTask = PDFJS.getDocument({ data: arrayBuffer });
           const loadedDoc = await loadingTask.promise;
           
@@ -234,7 +184,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
       
       loadPdf();
     }
-  }, [documentUrl, isOpen, documentType, toast]);
+  }, [documentUrl, isOpen, documentType, isDocxFile, toast]);
 
   // Render ONLY the current page when page changes - with proper synchronization
   useEffect(() => {
@@ -376,7 +326,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
     };
   }, [dragState, zoom]);
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasClick = (event: React.MouseEvent<HTMLElement>) => {
     if (dragState.isDragging) return;
     
     if (currentSignerIndex === null) {
@@ -499,8 +449,8 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           <p className="text-sm text-muted-foreground">
             {documentType === 'text' 
               ? 'Click on text lines to position signature fields for each signer'
-              : documentType === 'convertible' && isConverting
-              ? 'Converting document to PDF for signature positioning...'
+              : isDocxFile
+              ? 'Position signature fields below. DocuSign will convert this document to PDF automatically.'
               : 'Click on the document to position signature fields for each signer'
             }
           </p>
@@ -587,7 +537,7 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                     <span className="text-sm px-3 py-1 bg-muted rounded">
                       Page {currentPage} of {totalPages}
                       {isRendering && " (Loading page...)"}
-                      {isConverting && " (Converting...)"}
+                      {isRendering && " (Loading page...)"}
                     </span>
                     <Button
                       size="sm"
@@ -630,36 +580,56 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
                   ref={containerRef}
                   className="flex-1 relative overflow-auto bg-white"
                 >
-                  {isLoadingPdf || isConverting ? (
+                  {isLoadingPdf ? (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-gray-600">
-                          {isConverting ? 'Converting document...' : 'Loading document...'}
-                        </p>
+                        <p className="text-muted-foreground">Loading document...</p>
                       </div>
                     </div>
                   ) : error ? (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-gray-200 p-8 rounded-lg">
+                      <div className="bg-muted p-8 rounded-lg">
                         <div className="text-center">
                           <div className="text-4xl mb-2">❌</div>
-                          <p className="text-gray-600">{error}</p>
+                          <p className="text-muted-foreground">{error}</p>
                         </div>
                       </div>
                     </div>
-                  ) : documentType === 'convertible' && docxPages.length > 0 ? (
-                    <DocxPageViewer
-                      pages={docxPages}
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={setCurrentPage}
-                      signaturePositions={signaturePositions}
-                      onSignaturePositionChange={setSignaturePositions}
-                      signers={signers}
-                      currentSignerIndex={currentSignerIndex}
-                      onSignerSelect={setCurrentSignerIndex}
-                    />
+                  ) : isDocxFile && !pdfDocument ? (
+                    /* DOCX placeholder - DocuSign converts internally */
+                    <div className="relative p-4">
+                      <div
+                        className="border border-border shadow-lg bg-background cursor-crosshair mx-auto"
+                        style={{ width: 595 * zoom, height: 842 * zoom, transformOrigin: 'top left' }}
+                        onClick={handleCanvasClick}
+                      >
+                        <div className="p-8 text-center text-muted-foreground" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+                          <div className="text-4xl mb-4">📄</div>
+                          <p className="font-medium text-lg">{documentFilename}</p>
+                          <p className="text-sm mt-2">Click to position signatures</p>
+                          <p className="text-xs mt-1">DocuSign will convert this document to PDF</p>
+                        </div>
+                      </div>
+                      {/* Signature position overlays */}
+                      {signaturePositions
+                        .filter(pos => pos.page === currentPage)
+                        .map((position) => (
+                          <div
+                            key={position.recipientId}
+                            className="absolute bg-primary/20 border-2 border-primary rounded flex items-center justify-center text-xs font-medium text-primary cursor-move z-10"
+                            style={{
+                              left: position.x * zoom + 16,
+                              top: position.y * zoom + 16,
+                              width: 120 * zoom,
+                              height: 40 * zoom,
+                            }}
+                            onMouseDown={(e) => handleSignatureMouseDown(position.recipientId, e)}
+                          >
+                            📝 {position.recipientName}
+                          </div>
+                        ))}
+                    </div>
                   ) : (
                     <div className="relative p-4">
                       <canvas
@@ -703,10 +673,10 @@ const SignaturePositioningModal: React.FC<SignaturePositioningModalProps> = ({
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={isLoading || isConverting || (documentType !== 'text' && isLoadingPdf)}
+            disabled={isLoading || (documentType !== 'text' && isLoadingPdf)}
           >
             <Save className="h-4 w-4 mr-2" />
-            {isLoading ? 'Processing...' : isConverting ? 'Converting...' : 'Confirm Positions'}
+            {isLoading ? 'Processing...' : 'Confirm Positions'}
           </Button>
         </div>
       </DialogContent>
