@@ -94,9 +94,9 @@ const TextSignaturePositioning: React.FC<TextSignaturePositioningProps> = ({
   const currentSigner = currentSignerIndex !== null ? signers[currentSignerIndex] : null;
 
   return (
-    <div className="flex gap-4 h-full">
+    <div className="flex gap-4 h-full min-h-0">
       {/* Left Panel - Signer List */}
-      <div className="w-72 border-r pr-4 space-y-4">
+      <div className="w-72 border-r pr-4 space-y-4 overflow-y-auto">
         <div>
           <h3 className="font-medium mb-2">Signers</h3>
           <div className="space-y-2">
@@ -151,8 +151,8 @@ const TextSignaturePositioning: React.FC<TextSignaturePositioningProps> = ({
       </div>
 
       {/* Right Panel - Text Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-3 border-b bg-muted/30">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="p-3 border-b bg-muted/30 flex-shrink-0">
           <p className="text-sm text-muted-foreground">
             Text Document - Click on lines to position signatures
           </p>
@@ -160,7 +160,7 @@ const TextSignaturePositioning: React.FC<TextSignaturePositioningProps> = ({
         
         <div 
           ref={contentRef}
-          className="flex-1 overflow-auto p-4 bg-white font-mono text-sm"
+          className="flex-1 overflow-y-auto p-4 bg-background font-mono text-sm min-h-0"
         >
           {lines.map((line, lineIndex) => {
             const hasSignature = signaturePositions.some(pos => pos.line === lineIndex);
@@ -175,12 +175,12 @@ const TextSignaturePositioning: React.FC<TextSignaturePositioningProps> = ({
                 onClick={() => handleLineClick(lineIndex)}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-xs w-8 select-none">
+                  <span className="text-muted-foreground text-xs w-8 select-none flex-shrink-0">
                     {lineIndex + 1}
                   </span>
-                  <span className="whitespace-pre-wrap">{line}</span>
+                  <span className="whitespace-pre-wrap break-all">{line || '\u00A0'}</span>
                   {signatureForLine && (
-                    <span className="ml-2 px-2 py-1 bg-primary/20 text-primary text-xs rounded">
+                    <span className="ml-2 px-2 py-1 bg-primary/20 text-primary text-xs rounded flex-shrink-0">
                       📝 {signatureForLine.recipientName}
                     </span>
                   )}
