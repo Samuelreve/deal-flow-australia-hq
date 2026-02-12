@@ -38,7 +38,7 @@ export const DocumentUploadArea: React.FC<DocumentUploadAreaProps> = ({
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.accept = '.pdf,.docx,.jpg,.jpeg,.png';
+    input.accept = '.pdf,.docx,.jpg,.jpeg,.png,.txt';
     input.onchange = (e) => {
       const target = e.target as HTMLInputElement;
       onFileUpload(target.files);
