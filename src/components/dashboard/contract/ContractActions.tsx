@@ -43,7 +43,7 @@ const ContractActions: React.FC<ContractActionsProps> = ({ isUploading, handleFi
           id="contract-upload" 
           className="hidden" 
           onChange={handleFileChange}
-          accept=".pdf,.docx"
+          accept=".pdf,.docx,.txt"
           disabled={isUploading || !user}
         />
       </div>

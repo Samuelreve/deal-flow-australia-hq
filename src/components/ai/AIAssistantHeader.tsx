@@ -34,7 +34,7 @@ const AIAssistantHeader: React.FC<AIAssistantHeaderProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx"
+              accept=".pdf,.docx,.txt"
               onChange={onFileUpload}
               className="hidden"
             />
