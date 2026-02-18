@@ -134,27 +134,28 @@ const HealthMonitoring = () => {
 
       {/* Main Tabs */}
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Dashboard
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <BarChart3 className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Alerts
+          <TabsTrigger value="alerts" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">Alerts</span>
             {unreadAlerts > 0 && (
               <Badge variant="destructive" className="text-xs h-5 px-1.5">
                 {unreadAlerts}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="predictions" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            AI Predictions
+          <TabsTrigger value="predictions" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <Brain className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate hidden sm:inline">AI </span>
+            <span className="truncate">Predictions</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Settings
+          <TabsTrigger value="settings" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <Settings className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">Settings</span>
           </TabsTrigger>
         </TabsList>
 
