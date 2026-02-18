@@ -236,15 +236,15 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
   return (
     <div className="space-y-6">
       {/* Header with Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Performance Dashboard</h2>
-          <p className="text-muted-foreground">Comprehensive analytics for your deal health</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Performance Dashboard</h2>
+          <p className="text-sm text-muted-foreground">Comprehensive analytics for your deal health</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-28 sm:w-32 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -255,9 +255,9 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
             </SelectContent>
           </Select>
           
-          <Button variant="outline" onClick={exportData} className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportData} size="sm" className="flex items-center gap-1.5 text-xs sm:text-sm">
             <Download className="h-4 w-4" />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </Button>
         </div>
       </div>
