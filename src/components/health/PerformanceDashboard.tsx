@@ -315,10 +315,10 @@ const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ deals }) =>
 
       {/* Charts */}
       <Tabs defaultValue="distribution" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="distribution">Health Distribution</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-          <TabsTrigger value="status">Status Overview</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-3 h-auto">
+          <TabsTrigger value="distribution" className="text-xs sm:text-sm px-2 sm:px-4 py-2 truncate">Health Distribution</TabsTrigger>
+          <TabsTrigger value="trends" className="text-xs sm:text-sm px-2 sm:px-4 py-2 truncate">Trends</TabsTrigger>
+          <TabsTrigger value="status" className="text-xs sm:text-sm px-2 sm:px-4 py-2 truncate">Status Overview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="distribution">
