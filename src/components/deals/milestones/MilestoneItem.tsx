@@ -1189,7 +1189,7 @@ onClick={() => handleSignDocument()}
                    </p>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     {/* Preview Button - Show for all participants */}
                     <Button
                       onClick={() => {
@@ -1202,9 +1202,9 @@ onClick={() => handleSignDocument()}
                       }}
                       size="sm"
                       variant="outline"
-                      className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                      className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 text-xs sm:text-sm px-2 sm:px-3"
                     >
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
                       Preview
                     </Button>
                     
@@ -1218,9 +1218,9 @@ onClick={() => handleSignDocument()}
                              disabled
                              size="sm"
                              variant="outline"
-                             className="text-green-600 border-green-200 bg-green-50"
+                             className="text-green-600 border-green-200 bg-green-50 text-xs sm:text-sm px-2 sm:px-3"
                            >
-                             <CheckCircle className="h-4 w-4 mr-2" />
+                             <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
                              Signed
                            </Button>
                          ) : (
@@ -1228,10 +1228,10 @@ onClick={() => handleSignDocument()}
                               onClick={() => handleSignDocument(doc.id)}
                              size="sm"
                              variant="outline"
-                             className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                             className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 text-xs sm:text-sm px-2 sm:px-3"
                            >
-                             <FileCheck className="h-4 w-4 mr-2" />
-                             Sign Document
+                             <FileCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                             <span className="hidden xs:inline">Sign </span>Document
                            </Button>
                          )}
                        </>
