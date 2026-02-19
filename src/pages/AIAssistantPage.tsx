@@ -42,7 +42,7 @@ const AIAssistantPage = () => {
       />
 
       {/* Chat Container */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl h-[calc(100vh-280px)]">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl h-[calc(100vh-220px)] sm:h-[calc(100vh-280px)]">
         <Card className="h-full flex flex-col shadow-lg overflow-hidden">
           {/* Messages Area */}
           <EnhancedAIAssistantMessages

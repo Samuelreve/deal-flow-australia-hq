@@ -18,19 +18,21 @@ const AIAssistantHeader: React.FC<AIAssistantHeaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Sparkles className="h-6 w-6 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">AI Business Assistant</h1>
-            <p className="text-gray-600">Expert business guidance powered by GPT-4o-mini</p>
+    <div className="bg-white dark:bg-background border-b border-gray-200 dark:border-border shadow-sm">
+      <div className="container mx-auto px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 bg-blue-100 dark:bg-primary/10 rounded-lg flex-shrink-0">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-foreground">AI Business Assistant</h1>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-muted-foreground">Expert business guidance powered by GPT-4o-mini</p>
+            </div>
           </div>
           
           {/* Document Upload */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:ml-auto flex-shrink-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -40,11 +42,12 @@ const AIAssistantHeader: React.FC<AIAssistantHeaderProps> = ({
             />
             <Button
               variant="outline"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm"
             >
-              <Upload className="h-4 w-4" />
-              Upload Document
+              <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Upload </span>Document
             </Button>
           </div>
         </div>
