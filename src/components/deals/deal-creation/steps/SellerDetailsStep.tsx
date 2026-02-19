@@ -198,12 +198,12 @@ const SellerDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPr
         </CollapsibleContent>
       </Collapsible>
 
-      <div className="flex justify-between pt-6">
-        <Button onClick={onPrev} variant="outline" size="lg">
-          <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="flex justify-between gap-3 pt-4 sm:pt-6">
+        <Button onClick={onPrev} variant="outline" size="default" className="text-sm sm:text-base">
+          <ArrowLeft className="mr-1 sm:mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={handleNext} size="lg" className="min-w-[160px]">
+        <Button onClick={handleNext} size="default" className="text-sm sm:text-base sm:min-w-[160px]">
           Review & Submit
         </Button>
       </div>

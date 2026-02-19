@@ -58,13 +58,13 @@ const DealCategoryStep: React.FC<DealCategoryStepProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-4">
-        <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-          <Building2 className="h-8 w-8 text-primary" />
+      <div className="text-center space-y-3 sm:space-y-4">
+        <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center">
+          <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold">Choose Your Deal Category</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-semibold">Choose Your Deal Category</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Select the type of deal you want to create. This will customize the form fields for your specific needs.
           </p>
         </div>
@@ -168,11 +168,11 @@ const DealCategoryStep: React.FC<DealCategoryStepProps> = ({
         })}
       </div>
 
-      <div className="flex justify-end pt-6">
+      <div className="flex justify-end pt-4 sm:pt-6">
         <Button 
           onClick={handleNext} 
-          size="lg" 
-          className="min-w-[160px]"
+          size="default"
+          className="w-full sm:w-auto sm:min-w-[160px] text-sm sm:text-base"
           disabled={!data.dealCategory}
         >
           {data.dealCategory === 'other' ? (

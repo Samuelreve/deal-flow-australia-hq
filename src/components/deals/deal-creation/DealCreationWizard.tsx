@@ -75,7 +75,7 @@ const DealCreationWizard: React.FC = () => {
   return (
     <WizardAuthGuard>
       <DocumentExtractionProvider>
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto px-2 sm:px-0">
           <WizardProgress steps={WIZARD_STEPS} currentStep={currentStep} />
           
           {currentStepInfo && (
